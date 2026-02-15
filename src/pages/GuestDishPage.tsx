@@ -5,6 +5,7 @@ import api from '../services/api';
 import type { Dish } from '../types';
 import DishViewer from '../components/Guest/DishViewer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
+import axios from 'axios';
 
 const GuestDishPage: React.FC = () => {
     const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
@@ -19,6 +20,11 @@ const GuestDishPage: React.FC = () => {
             try {
                 const response = await api.get(
                     `/menu/${restaurant_slug}/dish/${dish_id}`
+                    , {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true',
+                        }
+                    }
                 );
                 setDish(response.data);
                 // alert(`/menu/${restaurant_slug}/dish/${dish_id}`)
@@ -32,6 +38,27 @@ const GuestDishPage: React.FC = () => {
 
         fetchDish();
     }, [restaurant_slug, dish_id]);
+
+    const testFetchModel = async (dishId: number) => {
+        try {
+            const response = await axios.get(`/api/test/${dishId}`, {
+                responseType: 'arraybuffer', // or 'blob'
+            });
+
+            // Create a Blob from the response data
+            const blob = new Blob([response.data], { type: 'model/gltf-binary' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dish_${dishId}.glb`; // Forces .glb extension
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+        }
+    };
+
+
 
     if (loading) return <LoadingSpinner />;
     if (error) return <div className="text-center text-red-600 py-10">{error}</div>;
@@ -74,7 +101,7 @@ const GuestDishPage: React.FC = () => {
 
                 {/* Footer */}
                 <div className="text-center text-gray-500 text-sm">
-                    <p>Powered by AR Menu Platform</p>
+                    <p onClick={() => testFetchModel(1)}>Powered by AR Menu Platform</p>
                 </div>
             </div>
         </div>

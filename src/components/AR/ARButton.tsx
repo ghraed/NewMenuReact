@@ -22,7 +22,8 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
     }
 
     const glbUrl = dish.assets.find(a => a.asset_type === 'glb')?.file_url
-        || 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+        // || 'https://modelviewer.dev/shared-assets/models/Astronaut123.glb';
+        || 'https://fran-utile-unmorosely.ngrok-free.dev/storage/dishes/10/models/model.glb';
 
     const usdzUrl = dish.assets.find(a => a.asset_type === 'usdz')?.file_url;
 
@@ -47,7 +48,8 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         // This format opens Chrome's built-in AR viewer without crashing
         // It uses the "model-viewer" app link which is more stable
         // const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrl)}&mode=ar_preferred&title=View in AR&resizable=false`;
-        const testUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+        // const testUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
+        const testUrl = 'https://fran-utile-unmorosely.ngrok-free.dev/api/test/1';
         const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(testUrl)}&mode=ar_preferred`;
 
 

@@ -1,4 +1,12 @@
+@import "tailwindcss";
+
+/* Source paths for Tailwind to find classes */
+@source "../views/**/*.blade.php";
+@source "../js/**/*.{js,jsx,ts,tsx}";
+/* Important: includes your React files */
+
 #root {
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
@@ -11,9 +19,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -22,6 +32,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
