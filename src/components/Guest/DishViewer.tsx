@@ -248,11 +248,11 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
             </div>
 
             {/* {capabilities.isARSupported && <ARButton dish={dish} />} */}
-            // In the return statement of DishViewer:
+            {/* In the return statement of DishViewer: */}
             {(capabilities.isARSupported || isIOS || isAndroid) && (
                 <ARButton
                     dish={dish}
-                    isARSupported={capabilities.isARSupported}
+                // isARSupported={capabilities.isARSupported}
                 />
             )}
 
