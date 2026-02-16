@@ -8,17 +8,30 @@ const CreateDishPage: React.FC = () => {
     const navigate = useNavigate();
 
     // REAL API CALL: Send dish data to Laravel backend
-    const handleMockSubmit = async (dishData: any) => {
+    const handleMockSubmit = async (dishData: {
+        name: string;
+        description: string;
+        price: number;
+        category: string;
+        image_url: string;
+        glb_file: File | null;
+        usdz_file: File | null;
+    }) => {
         try {
             console.log('Submitting dish data to API:', dishData);
 
-            // Send POST request to Laravel backend
-            const response = await api.post('/dishes', {
-                name: dishData.name,
-                description: dishData.description,
-                price: parseFloat(dishData.price),
-                category: dishData.category,
-                image_url: dishData.image_url || null,
+            const formData = new FormData();
+            formData.append('name', dishData.name);
+            formData.append('description', dishData.description);
+            formData.append('price', String(dishData.price));
+            formData.append('category', dishData.category);
+            if (dishData.image_url) formData.append('image_url', dishData.image_url);
+            if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
+            if (dishData.usdz_file) formData.append('usdz_file', dishData.usdz_file);
+
+            // Send multipart request to Laravel backend
+            const response = await api.post('/dishes', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
 
             console.log('Dish created successfully:', response.data);

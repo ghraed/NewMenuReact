@@ -4,6 +4,7 @@ import GuestDishPage from './pages/GuestDishPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
+import AdminDishPage from './pages/AdminDishPage';
 import './App.css'; // Import Tailwind CSS
 
 const App: React.FC = () => {
@@ -19,6 +20,7 @@ const App: React.FC = () => {
         {/* Admin routes - NO AUTH PROTECTION FOR TESTING */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<AdminDashboard />} />
+        <Route path="/dashboard/dishes/:dish_id" element={<AdminDishPage />} />
         <Route path="/dishes/create" element={<CreateDishPage />} />
 
         {/* Redirect root to dashboard for testing */}

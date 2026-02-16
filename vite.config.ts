@@ -15,9 +15,9 @@ export default defineConfig({
       'localhost',
     ],
     proxy: {
-      '/api': 'http://192.168.10.203:8001',
+      '/api': 'http://127.0.0.1:8000',
       '/storage': {
-        target: 'http://192.168.10.203:8001',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
       }

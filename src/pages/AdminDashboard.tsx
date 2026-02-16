@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
+import api from '../services/api';
 
 // MOCK DATA - NO API CALLS YET
 const MOCK_DISHES: Dish[] = [
@@ -34,9 +36,30 @@ const MOCK_DISHES: Dish[] = [
 ];
 
 const AdminDashboard: React.FC = () => {
-    const [dishes, setDishes] = useState<Dish[]>(MOCK_DISHES);
+    const [dishes, setDishes] = useState<Dish[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [showQRModal, setShowQRModal] = useState(false);
     const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
+
+    useEffect(() => {
+        const fetchDishes = async () => {
+            try {
+                const response = await api.get('/dishes');
+                const payload = response.data;
+                const items = Array.isArray(payload?.data) ? payload.data : payload;
+                setDishes(items);
+            } catch (err) {
+                console.error(err);
+                setError('Failed to load dishes');
+                setDishes(MOCK_DISHES);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDishes();
+    }, []);
 
     // MOCK: Publish dish toggle
     const handlePublishToggle = (dishId: number) => {
@@ -66,7 +89,15 @@ const AdminDashboard: React.FC = () => {
                 </a>
             </div>
 
-            {dishes.length === 0 ? (
+            {loading ? (
+                <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <div className="text-gray-500">Loading dishes...</div>
+                </div>
+            ) : error ? (
+                <div className="text-center py-12 bg-red-50 rounded-lg text-red-700">
+                    {error}
+                </div>
+            ) : dishes.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                     <div className="text-5xl mb-4">📭</div>
                     <h3 className="text-xl font-medium text-gray-700 mb-2">No dishes yet</h3>
@@ -93,7 +124,10 @@ const AdminDashboard: React.FC = () => {
                             {dishes.map((dish) => (
                                 <tr key={dish.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
+                                        <Link
+                                            to={`/dashboard/dishes/${dish.id}`}
+                                            className="flex items-center hover:opacity-80"
+                                        >
                                             <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
                                                 🍕
                                             </div>
@@ -101,7 +135,7 @@ const AdminDashboard: React.FC = () => {
                                                 <div className="text-sm font-medium text-gray-900">{dish.name}</div>
                                                 <div className="text-sm text-gray-500">{dish.category}</div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         ${Number(dish.price).toFixed(2)}
@@ -130,9 +164,12 @@ const AdminDashboard: React.FC = () => {
                                         >
                                             📱 QR Code
                                         </button>
-                                        <button className="px-3 py-1 bg-gray-50 text-gray-700 rounded hover:bg-gray-100">
-                                            Edit
-                                        </button>
+                                        <Link
+                                            to={`/dashboard/dishes/${dish.id}`}
+                                            className="px-3 py-1 bg-gray-50 text-gray-700 rounded hover:bg-gray-100 inline-block"
+                                        >
+                                            View
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}

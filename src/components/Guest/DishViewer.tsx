@@ -8,6 +8,7 @@ import type { Dish } from '../../types';
 import ARButton from '../AR/ARButton';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import { USDZExporter } from 'three/examples/jsm/Addons.js';
+import { resolveAssetUrl } from '../../services/api';
 
 interface DishViewerProps {
     dish: Dish;
@@ -21,11 +22,6 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
             </div>
         );
     }
-    // Hardcoded USDZ URL for testing
-    // const hardcodedUsdzUrl = '/storage/dishes/10/model.glb';
-    const hardcodedUsdzUrl = 'https://modelviewer.dev/shared-assets/models/Astronaut.glb';
-
-
     // Detect platform
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isAndroid = /Android/.test(navigator.userAgent);
@@ -108,7 +104,9 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
 
 
         // ===== LOAD MODEL =====
-        const glbUrl = dish.assets.find(a => a.asset_type === 'glb')?.file_url;
+        const glbUrl = resolveAssetUrl(
+            dish.assets.find(a => a.asset_type === 'glb')?.file_url
+        );
 
         if (!glbUrl) {
             setError('No 3D model available');
@@ -120,7 +118,7 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
         let model: THREE.Group | null = null;
 
         loader.load(
-            hardcodedUsdzUrl,
+            glbUrl,
             (gltf) => {
                 if (isCleaningUpRef.current) return;
 

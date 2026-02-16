@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 
+interface DishFormData {
+    name: string;
+    description: string;
+    price: string;
+    category: string;
+    image_url: string;
+    glb_file: File | null;
+    usdz_file: File | null;
+}
+
 interface DishFormProps {
-    onSubmit: (data: any) => void;
+    onSubmit: (data: DishFormData) => Promise<void> | void;
 }
 
 const DishForm: React.FC<DishFormProps> = ({ onSubmit }) => {
@@ -10,17 +20,51 @@ const DishForm: React.FC<DishFormProps> = ({ onSubmit }) => {
         description: '',
         price: '',
         category: '',
-        image_url: ''
+        image_url: '',
+        glb_file: null as File | null,
+        usdz_file: null as File | null,
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, files } = e.target;
+        const file = files && files.length > 0 ? files[0] : null;
+        setFormData(prev => ({ ...prev, [name]: file }));
+    };
+
+    const hasValidExtension = (file: File | null, ext: string) => {
+        if (!file) return true;
+        return file.name.toLowerCase().endsWith(ext);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setFormError(null);
+
+        const hasGlb = !!formData.glb_file;
+        const hasUsdz = !!formData.usdz_file;
+
+        if (!hasGlb && !hasUsdz) {
+            setFormError('Please upload at least one model file (.glb or .usdz).');
+            return;
+        }
+
+        if (!hasValidExtension(formData.glb_file, '.glb')) {
+            setFormError('GLB file must end with .glb');
+            return;
+        }
+
+        if (!hasValidExtension(formData.usdz_file, '.usdz')) {
+            setFormError('USDZ file must end with .usdz');
+            return;
+        }
+
         setIsSubmitting(true);
 
         // Convert price to number for mock
@@ -29,11 +73,11 @@ const DishForm: React.FC<DishFormProps> = ({ onSubmit }) => {
             price: parseFloat(formData.price) || 0
         };
 
-        // MOCK: Simulate API delay
-        setTimeout(() => {
-            onSubmit(submissionData);
+        try {
+            await onSubmit(submissionData);
+        } finally {
             setIsSubmitting(false);
-        }, 800);
+        }
     };
 
     return (
@@ -127,27 +171,47 @@ const DishForm: React.FC<DishFormProps> = ({ onSubmit }) => {
                 </p>
             </div>
 
-            {/* 3D Assets Section (MOCK) */}
+            {/* 3D Assets */}
             <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-2">3D Assets (MOCK SECTION)</h3>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="text-2xl mt-1">⚠️</div>
-                        <div>
-                            <p className="font-medium text-blue-800">Asset Upload Coming Next!</p>
-                            <p className="text-blue-700 mt-1 text-sm">
-                                In the next step, we'll add:
-                            </p>
-                            <ul className="mt-2 space-y-1 text-sm text-blue-700">
-                                <li>• GLB file upload (for Android/WebXR)</li>
-                                <li>• USDZ file upload (for iOS AR)</li>
-                                <li>• Preview image upload</li>
-                                <li>• Real API integration</li>
-                            </ul>
-                        </div>
+                <h3 className="text-lg font-medium text-gray-800 mb-2">3D Assets</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="glb_file" className="block text-sm font-medium text-gray-700 mb-1">
+                            GLB File (Android/WebXR)
+                        </label>
+                        <input
+                            type="file"
+                            id="glb_file"
+                            name="glb_file"
+                            accept=".glb"
+                            onChange={handleFileChange}
+                            className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
                     </div>
+                    <div>
+                        <label htmlFor="usdz_file" className="block text-sm font-medium text-gray-700 mb-1">
+                            USDZ File (iOS AR)
+                        </label>
+                        <input
+                            type="file"
+                            id="usdz_file"
+                            name="usdz_file"
+                            accept=".usdz"
+                            onChange={handleFileChange}
+                            className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        Upload at least one file. Allowed extensions: .glb, .usdz
+                    </p>
                 </div>
             </div>
+
+            {formError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                    {formError}
+                </div>
+            )}
 
             {/* Submit Buttons */}
             <div className="flex gap-3 pt-2">
