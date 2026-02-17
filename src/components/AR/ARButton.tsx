@@ -51,6 +51,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         // This format opens Chrome's built-in AR viewer without crashing
         // It uses the "model-viewer" app link which is more stable
         const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrl)}&mode=ar_preferred`;
+        console.log('AR Scene Viewer URL:', viewerUrl);
 
 
 
