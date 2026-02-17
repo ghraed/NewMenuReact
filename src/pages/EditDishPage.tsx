@@ -6,6 +6,7 @@ import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish } from '../types';
+import { GlassSurface, LiquidButton } from '../components/ui/liquid-glass';
 
 const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -159,13 +160,14 @@ const EditDishPage: React.FC = () => {
   const usdzAsset = dish.assets.find((asset) => asset.asset_type === 'usdz');
   const glbUrl = resolveAssetUrl(glbAsset?.file_url);
   const usdzUrl = resolveAssetUrl(usdzAsset?.file_url);
+  const ModelViewer = 'model-viewer' as React.ElementType;
 
   return (
     <DashboardLayout title="Edit Dish">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">{dish.name}</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-xl font-semibold text-lg-text">{dish.name}</h2>
+          <p className="mt-1 text-sm text-lg-muted">
             {dish.deleted_at
               ? 'This dish is deleted. Restore it before editing.'
               : 'Update details and optionally upload new model files.'}
@@ -175,35 +177,35 @@ const EditDishPage: React.FC = () => {
           <Link
             to={`/menu/${guestRestaurantSlug}/dish/${dish.id}`}
             target="_blank"
-            className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="rounded-xl border border-white/45 bg-white/30 px-3 py-2 text-sm text-lg-text backdrop-blur-xl transition hover:bg-white/55"
           >
             Open Guest View
           </Link>
           {dish.deleted_at ? (
             <>
-              <button
+              <LiquidButton
                 onClick={handleRestore}
                 disabled={restoring}
-                className={`px-3 py-2 rounded-lg text-white ${restoring ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                tone="tertiary"
               >
                 {restoring ? 'Restoring...' : 'Restore Dish'}
-              </button>
-              <button
+              </LiquidButton>
+              <LiquidButton
                 onClick={handlePermanentDelete}
                 disabled={forceDeleting}
-                className={`px-3 py-2 rounded-lg text-white ${forceDeleting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'}`}
+                tone="secondary"
               >
                 {forceDeleting ? 'Deleting...' : 'Delete Permanently'}
-              </button>
+              </LiquidButton>
             </>
           ) : (
-            <button
+            <LiquidButton
               onClick={handleDelete}
               disabled={deleting}
-              className={`px-3 py-2 rounded-lg text-white ${deleting ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700'}`}
+              tone="secondary"
             >
               {deleting ? 'Deleting...' : 'Delete Dish'}
-            </button>
+            </LiquidButton>
           )}
         </div>
       </div>
@@ -214,10 +216,10 @@ const EditDishPage: React.FC = () => {
         </div>
       )}
 
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Current Model Preview</h3>
+      <GlassSurface className="mb-6 p-4">
+        <h3 className="mb-3 text-lg font-semibold text-lg-text">Current Model Preview</h3>
         {glbUrl ? (
-          <model-viewer
+          <ModelViewer
             src={glbUrl}
             ios-src={usdzUrl}
             camera-controls
@@ -231,11 +233,11 @@ const EditDishPage: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-3 text-xs text-gray-600">
+        <div className="mt-3 text-xs text-lg-muted">
           {glbUrl && <div>GLB: {glbUrl}</div>}
           {usdzUrl && <div>USDZ: {usdzUrl}</div>}
         </div>
-      </div>
+      </GlassSurface>
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
+import { GlassChip, GlassSurface, LiquidBackground, LiquidButton } from '../ui/liquid-glass';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/dishes/create', label: 'Create Dish', icon: '➕' },
+    { path: '/admin/theme-demo', label: 'Theme Demo', icon: '🫧' },
   ];
 
   const handleLogout = async () => {
@@ -23,67 +25,68 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">🍽️</div>
-            <h1 className="text-2xl font-bold text-gray-800">AR Menu Admin</h1>
+    <LiquidBackground>
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <GlassSurface className="mb-6 px-5 py-4" iridescent>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">🍽️</div>
+              <h1 className="text-2xl font-bold text-lg-text">AR Menu Admin</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href="/"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border border-white/45 bg-white/35 px-4 py-2 text-sm text-lg-text backdrop-blur-xl transition hover:bg-white/55"
+              >
+                Guest View
+              </a>
+              <LiquidButton tone="neutral" onClick={handleLogout}>
+                Logout
+              </LiquidButton>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/"
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Guest View
-            </a>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+        </GlassSurface>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <nav className="bg-white rounded-xl shadow p-4">
-              <h2 className="font-semibold text-gray-700 mb-4 px-2">Navigation</h2>
+            <GlassSurface className="p-4">
+              <h2 className="mb-4 px-1 text-sm font-semibold text-lg-muted">Navigation</h2>
               <ul className="space-y-2">
-                {navItems.map((item) => (
-                  <li key={item.path}>
-                    <Link
-                      to={item.path}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${location.pathname === item.path
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                    >
-                      <span className="text-xl">{item.icon}</span>
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                ))}
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-white/45 bg-white/30 px-3 py-2 text-sm text-lg-text backdrop-blur-xl transition hover:bg-white/50"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </span>
+                        <GlassChip active={isActive}>{isActive ? 'Active' : 'Open'}</GlassChip>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
-            </nav>
+            </GlassSurface>
           </div>
 
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
+            <GlassSurface className="overflow-hidden" sheen={false}>
+              <div className="border-b border-white/45 bg-white/30 px-6 py-4">
+                <h1 className="text-2xl font-bold text-lg-text">{title}</h1>
               </div>
               <div className="p-6">{children}</div>
-            </div>
+            </GlassSurface>
           </div>
         </div>
       </div>
-    </div>
+    </LiquidBackground>
   );
 };
 

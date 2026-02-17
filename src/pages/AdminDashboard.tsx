@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import '@google/model-viewer';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
-import api from '../services/api';
+import api, { resolveAssetUrl } from '../services/api';
+import { GlassChip, GlassSurface, LiquidButton } from '../components/ui/liquid-glass';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -14,14 +16,43 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 type DishFilter = 'all' | 'active' | 'deleted';
 
-const getCleanupDateLabel = (deletedAt?: string | null): string | null => {
-  if (!deletedAt) return null;
+const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
+  const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
+  const glbUrl = resolveAssetUrl(glbAsset?.file_url);
+  const imageUrl = dish.image_url || undefined;
+  const ModelViewer = 'model-viewer' as React.ElementType;
 
-  const cleanupDate = new Date(deletedAt);
-  cleanupDate.setDate(cleanupDate.getDate() + 7);
-  if (Number.isNaN(cleanupDate.getTime())) return null;
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt={dish.name}
+        className="h-12 w-12 rounded-lg border border-white/45 object-cover"
+      />
+    );
+  }
 
-  return cleanupDate.toLocaleString();
+  if (glbUrl) {
+    return (
+      <div className="h-12 w-12 overflow-hidden rounded-lg border border-white/45 bg-white/35">
+        <ModelViewer
+          src={glbUrl}
+          interaction-prompt="none"
+          disable-zoom
+          camera-orbit="0deg 75deg 1.7m"
+          min-camera-orbit="auto auto 1.7m"
+          max-camera-orbit="auto auto 1.7m"
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/45 bg-white/35">
+      🍽️
+    </div>
+  );
 };
 
 const AdminDashboard: React.FC = () => {
@@ -112,153 +143,116 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">Your Dishes</h2>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold text-lg-text">Your Dishes</h2>
         <Link
           to="/admin/dishes/create"
-          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
+          className="inline-flex items-center gap-2 rounded-2xl border border-white/55 bg-white/40 px-5 py-2.5 font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-glow-primary"
         >
           <span>➕</span> Create New Dish
         </Link>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-3 py-1 rounded-full text-sm ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilter('active')}
-          className={`px-3 py-1 rounded-full text-sm ${filter === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setFilter('deleted')}
-          className={`px-3 py-1 rounded-full text-sm ${filter === 'deleted' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-        >
-          Deleted
-        </button>
+        <GlassChip active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassChip>
+        <GlassChip active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassChip>
+        <GlassChip active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassChip>
       </div>
 
       {notice && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-blue-700">
+        <div className="mb-4 rounded-xl border border-blue-200/80 bg-blue-100/55 p-3 text-sm text-blue-700">
           {notice}
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg text-gray-500">Loading dishes...</div>
+        <GlassSurface className="py-12 text-center text-lg-muted">Loading dishes...</GlassSurface>
       ) : error ? (
-        <div className="text-center py-12 bg-red-50 rounded-lg text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200/80 bg-red-100/60 py-12 text-center text-red-700">{error}</div>
       ) : dishes.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <div className="text-5xl mb-4">📭</div>
-          <h3 className="text-xl font-medium text-gray-700 mb-2">No dishes yet</h3>
-          <p className="text-gray-500 mb-4">Create your first dish to get started</p>
+        <GlassSurface className="py-12 text-center">
+          <div className="mb-4 text-5xl">📭</div>
+          <h3 className="mb-2 text-xl font-medium text-lg-text">No dishes yet</h3>
+          <p className="mb-4 text-lg-muted">Create your first dish to get started</p>
           <Link
             to="/admin/dishes/create"
-            className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center rounded-2xl border border-white/55 bg-white/40 px-5 py-2.5 font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-glow-primary"
           >
             Create Dish
           </Link>
-        </div>
+        </GlassSurface>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <GlassSurface className="overflow-x-auto" sheen={false}>
+          <table className="min-w-full text-sm">
+            <thead className="border-b border-white/50 bg-white/25 text-left text-xs uppercase tracking-wide text-lg-muted">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dish</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3">Dish</th>
+                <th className="px-6 py-3">Price</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {dishes.map((dish) => (
-                <tr key={dish.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      to={`/admin/dishes/${dish.id}/edit`}
-                      className="flex items-center hover:opacity-80"
-                    >
-                      <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">🍽️</div>
+                <tr key={dish.id} className="border-b border-white/35 text-lg-text last:border-b-0 hover:bg-white/30">
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <Link to={`/admin/dishes/${dish.id}/edit`} className="flex items-center hover:opacity-85">
+                      <div className="flex-shrink-0">
+                        <DishModelThumbnail dish={dish} />
+                      </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{dish.name}</div>
-                        <div className="text-sm text-gray-500">{dish.category}</div>
+                        <div className="font-medium text-lg-text">{dish.name}</div>
+                        <div className="text-xs text-lg-muted">{dish.category}</div>
                       </div>
                     </Link>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${Number(dish.price).toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${dish.status === 'published'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                      }`}>
+                  <td className="whitespace-nowrap px-6 py-4 font-semibold">${Number(dish.price).toFixed(2)}</td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${dish.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                       {dish.status.charAt(0).toUpperCase() + dish.status.slice(1)}
                     </span>
                     {dish.deleted_at && (
-                      <span className="ml-2 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Deleted
-                      </span>
+                      <span className="ml-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Deleted</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    {dish.deleted_at ? (
-                      <>
-                        <button
-                          onClick={() => handleRestore(dish)}
-                          className="px-3 py-1 bg-green-50 text-green-700 rounded hover:bg-green-100"
-                        >
-                          Restore
-                        </button>
-                        <button
-                          onClick={() => handlePermanentDelete(dish)}
-                          className="px-3 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100"
-                        >
-                          Delete Permanently
-                        </button>
-                        {getCleanupDateLabel(dish.deleted_at) && (
-                          <div className="mt-1 text-xs text-red-700">
-                            Models auto-delete after: {getCleanupDateLabel(dish.deleted_at)}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handlePublishToggle(dish)}
-                          className={`px-3 py-1 rounded ${dish.status === 'published'
-                            ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
-                            : 'bg-green-50 text-green-700 hover:bg-green-100'
-                            }`}
-                        >
-                          {dish.status === 'published' ? 'Unpublish' : 'Publish'}
-                        </button>
-                        <Link
-                          to={`/admin/dishes/${dish.id}/edit`}
-                          className="px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 inline-block"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(dish)}
-                          className="px-3 py-1 bg-red-50 text-red-700 rounded hover:bg-red-100"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      {dish.deleted_at ? (
+                        <>
+                          <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
+                            Restore
+                          </LiquidButton>
+                          <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="px-3 py-1.5 text-xs">
+                            Delete Permanently
+                          </LiquidButton>
+                        </>
+                      ) : (
+                        <>
+                          <LiquidButton
+                            tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
+                            onClick={() => handlePublishToggle(dish)}
+                            className="px-3 py-1.5 text-xs"
+                          >
+                            {dish.status === 'published' ? 'Unpublish' : 'Publish'}
+                          </LiquidButton>
+                          <Link
+                            to={`/admin/dishes/${dish.id}/edit`}
+                            className="inline-flex items-center rounded-xl border border-white/50 bg-white/35 px-3 py-1.5 text-xs font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:bg-white/55"
+                          >
+                            Edit
+                          </Link>
+                          <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="px-3 py-1.5 text-xs">
+                            Delete
+                          </LiquidButton>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </GlassSurface>
       )}
     </DashboardLayout>
   );

@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import {
+  GlassInput,
+  GlassSurface,
+  GlassToast,
+  LiquidBackground,
+  LiquidButton,
+  useGlassToast,
+} from '../components/ui/liquid-glass';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -13,9 +21,10 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
+  const { toast, showToast, dismiss } = useGlassToast();
 
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('admin@example.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +41,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      showToast('Successfully saved', 'primary');
       navigate('/admin/dashboard', { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Login failed'));
@@ -41,61 +51,59 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
-            <span className="text-4xl">🍽️</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800">AR Menu Admin</h1>
-          <p className="text-gray-500 mt-2">Login to manage dishes and 3D models</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            />
+    <LiquidBackground>
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <GlassSurface className="w-full max-w-md p-8" iridescent>
+          <div className="mb-8 text-center">
+            <div className="mb-4 inline-block rounded-2xl border border-white/50 bg-white/45 p-3 text-4xl shadow-glass-soft">🍽️</div>
+            <h1 className="text-3xl font-bold text-lg-text">AR Menu Admin</h1>
+            <p className="mt-2 text-sm text-lg-muted">Login to manage dishes and 3D models</p>
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {error}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-lg-text">
+                Email
+              </label>
+              <GlassInput
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                leftSlot={<span>✉️</span>}
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full rounded-lg py-3 font-semibold text-white ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="password" className="mb-1 block text-sm font-medium text-lg-text">
+                Password
+              </label>
+              <GlassInput
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                leftSlot={<span>🔒</span>}
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-red-200/80 bg-red-100/60 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            <LiquidButton type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Logging in...' : 'Login'}
+            </LiquidButton>
+          </form>
+        </GlassSurface>
       </div>
-    </div>
+
+      <GlassToast toast={toast} onClose={dismiss} />
+    </LiquidBackground>
   );
 };
 

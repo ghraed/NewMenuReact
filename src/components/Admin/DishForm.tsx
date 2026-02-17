@@ -1,4 +1,10 @@
 import React, { useState } from 'react';
+import {
+  GlassInput,
+  GlassSurface,
+  GlassToggle,
+  LiquidButton,
+} from '../ui/liquid-glass';
 
 export interface DishFormData {
   name: string;
@@ -51,13 +57,6 @@ const DishForm: React.FC<DishFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: file }));
   };
 
-  const handleStatusToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      status: e.target.checked ? 'published' : 'draft',
-    }));
-  };
-
   const hasValidExtension = (file: File | null, ext: string) => {
     if (!file) return true;
     return file.name.toLowerCase().endsWith(ext);
@@ -97,42 +96,45 @@ const DishForm: React.FC<DishFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="name" className="mb-1 block text-sm font-medium text-lg-text">
           Dish Name *
         </label>
-        <input
+        <GlassInput
           type="text"
           id="name"
           name="name"
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Margherita Pizza"
         />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="mb-1 block text-sm font-medium text-lg-text">
           Description
         </label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={3}
-          className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Classic pizza with tomato sauce, fresh mozzarella, and basil"
-        />
+        <div className="lg-glass-panel rounded-2xl p-2">
+          <div className="lg-sheen" />
+          <div className="lg-glass-inner-border rounded-2xl" />
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows={3}
+            className="relative z-10 w-full rounded-xl bg-transparent px-3 py-2 text-lg-text placeholder:text-lg-muted/75 lg-focus-ring"
+            placeholder="Classic pizza with tomato sauce, fresh mozzarella, and basil"
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="price" className="mb-1 block text-sm font-medium text-lg-text">
             Price ($) *
           </label>
-          <input
+          <GlassInput
             type="number"
             id="price"
             name="price"
@@ -141,106 +143,89 @@ const DishForm: React.FC<DishFormProps> = ({
             required
             step="0.01"
             min="0"
-            className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="12.99"
           />
         </div>
 
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="category" className="mb-1 block text-sm font-medium text-lg-text">
             Category *
           </label>
-          <input
+          <GlassInput
             type="text"
             id="category"
             name="category"
             value={formData.category}
             onChange={handleChange}
             required
-            className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Pizza, Appetizers, Desserts"
           />
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <label htmlFor="status_toggle" className="flex items-center justify-between cursor-pointer">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-gray-800">Dish Status</p>
-            <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                formData.status === 'published'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-yellow-100 text-yellow-800'
-              }`}
-            >
-              {formData.status === 'published' ? 'Published' : 'Draft'}
-            </span>
-          </div>
-          <div className="ml-4">
-            <p className="text-xs text-gray-600">
+      <GlassSurface className="p-4" sheen={false}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <p className="text-sm font-semibold text-lg-text">Dish Status</p>
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  formData.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                {formData.status === 'published' ? 'Published' : 'Draft'}
+              </span>
+            </div>
+            <p className="text-xs text-lg-muted">
               {formData.status === 'published'
                 ? 'Published: visible to guests'
                 : 'Draft: hidden from guest pages'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              id="status_toggle"
-              type="checkbox"
-              checked={formData.status === 'published'}
-              onChange={handleStatusToggle}
-              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-          </div>
-        </label>
-      </div>
+
+          <GlassToggle
+            checked={formData.status === 'published'}
+            onChange={(checked) => {
+              setFormData((prev) => ({
+                ...prev,
+                status: checked ? 'published' : 'draft',
+              }));
+            }}
+            label=""
+          />
+        </div>
+      </GlassSurface>
 
       <div>
-        <label htmlFor="image_url" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="image_url" className="mb-1 block text-sm font-medium text-lg-text">
           Preview Image URL (Optional)
         </label>
-        <input
+        <GlassInput
           type="url"
           id="image_url"
           name="image_url"
           value={formData.image_url}
           onChange={handleChange}
-          className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="https://example.com/pizza.jpg"
         />
       </div>
 
-      <div className="border-t pt-6">
-        <h3 className="text-lg font-medium text-gray-800 mb-2">3D Assets</h3>
+      <div className="border-t border-white/40 pt-6">
+        <h3 className="mb-2 text-lg font-medium text-lg-text">3D Assets</h3>
         <div className="space-y-4">
           <div>
-            <label htmlFor="glb_file" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="glb_file" className="mb-1 block text-sm font-medium text-lg-text">
               GLB File (Android/WebXR)
             </label>
-            <input
-              type="file"
-              id="glb_file"
-              name="glb_file"
-              accept=".glb"
-              onChange={handleFileChange}
-              className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} />
           </div>
           <div>
-            <label htmlFor="usdz_file" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="usdz_file" className="mb-1 block text-sm font-medium text-lg-text">
               USDZ File (iOS AR)
             </label>
-            <input
-              type="file"
-              id="usdz_file"
-              name="usdz_file"
-              accept=".usdz"
-              onChange={handleFileChange}
-              className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} />
           </div>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-lg-muted">
             {requireModelUpload
               ? 'Upload at least one file. Allowed extensions: .glb, .usdz'
               : 'Optional on update. Upload new model files only when needed.'}
@@ -249,29 +234,22 @@ const DishForm: React.FC<DishFormProps> = ({
       </div>
 
       {formError && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="rounded-xl border border-red-200/80 bg-red-100/60 p-3 text-sm text-red-700">
           {formError}
         </div>
       )}
 
       <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          className="flex-1 px-4 py-2 border border-gray-300 text-black rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
+        <LiquidButton type="button" tone="neutral" className="flex-1" onClick={() => window.history.back()}>
           Cancel
-        </button>
-        <button
+        </LiquidButton>
+        <LiquidButton
           type="submit"
+          className="flex-1"
           disabled={isSubmitting || !formData.name || !formData.price || !formData.category}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors ${isSubmitting || !formData.name || !formData.price || !formData.category
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-green-600 hover:bg-green-700'
-            }`}
         >
           {isSubmitting ? submittingLabel : submitLabel}
-        </button>
+        </LiquidButton>
       </div>
     </form>
   );
