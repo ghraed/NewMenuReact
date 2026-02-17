@@ -11,6 +11,7 @@ export interface Dish {
   assets: DishAsset[];
   created_at: string;
   updated_at: string;
+  deleted_at?: string | null;
 }
 
 export interface DishAsset {
@@ -20,7 +21,7 @@ export interface DishAsset {
   file_url: string;
   file_size: number;
   mime_type: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface QRCodeData {
@@ -43,7 +44,7 @@ export interface DeviceCapabilities {
 
 export const trackEvent: (
   eventType: AnalyticsEvent, 
-  properties?: Record<string, any>  // Add this
+  properties?: Record<string, unknown>  // Add this
 ) => void = (eventType, properties) => {
   // Your analytics implementation
   console.log(eventType, properties);
