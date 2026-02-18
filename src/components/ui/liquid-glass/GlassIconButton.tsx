@@ -3,9 +3,22 @@ import { cx, getModernMode, glassControl } from '../../../theme/liquidGlass';
 
 interface GlassIconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   modern?: boolean;
+  tone?: 'primary' | 'secondary' | 'tertiary';
 }
 
-const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, modern, ...props }) => {
+const toneClass: Record<NonNullable<GlassIconButtonProps['tone']>, string> = {
+  primary: '!bg-lg-primary/35 !border-lg-primary/35 !text-white',
+  secondary: '!bg-lg-secondary/35 !border-lg-secondary/35 !text-white',
+  tertiary: '!bg-lg-tertiary/75 !border-white/45 !text-lg-text',
+};
+
+const GlassIconButton: React.FC<GlassIconButtonProps> = ({
+  className,
+  children,
+  modern,
+  tone = 'secondary',
+  ...props
+}) => {
   const resolvedModern = modern ?? getModernMode();
 
   return (
@@ -14,6 +27,7 @@ const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, 
         'group relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border text-lg text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
         glassControl(resolvedModern),
         'lg-lift-sm',
+        toneClass[tone],
         className
       )}
       {...props}

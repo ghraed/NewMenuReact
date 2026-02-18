@@ -41,7 +41,10 @@ const CreateDishPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Create New Dish">
+    <DashboardLayout
+      title="Create New Dish"
+      contentBoardClassName="shadow-none border-white/35"
+    >
       <div className="mb-6">
         <h2 className="mb-2 text-xl font-semibold text-lg-text">Add a new menu item</h2>
         <p className="text-slate-700/70">

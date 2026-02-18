@@ -1,6 +1,6 @@
 import React from 'react';
 import { resolveAssetUrl } from '../../services/api';
-import { cx, glassControl, getModernMode, primaryGradient, secondaryGradient } from '../../theme/liquidGlass';
+import { cx, glassControl, getModernMode } from '../../theme/liquidGlass';
 
 interface ARButtonProps {
   dish?: {
@@ -26,12 +26,11 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         href={usdzUrl}
         rel="ar"
         className={cx(
-          'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
+          'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-white transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
           glassControl(modern),
-          'lg-lift-sm'
+          'lg-lift-sm !bg-lg-secondary/52 !border-lg-secondary/45'
         )}
       >
-        <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', secondaryGradient)} />
         <span className="relative z-10">View in AR (iOS)</span>
       </a>
     );
@@ -47,12 +46,11 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={cx(
-            'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
+            'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-white transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
             glassControl(modern),
-            'lg-lift-sm'
+            'lg-lift-sm !bg-lg-primary/55 !border-lg-primary/45'
           )}
         >
-          <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', primaryGradient)} />
           <span className="relative z-10">View in AR (Scene Viewer)</span>
         </a>
         <p className="text-center text-xs text-slate-700/70">Requires Chrome and ARCore</p>

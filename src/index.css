@@ -3,12 +3,12 @@
 @import "./styles/liquid-glass.css";
 
 :root {
-  --lg-primary: 258 90% 66%;
-  --lg-secondary: 165 70% 55%;
-  --lg-tertiary: 200 30% 92%;
-  --lg-bg-a: 28 40% 94%;
-  --lg-bg-b: 205 25% 88%;
-  --lg-bg-c: 208 26% 54%;
+  --lg-primary: 0 65% 51%;
+  --lg-secondary: 30 100% 48%;
+  --lg-tertiary: 44 72% 93%;
+  --lg-bg-a: 44 72% 95%;
+  --lg-bg-b: 40 62% 91%;
+  --lg-bg-c: 34 48% 84%;
   --lg-text: 222 30% 15%;
 }
 

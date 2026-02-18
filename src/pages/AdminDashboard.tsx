@@ -136,20 +136,20 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Dashboard">
+    <DashboardLayout title="Dashboard" noShadow contentBoardClassName="border-white/35">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-lg-text">Your Dishes</h2>
         <Link to="/admin/dishes/create">
-          <LiquidButton tone="primary">
+          <LiquidButton tone="primary" noShadow>
             <span>➕</span> Create New Dish
           </LiquidButton>
         </Link>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassPill>
-        <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassPill>
-        <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassPill>
+        <GlassPill active={filter === 'all'} onClick={() => setFilter('all')} noShadow>All</GlassPill>
+        <GlassPill active={filter === 'active'} onClick={() => setFilter('active')} noShadow>Active</GlassPill>
+        <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')} noShadow>Deleted</GlassPill>
       </div>
 
       {notice && (
@@ -168,13 +168,13 @@ const AdminDashboard: React.FC = () => {
           <h3 className="mb-2 text-xl font-medium text-lg-text">No dishes yet</h3>
           <p className="mb-4 text-slate-700/70">Create your first dish to get started</p>
           <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">Create Dish</LiquidButton>
+            <LiquidButton tone="primary" noShadow>Create Dish</LiquidButton>
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {dishes.map((dish) => (
-            <GlassCard key={dish.id}>
+            <GlassCard key={dish.id} noShadow className="border-white/40 !bg-white/[0.12]">
               <div className="flex items-start gap-4">
                 <DishModelThumbnail dish={dish} />
                 <div className="flex-1">
@@ -187,19 +187,24 @@ const AdminDashboard: React.FC = () => {
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <GlassPill className="px-3 py-1 text-xs" disabled>
+                    <GlassPill className="px-3 py-1 text-xs" disabled noShadow>
                       {dish.status.charAt(0).toUpperCase() + dish.status.slice(1)}
                     </GlassPill>
-                    {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active>Deleted</GlassPill>}
+                    {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active noShadow>Deleted</GlassPill>}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-nowrap items-center gap-2 overflow-x-auto pb-1">
                     {dish.deleted_at ? (
                       <>
-                        <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
+                        <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} noShadow className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs">
                           Restore
                         </LiquidButton>
-                        <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="px-3 py-1.5 text-xs">
+                        <LiquidButton
+                          tone="primary"
+                          onClick={() => handlePermanentDelete(dish)}
+                          noShadow
+                          className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs !bg-lg-primary !border-lg-primary/90 !text-white"
+                        >
                           Delete Permanently
                         </LiquidButton>
                       </>
@@ -208,14 +213,20 @@ const AdminDashboard: React.FC = () => {
                         <LiquidButton
                           tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
                           onClick={() => handlePublishToggle(dish)}
-                          className="px-3 py-1.5 text-xs"
+                          noShadow
+                          className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs"
                         >
                           {dish.status === 'published' ? 'Unpublish' : 'Publish'}
                         </LiquidButton>
-                        <Link to={`/admin/dishes/${dish.id}/edit`}>
-                          <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs">Edit</LiquidButton>
+                        <Link to={`/admin/dishes/${dish.id}/edit`} className="shrink-0">
+                          <LiquidButton tone="tertiary" noShadow className="whitespace-nowrap px-3 py-1.5 text-xs">Edit</LiquidButton>
                         </Link>
-                        <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="px-3 py-1.5 text-xs">
+                        <LiquidButton
+                          tone="primary"
+                          onClick={() => handleDelete(dish)}
+                          noShadow
+                          className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs !bg-red-400 !border-lg-primary/90 !text-white"
+                        >
                           Delete
                         </LiquidButton>
                       </>

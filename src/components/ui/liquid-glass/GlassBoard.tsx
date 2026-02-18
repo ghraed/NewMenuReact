@@ -1,18 +1,19 @@
 import React from 'react';
-import { cx, getModernMode, glassSurface } from '../../../theme/liquidGlass';
+import { cx, getModernMode, glassSurface, glassSurfaceNoShadow } from '../../../theme/liquidGlass';
 
 interface GlassBoardProps extends React.HTMLAttributes<HTMLDivElement> {
   modern?: boolean;
+  noShadow?: boolean;
 }
 
-const GlassBoard: React.FC<GlassBoardProps> = ({ className, children, modern, ...props }) => {
+const GlassBoard: React.FC<GlassBoardProps> = ({ className, children, modern, noShadow = false, ...props }) => {
   const resolvedModern = modern ?? getModernMode();
 
   return (
     <div
       className={cx(
         'relative overflow-hidden rounded-[42px] border p-6 sm:p-8',
-        glassSurface(resolvedModern),
+        noShadow ? glassSurfaceNoShadow(resolvedModern) : glassSurface(resolvedModern),
         className
       )}
       {...props}

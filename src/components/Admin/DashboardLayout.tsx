@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import {
@@ -12,13 +12,15 @@ import {
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
+  contentBoardClassName?: string;
+  noShadow?: boolean;
 }
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title, contentBoardClassName, noShadow = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [modern, setModern] = useState(document.body.classList.contains('modern'));
+  const modern = false;
 
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
@@ -26,10 +28,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     { path: '/liquid-glass-preview', label: 'Theme Preview', icon: '🫧' },
   ];
 
-  const toggleModern = () => {
-    document.body.classList.toggle('modern');
-    setModern(document.body.classList.contains('modern'));
-  };
+  useEffect(() => {
+    const wasModern = document.body.classList.contains('modern');
+    document.body.classList.remove('modern');
+
+    return () => {
+      if (wasModern) {
+        document.body.classList.add('modern');
+      }
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -39,7 +47,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   return (
     <LiquidBackground>
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <GlassBoard className="mb-6 p-5 sm:p-6" modern={modern}>
+        <GlassBoard className="mb-6 p-5 sm:p-6" modern={modern} noShadow={noShadow}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="text-2xl">🍽️</div>
@@ -47,13 +55,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             </div>
 
             <div className="flex items-center gap-2">
-              <GlassPill onClick={toggleModern} modern={modern} className="text-xs">
-                {modern ? 'NEW' : 'OLD'}
-              </GlassPill>
               <a href="/" target="_blank" rel="noreferrer">
-                <GlassIconButton modern={modern} aria-label="Guest view">👁️</GlassIconButton>
+                <GlassIconButton modern={modern} aria-label="Guest view" className={noShadow ? '!shadow-none !filter-none' : undefined}>👁️</GlassIconButton>
               </a>
-              <LiquidButton tone="tertiary" onClick={handleLogout} modern={modern} className="px-4 py-2 text-sm">
+              <LiquidButton tone="tertiary" onClick={handleLogout} modern={modern} noShadow={noShadow} className="px-4 py-2 text-sm">
                 Logout
               </LiquidButton>
             </div>
@@ -62,7 +67,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <GlassBoard className="p-4" modern={modern}>
+            <GlassBoard className="p-4" modern={modern} noShadow={noShadow}>
               <h2 className="mb-4 px-1 text-sm font-semibold text-slate-700/70">Navigation</h2>
               <ul className="space-y-2">
                 {navItems.map((item) => {
@@ -75,7 +80,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                           <span>{item.icon}</span>
                           <span>{item.label}</span>
                         </span>
-                        <GlassPill active={isActive} modern={modern} className="px-2.5 py-1 text-[11px]">
+                        <GlassPill active={isActive} modern={modern} noShadow={noShadow} className="px-2.5 py-1 text-[11px]">
                           {isActive ? 'Active' : 'Open'}
                         </GlassPill>
                       </Link>
@@ -87,7 +92,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </div>
 
           <div className="lg:col-span-3">
-            <GlassBoard className="p-0" modern={modern}>
+            <GlassBoard
+              className={['p-0', contentBoardClassName].filter(Boolean).join(' ')}
+              modern={modern}
+              noShadow={noShadow}
+            >
               <div className="border-b border-white/20 px-6 py-4">
                 <h1 className="text-2xl font-bold text-lg-text">{title}</h1>
               </div>
