@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../utils/cn';
+import { cx, getModernMode, glassControl } from '../../../theme/liquidGlass';
 
 interface GlassToggleProps {
   checked: boolean;
@@ -8,6 +8,7 @@ interface GlassToggleProps {
   description?: string;
   className?: string;
   disabled?: boolean;
+  modern?: boolean;
 }
 
 const GlassToggle: React.FC<GlassToggleProps> = ({
@@ -17,15 +18,18 @@ const GlassToggle: React.FC<GlassToggleProps> = ({
   description,
   className,
   disabled = false,
+  modern,
 }) => {
+  const resolvedModern = modern ?? getModernMode();
+
   return (
-    <label className={cn('flex cursor-pointer items-center justify-between gap-4', disabled && 'cursor-not-allowed opacity-60', className)}>
+    <label className={cx('flex items-center justify-between gap-4', disabled && 'cursor-not-allowed opacity-60', className)}>
       <span>
         {label && <span className="block text-sm font-semibold text-lg-text">{label}</span>}
-        {description && <span className="block text-xs text-lg-muted">{description}</span>}
+        {description && <span className="block text-xs text-slate-700/70">{description}</span>}
       </span>
 
-      <span className="relative inline-flex">
+      <span className="relative inline-flex items-center">
         <input
           type="checkbox"
           className="peer sr-only"
@@ -33,16 +37,10 @@ const GlassToggle: React.FC<GlassToggleProps> = ({
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
+        <span className={cx('h-7 w-12 rounded-full border transition duration-300', glassControl(resolvedModern))} />
         <span
-          className={cn(
-            'h-7 w-12 rounded-full border border-white/55 bg-white/45 backdrop-blur-xl transition-all duration-300',
-            'peer-focus-visible:ring-2 peer-focus-visible:ring-lg-primary/70 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white/20',
-            checked ? 'shadow-glow-primary' : 'shadow-glass-soft'
-          )}
-        />
-        <span
-          className={cn(
-            'absolute left-1 top-1 h-5 w-5 rounded-full border border-white/50 bg-white/95 transition-transform duration-300',
+          className={cx(
+            'absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform duration-300',
             checked && 'translate-x-5'
           )}
         />

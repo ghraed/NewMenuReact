@@ -1,31 +1,32 @@
 import React from 'react';
-import { cn } from '../../../utils/cn';
+import { cx, getModernMode, glassControl } from '../../../theme/liquidGlass';
 
 interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   leftSlot?: React.ReactNode;
   rightSlot?: React.ReactNode;
+  modern?: boolean;
 }
 
-const GlassInput: React.FC<GlassInputProps> = ({ className, leftSlot, rightSlot, ...props }) => {
+const GlassInput: React.FC<GlassInputProps> = ({
+  className,
+  leftSlot,
+  rightSlot,
+  modern,
+  ...props
+}) => {
+  const resolvedModern = modern ?? getModernMode();
+
   return (
-    <div className="relative">
-      <div className="lg-glass-panel rounded-2xl">
-        <div className="lg-sheen" />
-        <div className="lg-glass-inner-border rounded-2xl" />
-        <div className="relative z-10 flex items-center gap-2 px-3 py-2">
-          {leftSlot && <span className="text-lg-muted">{leftSlot}</span>}
-          <input
-            className={cn(
-              'w-full bg-transparent text-sm text-lg-text placeholder:text-lg-muted/75',
-              'border-0 outline-none ring-0',
-              'lg-focus-ring rounded-lg px-1 py-1',
-              className
-            )}
-            {...props}
-          />
-          {rightSlot && <span className="text-lg-muted">{rightSlot}</span>}
-        </div>
-      </div>
+    <div className={cx('relative flex items-center gap-2 rounded-full border px-4 py-2.5', glassControl(resolvedModern), 'lg-lift-sm')}>
+      {leftSlot && <span className="relative z-10 text-slate-700/70">{leftSlot}</span>}
+      <input
+        className={cx(
+          'relative z-10 w-full bg-transparent text-sm text-lg-text placeholder:text-slate-700/70 focus:outline-none',
+          className
+        )}
+        {...props}
+      />
+      {rightSlot && <span className="relative z-10 text-slate-700/70">{rightSlot}</span>}
     </div>
   );
 };

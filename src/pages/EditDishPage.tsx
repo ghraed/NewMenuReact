@@ -6,7 +6,7 @@ import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish } from '../types';
-import { GlassSurface, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 
 const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -151,7 +151,7 @@ const EditDishPage: React.FC = () => {
   if (!dish) {
     return (
       <DashboardLayout title="Edit Dish">
-        <div className="text-center py-10 text-red-600">Dish not found</div>
+        <div className="py-10 text-center text-red-600">Dish not found</div>
       </DashboardLayout>
     );
   }
@@ -164,46 +164,30 @@ const EditDishPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Edit Dish">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-lg-text">{dish.name}</h2>
-          <p className="mt-1 text-sm text-lg-muted">
+          <p className="mt-1 text-sm text-slate-700/70">
             {dish.deleted_at
               ? 'This dish is deleted. Restore it before editing.'
               : 'Update details and optionally upload new model files.'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            to={`/menu/${guestRestaurantSlug}/dish/${dish.id}`}
-            target="_blank"
-            className="rounded-xl border border-white/45 bg-white/30 px-3 py-2 text-sm text-lg-text backdrop-blur-xl transition hover:bg-white/55"
-          >
-            Open Guest View
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/menu/${guestRestaurantSlug}/dish/${dish.id}`} target="_blank">
+            <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">Open Guest View</LiquidButton>
           </Link>
           {dish.deleted_at ? (
             <>
-              <LiquidButton
-                onClick={handleRestore}
-                disabled={restoring}
-                tone="tertiary"
-              >
+              <LiquidButton onClick={handleRestore} disabled={restoring} tone="tertiary">
                 {restoring ? 'Restoring...' : 'Restore Dish'}
               </LiquidButton>
-              <LiquidButton
-                onClick={handlePermanentDelete}
-                disabled={forceDeleting}
-                tone="secondary"
-              >
+              <LiquidButton onClick={handlePermanentDelete} disabled={forceDeleting} tone="secondary">
                 {forceDeleting ? 'Deleting...' : 'Delete Permanently'}
               </LiquidButton>
             </>
           ) : (
-            <LiquidButton
-              onClick={handleDelete}
-              disabled={deleting}
-              tone="secondary"
-            >
+            <LiquidButton onClick={handleDelete} disabled={deleting} tone="secondary">
               {deleting ? 'Deleting...' : 'Delete Dish'}
             </LiquidButton>
           )}
@@ -216,7 +200,7 @@ const EditDishPage: React.FC = () => {
         </div>
       )}
 
-      <GlassSurface className="mb-6 p-4">
+      <GlassCard className="mb-6 p-4">
         <h3 className="mb-3 text-lg font-semibold text-lg-text">Current Model Preview</h3>
         {glbUrl ? (
           <ModelViewer
@@ -233,11 +217,11 @@ const EditDishPage: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-3 text-xs text-lg-muted">
+        <div className="mt-3 text-xs text-slate-700/70">
           {glbUrl && <div>GLB: {glbUrl}</div>}
           {usdzUrl && <div>USDZ: {usdzUrl}</div>}
         </div>
-      </GlassSurface>
+      </GlassCard>
 
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">

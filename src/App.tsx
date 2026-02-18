@@ -9,7 +9,7 @@ import EditDishPage from './pages/EditDishPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import LiquidGlassDemoPage from './pages/LiquidGlassDemoPage';
-import { GlassSurface, LiquidBackground } from './components/ui/liquid-glass';
+import { GlassBoard, LiquidBackground } from './components/ui/liquid-glass';
 
 const App: React.FC = () => {
   return (
@@ -18,6 +18,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<GuestDishListPage />} />
           <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
+          <Route path="/liquid-glass-preview" element={<LiquidGlassDemoPage />} />
 
           <Route path="/admin/login" element={<LoginPage />} />
 
@@ -65,15 +66,16 @@ const App: React.FC = () => {
             path="*"
             element={
               <LiquidBackground>
-                <div className="min-h-screen flex items-center justify-center p-4">
-                  <GlassSurface className="max-w-lg p-8">
-                    <h1 className="text-2xl font-bold text-lg-text mb-2">AR Menu Platform</h1>
-                    <p className="text-lg-muted mb-4">Visit:</p>
-                    <ul className="text-left text-sm text-lg-text space-y-1">
-                      <li>• <a href="/" className="hover:underline">/</a> - Guest dishes list</li>
-                      <li>• <a href="/admin/login" className="hover:underline">/admin/login</a> - Admin login</li>
+                <div className="flex min-h-screen items-center justify-center p-4">
+                  <GlassBoard className="w-full max-w-lg">
+                    <h1 className="text-2xl font-bold text-lg-text">AR Menu Platform</h1>
+                    <p className="mt-2 text-slate-700/70">Visit:</p>
+                    <ul className="mt-3 space-y-1 text-sm text-lg-text">
+                      <li>• <a href="/" className="underline">/</a> - Guest dishes list</li>
+                      <li>• <a href="/admin/login" className="underline">/admin/login</a> - Admin login</li>
+                      <li>• <a href="/liquid-glass-preview" className="underline">/liquid-glass-preview</a> - Theme preview</li>
                     </ul>
-                  </GlassSurface>
+                  </GlassBoard>
                 </div>
               </LiquidBackground>
             }

@@ -1,0 +1,37 @@
+.lg-noise {
+  position: relative;
+}
+
+.lg-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+  background-size: 160px 160px;
+  background-repeat: repeat;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='160'%20height='160'%20filter='url(%23n)'%20opacity='0.55'/%3E%3C/svg%3E");
+}
+
+.lg-lift {
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.16)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.12));
+  will-change: transform, filter;
+}
+
+.lg-lift-sm {
+  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.14)) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.1));
+}
+
+.lg-lift-lg {
+  filter: drop-shadow(0 34px 46px rgba(0, 0, 0, 0.18)) drop-shadow(0 16px 22px rgba(0, 0, 0, 0.12));
+}
+
+.lg-focus {
+  outline: none;
+}
+
+.lg-focus:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--lg-primary) / 0.5);
+}

@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 export interface ToastState {
   open: boolean;
   message: string;
-  tone?: 'primary' | 'secondary' | 'tertiary' | 'neutral';
+  tone?: 'primary' | 'secondary' | 'tertiary';
 }
 
 export const useGlassToast = (defaultDuration = 2200) => {

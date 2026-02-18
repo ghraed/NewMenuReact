@@ -4,7 +4,7 @@ import '@google/model-viewer';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
 import api, { resolveAssetUrl } from '../services/api';
-import { GlassChip, GlassSurface, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassPill, LiquidButton } from '../components/ui/liquid-glass';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -23,18 +23,12 @@ const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
   const ModelViewer = 'model-viewer' as React.ElementType;
 
   if (imageUrl) {
-    return (
-      <img
-        src={imageUrl}
-        alt={dish.name}
-        className="h-12 w-12 rounded-lg border border-white/45 object-cover"
-      />
-    );
+    return <img src={imageUrl} alt={dish.name} className="h-20 w-20 rounded-2xl border border-white/35 object-cover" />;
   }
 
   if (glbUrl) {
     return (
-      <div className="h-12 w-12 overflow-hidden rounded-lg border border-white/45 bg-white/35">
+      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/35 bg-white/30">
         <ModelViewer
           src={glbUrl}
           interaction-prompt="none"
@@ -49,7 +43,7 @@ const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
   }
 
   return (
-    <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/45 bg-white/35">
+    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/35 bg-white/30">
       🍽️
     </div>
   );
@@ -143,20 +137,19 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="mb-6 flex items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-lg-text">Your Dishes</h2>
-        <Link
-          to="/admin/dishes/create"
-          className="inline-flex items-center gap-2 rounded-2xl border border-white/55 bg-white/40 px-5 py-2.5 font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-glow-primary"
-        >
-          <span>➕</span> Create New Dish
+        <Link to="/admin/dishes/create">
+          <LiquidButton tone="primary">
+            <span>➕</span> Create New Dish
+          </LiquidButton>
         </Link>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <GlassChip active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassChip>
-        <GlassChip active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassChip>
-        <GlassChip active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassChip>
+        <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassPill>
+        <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassPill>
+        <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassPill>
       </div>
 
       {notice && (
@@ -166,93 +159,73 @@ const AdminDashboard: React.FC = () => {
       )}
 
       {loading ? (
-        <GlassSurface className="py-12 text-center text-lg-muted">Loading dishes...</GlassSurface>
+        <div className="py-12 text-center text-slate-700/70">Loading dishes...</div>
       ) : error ? (
         <div className="rounded-xl border border-red-200/80 bg-red-100/60 py-12 text-center text-red-700">{error}</div>
       ) : dishes.length === 0 ? (
-        <GlassSurface className="py-12 text-center">
+        <div className="py-12 text-center">
           <div className="mb-4 text-5xl">📭</div>
           <h3 className="mb-2 text-xl font-medium text-lg-text">No dishes yet</h3>
-          <p className="mb-4 text-lg-muted">Create your first dish to get started</p>
-          <Link
-            to="/admin/dishes/create"
-            className="inline-flex items-center rounded-2xl border border-white/55 bg-white/40 px-5 py-2.5 font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:-translate-y-0.5 hover:shadow-glow-primary"
-          >
-            Create Dish
+          <p className="mb-4 text-slate-700/70">Create your first dish to get started</p>
+          <Link to="/admin/dishes/create">
+            <LiquidButton tone="primary">Create Dish</LiquidButton>
           </Link>
-        </GlassSurface>
+        </div>
       ) : (
-        <GlassSurface className="overflow-x-auto" sheen={false}>
-          <table className="min-w-full text-sm">
-            <thead className="border-b border-white/50 bg-white/25 text-left text-xs uppercase tracking-wide text-lg-muted">
-              <tr>
-                <th className="px-6 py-3">Dish</th>
-                <th className="px-6 py-3">Price</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dishes.map((dish) => (
-                <tr key={dish.id} className="border-b border-white/35 text-lg-text last:border-b-0 hover:bg-white/30">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <Link to={`/admin/dishes/${dish.id}/edit`} className="flex items-center hover:opacity-85">
-                      <div className="flex-shrink-0">
-                        <DishModelThumbnail dish={dish} />
-                      </div>
-                      <div className="ml-4">
-                        <div className="font-medium text-lg-text">{dish.name}</div>
-                        <div className="text-xs text-lg-muted">{dish.category}</div>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 font-semibold">${Number(dish.price).toFixed(2)}</td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${dish.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {dish.status.charAt(0).toUpperCase() + dish.status.slice(1)}
-                    </span>
-                    {dish.deleted_at && (
-                      <span className="ml-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">Deleted</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      {dish.deleted_at ? (
-                        <>
-                          <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
-                            Restore
-                          </LiquidButton>
-                          <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="px-3 py-1.5 text-xs">
-                            Delete Permanently
-                          </LiquidButton>
-                        </>
-                      ) : (
-                        <>
-                          <LiquidButton
-                            tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
-                            onClick={() => handlePublishToggle(dish)}
-                            className="px-3 py-1.5 text-xs"
-                          >
-                            {dish.status === 'published' ? 'Unpublish' : 'Publish'}
-                          </LiquidButton>
-                          <Link
-                            to={`/admin/dishes/${dish.id}/edit`}
-                            className="inline-flex items-center rounded-xl border border-white/50 bg-white/35 px-3 py-1.5 text-xs font-semibold text-lg-text shadow-glass-soft backdrop-blur-xl transition hover:bg-white/55"
-                          >
-                            Edit
-                          </Link>
-                          <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="px-3 py-1.5 text-xs">
-                            Delete
-                          </LiquidButton>
-                        </>
-                      )}
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {dishes.map((dish) => (
+            <GlassCard key={dish.id}>
+              <div className="flex items-start gap-4">
+                <DishModelThumbnail dish={dish} />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-lg-text">{dish.name}</h3>
+                      <p className="text-sm text-slate-700/70">{dish.category}</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </GlassSurface>
+                    <div className="text-lg font-bold text-lg-text">${Number(dish.price).toFixed(2)}</div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <GlassPill className="px-3 py-1 text-xs" disabled>
+                      {dish.status.charAt(0).toUpperCase() + dish.status.slice(1)}
+                    </GlassPill>
+                    {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active>Deleted</GlassPill>}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {dish.deleted_at ? (
+                      <>
+                        <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
+                          Restore
+                        </LiquidButton>
+                        <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="px-3 py-1.5 text-xs">
+                          Delete Permanently
+                        </LiquidButton>
+                      </>
+                    ) : (
+                      <>
+                        <LiquidButton
+                          tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
+                          onClick={() => handlePublishToggle(dish)}
+                          className="px-3 py-1.5 text-xs"
+                        >
+                          {dish.status === 'published' ? 'Unpublish' : 'Publish'}
+                        </LiquidButton>
+                        <Link to={`/admin/dishes/${dish.id}/edit`}>
+                          <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs">Edit</LiquidButton>
+                        </Link>
+                        <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="px-3 py-1.5 text-xs">
+                          Delete
+                        </LiquidButton>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
       )}
     </DashboardLayout>
   );

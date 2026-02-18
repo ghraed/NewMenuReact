@@ -1,15 +1,15 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+@import "./styles/liquid-glass.css";
 
 :root {
-  --lg-primary: 210 100% 72%;
-  --lg-secondary: 325 90% 75%;
-  --lg-tertiary: 165 70% 70%;
-  --lg-bg: 215 35% 92%;
-  --lg-surface: 0 0% 100%;
-  --lg-border: 0 0% 100%;
+  --lg-primary: 258 90% 66%;
+  --lg-secondary: 165 70% 55%;
+  --lg-tertiary: 200 30% 92%;
+  --lg-bg-a: 28 40% 94%;
+  --lg-bg-b: 205 25% 88%;
+  --lg-bg-c: 208 26% 54%;
   --lg-text: 222 30% 15%;
-  --lg-muted: 222 15% 35%;
 }
 
 @layer base {
@@ -24,13 +24,13 @@
   }
 
   body {
-    @apply min-h-screen bg-lg-bg text-lg-text antialiased;
     margin: 0;
-    font-family: "Inter", "Segoe UI", "SF Pro Text", "Helvetica Neue", sans-serif;
+    @apply min-h-screen text-lg-text antialiased;
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
   }
 
   a {
-    @apply text-lg-text;
+    color: inherit;
     text-decoration: none;
   }
 
@@ -44,46 +44,5 @@
   ::selection {
     background: hsl(var(--lg-primary) / 0.3);
     color: hsl(var(--lg-text));
-  }
-}
-
-@layer components {
-  .lg-app-bg {
-    @apply relative min-h-screen bg-lg-bg;
-    background-image:
-      radial-gradient(circle at 18% 12%, hsl(var(--lg-primary) / 0.36), transparent 35%),
-      radial-gradient(circle at 82% 4%, hsl(var(--lg-secondary) / 0.28), transparent 28%),
-      radial-gradient(circle at 80% 78%, hsl(var(--lg-tertiary) / 0.24), transparent 32%),
-      linear-gradient(180deg, hsl(var(--lg-bg)), hsl(var(--lg-bg) / 0.95));
-  }
-
-  .lg-glass-panel {
-    @apply relative overflow-hidden rounded-3xl border border-white/45 bg-white/35 backdrop-blur-2xl shadow-glass-soft;
-  }
-
-  .lg-glass-inner-border {
-    @apply absolute inset-[1px] rounded-[calc(theme(borderRadius.3xl)-1px)] border border-white/40 pointer-events-none;
-  }
-
-  .lg-sheen {
-    @apply pointer-events-none absolute -top-24 -left-28 h-56 w-[140%] rotate-[14deg] bg-white/30 blur-2xl;
-  }
-
-  .lg-iridescent {
-    @apply pointer-events-none absolute inset-0 opacity-70;
-    background: linear-gradient(
-      120deg,
-      hsl(var(--lg-primary) / 0.2),
-      hsl(var(--lg-secondary) / 0.15) 46%,
-      hsl(var(--lg-tertiary) / 0.2) 100%
-    );
-  }
-
-  .lg-focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lg-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white/20;
-  }
-
-  .lg-blob {
-    @apply pointer-events-none absolute rounded-full blur-3xl;
   }
 }

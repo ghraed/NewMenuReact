@@ -40,7 +40,7 @@ export const startWebXRSession = async (glbUrl: string) => {
     reticle.visible = false;
     scene.add(reticle);
 
-    let model: THREE.Group | null = null;
+    let model: any = null;
     let hitTestSource: XRHitTestSource | null = null;
     let hitTestSourceRequested = false;
 
@@ -56,14 +56,14 @@ export const startWebXRSession = async (glbUrl: string) => {
     scene.add(controller);
 
     // Animation loop
-    renderer.setAnimationLoop((timestamp: number, frame: XRFrame) => {
+    renderer.setAnimationLoop((_timestamp: number, frame: XRFrame) => {
         if (frame) {
             const referenceSpace = renderer.xr.getReferenceSpace();
             const session = renderer.xr.getSession();
             
             if (!hitTestSourceRequested) {
-                session.requestReferenceSpace('viewer').then((refSpace) => {
-                    session.requestHitTestSource({ space: refSpace }).then((source) => {
+                session.requestReferenceSpace('viewer').then((refSpace: any) => {
+                    session.requestHitTestSource({ space: refSpace }).then((source: any) => {
                         hitTestSource = source;
                     });
                 });
@@ -89,7 +89,7 @@ export const startWebXRSession = async (glbUrl: string) => {
     });
 
     // Load GLB
-    loader.load(glbUrl, (gltf) => {
+    loader.load(glbUrl, (gltf: any) => {
         model = gltf.scene;
         
         // Auto-scale for AR (real-world size approximation)

@@ -1,113 +1,87 @@
 import React, { useState } from 'react';
 import {
-  GlassChip,
+  GlassBoard,
+  GlassCard,
+  GlassIconButton,
   GlassInput,
-  GlassSelect,
-  GlassSurface,
-  GlassToast,
-  GlassToggle,
+  GlassPill,
   LiquidBackground,
   LiquidButton,
-  useGlassToast,
 } from '../components/ui/liquid-glass';
 
-const chipValues = ['All', 'Featured', 'Popular', 'Vegan'];
-
-const suggestions = [
-  { id: 1, label: 'Truffle Mushroom Pizza', tone: 'from-lg-primary/35 to-white/30' },
-  { id: 2, label: 'Strawberry Matcha Latte', tone: 'from-lg-secondary/35 to-white/30' },
-  { id: 3, label: 'Mint Citrus Tart', tone: 'from-lg-tertiary/35 to-white/30' },
-];
-
 const LiquidGlassDemoPage: React.FC = () => {
-  const [chip, setChip] = useState('All');
-  const [enabled, setEnabled] = useState(true);
-  const [category, setCategory] = useState('pizza');
-  const { toast, showToast, dismiss } = useGlassToast();
+  const [modern, setModern] = useState(document.body.classList.contains('modern'));
+
+  const toggleModern = () => {
+    document.body.classList.toggle('modern');
+    setModern(document.body.classList.contains('modern'));
+  };
 
   return (
     <LiquidBackground>
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <GlassSurface className="p-8" iridescent>
-          <h1 className="text-3xl font-bold tracking-tight text-lg-text">Liquid Glass UI Demo</h1>
-          <p className="mt-2 text-sm text-lg-muted">
-            Reusable components powered by shared Tailwind theme tokens.
-          </p>
+        <div className="mb-4 flex justify-end">
+          <GlassPill active={modern} onClick={toggleModern} className="text-xs">
+            {modern ? 'NEW' : 'OLD'}
+          </GlassPill>
+        </div>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <LiquidButton tone="primary" onClick={() => showToast('Successfully saved', 'primary')}>
-                  Save Changes
-                </LiquidButton>
-                <LiquidButton tone="secondary" onClick={() => showToast('Successfully saved', 'secondary')}>
-                  Publish Menu
-                </LiquidButton>
-              </div>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <GlassBoard modern={false}>
+            <h2 className="text-2xl font-bold text-lg-text">OLD</h2>
+            <p className="mt-1 text-sm text-slate-700/70">Legacy softer glass style.</p>
 
-              <GlassInput
-                placeholder="Search dishes"
-                leftSlot={<span>🔎</span>}
-                rightSlot={<span className="rounded-full bg-white/40 px-2 py-0.5 text-[10px]">Ctrl+K</span>}
-              />
-
-              <GlassInput
-                placeholder="Email address"
-                type="email"
-                leftSlot={<span>✉️</span>}
-                rightSlot={<span>Verified</span>}
-              />
-
-              <GlassSelect
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                options={[
-                  { value: 'pizza', label: 'Pizza' },
-                  { value: 'dessert', label: 'Dessert' },
-                  { value: 'drinks', label: 'Drinks' },
-                ]}
-              />
-
-              <GlassToggle
-                checked={enabled}
-                onChange={setEnabled}
-                label="Auto-publish new dishes"
-                description="New dishes become visible to guests automatically"
-              />
-            </div>
-
-            <div className="space-y-4">
+            <div className="mt-5 space-y-4">
               <div className="flex flex-wrap gap-2">
-                {chipValues.map((value) => (
-                  <GlassChip key={value} active={chip === value} onClick={() => setChip(value)}>
-                    {value}
-                  </GlassChip>
-                ))}
+                <GlassPill modern={false} active>Primary</GlassPill>
+                <GlassPill modern={false}>Secondary</GlassPill>
               </div>
-
-              <GlassSurface className="p-4" sheen={false}>
-                <h2 className="text-sm font-semibold text-lg-text">Suggested Dishes</h2>
-                <ul className="mt-3 space-y-2">
-                  {suggestions.map((item) => (
-                    <li
-                      key={item.id}
-                      className={`rounded-2xl border border-white/50 bg-gradient-to-br ${item.tone} px-4 py-3 text-sm font-medium text-lg-text shadow-glass-soft`}
-                    >
-                      {item.label}
-                    </li>
-                  ))}
-                </ul>
-              </GlassSurface>
-
-              <LiquidButton tone="tertiary" className="w-full" onClick={() => showToast('Successfully saved', 'tertiary')}>
-                Trigger Success Toast
-              </LiquidButton>
+              <GlassInput modern={false} leftSlot={<span>🔎</span>} placeholder="Search projects..." />
+              <div className="flex gap-2">
+                <LiquidButton modern={false} tone="primary">Primary</LiquidButton>
+                <LiquidButton modern={false} tone="secondary">Secondary</LiquidButton>
+                <LiquidButton modern={false} tone="tertiary">Tertiary</LiquidButton>
+              </div>
+              <div className="flex gap-2">
+                <GlassIconButton modern={false}>+</GlassIconButton>
+                <GlassIconButton modern={false}>✓</GlassIconButton>
+                <GlassIconButton modern={false}>›</GlassIconButton>
+              </div>
+              <GlassCard modern={false}>
+                <p className="text-lg font-semibold text-lg-text">Sample Card</p>
+                <p className="text-sm text-slate-700/70">Old glass card surface preview.</p>
+              </GlassCard>
             </div>
-          </div>
-        </GlassSurface>
-      </div>
+          </GlassBoard>
 
-      <GlassToast toast={toast} onClose={dismiss} />
+          <GlassBoard modern>
+            <h2 className="text-2xl font-bold text-lg-text">NEW</h2>
+            <p className="mt-1 text-sm text-slate-700/70">Liquid glass board with rim, lift, and noise.</p>
+
+            <div className="mt-5 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <GlassPill modern active>Primary</GlassPill>
+                <GlassPill modern>Secondary</GlassPill>
+              </div>
+              <GlassInput modern leftSlot={<span>🔎</span>} placeholder="Search projects..." rightSlot={<span>⌘K</span>} />
+              <div className="flex gap-2">
+                <LiquidButton modern tone="primary">Primary</LiquidButton>
+                <LiquidButton modern tone="secondary">Secondary</LiquidButton>
+                <LiquidButton modern tone="tertiary">Tertiary</LiquidButton>
+              </div>
+              <div className="flex gap-2">
+                <GlassIconButton modern>+</GlassIconButton>
+                <GlassIconButton modern>✓</GlassIconButton>
+                <GlassIconButton modern>›</GlassIconButton>
+              </div>
+              <GlassCard modern>
+                <p className="text-lg font-semibold text-lg-text">Sample Card</p>
+                <p className="text-sm text-slate-700/70">New glass card with internal gradient blobs.</p>
+              </GlassCard>
+            </div>
+          </GlassBoard>
+        </div>
+      </div>
     </LiquidBackground>
   );
 };

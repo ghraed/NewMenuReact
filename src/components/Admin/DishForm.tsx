@@ -5,6 +5,7 @@ import {
   GlassToggle,
   LiquidButton,
 } from '../ui/liquid-glass';
+import { cx, getModernMode, glassControl } from '../../theme/liquidGlass';
 
 export interface DishFormData {
   name: string;
@@ -32,6 +33,7 @@ const DishForm: React.FC<DishFormProps> = ({
   submitLabel = 'Save Dish',
   submittingLabel = 'Saving...',
 }) => {
+  const modern = getModernMode();
   const [formData, setFormData] = useState<DishFormData>({
     name: initialValues?.name || '',
     description: initialValues?.description || '',
@@ -107,6 +109,7 @@ const DishForm: React.FC<DishFormProps> = ({
           onChange={handleChange}
           required
           placeholder="Margherita Pizza"
+          modern={modern}
         />
       </div>
 
@@ -114,16 +117,14 @@ const DishForm: React.FC<DishFormProps> = ({
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-lg-text">
           Description
         </label>
-        <div className="lg-glass-panel rounded-2xl p-2">
-          <div className="lg-sheen" />
-          <div className="lg-glass-inner-border rounded-2xl" />
+        <div className={cx('rounded-[26px] border px-4 py-3', glassControl(modern), 'lg-lift-sm')}>
           <textarea
             id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
             rows={3}
-            className="relative z-10 w-full rounded-xl bg-transparent px-3 py-2 text-lg-text placeholder:text-lg-muted/75 lg-focus-ring"
+            className="w-full rounded-xl bg-transparent text-lg-text placeholder:text-slate-700/70 focus:outline-none"
             placeholder="Classic pizza with tomato sauce, fresh mozzarella, and basil"
           />
         </div>
@@ -144,6 +145,7 @@ const DishForm: React.FC<DishFormProps> = ({
             step="0.01"
             min="0"
             placeholder="12.99"
+            modern={modern}
           />
         </div>
 
@@ -159,11 +161,12 @@ const DishForm: React.FC<DishFormProps> = ({
             onChange={handleChange}
             required
             placeholder="Pizza, Appetizers, Desserts"
+            modern={modern}
           />
         </div>
       </div>
 
-      <GlassSurface className="p-4" sheen={false}>
+      <GlassSurface className="p-4" sheen={false} modern={modern}>
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="mb-1 flex items-center gap-2">
@@ -176,7 +179,7 @@ const DishForm: React.FC<DishFormProps> = ({
                 {formData.status === 'published' ? 'Published' : 'Draft'}
               </span>
             </div>
-            <p className="text-xs text-lg-muted">
+            <p className="text-xs text-slate-700/70">
               {formData.status === 'published'
                 ? 'Published: visible to guests'
                 : 'Draft: hidden from guest pages'}
@@ -192,6 +195,7 @@ const DishForm: React.FC<DishFormProps> = ({
               }));
             }}
             label=""
+            modern={modern}
           />
         </div>
       </GlassSurface>
@@ -207,25 +211,26 @@ const DishForm: React.FC<DishFormProps> = ({
           value={formData.image_url}
           onChange={handleChange}
           placeholder="https://example.com/pizza.jpg"
+          modern={modern}
         />
       </div>
 
-      <div className="border-t border-white/40 pt-6">
+      <div className="border-t border-white/30 pt-6">
         <h3 className="mb-2 text-lg font-medium text-lg-text">3D Assets</h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="glb_file" className="mb-1 block text-sm font-medium text-lg-text">
               GLB File (Android/WebXR)
             </label>
-            <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} />
+            <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} modern={modern} />
           </div>
           <div>
             <label htmlFor="usdz_file" className="mb-1 block text-sm font-medium text-lg-text">
               USDZ File (iOS AR)
             </label>
-            <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} />
+            <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} modern={modern} />
           </div>
-          <p className="text-xs text-lg-muted">
+          <p className="text-xs text-slate-700/70">
             {requireModelUpload
               ? 'Upload at least one file. Allowed extensions: .glb, .usdz'
               : 'Optional on update. Upload new model files only when needed.'}
@@ -240,7 +245,7 @@ const DishForm: React.FC<DishFormProps> = ({
       )}
 
       <div className="flex gap-3 pt-2">
-        <LiquidButton type="button" tone="neutral" className="flex-1" onClick={() => window.history.back()}>
+        <LiquidButton type="button" tone="tertiary" className="flex-1" onClick={() => window.history.back()}>
           Cancel
         </LiquidButton>
         <LiquidButton

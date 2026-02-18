@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../../utils/cn';
+import { cx } from '../../../theme/liquidGlass';
 
 interface LiquidBackgroundProps {
   children: React.ReactNode;
@@ -8,10 +8,15 @@ interface LiquidBackgroundProps {
 
 const LiquidBackground: React.FC<LiquidBackgroundProps> = ({ children, className }) => {
   return (
-    <div className={cn('lg-app-bg', className)}>
-      <div className="lg-blob -left-24 -top-24 h-72 w-72 bg-lg-primary/35" />
-      <div className="lg-blob right-[-5rem] top-16 h-72 w-72 bg-lg-secondary/30" />
-      <div className="lg-blob bottom-[-8rem] left-1/2 h-80 w-80 -translate-x-1/2 bg-lg-tertiary/28" />
+    <div
+      className={cx(
+        'relative min-h-screen overflow-hidden bg-gradient-to-br from-[hsl(var(--lg-bg-a))] via-[hsl(var(--lg-bg-b))] to-[hsl(var(--lg-bg-c))]',
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -left-24 top-2 h-80 w-80 rounded-full bg-gradient-to-br from-lg-primary/35 to-indigo-200/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 top-12 h-72 w-72 rounded-full bg-gradient-to-br from-lg-secondary/35 to-cyan-200/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-7rem] left-1/3 h-80 w-80 rounded-full bg-gradient-to-br from-fuchsia-200/20 to-lg-primary/30 blur-3xl" />
       <div className="relative z-10">{children}</div>
     </div>
   );

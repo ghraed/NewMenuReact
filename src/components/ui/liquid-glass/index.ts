@@ -1,3 +1,8 @@
+export { default as GlassBoard } from './GlassBoard';
+export { default as GlassPill } from './GlassPill';
+export { default as GlassIconButton } from './GlassIconButton';
+export { default as GlassCard } from './GlassCard';
+
 export { default as GlassSurface } from './GlassSurface';
 export { default as LiquidButton } from './LiquidButton';
 export { default as GlassInput } from './GlassInput';

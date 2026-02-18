@@ -44,7 +44,7 @@ const CreateDishPage: React.FC = () => {
     <DashboardLayout title="Create New Dish">
       <div className="mb-6">
         <h2 className="mb-2 text-xl font-semibold text-lg-text">Add a new menu item</h2>
-        <p className="text-lg-muted">
+        <p className="text-slate-700/70">
           Create a dish with at least one 3D model (.glb or .usdz).
         </p>
       </div>
