@@ -8,13 +8,13 @@ export const tertiaryGradient = 'from-white/25 via-white/10 to-white/25';
 
 export const glassSurface = (modern: boolean) =>
   modern
-    ? 'bg-white/[0.07] backdrop-blur-[34px] backdrop-saturate-150 border-white/35 shadow-[0_34px_120px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.45)] lg-noise'
-    : 'bg-white/10 backdrop-blur-2xl border-white/20 shadow-[0_22px_80px_rgba(0,0,0,0.28)] lg-noise';
+    ? 'bg-white/[0.07] backdrop-blur-[34px] backdrop-saturate-150 border-white/35 shadow-[0_20px_70px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.45)] lg-noise'
+    : 'bg-white/10 backdrop-blur-2xl border-white/20 shadow-[0_18px_60px_rgba(0,0,0,0.16)] lg-noise';
 
 export const glassControl = (modern: boolean) =>
   modern
-    ? 'bg-white/[0.06] backdrop-blur-[24px] backdrop-saturate-150 border-white/30 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.35)] lg-noise lg-lift'
-    : 'bg-white/10 backdrop-blur-2xl border-white/20 shadow-[0_14px_44px_rgba(0,0,0,0.18)] lg-noise lg-lift';
+    ? 'bg-white/[0.06] backdrop-blur-[24px] backdrop-saturate-150 border-white/30 shadow-[0_14px_40px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.35)] lg-noise lg-lift'
+    : 'bg-white/10 backdrop-blur-2xl border-white/20 shadow-[0_12px_34px_rgba(0,0,0,0.12)] lg-noise lg-lift';
 
 export const getModernMode = () =>
   typeof document !== 'undefined' && document.body.classList.contains('modern');
