@@ -193,7 +193,7 @@ const AdminDashboard: React.FC = () => {
                     {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active>Deleted</GlassPill>}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 flex max-w-full flex-nowrap items-center gap-2">
                     {dish.deleted_at ? (
                       <>
                         <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
