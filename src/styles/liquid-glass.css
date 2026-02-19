@@ -16,16 +16,16 @@
 }
 
 .lg-lift {
-  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.16)) drop-shadow(0 12px 18px rgba(0, 0, 0, 0.12));
+  filter: none;
   will-change: transform, filter;
 }
 
 .lg-lift-sm {
-  filter: drop-shadow(0 18px 22px rgba(0, 0, 0, 0.14)) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.1));
+  filter: none;
 }
 
 .lg-lift-lg {
-  filter: drop-shadow(0 34px 46px rgba(0, 0, 0, 0.18)) drop-shadow(0 16px 22px rgba(0, 0, 0, 0.12));
+  filter: none;
 }
 
 .lg-focus {
@@ -33,5 +33,5 @@
 }
 
 .lg-focus:focus-visible {
-  box-shadow: 0 0 0 2px hsl(var(--lg-primary) / 0.5);
+  box-shadow: none;
 }

@@ -154,9 +154,6 @@ const GuestDishListPage: React.FC = () => {
               placeholder="Search dishes..."
               leftSlot={<span>🔎</span>}
             />
-            <Link to="/liquid-glass-preview">
-              <LiquidButton tone="tertiary" modern={modern} className="w-full sm:w-auto">Theme Preview</LiquidButton>
-            </Link>
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -166,6 +163,7 @@ const GuestDishListPage: React.FC = () => {
                 modern={modern}
                 active={item === category}
                 onClick={() => setCategory(item)}
+                className="border-white/60"
               >
                 {item}
               </GlassPill>

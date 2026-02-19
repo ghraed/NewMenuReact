@@ -46,7 +46,7 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
     >
       <span className={cx('absolute inset-0 bg-gradient-to-r opacity-95', toneGradient[tone])} />
       <span className="pointer-events-none absolute -left-14 top-0 h-full w-20 rotate-12 bg-white/35 blur-lg transition-transform duration-500 group-hover:translate-x-72" />
-      <span className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_28px_rgba(255,255,255,0.35)] transition duration-300 group-hover:opacity-100" />
+      <span className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100" />
       <span className="relative z-10">{children}</span>
     </button>
   );

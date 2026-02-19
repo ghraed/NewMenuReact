@@ -203,14 +203,14 @@ const EditDishPage: React.FC = () => {
       <GlassCard className="mb-6 p-4">
         <h3 className="mb-3 text-lg font-semibold text-lg-text">Current Model Preview</h3>
         {glbUrl ? (
-          <ModelViewer
-            src={glbUrl}
-            ios-src={usdzUrl}
-            camera-controls
-            shadow-intensity="1"
-            environment-image="neutral"
-            style={{ width: '100%', height: '340px', backgroundColor: '#f3f4f6', borderRadius: '0.75rem' }}
-          />
+            <ModelViewer
+              src={glbUrl}
+              ios-src={usdzUrl}
+              camera-controls
+              shadow-intensity="0"
+              environment-image="neutral"
+              style={{ width: '100%', height: '340px', backgroundColor: '#f3f4f6', borderRadius: '0.75rem' }}
+            />
         ) : (
           <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
             No GLB model is attached to this dish yet.
