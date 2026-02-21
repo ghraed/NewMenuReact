@@ -5,8 +5,7 @@ import {
   focusRing,
   glassControl,
   glassInteractive,
-  primaryGradient,
-  secondaryGradient,
+  primaryTone,
 } from '../../theme/liquidGlass';
 
 interface ARButtonProps {
@@ -35,14 +34,14 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         href={usdzUrlAbs}
         rel="ar"
         className={cx(
-          'group relative block w-full overflow-hidden rounded-full px-6 py-4 text-center font-semibold text-text',
+          'group block w-full rounded-full border px-6 py-4 text-center font-semibold',
           glassControl,
           glassInteractive,
+          primaryTone,
           focusRing
         )}
       >
-        <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', secondaryGradient)} />
-        <span className="relative z-10">View in AR (iOS)</span>
+        <span>View in AR (iOS)</span>
       </a>
     );
   }
@@ -57,14 +56,14 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={cx(
-            'group relative block w-full overflow-hidden rounded-full px-6 py-4 text-center font-semibold text-text',
+            'group block w-full rounded-full border px-6 py-4 text-center font-semibold',
             glassControl,
             glassInteractive,
+            primaryTone,
             focusRing
           )}
         >
-          <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', primaryGradient)} />
-          <span className="relative z-10">View in AR (Scene Viewer)</span>
+          <span>View in AR (Scene Viewer)</span>
         </a>
         <p className="text-center text-xs text-muted2">Requires Chrome and ARCore</p>
       </div>

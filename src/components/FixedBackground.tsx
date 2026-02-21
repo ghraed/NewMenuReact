@@ -14,7 +14,10 @@ const FixedBackground: React.FC<FixedBackgroundProps> = ({ className }) => {
         className
       )}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(58%_44%_at_12%_-8%,rgba(215,180,106,0.34),transparent_72%),radial-gradient(52%_40%_at_88%_0%,rgba(143,214,180,0.22),transparent_70%),radial-gradient(68%_52%_at_50%_118%,rgba(215,180,106,0.16),transparent_80%),linear-gradient(180deg,#0A1020_0%,#050813_100%)]" />
+      <div className="absolute inset-0 bg-bg0" />
+      <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-gold/18 blur-3xl" />
+      <div className="absolute -right-16 top-10 h-64 w-64 rounded-full bg-sage/14 blur-3xl" />
+      <div className="absolute bottom-[-80px] left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-gold/10 blur-3xl" />
     </div>
   );
 };

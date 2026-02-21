@@ -19,7 +19,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   return (
     <div className={cx('relative overflow-hidden rounded-xl2', glassSurface, className)} {...props}>
       {iridescent && (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-gold/18 via-transparent to-sage/18" />
+        <div className="pointer-events-none absolute inset-0 bg-gold/8" />
       )}
       {sheen && <div className="pointer-events-none absolute -left-16 -top-10 h-36 w-[130%] rotate-[15deg] bg-white/10 blur-2xl" />}
       {innerBorder && <div className="pointer-events-none absolute inset-[1px] rounded-[20px] border border-white/10" />}

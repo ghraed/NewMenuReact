@@ -22,7 +22,7 @@ const GlassPill: React.FC<GlassPillProps> = ({
         glassControl,
         glassInteractive,
         focusRing,
-        active && 'border-gold/40 bg-[linear-gradient(135deg,rgba(215,180,106,.22),rgba(255,255,255,.04))] text-text',
+        active && '!border-gold/70 !bg-gold !text-bg0',
         className
       )}
       {...props}

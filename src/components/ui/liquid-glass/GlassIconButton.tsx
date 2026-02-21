@@ -17,7 +17,7 @@ const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, 
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent" />
+      <span className="pointer-events-none absolute inset-0 bg-white/10" />
       <span className="relative z-10">{children}</span>
     </button>
   );

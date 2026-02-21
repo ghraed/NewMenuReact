@@ -54,7 +54,7 @@ const LiquidGlassDemoPage: React.FC = () => {
               <GlassCard className="space-y-2">
                 <p className="text-xs uppercase tracking-[0.2em] text-sage">Chef pick</p>
                 <p className="text-xl font-semibold text-text">Dragon Roll</p>
-                <p className="text-sm text-muted">Only highlights use gold/sage gradients.</p>
+                <p className="text-sm text-muted">Only highlights use gold/sage solid accents.</p>
               </GlassCard>
             </div>
           </GlassBoard>

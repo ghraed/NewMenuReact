@@ -54,7 +54,7 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
         'cursor-pointer'
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_80%_at_5%_0%,rgba(215,180,106,0.14),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gold/8" />
 
       <div className="relative z-10 grid min-h-[132px] grid-cols-[92px_1fr] gap-3 sm:grid-cols-[110px_1fr] sm:gap-4">
         <DishAssetThumbnail dish={dish} className="h-[92px] w-[92px] sm:h-[110px] sm:w-[110px]" />
@@ -90,7 +90,7 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
                 event.stopPropagation();
               }}
               className={cx(
-                'rounded-full border border-gold/45 bg-[linear-gradient(135deg,rgba(215,180,106,.95),rgba(243,215,154,.92))] px-3 py-1 text-xs font-semibold text-bg0 shadow-lux2',
+                'rounded-full border border-gold/45 bg-gold px-3 py-1 text-xs font-semibold text-bg0 shadow-lux2',
                 'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5 motion-safe:hover:brightness-110',
                 focusRing
               )}

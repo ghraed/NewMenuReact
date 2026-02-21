@@ -2,9 +2,9 @@ import { cn } from '../utils/cn';
 
 export const cx = (...classes: (string | boolean | undefined | null)[]) => cn(...classes);
 
-export const primaryGradient = 'from-gold via-gold/90 to-gold2';
-export const secondaryGradient = 'from-sage via-sage/85 to-gold2/80';
-export const tertiaryGradient = 'from-white/16 via-white/8 to-white/14';
+export const primaryTone = '!bg-gold !text-bg0 !border-gold/70';
+export const secondaryTone = 'bg-sage/35 text-text border-sage/55';
+export const tertiaryTone = 'bg-white/10 text-text border-white/20';
 
 export const glassSurface =
   'bg-panel border border-stroke backdrop-blur-xl backdrop-saturate-150 shadow-lux';

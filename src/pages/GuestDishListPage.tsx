@@ -132,10 +132,10 @@ const GuestDishListPage: React.FC = () => {
         </section>
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[linear-gradient(180deg,rgba(6,10,20,0),rgba(6,10,20,.70),rgba(6,10,20,.92))] backdrop-blur-xl">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-bg1/85 backdrop-blur-xl">
         <div className="mx-auto max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 sm:px-6">
           <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke bg-panel2 p-2 shadow-lux2">
-            <button type="button" className="rounded-full bg-gold/18 px-3 py-2 text-xs font-semibold text-gold2">
+            <button type="button" className="rounded-full border border-gold/70 bg-gold px-3 py-2 text-xs font-semibold text-bg0">
               Menu
             </button>
             <button type="button" className="rounded-full px-3 py-2 text-xs font-medium text-muted">

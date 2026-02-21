@@ -45,12 +45,12 @@ const DishAssetThumbnail: React.FC<DishAssetThumbnailProps> = ({ dish, className
           />
         </div>
       ) : (
-        <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,rgba(215,180,106,.25),rgba(143,214,180,.2))] text-2xl text-text">
+        <div className="flex h-full w-full items-center justify-center bg-gold/20 text-2xl text-text">
           🍽
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-white/10" />
     </div>
   );
 };

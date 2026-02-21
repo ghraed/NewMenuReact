@@ -4,9 +4,9 @@ import {
   focusRing,
   glassControl,
   glassInteractive,
-  primaryGradient,
-  secondaryGradient,
-  tertiaryGradient,
+  primaryTone,
+  secondaryTone,
+  tertiaryTone,
 } from '../../../theme/liquidGlass';
 
 type Tone = 'primary' | 'secondary' | 'tertiary';
@@ -16,10 +16,10 @@ interface LiquidButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   modern?: boolean;
 }
 
-const toneGradient: Record<Tone, string> = {
-  primary: primaryGradient,
-  secondary: secondaryGradient,
-  tertiary: tertiaryGradient,
+const toneClass: Record<Tone, string> = {
+  primary: primaryTone,
+  secondary: secondaryTone,
+  tertiary: tertiaryTone,
 };
 
 const LiquidButton: React.FC<LiquidButtonProps> = ({
@@ -32,19 +32,18 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
   return (
     <button
       className={cx(
-        'group relative inline-flex items-center justify-center overflow-hidden rounded-full px-5 py-2.5 font-semibold text-text',
+        'group relative inline-flex items-center justify-center rounded-full border px-5 py-2.5 font-semibold',
         glassControl,
         glassInteractive,
         focusRing,
+        toneClass[tone],
         disabled && 'cursor-not-allowed opacity-50',
         className
       )}
       disabled={disabled}
       {...props}
     >
-      <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-95', toneGradient[tone])} />
-      <span className="pointer-events-none absolute -left-12 top-0 h-full w-16 rotate-12 bg-white/30 blur-lg transition-transform duration-500 motion-reduce:transition-none group-hover:translate-x-64" />
-      <span className="relative z-10">{children}</span>
+      <span>{children}</span>
     </button>
   );
 };
