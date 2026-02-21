@@ -32,17 +32,17 @@ const AdminDishPage: React.FC = () => {
   return (
     <DashboardLayout title="Dish Details">
       {loading ? (
-        <LoadingSpinner />
+        <LoadingSpinner text="Loading dish..." />
       ) : error ? (
-        <div className="py-10 text-center text-red-600">{error}</div>
+        <div className="py-10 text-center text-spicy">{error}</div>
       ) : !dish ? (
-        <div className="py-10 text-center">Dish not found</div>
+        <div className="py-10 text-center text-muted">Dish not found</div>
       ) : (
         <GlassCard className="space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-lg-text">{dish.name}</h2>
-              <p className="mt-2 text-lg text-slate-700/70">{dish.category}</p>
+              <h2 className="text-3xl font-semibold text-text">{dish.name}</h2>
+              <p className="mt-2 text-lg text-muted">{dish.category}</p>
             </div>
             <Link to="/admin/dashboard">
               <LiquidButton tone="tertiary">Back to Dashboard</LiquidButton>
@@ -50,13 +50,13 @@ const AdminDishPage: React.FC = () => {
           </div>
 
           <div>
-            <p className="text-3xl font-bold text-lg-text">
+            <p className="text-3xl font-semibold text-gold2">
               ${typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(dish.price).toFixed(2)}
             </p>
           </div>
 
           <div>
-            <p className="text-base leading-relaxed text-slate-700/70">{dish.description}</p>
+            <p className="text-base leading-relaxed text-muted">{dish.description}</p>
           </div>
 
           <div className="parent-mountRef">

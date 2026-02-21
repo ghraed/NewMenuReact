@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx, getModernMode, glassControl } from '../../../theme/liquidGlass';
+import { cx, focusRing, glassControl } from '../../../theme/liquidGlass';
 
 interface GlassSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: Array<{ value: string; label: string }>;
@@ -12,16 +12,13 @@ const GlassSelect: React.FC<GlassSelectProps> = ({
   options,
   placeholder,
   value,
-  modern,
   ...props
 }) => {
-  const resolvedModern = modern ?? getModernMode();
-
   return (
-    <div className={cx('relative rounded-full border px-4 py-2.5', glassControl(resolvedModern), 'lg-lift-sm')}>
+    <label className={cx('relative rounded-full border px-4 py-2.5 text-muted', glassControl, focusRing)}>
       <select
         value={value}
-        className={cx('w-full appearance-none bg-transparent pr-7 text-sm text-lg-text focus:outline-none', className)}
+        className={cx('w-full appearance-none bg-transparent pr-7 text-sm text-text focus:outline-none', className)}
         {...props}
       >
         {placeholder && (
@@ -35,8 +32,8 @@ const GlassSelect: React.FC<GlassSelectProps> = ({
           </option>
         ))}
       </select>
-      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-700/70">▾</span>
-    </div>
+      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-muted2">▾</span>
+    </label>
   );
 };
 

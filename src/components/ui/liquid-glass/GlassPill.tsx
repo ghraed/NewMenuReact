@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx, getModernMode, glassControl, primaryGradient } from '../../../theme/liquidGlass';
+import { cx, focusRing, glassControl, glassInteractive } from '../../../theme/liquidGlass';
 
 interface GlassPillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   modern?: boolean;
@@ -10,21 +10,19 @@ interface GlassPillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const GlassPill: React.FC<GlassPillProps> = ({
   className,
   children,
-  modern,
   active = false,
   soft = false,
   ...props
 }) => {
-  const resolvedModern = modern ?? getModernMode();
-
   return (
     <button
       className={cx(
-        'group relative inline-flex items-center justify-center overflow-hidden border px-4 py-2 text-sm font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
+        'inline-flex items-center justify-center border px-4 py-2 text-sm font-medium text-muted',
         soft ? 'rounded-[26px]' : 'rounded-full',
-        glassControl(resolvedModern),
-        'lg-lift-sm',
-        active && `border-white/45 bg-gradient-to-r ${primaryGradient}`,
+        glassControl,
+        glassInteractive,
+        focusRing,
+        active && 'border-gold/40 bg-[linear-gradient(135deg,rgba(215,180,106,.22),rgba(255,255,255,.04))] text-text',
         className
       )}
       {...props}

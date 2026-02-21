@@ -43,17 +43,11 @@ const CreateDishPage: React.FC = () => {
   return (
     <DashboardLayout title="Create New Dish">
       <div className="mb-6">
-        <h2 className="mb-2 text-xl font-semibold text-lg-text">Add a new menu item</h2>
-        <p className="text-slate-700/70">
-          Create a dish with at least one 3D model (.glb or .usdz).
-        </p>
+        <h2 className="mb-2 text-xl font-semibold text-text">Add a new menu item</h2>
+        <p className="text-muted">Create a dish with at least one 3D model (.glb or .usdz).</p>
       </div>
 
-      {error && (
-        <div className="mb-6 rounded-xl border border-red-200/80 bg-red-100/60 p-4 text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>}
 
       <DishForm
         onSubmit={handleSubmit}

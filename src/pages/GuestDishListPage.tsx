@@ -1,20 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import '@google/model-viewer';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import {
-  GlassBoard,
-  GlassCard,
-  GlassIconButton,
-  GlassInput,
-  GlassPill,
-  LiquidBackground,
-  LiquidButton,
-} from '../components/ui/liquid-glass';
-import { resolveAssetUrl } from '../services/api';
-import { cx, primaryGradient } from '../theme/liquidGlass';
+import { GlassInput, GlassPill, LiquidBackground } from '../components/ui/liquid-glass';
+import DishCard from '../components/Guest/DishCard';
 
 interface GuestListResponse {
   restaurant: {
@@ -28,43 +18,8 @@ interface GuestListResponse {
 const configuredRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
 const fallbackRestaurantSlug = 'admin-restaurant';
 
-const DishCardMedia: React.FC<{ dish: Dish }> = ({ dish }) => {
-  const imageUrl = dish.image_url || '';
-  const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
-  const glbUrl = resolveAssetUrl(glbAsset?.file_url);
-  const ModelViewer = 'model-viewer' as React.ElementType;
-
-  if (imageUrl) {
-    return (
-      <img src={imageUrl} alt={dish.name} className="h-44 w-full rounded-2xl object-cover" />
-    );
-  }
-
-  if (glbUrl) {
-    return (
-      <div className="h-44 w-full overflow-hidden rounded-2xl bg-white/35">
-        <ModelViewer
-          src={glbUrl}
-          interaction-prompt="none"
-          disable-zoom
-          camera-orbit="0deg 75deg 1.8m"
-          min-camera-orbit="auto auto 1.8m"
-          max-camera-orbit="auto auto 1.8m"
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className={cx('relative h-44 w-full overflow-hidden rounded-2xl bg-gradient-to-br', primaryGradient)}>
-      <div className="absolute inset-0 bg-white/20 backdrop-blur-sm" />
-      <div className="relative z-10 flex h-full items-center justify-center text-5xl">🍽️</div>
-    </div>
-  );
-};
-
 const GuestDishListPage: React.FC = () => {
+  const navigate = useNavigate();
   const [restaurantName, setRestaurantName] = useState('Menu');
   const [restaurantSlug, setRestaurantSlug] = useState(configuredRestaurantSlug);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -72,7 +27,6 @@ const GuestDishListPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
-  const [modern, setModern] = useState(document.body.classList.contains('modern'));
 
   useEffect(() => {
     const fetchList = async (slug: string): Promise<GuestListResponse> => {
@@ -84,10 +38,7 @@ const GuestDishListPage: React.FC = () => {
       try {
         let data = await fetchList(configuredRestaurantSlug);
 
-        if (
-          data.dishes.length === 0 &&
-          configuredRestaurantSlug !== fallbackRestaurantSlug
-        ) {
+        if (data.dishes.length === 0 && configuredRestaurantSlug !== fallbackRestaurantSlug) {
           data = await fetchList(fallbackRestaurantSlug);
         }
 
@@ -105,11 +56,6 @@ const GuestDishListPage: React.FC = () => {
     fetchDishes();
   }, []);
 
-  const toggleModern = () => {
-    document.body.classList.toggle('modern');
-    setModern(document.body.classList.contains('modern'));
-  };
-
   const categories = useMemo(() => {
     const values = Array.from(new Set(dishes.map((dish) => dish.category).filter(Boolean)));
     return ['All', ...values];
@@ -125,88 +71,79 @@ const GuestDishListPage: React.FC = () => {
     });
   }, [dishes, category, search]);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner fullPage text="Loading menu..." />;
 
   return (
     <LiquidBackground>
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <GlassBoard modern={modern}>
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-32 sm:pt-10">
+        <header className="rounded-xl2 border border-stroke bg-panel p-4 shadow-lux backdrop-blur-xl sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-4xl font-bold text-lg-text">{restaurantName}</h1>
-              <p className="mt-2 text-slate-700/70">Select a dish to view details and AR model.</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-gold2/90">Hotel Menu</p>
+              <h1 className="mt-2 text-3xl font-semibold leading-tight text-text sm:text-4xl">{restaurantName}</h1>
+              <p className="mt-2 text-sm text-muted">Select a dish to explore details and open it in AR.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <GlassPill onClick={toggleModern} modern={modern} className="text-xs">
-                {modern ? 'NEW' : 'OLD'}
-              </GlassPill>
-              <GlassIconButton modern={modern} aria-label="Cart">🛒</GlassIconButton>
-              <GlassIconButton modern={modern} aria-label="Profile">👤</GlassIconButton>
-              <GlassIconButton modern={modern} aria-label="Settings">⚙️</GlassIconButton>
-            </div>
+            <span className="rounded-full border border-gold/30 bg-gold/12 px-3 py-1 text-xs font-semibold text-gold2">
+              {filteredDishes.length} dishes
+            </span>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
             <GlassInput
-              modern={modern}
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Search dishes..."
               leftSlot={<span>🔎</span>}
             />
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             {categories.map((item) => (
               <GlassPill
                 key={item}
-                modern={modern}
                 active={item === category}
                 onClick={() => setCategory(item)}
-                className="border-white/60"
+                className="shrink-0"
               >
                 {item}
               </GlassPill>
             ))}
           </div>
+        </header>
 
-          {error && (
-            <div className="mt-6 rounded-xl border border-red-200/80 bg-red-100/60 p-4 text-red-700">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="mt-5 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-sm text-spicy">{error}</div>
+        )}
 
-          {!error && filteredDishes.length === 0 && (
-            <div className="mt-6 rounded-xl border border-white/30 bg-white/20 p-6 text-slate-700/70 backdrop-blur">
-              No dishes available yet.
-            </div>
-          )}
-
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredDishes.map((dish) => (
-              <Link key={dish.id} to={`/menu/${restaurantSlug}/dish/${dish.id}`}>
-                <GlassCard modern={modern} className="h-full">
-                  <DishCardMedia dish={dish} />
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <GlassPill modern={modern} className="px-2.5 py-1 text-[11px] uppercase tracking-wide" disabled>
-                      {dish.category}
-                    </GlassPill>
-                    <div className="text-lg font-bold text-lg-text">${Number(dish.price).toFixed(2)}</div>
-                  </div>
-
-                  <h2 className="mt-2 text-xl font-semibold text-lg-text">{dish.name}</h2>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-700/70">{dish.description}</p>
-
-                  <div className="mt-4">
-                    <LiquidButton tone="primary" modern={modern} className="w-full">Add</LiquidButton>
-                  </div>
-                </GlassCard>
-              </Link>
-            ))}
+        {!error && filteredDishes.length === 0 && (
+          <div className="mt-5 rounded-xl2 border border-stroke bg-panel p-6 text-center text-muted shadow-lux2 backdrop-blur-xl">
+            No dishes found for your filter.
           </div>
-        </GlassBoard>
+        )}
+
+        <section className="mt-5 space-y-3 sm:space-y-4">
+          {filteredDishes.map((dish) => (
+            <DishCard
+              key={dish.id}
+              dish={dish}
+              onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
+            />
+          ))}
+        </section>
       </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[linear-gradient(180deg,rgba(6,10,20,0),rgba(6,10,20,.70),rgba(6,10,20,.92))] backdrop-blur-xl">
+        <div className="mx-auto max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 sm:px-6">
+          <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke bg-panel2 p-2 shadow-lux2">
+            <button type="button" className="rounded-full bg-gold/18 px-3 py-2 text-xs font-semibold text-gold2">
+              Menu
+            </button>
+            <button type="button" className="rounded-full px-3 py-2 text-xs font-medium text-muted">
+              Search
+            </button>
+          </div>
+        </div>
+      </nav>
     </LiquidBackground>
   );
 };

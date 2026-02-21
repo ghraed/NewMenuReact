@@ -143,7 +143,7 @@ const EditDishPage: React.FC = () => {
   if (loading) {
     return (
       <DashboardLayout title="Edit Dish">
-        <LoadingSpinner />
+        <LoadingSpinner text="Loading dish..." />
       </DashboardLayout>
     );
   }
@@ -151,7 +151,7 @@ const EditDishPage: React.FC = () => {
   if (!dish) {
     return (
       <DashboardLayout title="Edit Dish">
-        <div className="py-10 text-center text-red-600">Dish not found</div>
+        <div className="py-10 text-center text-spicy">Dish not found</div>
       </DashboardLayout>
     );
   }
@@ -166,8 +166,8 @@ const EditDishPage: React.FC = () => {
     <DashboardLayout title="Edit Dish">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-lg-text">{dish.name}</h2>
-          <p className="mt-1 text-sm text-slate-700/70">
+          <h2 className="text-xl font-semibold text-text">{dish.name}</h2>
+          <p className="mt-1 text-sm text-muted">
             {dish.deleted_at
               ? 'This dish is deleted. Restore it before editing.'
               : 'Update details and optionally upload new model files.'}
@@ -195,39 +195,35 @@ const EditDishPage: React.FC = () => {
       </div>
 
       {dish.deleted_at && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+        <div className="mb-6 rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-gold2">
           This dish is currently deleted. If you do not restore it, model files are automatically removed after 7 days.
         </div>
       )}
 
       <GlassCard className="mb-6 p-4">
-        <h3 className="mb-3 text-lg font-semibold text-lg-text">Current Model Preview</h3>
+        <h3 className="mb-3 text-lg font-semibold text-text">Current Model Preview</h3>
         {glbUrl ? (
-            <ModelViewer
-              src={glbUrl}
-              ios-src={usdzUrl}
-              camera-controls
-              shadow-intensity="0"
-              environment-image="neutral"
-              style={{ width: '100%', height: '340px', backgroundColor: '#f3f4f6', borderRadius: '0.75rem' }}
-            />
+          <ModelViewer
+            src={glbUrl}
+            ios-src={usdzUrl}
+            camera-controls
+            shadow-intensity="0"
+            environment-image="neutral"
+            style={{ width: '100%', height: '340px', backgroundColor: '#0f1424', borderRadius: '0.75rem' }}
+          />
         ) : (
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+          <div className="rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-gold2">
             No GLB model is attached to this dish yet.
           </div>
         )}
 
-        <div className="mt-3 text-xs text-slate-700/70">
+        <div className="mt-3 text-xs text-muted">
           {glbUrl && <div>GLB: {glbUrl}</div>}
           {usdzUrl && <div>USDZ: {usdzUrl}</div>}
         </div>
       </GlassCard>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>}
 
       {!dish.deleted_at && (
         <DishForm

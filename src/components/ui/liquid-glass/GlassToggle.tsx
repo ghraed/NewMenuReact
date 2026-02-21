@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx, getModernMode, glassControl } from '../../../theme/liquidGlass';
+import { cx } from '../../../theme/liquidGlass';
 
 interface GlassToggleProps {
   checked: boolean;
@@ -18,15 +18,12 @@ const GlassToggle: React.FC<GlassToggleProps> = ({
   description,
   className,
   disabled = false,
-  modern,
 }) => {
-  const resolvedModern = modern ?? getModernMode();
-
   return (
     <label className={cx('flex items-center justify-between gap-4', disabled && 'cursor-not-allowed opacity-60', className)}>
       <span>
-        {label && <span className="block text-sm font-semibold text-lg-text">{label}</span>}
-        {description && <span className="block text-xs text-slate-700/70">{description}</span>}
+        {label && <span className="block text-sm font-semibold text-text">{label}</span>}
+        {description && <span className="block text-xs text-muted">{description}</span>}
       </span>
 
       <span className="relative inline-flex items-center">
@@ -37,10 +34,10 @@ const GlassToggle: React.FC<GlassToggleProps> = ({
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className={cx('h-7 w-12 rounded-full border transition duration-300', glassControl(resolvedModern))} />
+        <span className="h-7 w-12 rounded-full border border-stroke bg-panel2 transition duration-300" />
         <span
           className={cx(
-            'absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform duration-300',
+            'absolute left-1 top-1 h-5 w-5 rounded-full bg-gold shadow-lux2 transition-transform duration-300',
             checked && 'translate-x-5'
           )}
         />

@@ -15,7 +15,7 @@ interface DishViewerProps {
 
 const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
   if (!dish || !dish.assets) {
-    return <div className="rounded-lg bg-red-50 p-4 text-red-600">Error: Dish data not available</div>;
+    return <div className="rounded-xl2 border border-spicy/40 bg-spicy/10 p-4 text-spicy">Error: Dish data not available</div>;
   }
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -43,14 +43,9 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
     if (existingCanvas) existingCanvas.remove();
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f2f5);
+    scene.background = null;
 
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      mountNode.clientWidth / mountNode.clientHeight,
-      0.1,
-      100
-    );
+    const camera = new THREE.PerspectiveCamera(45, mountNode.clientWidth / mountNode.clientHeight, 0.1, 100);
     camera.position.set(0, 0.5, 2.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -72,15 +67,15 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
     controls.maxPolarAngle = Math.PI / 1.5;
     controlsRef.current = controls;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1.05);
     mainLight.position.set(5, 10, 7);
     mainLight.castShadow = true;
     scene.add(mainLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffecd2, 0.5);
+    const fillLight = new THREE.DirectionalLight(0xffd89e, 0.45);
     fillLight.position.set(-5, 0, -5);
     scene.add(fillLight);
 
@@ -110,9 +105,10 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
         model.position.sub(center.multiplyScalar(scale));
 
         model.traverse((child: any) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
+          const mesh = child as any;
+          if (mesh.isMesh) {
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
           }
         });
 
@@ -172,10 +168,11 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
       }
 
       scene.traverse((object: any) => {
-        if (object.geometry) {
-          object.geometry.dispose();
+        const mesh = object as any;
+        if (mesh.geometry) {
+          mesh.geometry.dispose();
         }
-        const mat = object.material;
+        const mat = mesh.material;
         if (mat) {
           if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
           else mat.dispose();
@@ -188,24 +185,26 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="relative h-96 w-full overflow-hidden rounded-[28px] border border-white/30 bg-white/[0.06] backdrop-blur-[24px] backdrop-saturate-150 lg-noise lg-lift-sm cursor-grab active:cursor-grabbing"
+        className="relative h-96 w-full cursor-grab overflow-hidden rounded-[28px] border border-stroke bg-panel2 backdrop-blur-xl lg-noise active:cursor-grabbing"
         aria-label="3D dish viewer - click and drag to rotate"
       >
-        {isLoading && dish && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_70%_at_50%_0%,rgba(215,180,106,0.16),transparent_70%)]" />
+
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg1/70 backdrop-blur-sm">
             <div className="text-center">
-              <LoadingSpinner />
-              <p className="mt-2 text-sm text-slate-700/70">Loading 3D model...</p>
+              <LoadingSpinner variant="primary" />
+              <p className="mt-2 text-sm text-muted">Loading 3D model...</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 p-4">
-            <div className="mb-2 text-lg font-medium text-red-500">⚠️ {error}</div>
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg1/85 p-4">
+            <div className="mb-2 text-lg font-medium text-spicy">{error}</div>
             <button
               onClick={() => window.location.reload()}
-              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 hover:bg-red-100"
+              className="rounded-full border border-spicy/40 bg-spicy/20 px-4 py-2 text-sm text-text transition hover:bg-spicy/30"
             >
               Refresh
             </button>
@@ -216,8 +215,8 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
       {(capabilities.isARSupported || isIOS || isAndroid) && <ARButton dish={dish} />}
 
       {!capabilities.isARSupported && !isIOS && !isAndroid && (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-          <strong>📱 AR Not Available:</strong> Use an iOS device (iOS 12+) or Android with Chrome/WebXR support.
+        <div className="rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-sm text-gold2">
+          <strong>AR Not Available:</strong> Use an iOS device (iOS 12+) or Android with Chrome/WebXR support.
         </div>
       )}
     </div>

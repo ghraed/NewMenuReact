@@ -1,16 +1,7 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
+@import "./theme/tokens.css";
 @import "./styles/liquid-glass.css";
-
-:root {
-  --lg-primary: 258 90% 66%;
-  --lg-secondary: 165 70% 55%;
-  --lg-tertiary: 200 30% 92%;
-  --lg-bg-a: 28 40% 94%;
-  --lg-bg-b: 205 25% 88%;
-  --lg-bg-c: 208 26% 54%;
-  --lg-text: 222 30% 15%;
-}
 
 @layer base {
   * {
@@ -23,10 +14,47 @@
     min-height: 100%;
   }
 
+  html,
+  body {
+    background-color: rgb(var(--color-bg0));
+  }
+
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     margin: 0;
-    @apply min-h-screen text-lg-text antialiased;
+    min-height: 100vh;
+    color: rgb(var(--color-text) / 0.92);
+    background-color: rgb(var(--color-bg0));
     font-family: 'Plus Jakarta Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    position: relative;
+    overscroll-behavior-y: none;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -10;
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+    background-size: 180px 180px;
+    background-repeat: repeat;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='180'%20height='180'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.9'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='180'%20height='180'%20filter='url(%23n)'%20opacity='0.55'/%3E%3C/svg%3E");
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+    isolation: isolate;
+    background: transparent;
   }
 
   a {
@@ -42,7 +70,7 @@
   }
 
   ::selection {
-    background: hsl(var(--lg-primary) / 0.3);
-    color: hsl(var(--lg-text));
+    background: rgb(var(--color-gold) / 0.28);
+    color: rgb(var(--color-text) / 0.98);
   }
 }

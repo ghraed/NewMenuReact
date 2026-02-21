@@ -1,6 +1,13 @@
 import React from 'react';
 import { resolveAssetUrl } from '../../services/api';
-import { cx, glassControl, getModernMode, primaryGradient, secondaryGradient } from '../../theme/liquidGlass';
+import {
+  cx,
+  focusRing,
+  glassControl,
+  glassInteractive,
+  primaryGradient,
+  secondaryGradient,
+} from '../../theme/liquidGlass';
 
 interface ARButtonProps {
   dish?: {
@@ -13,7 +20,6 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
     return null;
   }
 
-  const modern = getModernMode();
   const glbUrl = resolveAssetUrl(dish.assets.find((a) => a.asset_type === 'glb')?.file_url);
   const usdzUrl = resolveAssetUrl(dish.assets.find((a) => a.asset_type === 'usdz')?.file_url);
   const origin = window.location.origin;
@@ -29,9 +35,10 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         href={usdzUrlAbs}
         rel="ar"
         className={cx(
-          'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
-          glassControl(modern),
-          'lg-lift-sm'
+          'group relative block w-full overflow-hidden rounded-full px-6 py-4 text-center font-semibold text-text',
+          glassControl,
+          glassInteractive,
+          focusRing
         )}
       >
         <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', secondaryGradient)} />
@@ -50,15 +57,16 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={cx(
-            'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
-            glassControl(modern),
-            'lg-lift-sm'
+            'group relative block w-full overflow-hidden rounded-full px-6 py-4 text-center font-semibold text-text',
+            glassControl,
+            glassInteractive,
+            focusRing
           )}
         >
           <span className={cx('pointer-events-none absolute inset-0 bg-gradient-to-r opacity-90', primaryGradient)} />
           <span className="relative z-10">View in AR (Scene Viewer)</span>
         </a>
-        <p className="text-center text-xs text-slate-700/70">Requires Chrome and ARCore</p>
+        <p className="text-center text-xs text-muted2">Requires Chrome and ARCore</p>
       </div>
     );
   }

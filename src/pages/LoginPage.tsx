@@ -5,7 +5,6 @@ import {
   GlassBoard,
   GlassIconButton,
   GlassInput,
-  GlassPill,
   GlassToast,
   LiquidBackground,
   LiquidButton,
@@ -29,18 +28,12 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('admin@example.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modern, setModern] = useState(document.body.classList.contains('modern'));
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/admin/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
-
-  const toggleModern = () => {
-    document.body.classList.toggle('modern');
-    setModern(document.body.classList.contains('modern'));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,20 +53,20 @@ const LoginPage: React.FC = () => {
 
   return (
     <LiquidBackground>
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <GlassBoard className="w-full max-w-md" modern={modern}>
+      <div className="flex min-h-screen items-center justify-center px-4 py-8">
+        <GlassBoard className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <div className="mb-4 inline-flex items-center gap-2">
-              <GlassIconButton modern={modern}>🍽️</GlassIconButton>
-              <GlassPill onClick={toggleModern} modern={modern} className="text-xs">{modern ? 'NEW' : 'OLD'}</GlassPill>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-stroke bg-panel2 px-3 py-2">
+              <GlassIconButton aria-hidden="true">🍽️</GlassIconButton>
+              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">Hotel Admin</span>
             </div>
-            <h1 className="text-3xl font-bold text-lg-text">AR Menu Admin</h1>
-            <p className="mt-2 text-sm text-slate-700/70">Login to manage dishes and 3D models</p>
+            <h1 className="text-3xl font-semibold text-text">AR Menu Admin</h1>
+            <p className="mt-2 text-sm text-muted">Login to manage dishes and 3D models.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-lg-text">
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-text">
                 Email
               </label>
               <GlassInput
@@ -83,12 +76,11 @@ const LoginPage: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 leftSlot={<span>✉️</span>}
-                modern={modern}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1 block text-sm font-medium text-lg-text">
+              <label htmlFor="password" className="mb-1 block text-sm font-medium text-text">
                 Password
               </label>
               <GlassInput
@@ -98,17 +90,16 @@ const LoginPage: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 leftSlot={<span>🔒</span>}
-                modern={modern}
               />
             </div>
 
             {error && (
-              <div className="rounded-xl border border-red-200/80 bg-red-100/60 p-3 text-sm text-red-700">
+              <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
                 {error}
               </div>
             )}
 
-            <LiquidButton type="submit" className="w-full" disabled={loading} modern={modern}>
+            <LiquidButton type="submit" className="w-full" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </LiquidButton>
           </form>

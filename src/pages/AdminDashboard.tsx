@@ -23,12 +23,12 @@ const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
   const ModelViewer = 'model-viewer' as React.ElementType;
 
   if (imageUrl) {
-    return <img src={imageUrl} alt={dish.name} className="h-20 w-20 rounded-2xl border border-white/35 object-cover" />;
+    return <img src={imageUrl} alt={dish.name} className="h-20 w-20 rounded-2xl border border-white/15 object-cover" />;
   }
 
   if (glbUrl) {
     return (
-      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/35 bg-white/30">
+      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/15 bg-bg1/80">
         <ModelViewer
           src={glbUrl}
           interaction-prompt="none"
@@ -43,7 +43,7 @@ const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
   }
 
   return (
-    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/35 bg-white/30">
+    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-bg1/80 text-lg text-muted">
       🍽️
     </div>
   );
@@ -138,7 +138,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <DashboardLayout title="Dashboard">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-lg-text">Your Dishes 123</h2>
+        <h2 className="text-xl font-semibold text-text">Your Dishes</h2>
         <Link to="/admin/dishes/create">
           <LiquidButton tone="primary">
             <span>➕</span> Create New Dish
@@ -153,20 +153,20 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {notice && (
-        <div className="mb-4 rounded-xl border border-blue-200/80 bg-blue-100/55 p-3 text-sm text-blue-700">
+        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
           {notice}
         </div>
       )}
 
       {loading ? (
-        <div className="py-12 text-center text-slate-700/70">Loading dishes...</div>
+        <div className="py-12 text-center text-muted">Loading dishes...</div>
       ) : error ? (
-        <div className="rounded-xl border border-red-200/80 bg-red-100/60 py-12 text-center text-red-700">{error}</div>
+        <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 py-12 text-center text-spicy">{error}</div>
       ) : dishes.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">📭</div>
-          <h3 className="mb-2 text-xl font-medium text-lg-text">No dishes yet</h3>
-          <p className="mb-4 text-slate-700/70">Create your first dish to get started</p>
+          <h3 className="mb-2 text-xl font-medium text-text">No dishes yet</h3>
+          <p className="mb-4 text-muted">Create your first dish to get started</p>
           <Link to="/admin/dishes/create">
             <LiquidButton tone="primary">Create Dish</LiquidButton>
           </Link>
@@ -180,10 +180,10 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-lg-text">{dish.name}</h3>
-                      <p className="text-sm text-slate-700/70">{dish.category}</p>
+                      <h3 className="text-lg font-semibold text-text">{dish.name}</h3>
+                      <p className="text-sm text-muted">{dish.category}</p>
                     </div>
-                    <div className="text-lg font-bold text-lg-text">${Number(dish.price).toFixed(2)}</div>
+                    <div className="text-lg font-semibold text-gold2">${Number(dish.price).toFixed(2)}</div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -193,7 +193,7 @@ const AdminDashboard: React.FC = () => {
                     {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active>Deleted</GlassPill>}
                   </div>
 
-                  <div className="mt-4 flex max-w-full flex-nowrap items-center gap-2">
+                  <div className="mt-4 flex max-w-full flex-wrap items-center gap-2">
                     {dish.deleted_at ? (
                       <>
                         <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
