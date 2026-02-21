@@ -148,44 +148,53 @@ const AdminDashboard: React.FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-semibold text-text">{dish.name}</h3>
-                      <p className="text-sm text-muted">{dish.category}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted">
+                        <span>{dish.category}</span>
+                        <span
+                          className={
+                            dish.status === 'published'
+                              ? 'inline-flex items-center gap-1 rounded-full border border-sage/35 bg-sage/10 px-2 py-0.5 text-xs font-medium text-sage'
+                              : 'inline-flex items-center gap-1 rounded-full border border-spicy/35 bg-spicy/10 px-2 py-0.5 text-xs font-medium text-spicy'
+                          }
+                        >
+                          {dish.status === 'published' ? '✓' : '✕'}
+                        </span>
+                        {dish.deleted_at && (
+                          <span className="inline-flex items-center rounded-full border border-gold/35 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
+                            Deleted
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-lg font-semibold text-gold2">${Number(dish.price).toFixed(2)}</div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <GlassPill className="px-3 py-1 text-xs" disabled>
-                      {dish.status.charAt(0).toUpperCase() + dish.status.slice(1)}
-                    </GlassPill>
-                    {dish.deleted_at && <GlassPill className="px-3 py-1 text-xs" active>Deleted</GlassPill>}
-                  </div>
-
-                  <div className="mt-4 flex max-w-full flex-wrap items-center gap-2">
+                  <div className="mt-4">
                     {dish.deleted_at ? (
-                      <>
-                        <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="px-3 py-1.5 text-xs">
+                      <div className="grid grid-cols-2 gap-2">
+                        <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="w-full px-3 py-1.5 text-xs">
                           Restore
                         </LiquidButton>
-                        <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="px-3 py-1.5 text-xs">
+                        <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="w-full px-3 py-1.5 text-xs">
                           Delete Permanently
                         </LiquidButton>
-                      </>
+                      </div>
                     ) : (
-                      <>
+                      <div className="grid grid-cols-3 gap-2">
                         <LiquidButton
                           tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
                           onClick={() => handlePublishToggle(dish)}
-                          className="px-3 py-1.5 text-xs"
+                          className="w-full px-3 py-1.5 text-xs"
                         >
                           {dish.status === 'published' ? 'Unpublish' : 'Publish'}
                         </LiquidButton>
-                        <Link to={`/admin/dishes/${dish.id}/edit`}>
-                          <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs">Edit</LiquidButton>
+                        <Link to={`/admin/dishes/${dish.id}/edit`} className="block">
+                          <LiquidButton tone="tertiary" className="w-full px-3 py-1.5 text-xs">Edit</LiquidButton>
                         </Link>
-                        <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="px-3 py-1.5 text-xs">
+                        <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="w-full px-3 py-1.5 text-xs">
                           Delete
                         </LiquidButton>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
