@@ -20,6 +20,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const TOKEN_STORAGE_KEY = 'admin_auth_token';
@@ -30,6 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshUser = React.useCallback(async () => {
+    const response = await api.get('/auth/me');
+    setUser(response.data.user);
+  }, []);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -42,8 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(storedToken);
 
       try {
-        const response = await api.get('/auth/me');
-        setUser(response.data.user);
+        await refreshUser();
       } catch {
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setToken(null);
@@ -86,8 +91,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!token,
       login,
       logout,
+      refreshUser,
     }),
-    [user, token, loading]
+    [user, token, loading, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

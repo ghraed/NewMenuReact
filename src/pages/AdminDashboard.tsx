@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
 import api from '../services/api';
-import { GlassCard, GlassPill, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassInput, GlassPill, LiquidButton } from '../components/ui/liquid-glass';
 import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
+import { useAuth } from '../contexts/useAuth';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -17,11 +18,19 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 type DishFilter = 'all' | 'active' | 'deleted';
 
 const AdminDashboard: React.FC = () => {
+  const { user, refreshUser } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<DishFilter>('all');
+  const [restaurantName, setRestaurantName] = useState(user?.restaurant?.name ?? '');
+  const [restaurantError, setRestaurantError] = useState<string | null>(null);
+  const [savingRestaurantName, setSavingRestaurantName] = useState(false);
+
+  useEffect(() => {
+    setRestaurantName(user?.restaurant?.name ?? '');
+  }, [user?.restaurant?.name]);
 
   const fetchDishes = useCallback(async () => {
     setLoading(true);
@@ -102,6 +111,37 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleRestaurantNameUpdate = async () => {
+    setRestaurantError(null);
+    const nextName = restaurantName.trim();
+    const currentName = user?.restaurant?.name?.trim() ?? '';
+
+    if (!nextName) {
+      setRestaurantError('Restaurant name is required.');
+      return;
+    }
+
+    if (nextName === currentName) {
+      setRestaurantError('No changes to save.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Change restaurant name from "${currentName}" to "${nextName}"?`);
+    if (!confirmed) return;
+
+    setSavingRestaurantName(true);
+    try {
+      const response = await api.patch('/restaurant/name', { name: nextName });
+      setRestaurantName(response.data?.restaurant?.name ?? nextName);
+      setNotice(response.data?.message || 'Restaurant name updated.');
+      await refreshUser();
+    } catch (err: unknown) {
+      setRestaurantError(getErrorMessage(err, 'Failed to update restaurant name'));
+    } finally {
+      setSavingRestaurantName(false);
+    }
+  };
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -112,6 +152,27 @@ const AdminDashboard: React.FC = () => {
           </LiquidButton>
         </Link>
       </div>
+
+      <GlassCard className="mb-6">
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted2">Restaurant Name</h3>
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+          <GlassInput
+            value={restaurantName}
+            onChange={(event) => setRestaurantName(event.target.value)}
+            placeholder="Restaurant name"
+            disabled={savingRestaurantName}
+          />
+          <LiquidButton
+            tone="primary"
+            onClick={handleRestaurantNameUpdate}
+            disabled={savingRestaurantName}
+            className="w-full sm:w-auto"
+          >
+            {savingRestaurantName ? 'Saving...' : 'Save Name'}
+          </LiquidButton>
+        </div>
+        {restaurantError && <p className="mt-2 text-sm text-spicy">{restaurantError}</p>}
+      </GlassCard>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassPill>
