@@ -16,14 +16,17 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
   const modern = getModernMode();
   const glbUrl = resolveAssetUrl(dish.assets.find((a) => a.asset_type === 'glb')?.file_url);
   const usdzUrl = resolveAssetUrl(dish.assets.find((a) => a.asset_type === 'usdz')?.file_url);
+  const origin = window.location.origin;
+  const glbUrlAbs = glbUrl?.startsWith('/') ? `${origin}${glbUrl}` : glbUrl;
+  const usdzUrlAbs = usdzUrl?.startsWith('/') ? `${origin}${usdzUrl}` : usdzUrl;
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
 
-  if (isIOS && usdzUrl) {
+  if (isIOS && usdzUrlAbs) {
     return (
       <a
-        href={usdzUrl}
+        href={usdzUrlAbs}
         rel="ar"
         className={cx(
           'group relative block w-full overflow-hidden rounded-full border px-6 py-4 text-center font-semibold text-lg-text transition duration-300 ease-fluid hover:scale-[1.03] hover:-translate-y-[1px] active:scale-[0.97]',
@@ -37,8 +40,8 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
     );
   }
 
-  if (isAndroid && glbUrl) {
-    const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrl)}&mode=ar_preferred`;
+  if (isAndroid && glbUrlAbs) {
+    const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrlAbs)}&mode=ar_preferred`;
 
     return (
       <div className="space-y-2">
