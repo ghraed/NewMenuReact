@@ -207,6 +207,12 @@ const EditDishPage: React.FC = () => {
             src={glbUrl}
             ios-src={usdzUrl}
             camera-controls
+            camera-target="auto auto auto"
+            camera-orbit="0deg 75deg auto"
+            min-camera-orbit="auto auto auto"
+            max-camera-orbit="auto auto auto"
+            field-of-view="26deg"
+            bounds="tight"
             shadow-intensity="0"
             environment-image="neutral"
             style={{ width: '100%', height: '340px', backgroundColor: '#0f1424', borderRadius: '0.75rem' }}

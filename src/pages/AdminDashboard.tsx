@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import '@google/model-viewer';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
-import api, { resolveAssetUrl } from '../services/api';
+import api from '../services/api';
 import { GlassCard, GlassPill, LiquidButton } from '../components/ui/liquid-glass';
+import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -15,39 +15,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 type DishFilter = 'all' | 'active' | 'deleted';
-
-const DishModelThumbnail: React.FC<{ dish: Dish }> = ({ dish }) => {
-  const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
-  const glbUrl = resolveAssetUrl(glbAsset?.file_url);
-  const imageUrl = dish.image_url || undefined;
-  const ModelViewer = 'model-viewer' as React.ElementType;
-
-  if (imageUrl) {
-    return <img src={imageUrl} alt={dish.name} className="h-20 w-20 rounded-2xl border border-white/15 object-cover" />;
-  }
-
-  if (glbUrl) {
-    return (
-      <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/15 bg-bg1/80">
-        <ModelViewer
-          src={glbUrl}
-          interaction-prompt="none"
-          disable-zoom
-          camera-orbit="0deg 75deg 1.7m"
-          min-camera-orbit="auto auto 1.7m"
-          max-camera-orbit="auto auto 1.7m"
-          style={{ width: '100%', height: '100%' }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-bg1/80 text-lg text-muted">
-      🍽️
-    </div>
-  );
-};
 
 const AdminDashboard: React.FC = () => {
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -176,7 +143,7 @@ const AdminDashboard: React.FC = () => {
           {dishes.map((dish) => (
             <GlassCard key={dish.id}>
               <div className="flex items-start gap-4">
-                <DishModelThumbnail dish={dish} />
+                <DishAssetThumbnail dish={dish} className="h-20 w-20" />
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div>
