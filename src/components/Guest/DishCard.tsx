@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import '@google/model-viewer';
 import type { Dish } from '../../types';
 import { cx, focusRing } from '../../theme/liquidGlass';
+import { resolveAssetUrl } from '../../services/api';
 
 interface DishCardProps {
   dish: Dish;
@@ -17,6 +19,10 @@ const tagClass: Record<TagTone, string> = {
 
 const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
   const [imageFailed, setImageFailed] = useState(false);
+  const [modelFailed, setModelFailed] = useState(false);
+  const imageUrl = resolveAssetUrl(dish.image_url);
+  const glbUrl = resolveAssetUrl(dish.assets.find((asset) => asset.asset_type === 'glb')?.file_url);
+  const ModelViewer = 'model-viewer' as React.ElementType;
 
   const tags = useMemo(() => {
     const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
@@ -59,14 +65,33 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
 
       <div className="relative z-10 grid min-h-[132px] grid-cols-[92px_1fr] gap-3 sm:grid-cols-[110px_1fr] sm:gap-4">
         <div className="relative h-[92px] overflow-hidden rounded-2xl border border-white/15 bg-bg1 sm:h-[110px]">
-          {dish.image_url && !imageFailed ? (
+          {imageUrl && !imageFailed ? (
             <img
-              src={dish.image_url}
+              src={imageUrl}
               alt={dish.name}
               loading="lazy"
               onError={() => setImageFailed(true)}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain object-center p-1.5"
             />
+          ) : glbUrl && !modelFailed ? (
+            <div className="pointer-events-none h-full w-full p-1.5">
+              <ModelViewer
+                src={glbUrl}
+                camera-target="auto auto auto"
+                camera-orbit="0deg 75deg auto"
+                min-camera-orbit="auto auto auto"
+                max-camera-orbit="auto auto auto"
+                field-of-view="26deg"
+                bounds="tight"
+                environment-image="neutral"
+                shadow-intensity="0"
+                interaction-prompt="none"
+                disable-zoom
+                disable-pan
+                onError={() => setModelFailed(true)}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(145deg,rgba(215,180,106,.25),rgba(143,214,180,.2))] text-2xl text-text">
               🍽
