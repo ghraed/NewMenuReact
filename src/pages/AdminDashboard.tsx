@@ -138,7 +138,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <DashboardLayout title="Dashboard">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-lg-text">Your Dishes</h2>
+        <h2 className="text-xl font-semibold text-lg-text">Your Dishes 123</h2>
         <Link to="/admin/dishes/create">
           <LiquidButton tone="primary">
             <span>➕</span> Create New Dish
