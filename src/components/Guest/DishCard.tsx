@@ -48,14 +48,12 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
         }
       }}
       className={cx(
-        'group relative w-full overflow-hidden rounded-xl2 border border-stroke bg-panel p-3 shadow-lux2 backdrop-blur-xl',
+        'group relative w-full overflow-hidden rounded-xl2 border border-stroke bg-bg1 p-3 shadow-lux2',
         'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-[1.01]',
         focusRing,
         'cursor-pointer'
       )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-gold/8" />
-
       <div className="relative z-10 grid min-h-[132px] grid-cols-[92px_1fr] gap-3 sm:grid-cols-[110px_1fr] sm:gap-4">
         <DishAssetThumbnail dish={dish} className="h-[92px] w-[92px] sm:h-[110px] sm:w-[110px]" />
 

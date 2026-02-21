@@ -7,10 +7,10 @@ export const secondaryTone = 'bg-sage/35 text-text border-sage/55';
 export const tertiaryTone = 'bg-white/10 text-text border-white/20';
 
 export const glassSurface =
-  'bg-panel border border-stroke backdrop-blur-xl backdrop-saturate-150 shadow-lux';
+  'bg-bg1 border border-stroke shadow-lux';
 
 export const glassControl =
-  'bg-panel2 border border-stroke backdrop-blur-xl backdrop-saturate-150 shadow-lux2';
+  'bg-bg1 border border-stroke shadow-lux2';
 
 export const glassInteractive =
   'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5 motion-safe:hover:scale-[1.01] active:scale-[0.99]';

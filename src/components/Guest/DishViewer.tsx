@@ -185,11 +185,9 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="relative h-96 w-full cursor-grab overflow-hidden rounded-[28px] border border-stroke bg-panel2 backdrop-blur-xl lg-noise active:cursor-grabbing"
+        className="relative h-96 w-full cursor-grab overflow-hidden rounded-[28px] border border-stroke bg-bg1 lg-noise active:cursor-grabbing"
         aria-label="3D dish viewer - click and drag to rotate"
       >
-        <div className="pointer-events-none absolute inset-0 bg-gold/8" />
-
         {isLoading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg1/70 backdrop-blur-sm">
             <div className="text-center">
