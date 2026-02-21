@@ -29,7 +29,7 @@
     min-height: 100vh;
     color: rgb(var(--color-text) / 0.92);
     background-color: rgb(var(--color-bg0));
-    font-family: 'Plus Jakarta Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-family: 'Playfair Display', 'Times New Roman', serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
