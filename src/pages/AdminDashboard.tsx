@@ -196,7 +196,7 @@ const AdminDashboard: React.FC = () => {
           <h3 className="mb-2 text-xl font-medium text-text">No dishes yet</h3>
           <p className="mb-4 text-muted">Create your first dish to get started</p>
           <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">Create Dish</LiquidButton>
+            <LiquidButton tone="primary">Create Dish 123</LiquidButton>
           </Link>
         </div>
       ) : (
