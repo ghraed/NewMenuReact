@@ -17,6 +17,27 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const getAssetFileName = (asset?: Dish['assets'][number]) => {
+  if (!asset) return null;
+
+  const metaFileName = asset.metadata?.file_name;
+  if (typeof metaFileName === 'string' && metaFileName.trim()) {
+    return metaFileName;
+  }
+
+  const rawUrl = asset.file_url;
+  if (!rawUrl) return null;
+
+  try {
+    const pathname = new URL(rawUrl, window.location.origin).pathname;
+    const fileName = pathname.split('/').filter(Boolean).pop();
+    return fileName ? decodeURIComponent(fileName) : rawUrl;
+  } catch {
+    const fileName = rawUrl.split('/').filter(Boolean).pop();
+    return fileName ? decodeURIComponent(fileName) : rawUrl;
+  }
+};
+
 const EditDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
@@ -160,6 +181,8 @@ const EditDishPage: React.FC = () => {
   const usdzAsset = dish.assets.find((asset) => asset.asset_type === 'usdz');
   const glbUrl = resolveAssetUrl(glbAsset?.file_url);
   const usdzUrl = resolveAssetUrl(usdzAsset?.file_url);
+  const glbFileName = getAssetFileName(glbAsset);
+  const usdzFileName = getAssetFileName(usdzAsset);
   const ModelViewer = 'model-viewer' as React.ElementType;
 
   return (
@@ -242,6 +265,11 @@ const EditDishPage: React.FC = () => {
             status: dish.status,
             image_url: dish.image_url || '',
             price: String(dish.price),
+          }}
+          existingFiles={{
+            glb: glbFileName,
+            usdz: usdzFileName,
+            imageUrl: dish.image_url || null,
           }}
           requireModelUpload={false}
           submitLabel="Update Dish"

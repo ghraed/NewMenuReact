@@ -24,6 +24,11 @@ interface DishFormProps {
   requireModelUpload?: boolean;
   submitLabel?: string;
   submittingLabel?: string;
+  existingFiles?: {
+    glb?: string | null;
+    usdz?: string | null;
+    imageUrl?: string | null;
+  };
 }
 
 const DishForm: React.FC<DishFormProps> = ({
@@ -32,6 +37,7 @@ const DishForm: React.FC<DishFormProps> = ({
   requireModelUpload = true,
   submitLabel = 'Save Dish',
   submittingLabel = 'Saving...',
+  existingFiles,
 }) => {
   const [formData, setFormData] = useState<DishFormData>({
     name: initialValues?.name || '',
@@ -62,6 +68,8 @@ const DishForm: React.FC<DishFormProps> = ({
     if (!file) return true;
     return file.name.toLowerCase().endsWith(ext);
   };
+
+  const imageUrlLooksSet = formData.image_url.trim().length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,6 +217,11 @@ const DishForm: React.FC<DishFormProps> = ({
           onChange={handleChange}
           placeholder="https://example.com/pizza.jpg"
         />
+        {imageUrlLooksSet && (
+          <p className="mt-2 text-xs text-muted">
+            Image found: {formData.image_url}
+          </p>
+        )}
       </div>
 
       <div className="border-t border-stroke pt-6">
@@ -219,12 +232,22 @@ const DishForm: React.FC<DishFormProps> = ({
               GLB File (Android/WebXR)
             </label>
             <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} />
+            {formData.glb_file ? (
+              <p className="mt-2 text-xs text-muted">Selected file: {formData.glb_file.name}</p>
+            ) : (
+              existingFiles?.glb && <p className="mt-2 text-xs text-muted">Uploaded file found: {existingFiles.glb}</p>
+            )}
           </div>
           <div>
             <label htmlFor="usdz_file" className="mb-1 block text-sm font-medium text-text">
               USDZ File (iOS AR)
             </label>
             <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} />
+            {formData.usdz_file ? (
+              <p className="mt-2 text-xs text-muted">Selected file: {formData.usdz_file.name}</p>
+            ) : (
+              existingFiles?.usdz && <p className="mt-2 text-xs text-muted">Uploaded file found: {existingFiles.usdz}</p>
+            )}
           </div>
           <p className="text-xs text-muted">
             {requireModelUpload
