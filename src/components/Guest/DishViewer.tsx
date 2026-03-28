@@ -83,8 +83,11 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
     controls.minDistance = 1.5;
     controls.maxDistance = 5;
     controls.autoRotate = false;
-    controls.maxPolarAngle = Math.PI / 1.5;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI - 0.08;
     controlsRef.current = controls;
+
+    renderer.domElement.style.touchAction = 'none';
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambientLight);
@@ -134,7 +137,7 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
         scene.add(model);
 
         camera.position.set(0, 1.8, 2.2);
-        controls.target.set(0, 0.2, 0);
+        controls.target.set(0, 0, 0);
         controls.autoRotate = false;
         controls.update();
 
