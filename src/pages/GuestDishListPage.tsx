@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { GlassInput, GlassPill, LiquidBackground } from '../components/ui/liquid-glass';
 import DishCard from '../components/Guest/DishCard';
+import DishTags from '../components/Guest/DishTags';
+import GuestInfoSection from '../components/Guest/GuestInfoSection';
+import GuestPageShell from '../components/Guest/GuestPageShell';
+import SectionHeading from '../components/Guest/SectionHeading';
 
 interface GuestListResponse {
   restaurant: {
@@ -71,80 +74,118 @@ const GuestDishListPage: React.FC = () => {
     });
   }, [dishes, category, search]);
 
-  if (loading) return <LoadingSpinner fullPage text="Loading menu..." />;
-
   return (
-    <LiquidBackground>
-      <div className="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 sm:pb-32 sm:pt-10">
-        <header className="rounded-xl2 border border-stroke bg-panel p-4 shadow-lux backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-gold2/90">Hotel Menu</p>
-              <h1 className="mt-2 text-3xl font-semibold leading-tight text-text sm:text-4xl">{restaurantName}</h1>
-              <p className="mt-2 text-sm text-muted">Select a dish to explore details and open it in AR.</p>
-            </div>
-            <span className="rounded-full border border-gold/30 bg-gold/12 px-3 py-1 text-xs font-semibold text-gold2">
-              {filteredDishes.length} dishes
-            </span>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
-            <GlassInput
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search dishes..."
-              leftSlot={<span>🔎</span>}
-            />
-          </div>
-
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-            {categories.map((item) => (
-              <GlassPill
-                key={item}
-                active={item === category}
-                onClick={() => setCategory(item)}
-                className="shrink-0"
+    <GuestPageShell>
+      <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        <section aria-labelledby="dish-gallery-heading">
+          <SectionHeading
+            titleId="dish-gallery-heading"
+            eyebrow="Dish Gallery"
+            title="Explore every dish with its own details page"
+            description={`${restaurantName} begins directly with the gallery so guests can search, filter, and open any dish without extra navigation layers.`}
+            aside={(
+              <span
+                className="inline-flex rounded-full border px-4 py-2 text-sm font-medium"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-muted)',
+                }}
               >
-                {item}
-              </GlassPill>
-            ))}
+                {filteredDishes.length} dishes
+              </span>
+            )}
+          />
+
+          <div
+            className="mt-8 rounded-[32px] border p-4 sm:p-6"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              boxShadow: 'var(--guest-shadow)',
+            }}
+          >
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Search</span>
+                <div className="relative mt-3">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--guest-muted)]">⌕</span>
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search dishes..."
+                    className="w-full rounded-full border py-3 pl-11 pr-4 text-sm outline-none transition"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                  />
+                </div>
+              </label>
+
+              <div className="overflow-x-auto no-scrollbar">
+                <p className="mb-3 whitespace-nowrap text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Filter by category</p>
+                <DishTags tags={categories} activeTag={category} onTagClick={setCategory} />
+              </div>
+            </div>
           </div>
-        </header>
 
-        {error && (
-          <div className="mt-5 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-sm text-spicy">{error}</div>
-        )}
+          {loading ? (
+            <div
+              className="mt-6 rounded-[28px] border px-6 py-10 text-center"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                boxShadow: 'var(--guest-shadow-soft)',
+              }}
+            >
+              <LoadingSpinner inline text="Loading menu..." />
+            </div>
+          ) : null}
 
-        {!error && filteredDishes.length === 0 && (
-          <div className="mt-5 rounded-xl2 border border-stroke bg-panel p-6 text-center text-muted shadow-lux2 backdrop-blur-xl">
-            No dishes found for your filter.
-          </div>
-        )}
+          {error ? (
+            <div
+              className="mt-6 rounded-[28px] border p-4 text-sm"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
 
-        <section className="mt-5 space-y-3 sm:space-y-4">
-          {filteredDishes.map((dish) => (
-            <DishCard
-              key={dish.id}
-              dish={dish}
-              onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
-            />
-          ))}
+          {!loading && !error && filteredDishes.length === 0 ? (
+            <div
+              className="mt-6 rounded-[28px] border p-6 text-center text-sm"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-muted)',
+              }}
+            >
+              No dishes found for your filter.
+            </div>
+          ) : null}
+
+          {!loading && !error ? (
+            <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredDishes.map((dish) => (
+                <DishCard
+                  key={dish.id}
+                  dish={dish}
+                  onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
+                />
+              ))}
+            </div>
+          ) : null}
         </section>
-      </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-bg1/85 backdrop-blur-xl">
-        <div className="mx-auto max-w-5xl px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 sm:px-6">
-          <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke bg-panel2 p-2 shadow-lux2">
-            <button type="button" className="rounded-full border border-gold/70 bg-gold px-3 py-2 text-xs font-semibold text-bg0">
-              Menu
-            </button>
-            <button type="button" className="rounded-full px-3 py-2 text-xs font-medium text-muted">
-              Search
-            </button>
-          </div>
-        </div>
-      </nav>
-    </LiquidBackground>
+        {!loading ? <GuestInfoSection restaurantName={restaurantName} /> : null}
+      </main>
+    </GuestPageShell>
   );
 };
 

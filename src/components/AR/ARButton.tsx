@@ -1,12 +1,6 @@
 import React from 'react';
 import { resolveAssetUrl } from '../../services/api';
-import {
-  cx,
-  focusRing,
-  glassControl,
-  glassInteractive,
-  primaryTone,
-} from '../../theme/liquidGlass';
+import { cx, focusRing } from '../../theme/liquidGlass';
 
 interface ARButtonProps {
   dish?: {
@@ -34,12 +28,14 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         href={usdzUrlAbs}
         rel="ar"
         className={cx(
-          'group block w-full rounded-full border px-6 py-4 text-center font-semibold',
-          glassControl,
-          glassInteractive,
-          primaryTone,
+          'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid hover:-translate-y-0.5',
           focusRing
         )}
+        style={{
+          backgroundColor: 'var(--guest-text, rgb(var(--color-gold) / 0.95))',
+          borderColor: 'var(--guest-text, rgb(var(--color-gold) / 0.95))',
+          color: 'var(--guest-bg, rgb(var(--color-bg0)))',
+        }}
       >
         <span>View in AR (iOS)</span>
       </a>
@@ -56,16 +52,18 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={cx(
-            'group block w-full rounded-full border px-6 py-4 text-center font-semibold',
-            glassControl,
-            glassInteractive,
-            primaryTone,
+            'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid hover:-translate-y-0.5',
             focusRing
           )}
+          style={{
+            backgroundColor: 'var(--guest-text, rgb(var(--color-gold) / 0.95))',
+            borderColor: 'var(--guest-text, rgb(var(--color-gold) / 0.95))',
+            color: 'var(--guest-bg, rgb(var(--color-bg0)))',
+          }}
         >
           <span>View in AR (Scene Viewer)</span>
         </a>
-        <p className="text-center text-xs text-muted2">Requires Chrome and ARCore</p>
+        <p className="text-center text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.55))]">Requires Chrome and ARCore</p>
       </div>
     );
   }

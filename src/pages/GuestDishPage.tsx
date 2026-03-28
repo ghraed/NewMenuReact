@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { Dish } from '../types';
-import DishViewer from '../components/Guest/DishViewer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
-import { GlassBoard, GlassIconButton, LiquidBackground } from '../components/ui/liquid-glass';
+import DishDetailView from '../components/Guest/DishDetailView';
+import GuestInfoSection from '../components/Guest/GuestInfoSection';
+import GuestPageShell from '../components/Guest/GuestPageShell';
+
+const formatRestaurantLabel = (value?: string) => value?.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || 'Menu';
 
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
@@ -32,40 +35,56 @@ const GuestDishPage: React.FC = () => {
     fetchDish();
   }, [restaurant_slug, dish_id]);
 
-  if (loading) return <LoadingSpinner fullPage text="Loading dish..." />;
-  if (error) return <div className="py-10 text-center text-spicy">{error}</div>;
-  if (!dish) return <div className="py-10 text-center text-muted">Dish not found</div>;
-
   return (
-    <LiquidBackground>
-      <div className="mx-auto max-w-4xl px-4 pb-10 pt-6 sm:px-6 sm:pt-10">
-        <GlassBoard>
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-gold2/90">Dish Details</p>
-              <h1 className="mt-2 text-3xl font-semibold text-text sm:text-4xl">{dish.name}</h1>
-              <p className="mt-2 text-sm text-muted">{dish.category}</p>
-            </div>
-
-            <Link to="/" aria-label="Back to menu">
-              <GlassIconButton>←</GlassIconButton>
-            </Link>
+    <GuestPageShell>
+      <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        {loading ? (
+          <div
+            className="rounded-[32px] border px-6 py-12 text-center"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              boxShadow: 'var(--guest-shadow)',
+            }}
+          >
+            <LoadingSpinner inline text="Loading dish..." />
           </div>
+        ) : null}
 
-          <div className="mb-6 inline-flex rounded-full border border-gold/35 bg-gold/12 px-4 py-2 text-lg font-semibold text-gold2">
-            ${typeof dish.price === 'number' ? dish.price.toFixed(2) : parseFloat(dish.price).toFixed(2)}
+        {!loading && error ? (
+          <div
+            className="rounded-[32px] border p-6 text-center"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              color: 'var(--guest-text)',
+            }}
+          >
+            {error}
           </div>
+        ) : null}
 
-          <div className="mb-8">
-            <p className="text-base leading-relaxed text-muted">{dish.description}</p>
+        {!loading && !error && !dish ? (
+          <div
+            className="rounded-[32px] border p-6 text-center"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              color: 'var(--guest-muted)',
+            }}
+          >
+            Dish not found
           </div>
+        ) : null}
 
-          <div className="mb-2 parent-mountRef">
-            <DishViewer dish={dish} />
-          </div>
-        </GlassBoard>
-      </div>
-    </LiquidBackground>
+        {!loading && !error && dish ? (
+          <>
+            <DishDetailView dish={dish} />
+            <GuestInfoSection restaurantName={formatRestaurantLabel(restaurant_slug)} />
+          </>
+        ) : null}
+      </main>
+    </GuestPageShell>
   );
 };
 

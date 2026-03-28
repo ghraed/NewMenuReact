@@ -11,11 +11,23 @@ import { resolveAssetUrl } from '../../services/api';
 
 interface DishViewerProps {
   dish: Dish;
+  viewerClassName?: string;
 }
 
-const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
+const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' }) => {
   if (!dish || !dish.assets) {
-    return <div className="rounded-xl2 border border-spicy/40 bg-spicy/10 p-4 text-spicy">Error: Dish data not available</div>;
+    return (
+      <div
+        className="rounded-[28px] border p-4"
+        style={{
+          backgroundColor: 'var(--guest-panel, rgb(var(--color-bg1)))',
+          borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+          color: 'var(--guest-text, rgb(var(--color-text) / 0.92))',
+        }}
+      >
+        Error: Dish data not available
+      </div>
+    );
   }
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -185,24 +197,39 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className="relative h-96 w-full cursor-grab overflow-hidden rounded-[28px] border border-stroke bg-bg1 lg-noise active:cursor-grabbing"
+        className={`relative w-full cursor-grab overflow-hidden rounded-[28px] border active:cursor-grabbing ${viewerClassName}`}
         aria-label="3D dish viewer - click and drag to rotate"
+        style={{
+          backgroundColor: 'var(--guest-panel-strong, rgb(var(--color-bg1)))',
+          borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+        }}
       >
         {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-bg1/70 backdrop-blur-sm">
+          <div
+            className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 72%, transparent)' }}
+          >
             <div className="text-center">
               <LoadingSpinner variant="primary" />
-              <p className="mt-2 text-sm text-muted">Loading 3D model...</p>
+              <p className="mt-2 text-sm text-[var(--guest-muted, rgb(var(--color-text) / 0.7))]">Loading 3D model...</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-bg1/85 p-4">
-            <div className="mb-2 text-lg font-medium text-spicy">{error}</div>
+          <div
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 86%, transparent)' }}
+          >
+            <div className="mb-2 text-lg font-medium text-[var(--guest-text, rgb(var(--color-text) / 0.92))]">{error}</div>
             <button
               onClick={() => window.location.reload()}
-              className="rounded-full border border-spicy/40 bg-spicy/20 px-4 py-2 text-sm text-text transition hover:bg-spicy/30"
+              className="rounded-full border px-4 py-2 text-sm transition"
+              style={{
+                backgroundColor: 'var(--guest-accent-soft, rgb(var(--color-gold) / 0.14))',
+                borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+                color: 'var(--guest-text, rgb(var(--color-text) / 0.92))',
+              }}
             >
               Refresh
             </button>
@@ -213,7 +240,14 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish }) => {
       {(capabilities.isARSupported || isIOS || isAndroid) && <ARButton dish={dish} />}
 
       {!capabilities.isARSupported && !isIOS && !isAndroid && (
-        <div className="rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-sm text-gold2">
+        <div
+          className="rounded-[24px] border p-4 text-sm"
+          style={{
+            backgroundColor: 'var(--guest-accent-soft, rgb(var(--color-gold) / 0.12))',
+            borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+            color: 'var(--guest-accent, rgb(var(--color-gold2) / 0.92))',
+          }}
+        >
           <strong>AR Not Available:</strong> Use an iOS device (iOS 12+) or Android with Chrome/WebXR support.
         </div>
       )}
