@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dish } from '../../types';
 import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
@@ -11,13 +11,47 @@ interface DishCardProps {
 }
 
 const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish]);
   const editorialLabel = useMemo(() => getDishEditorialLabel(dish), [dish]);
 
   const price = Number(dish.price).toFixed(2);
 
+  useEffect(() => {
+    const node = articleRef.current;
+
+    if (!node) return;
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.16,
+        rootMargin: '0px 0px -8% 0px',
+      }
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <article
+      ref={articleRef}
       role="button"
       tabIndex={0}
       onClick={onOpen}
@@ -29,7 +63,8 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
       }}
       className={cx(
         'group relative w-full overflow-hidden rounded-[28px] border p-3 sm:p-4',
-        'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-1',
+        'transition duration-700 ease-fluid motion-reduce:transform-none motion-reduce:opacity-100 motion-safe:hover:-translate-y-1',
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
         focusRing,
         'cursor-pointer'
       )}
