@@ -38,15 +38,12 @@ export const getGuestThemeStyle = (theme: GuestThemeMode): CSSProperties => {
     color: 'var(--guest-text)',
     backgroundImage: theme === 'dark'
       ? [
-        'radial-gradient(circle at top left, rgba(212,175,55,0.12), transparent 28%)',
         'radial-gradient(circle at 85% 12%, rgba(255,255,255,0.05), transparent 18%)',
         'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(11,11,12,0) 32%)',
       ].join(', ')
       : [
-        'radial-gradient(circle at top left, rgba(184,154,94,0.18), transparent 26%)',
         'radial-gradient(circle at 90% 8%, rgba(255,255,255,0.95), transparent 16%)',
         'linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(246,242,235,0) 30%)',
       ].join(', '),
   };
 };
-
