@@ -34,6 +34,7 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
   const isAndroid = /Android/.test(navigator.userAgent);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCanvasVisible, setIsCanvasVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const capabilities = useDeviceCapability();
   const { trackEvent } = useAnalytics();
@@ -42,6 +43,9 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
   const controlsRef = useRef<any>(null);
   const animationIdRef = useRef<number>(0);
   const isCleaningUpRef = useRef(false);
+  const posterUrl = resolveAssetUrl(
+    dish.image_url || dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url
+  );
 
   useEffect(() => {
     const mountNode = containerRef.current;
@@ -49,6 +53,7 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
 
     isCleaningUpRef.current = false;
     setIsLoading(true);
+    setIsCanvasVisible(false);
     setError(null);
 
     const existingCanvas = mountNode.querySelector('canvas');
@@ -65,6 +70,8 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.style.opacity = '0';
+    renderer.domElement.style.transition = 'opacity 450ms cubic-bezier(0.16, 1, 0.3, 1)';
     rendererRef.current = renderer;
     mountNode.appendChild(renderer.domElement);
 
@@ -130,6 +137,13 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
         controls.target.set(0, 0.2, 0);
         controls.autoRotate = false;
         controls.update();
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(() => {
+          if (isCleaningUpRef.current) return;
+          renderer.domElement.style.opacity = '1';
+          setIsCanvasVisible(true);
+        });
 
         setIsLoading(false);
         trackEvent('3d_model_loaded');
@@ -204,7 +218,21 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
           borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
         }}
       >
-        {isLoading && (
+        {posterUrl && !isCanvasVisible && (
+          <div className="pointer-events-none absolute inset-0">
+            <img
+              src={posterUrl}
+              alt={dish.name}
+              className="h-full w-full object-cover"
+            />
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 18%, transparent)' }}
+            />
+          </div>
+        )}
+
+        {isLoading && !posterUrl && (
           <div
             className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
             style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 72%, transparent)' }}

@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Dish } from '../../types';
-import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishViewer from './DishViewer';
 import DishTags from './DishTags';
 import {
@@ -28,38 +27,21 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish }) => {
     <article className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
       <div className="space-y-6">
         <section
-          className="rounded-[32px] border p-3 sm:p-4"
+          className="rounded-[32px] border p-5 sm:p-6"
           style={{
             backgroundColor: 'var(--guest-panel)',
             borderColor: 'var(--guest-border)',
             boxShadow: 'var(--guest-shadow)',
           }}
         >
-          <DishAssetThumbnail
-            dish={dish}
-            fit="cover"
-            className="aspect-[4/5] w-full rounded-[24px] sm:aspect-[5/4] lg:aspect-[4/5]"
-            imageClassName="object-cover"
-            overlayClassName="bg-black/5"
-          />
-        </section>
-
-        <section
-          className="rounded-[32px] border p-5 sm:p-6"
-          style={{
-            backgroundColor: 'var(--guest-panel)',
-            borderColor: 'var(--guest-border)',
-            boxShadow: 'var(--guest-shadow-soft)',
-          }}
-        >
           <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">3D Experience</p>
           <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">Explore the plated form</h2>
           <p className="mt-2 text-sm leading-7 text-[var(--guest-muted)]">
-            The existing interactive viewer and AR actions stay intact while the presentation shifts to a more minimal, editorial layout.
+            The image loads first in this single media panel, then the interactive 3D model replaces it as soon as the viewer is ready.
           </p>
 
           <div className="mt-5">
-            <DishViewer dish={dish} viewerClassName="h-[20rem] sm:h-[24rem]" />
+            <DishViewer dish={dish} viewerClassName="h-[22rem] sm:h-[26rem] lg:h-[34rem]" />
           </div>
         </section>
       </div>
@@ -120,4 +102,3 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish }) => {
 };
 
 export default DishDetailView;
-
