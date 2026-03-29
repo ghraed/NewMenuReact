@@ -7,7 +7,6 @@ import { getAppThemeStyle } from './Guest/guestTheme';
 import { useAppTheme } from '../hooks/useGuestTheme';
 
 const TRANSITION_NAME = 'app-theme-shell';
-const REVEAL_X = '0px';
 const REVEAL_DURATION_MS = 650;
 
 interface RevealCircleState {
@@ -43,9 +42,11 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
 
     const root = document.documentElement;
     const revealRadius = Math.hypot(window.innerWidth, window.innerHeight);
+    const revealX = window.innerWidth;
+    const revealY = 0;
 
-    root.style.setProperty('--app-theme-reveal-x', REVEAL_X);
-    root.style.setProperty('--app-theme-reveal-y', `${window.innerHeight}px`);
+    root.style.setProperty('--app-theme-reveal-x', `${revealX}px`);
+    root.style.setProperty('--app-theme-reveal-y', `${revealY}px`);
     root.style.setProperty('--app-theme-reveal-radius', `${revealRadius}px`);
 
     revealIdRef.current += 1;
@@ -105,8 +106,8 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
           aria-hidden="true"
           className={`pointer-events-none fixed rounded-full border-2 transition-transform transition-opacity ease-fluid ${isRevealActive ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`}
           style={{
-            left: `${-revealCircle.radius}px`,
-            bottom: `${-revealCircle.radius}px`,
+            left: `${window.innerWidth - revealCircle.radius}px`,
+            top: `${-revealCircle.radius}px`,
             width: `${revealCircle.radius * 2}px`,
             height: `${revealCircle.radius * 2}px`,
             borderColor: 'color-mix(in srgb, var(--guest-accent) 78%, white 22%)',
