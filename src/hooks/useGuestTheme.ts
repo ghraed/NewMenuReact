@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 export type GuestThemeMode = 'light' | 'dark';
 
@@ -11,7 +11,15 @@ const readStoredTheme = (): GuestThemeMode => {
   return stored === 'dark' ? 'dark' : 'light';
 };
 
-export const useGuestTheme = () => {
+interface AppThemeContextValue {
+  theme: GuestThemeMode;
+  setTheme: React.Dispatch<React.SetStateAction<GuestThemeMode>>;
+  toggleTheme: () => void;
+}
+
+const AppThemeContext = createContext<AppThemeContextValue | null>(null);
+
+export const AppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<GuestThemeMode>(readStoredTheme);
 
   useEffect(() => {
@@ -28,12 +36,25 @@ export const useGuestTheme = () => {
     };
   }, [theme]);
 
-  return {
+  const value = useMemo(() => ({
     theme,
     setTheme,
     toggleTheme: () => {
       setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'));
     },
-  };
+  }), [theme]);
+
+  return React.createElement(AppThemeContext.Provider, { value }, children);
 };
 
+export const useAppTheme = () => {
+  const context = useContext(AppThemeContext);
+
+  if (!context) {
+    throw new Error('useAppTheme must be used within AppThemeProvider');
+  }
+
+  return context;
+};
+
+export const useGuestTheme = useAppTheme;

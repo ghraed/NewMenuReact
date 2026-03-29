@@ -29,7 +29,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
       type="button"
       onClick={onToggle}
       aria-label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
-      className="fixed right-4 top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid hover:-translate-y-0.5 sm:right-6 sm:top-6"
+      className="fixed bottom-4 left-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid hover:-translate-y-0.5 sm:bottom-6 sm:left-6"
       style={{
         backgroundColor: 'var(--guest-panel)',
         borderColor: 'var(--guest-border)',
@@ -44,4 +44,3 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
 };
 
 export default ThemeToggle;
-

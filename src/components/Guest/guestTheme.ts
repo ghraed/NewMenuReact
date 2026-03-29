@@ -29,8 +29,39 @@ const darkThemeVars = {
   '--guest-shadow-soft': '0 18px 40px rgba(0,0,0,0.35)',
 } as CSSProperties;
 
+const lightAppVars = {
+  '--color-bg0': '246 242 235',
+  '--color-bg1': '255 255 255',
+  '--color-gold': '184 154 94',
+  '--color-gold2': '138 115 74',
+  '--color-sage': '123 163 141',
+  '--color-spicy': '184 96 82',
+  '--color-panel': '26 26 26',
+  '--color-text': '26 26 26',
+} as CSSProperties;
+
+const darkAppVars = {
+  '--color-bg0': '5 8 19',
+  '--color-bg1': '10 16 32',
+  '--color-gold': '215 180 106',
+  '--color-gold2': '243 215 154',
+  '--color-sage': '143 214 180',
+  '--color-spicy': '214 99 89',
+  '--color-panel': '255 255 255',
+  '--color-text': '255 255 255',
+} as CSSProperties;
+
+const getGuestThemeVars = (theme: GuestThemeMode): CSSProperties => (
+  theme === 'dark' ? darkThemeVars : lightThemeVars
+);
+
+export const getAppThemeStyle = (theme: GuestThemeMode): CSSProperties => ({
+  ...(theme === 'dark' ? darkAppVars : lightAppVars),
+  ...getGuestThemeVars(theme),
+});
+
 export const getGuestThemeStyle = (theme: GuestThemeMode): CSSProperties => {
-  const baseVars = theme === 'dark' ? darkThemeVars : lightThemeVars;
+  const baseVars = getGuestThemeVars(theme);
 
   return {
     ...baseVars,

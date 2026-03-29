@@ -86,13 +86,13 @@
   }
 }
 
-::view-transition-group(guest-theme-shell) {
+::view-transition-group(app-theme-shell) {
   animation-duration: 650ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-::view-transition-old(guest-theme-shell),
-::view-transition-new(guest-theme-shell) {
+::view-transition-old(app-theme-shell),
+::view-transition-new(app-theme-shell) {
   animation-duration: 650ms;
   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   mix-blend-mode: normal;
@@ -100,22 +100,22 @@
   overflow: clip;
 }
 
-::view-transition-old(guest-theme-shell) {
+::view-transition-old(app-theme-shell) {
   animation-name: guest-theme-old-fade;
 }
 
-::view-transition-new(guest-theme-shell) {
+::view-transition-new(app-theme-shell) {
   animation-name: guest-theme-circular-reveal;
-  clip-path: circle(0 at var(--guest-theme-reveal-x, 0px) var(--guest-theme-reveal-y, 100vh));
+  clip-path: circle(0 at var(--app-theme-reveal-x, 0px) var(--app-theme-reveal-y, 100vh));
 }
 
 @keyframes guest-theme-circular-reveal {
   from {
-    clip-path: circle(0 at var(--guest-theme-reveal-x, 0px) var(--guest-theme-reveal-y, 100vh));
+    clip-path: circle(0 at var(--app-theme-reveal-x, 0px) var(--app-theme-reveal-y, 100vh));
   }
 
   to {
-    clip-path: circle(var(--guest-theme-reveal-radius, 150vmax) at var(--guest-theme-reveal-x, 0px) var(--guest-theme-reveal-y, 100vh));
+    clip-path: circle(var(--app-theme-reveal-radius, 150vmax) at var(--app-theme-reveal-x, 0px) var(--app-theme-reveal-y, 100vh));
   }
 }
 
