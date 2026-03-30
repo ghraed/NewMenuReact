@@ -8,6 +8,7 @@ import { useAppTheme } from '../hooks/useGuestTheme';
 
 const TRANSITION_NAME = 'app-theme-shell';
 const REVEAL_DURATION_MS = 650;
+const MOBILE_BREAKPOINT_PX = 768;
 
 interface RevealCircleState {
   id: number;
@@ -17,6 +18,18 @@ interface RevealCircleState {
 interface AppThemeShellProps {
   children: ReactNode;
 }
+
+const shouldUseLightweightThemeTransition = () => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return [
+    window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT_PX - 1}px)`),
+    window.matchMedia('(pointer: coarse)'),
+    window.matchMedia('(prefers-reduced-motion: reduce)'),
+  ].some((query) => query.matches);
+};
 
 const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
   const { theme, toggleTheme } = useAppTheme();
@@ -36,6 +49,11 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
 
   const handleThemeToggle = () => {
     if (typeof window === 'undefined') {
+      toggleTheme();
+      return;
+    }
+
+    if (shouldUseLightweightThemeTransition()) {
       toggleTheme();
       return;
     }
