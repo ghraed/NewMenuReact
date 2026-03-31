@@ -49,6 +49,12 @@ export const resolveAssetUrl = (url?: string | null): string | undefined => {
     return url;
   }
 
-  if (url.startsWith('/')) return url;
-  return `/${url}`;
+  try {
+    return new URL(url, apiOrigin).toString();
+  } catch {
+    if (url.startsWith('/')) {
+      return `${apiOrigin}${url}`;
+    }
+    return `${apiOrigin}/${url}`;
+  }
 };

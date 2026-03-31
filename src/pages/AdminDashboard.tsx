@@ -220,6 +220,16 @@ const AdminDashboard: React.FC = () => {
                         >
                           {dish.status === 'published' ? '✓' : '✕'}
                         </span>
+                        {dish.model_state === 'processing' && (
+                          <span className="inline-flex items-center rounded-full border border-sky-400/35 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-200">
+                            Model Processing
+                          </span>
+                        )}
+                        {dish.model_state === 'error' && (
+                          <span className="inline-flex items-center rounded-full border border-spicy/35 bg-spicy/10 px-2 py-0.5 text-xs font-medium text-spicy">
+                            Model Error
+                          </span>
+                        )}
                         {dish.deleted_at && (
                           <span className="inline-flex items-center rounded-full border border-gold/35 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
                             Deleted

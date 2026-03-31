@@ -223,6 +223,18 @@ const EditDishPage: React.FC = () => {
         </div>
       )}
 
+      {dish.model_state === 'processing' && (
+        <div className="mb-6 rounded-xl2 border border-sky-400/35 bg-sky-400/10 p-4 text-sky-200">
+          This dish was created, but its 3D model is still processing. It stays out of the guest menu until the GLB is ready.
+        </div>
+      )}
+
+      {dish.model_state === 'error' && (
+        <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">
+          Model generation failed for this dish. You can upload replacement assets here or rescan it from mobile.
+        </div>
+      )}
+
       <GlassCard className="mb-6 p-4">
         <h3 className="mb-3 text-lg font-semibold text-text">Current Model Preview</h3>
         {glbUrl ? (
@@ -242,7 +254,9 @@ const EditDishPage: React.FC = () => {
           />
         ) : (
           <div className="rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-gold2">
-            No GLB model is attached to this dish yet.
+            {dish.model_state === 'processing'
+              ? 'No GLB model is attached yet because processing is still in progress.'
+              : 'No GLB model is attached to this dish yet.'}
           </div>
         )}
 

@@ -9,6 +9,8 @@ export interface Dish {
   status: 'draft' | 'published';
   image_url?: string;
   assets: DishAsset[];
+  model_state?: 'none' | 'processing' | 'ready' | 'error';
+  is_model_ready?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
