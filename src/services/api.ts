@@ -40,7 +40,8 @@ export const resolveAssetUrl = (url?: string | null): string | undefined => {
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);
-      if (parsed.origin === apiOrigin) {
+      const parsedApiOrigin = new URL(apiOrigin);
+      if (parsed.origin === apiOrigin || parsed.hostname === parsedApiOrigin.hostname) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
     } catch {
