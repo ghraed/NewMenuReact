@@ -230,7 +230,7 @@ const AdminDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {dishes.map((dish) => (
-            <GlassCard key={dish.id}>
+            <GlassCard key={dish.id} className="overflow-visible">
               <div className="flex items-start gap-4">
                 <DishAssetThumbnail dish={dish} className="h-20 w-20" />
                 <div className="flex-1">
@@ -300,7 +300,7 @@ const AdminDashboard: React.FC = () => {
                             ⋯
                           </button>
                           {openMenuDishId === dish.id && (
-                            <div className="absolute right-0 top-12 z-10 w-44 overflow-hidden rounded-2xl border border-white/10 bg-panel/95 p-1 shadow-2xl backdrop-blur-xl">
+                            <div className="absolute right-0 top-12 z-20 w-44 overflow-hidden rounded-2xl border border-white/10 bg-panel/95 p-1 shadow-2xl backdrop-blur-xl">
                               {dish.status === 'published' && (
                                 <button
                                   type="button"
