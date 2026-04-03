@@ -230,7 +230,10 @@ const AdminDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {dishes.map((dish) => (
-            <GlassCard key={dish.id} className="overflow-visible">
+            <GlassCard
+              key={dish.id}
+              className={openMenuDishId === dish.id ? 'z-50 overflow-visible' : 'overflow-visible'}
+            >
               <div className="flex items-start gap-4">
                 <DishAssetThumbnail dish={dish} className="h-20 w-20" />
                 <div className="flex-1">
