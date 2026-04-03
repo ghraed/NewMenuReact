@@ -12,6 +12,26 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const uploadIngredientLayers = async (dishId: number, ingredientLayers: DishFormData['ingredient_layers']) => {
+  for (const [index, ingredient] of ingredientLayers.entries()) {
+    if (!ingredient.image_file) continue;
+
+    const payload = new FormData();
+    payload.append('type', 'ingredient_image');
+    payload.append('file', ingredient.image_file);
+    payload.append('label', ingredient.name);
+    payload.append('order_index', String(index));
+
+    if (ingredient.quantity) {
+      payload.append('quantity', ingredient.quantity);
+    }
+
+    await api.post(`/dishes/${dishId}/assets`, payload, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+};
+
 const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +63,8 @@ const CreateDishPage: React.FC = () => {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
       }
+
+      await uploadIngredientLayers(response.data.id, dishData.ingredient_layers);
 
       navigate('/admin/dashboard');
     } catch (err: unknown) {

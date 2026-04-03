@@ -1,4 +1,13 @@
 // src/types/index.ts
+export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
+
+export interface DishAssetMetadata extends Record<string, unknown> {
+  file_name?: string;
+  label?: string;
+  quantity?: string | null;
+  order_index?: number;
+}
+
 export interface Dish {
   id: number;
   uuid: string;
@@ -19,11 +28,11 @@ export interface Dish {
 export interface DishAsset {
   id: number;
   uuid: string;
-  asset_type: 'usdz' | 'glb' | 'preview_image';
+  asset_type: DishAssetType;
   file_url: string;
   file_size: number;
   mime_type: string;
-  metadata: Record<string, unknown>;
+  metadata: DishAssetMetadata;
 }
 
 export interface QRCodeData {

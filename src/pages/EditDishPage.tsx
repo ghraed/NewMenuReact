@@ -38,6 +38,38 @@ const getAssetFileName = (asset?: Dish['assets'][number]) => {
   }
 };
 
+const getAssetMetadataString = (asset: Dish['assets'][number], key: 'label' | 'quantity') => {
+  const value = asset.metadata?.[key];
+  return typeof value === 'string' ? value : '';
+};
+
+const getAssetMetadataOrder = (asset: Dish['assets'][number]) => {
+  const value = asset.metadata?.order_index;
+  return typeof value === 'number' ? value : 0;
+};
+
+const uploadIngredientAsset = async (
+  dishId: string,
+  ingredient: DishFormData['ingredient_layers'][number],
+  orderIndex: number
+) => {
+  if (!ingredient.image_file) return;
+
+  const payload = new FormData();
+  payload.append('type', 'ingredient_image');
+  payload.append('file', ingredient.image_file);
+  payload.append('label', ingredient.name);
+  payload.append('order_index', String(orderIndex));
+
+  if (ingredient.quantity) {
+    payload.append('quantity', ingredient.quantity);
+  }
+
+  await api.post(`/dishes/${dishId}/assets`, payload, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+};
+
 const EditDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
@@ -68,7 +100,7 @@ const EditDishPage: React.FC = () => {
   }, [dish_id]);
 
   const handleUpdate = async (data: DishFormData) => {
-    if (!dish_id) return;
+    if (!dish_id || !dish) return;
 
     setError(null);
 
@@ -107,6 +139,38 @@ const EditDishPage: React.FC = () => {
         await api.post(`/dishes/${dish_id}/assets`, previewPayload, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
+      }
+
+      const existingIngredientAssets = dish.assets.filter((asset) => asset.asset_type === 'ingredient_image');
+      const retainedAssetIds = new Set(
+        data.ingredient_layers
+          .map((ingredient) => ingredient.asset_id)
+          .filter((assetId): assetId is number => typeof assetId === 'number')
+      );
+
+      await Promise.all(
+        existingIngredientAssets
+          .filter((asset) => !retainedAssetIds.has(asset.id))
+          .map((asset) => api.delete(`/assets/${asset.id}`))
+      );
+
+      for (const [index, ingredient] of data.ingredient_layers.entries()) {
+        if (ingredient.asset_id && ingredient.image_file) {
+          await api.delete(`/assets/${ingredient.asset_id}`);
+          await uploadIngredientAsset(dish_id, ingredient, index);
+          continue;
+        }
+
+        if (ingredient.asset_id) {
+          await api.patch(`/assets/${ingredient.asset_id}`, {
+            label: ingredient.name,
+            quantity: ingredient.quantity || null,
+            order_index: index,
+          });
+          continue;
+        }
+
+        await uploadIngredientAsset(dish_id, ingredient, index);
       }
 
       navigate('/admin/dashboard');
@@ -189,8 +253,12 @@ const EditDishPage: React.FC = () => {
   const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
   const usdzAsset = dish.assets.find((asset) => asset.asset_type === 'usdz');
   const previewAsset = dish.assets.find((asset) => asset.asset_type === 'preview_image');
+  const ingredientAssets = dish.assets
+    .filter((asset) => asset.asset_type === 'ingredient_image')
+    .sort((a, b) => getAssetMetadataOrder(a) - getAssetMetadataOrder(b));
   const glbUrl = resolveAssetUrl(glbAsset?.file_url);
   const usdzUrl = resolveAssetUrl(usdzAsset?.file_url);
+  const previewAssetUrl = resolveAssetUrl(previewAsset?.file_url);
   const previewFileName = getAssetFileName(previewAsset);
   const glbFileName = getAssetFileName(glbAsset);
   const usdzFileName = getAssetFileName(usdzAsset);
@@ -295,7 +363,16 @@ const EditDishPage: React.FC = () => {
             glb: glbFileName,
             usdz: usdzFileName,
             previewImage: previewFileName,
+            previewImageUrl: previewAssetUrl || null,
             imageUrl: dish.image_url || null,
+            ingredients: ingredientAssets.map((asset) => ({
+              asset_id: asset.id,
+              name: getAssetMetadataString(asset, 'label'),
+              quantity: getAssetMetadataString(asset, 'quantity'),
+              image_url: resolveAssetUrl(asset.file_url) || null,
+              file_name: getAssetFileName(asset),
+              order_index: getAssetMetadataOrder(asset),
+            })),
           }}
           requireModelUpload={false}
           submitLabel="Update Dish"

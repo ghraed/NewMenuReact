@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   GlassInput,
   GlassSurface,
@@ -6,6 +6,45 @@ import {
   LiquidButton,
 } from '../ui/liquid-glass';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
+import DishIngredientAnimationPreview, {
+  type DishIngredientAnimationItem,
+} from './DishIngredientAnimationPreview';
+
+const createClientId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+export interface DishIngredientLayerData {
+  client_id: string;
+  asset_id?: number;
+  name: string;
+  quantity: string;
+  image_file: File | null;
+  image_url: string | null;
+  existing_image_url: string | null;
+  file_name?: string | null;
+}
+
+export interface ExistingDishIngredientLayer {
+  asset_id: number;
+  name: string;
+  quantity?: string | null;
+  image_url: string | null;
+  file_name?: string | null;
+  order_index?: number;
+}
+
+const createIngredientLayer = (
+  initial?: Partial<DishIngredientLayerData>
+): DishIngredientLayerData => ({
+  client_id: createClientId(),
+  asset_id: initial?.asset_id,
+  name: initial?.name || '',
+  quantity: initial?.quantity || '',
+  image_file: null,
+  image_url: initial?.image_url || initial?.existing_image_url || null,
+  existing_image_url: initial?.existing_image_url || initial?.image_url || null,
+  file_name: initial?.file_name || null,
+});
 
 export interface DishFormData {
   name: string;
@@ -17,6 +56,7 @@ export interface DishFormData {
   preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
+  ingredient_layers: DishIngredientLayerData[];
 }
 
 interface DishFormProps {
@@ -29,7 +69,9 @@ interface DishFormProps {
     glb?: string | null;
     usdz?: string | null;
     previewImage?: string | null;
+    previewImageUrl?: string | null;
     imageUrl?: string | null;
+    ingredients?: ExistingDishIngredientLayer[];
   };
 }
 
@@ -41,7 +83,7 @@ const DishForm: React.FC<DishFormProps> = ({
   submittingLabel = 'Saving...',
   existingFiles,
 }) => {
-  const [formData, setFormData] = useState<DishFormData>({
+  const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
     description: initialValues?.description || '',
     price: initialValues?.price || '',
@@ -51,10 +93,37 @@ const DishForm: React.FC<DishFormProps> = ({
     preview_file: null,
     glb_file: null,
     usdz_file: null,
-  });
+    ingredient_layers: [...(existingFiles?.ingredients ?? [])]
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+      .map((ingredient) =>
+        createIngredientLayer({
+          asset_id: ingredient.asset_id,
+          name: ingredient.name,
+          quantity: ingredient.quantity || '',
+          image_url: ingredient.image_url,
+          existing_image_url: ingredient.image_url,
+          file_name: ingredient.file_name,
+        })
+      ),
+  }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+  const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
+  const previewBlobUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewBlobUrlRef.current) {
+        URL.revokeObjectURL(previewBlobUrlRef.current);
+      }
+
+      ingredientBlobUrlsRef.current.forEach((blobUrl) => {
+        URL.revokeObjectURL(blobUrl);
+      });
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -64,6 +133,17 @@ const DishForm: React.FC<DishFormProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     const file = files && files.length > 0 ? files[0] : null;
+
+    if (name === 'preview_file') {
+      if (previewBlobUrlRef.current) {
+        URL.revokeObjectURL(previewBlobUrlRef.current);
+      }
+
+      const nextBlobUrl = file ? URL.createObjectURL(file) : null;
+      previewBlobUrlRef.current = nextBlobUrl;
+      setPreviewBlobUrl(nextBlobUrl);
+    }
+
     setFormData((prev) => ({ ...prev, [name]: file }));
   };
 
@@ -72,7 +152,84 @@ const DishForm: React.FC<DishFormProps> = ({
     return file.name.toLowerCase().endsWith(ext);
   };
 
+  const handleIngredientChange = (
+    clientId: string,
+    field: 'name' | 'quantity',
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      ingredient_layers: prev.ingredient_layers.map((layer) =>
+        layer.client_id === clientId ? { ...layer, [field]: value } : layer
+      ),
+    }));
+  };
+
+  const handleIngredientFileChange = (
+    clientId: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files && event.target.files.length > 0 ? event.target.files[0] : null;
+
+    setFormData((prev) => ({
+      ...prev,
+      ingredient_layers: prev.ingredient_layers.map((layer) => {
+        if (layer.client_id !== clientId) {
+          return layer;
+        }
+
+        if (layer.image_url?.startsWith('blob:')) {
+          URL.revokeObjectURL(layer.image_url);
+          ingredientBlobUrlsRef.current.delete(layer.image_url);
+        }
+
+        const nextBlobUrl = file ? URL.createObjectURL(file) : null;
+        if (nextBlobUrl) {
+          ingredientBlobUrlsRef.current.add(nextBlobUrl);
+        }
+
+        return {
+          ...layer,
+          image_file: file,
+          image_url: nextBlobUrl ?? layer.existing_image_url,
+          file_name: file?.name ?? layer.file_name,
+        };
+      }),
+    }));
+  };
+
+  const addIngredientLayer = () => {
+    setFormData((prev) => ({
+      ...prev,
+      ingredient_layers: [...prev.ingredient_layers, createIngredientLayer()],
+    }));
+  };
+
+  const removeIngredientLayer = (clientId: string) => {
+    setFormData((prev) => {
+      const target = prev.ingredient_layers.find((layer) => layer.client_id === clientId);
+      if (target?.image_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(target.image_url);
+        ingredientBlobUrlsRef.current.delete(target.image_url);
+      }
+
+      return {
+        ...prev,
+        ingredient_layers: prev.ingredient_layers.filter((layer) => layer.client_id !== clientId),
+      };
+    });
+  };
+
   const imageUrlLooksSet = formData.image_url.trim().length > 0;
+  const centeredDishImageUrl = previewBlobUrl || existingFiles?.previewImageUrl || formData.image_url.trim() || null;
+  const animationIngredients: DishIngredientAnimationItem[] = formData.ingredient_layers
+    .filter((layer) => layer.image_url || layer.name.trim() || layer.quantity.trim())
+    .map((layer) => ({
+      id: layer.client_id,
+      name: layer.name.trim() || 'Ingredient',
+      quantity: layer.quantity.trim() || undefined,
+      imageUrl: layer.image_url,
+    }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,10 +253,39 @@ const DishForm: React.FC<DishFormProps> = ({
       return;
     }
 
+    const normalizedIngredientLayers = formData.ingredient_layers
+      .map((layer) => ({
+        ...layer,
+        name: layer.name.trim(),
+        quantity: layer.quantity.trim(),
+      }))
+      .filter(
+        (layer) =>
+          layer.name.length > 0 ||
+          layer.quantity.length > 0 ||
+          !!layer.image_file ||
+          !!layer.existing_image_url
+      );
+
+    for (const [index, layer] of normalizedIngredientLayers.entries()) {
+      if (!layer.name) {
+        setFormError(`Ingredient ${index + 1} needs a label.`);
+        return;
+      }
+
+      if (!layer.image_file && !layer.existing_image_url) {
+        setFormError(`Ingredient ${index + 1} needs an image.`);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        ingredient_layers: normalizedIngredientLayers,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -249,6 +435,118 @@ const DishForm: React.FC<DishFormProps> = ({
           </p>
         )}
       </div>
+
+      <GlassSurface className="space-y-5 p-5" sheen={false}>
+        <DishIngredientAnimationPreview
+          dishName={formData.name}
+          dishImageUrl={centeredDishImageUrl}
+          ingredients={animationIngredients}
+        />
+
+        <div className="border-t border-white/10 pt-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-medium text-text">Animated Ingredient Layers</h3>
+              <p className="mt-1 text-sm text-muted">
+                Upload dish-related ingredient images, then add the label and optional quantity shown during the final stage.
+              </p>
+            </div>
+            <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
+              Add Ingredient
+            </LiquidButton>
+          </div>
+
+          {formData.ingredient_layers.length === 0 ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
+              No ingredient layers yet. Add one or more images to power the animated stack.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {formData.ingredient_layers.map((layer, index) => (
+                <div
+                  key={layer.client_id}
+                  className="rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
+                >
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
+                      <p className="mt-1 text-xs text-muted">
+                        The image should visually match the dish so the expansion feels natural.
+                      </p>
+                    </div>
+                    <LiquidButton
+                      type="button"
+                      tone="secondary"
+                      onClick={() => removeIngredientLayer(layer.client_id)}
+                    >
+                      Remove
+                    </LiquidButton>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[160px_1fr]">
+                    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
+                      {layer.image_url ? (
+                        <img
+                          src={layer.image_url}
+                          alt={layer.name || `Ingredient ${index + 1}`}
+                          className="h-36 w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                          Upload Image
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
+                          <GlassInput
+                            type="text"
+                            value={layer.name}
+                            onChange={(event) =>
+                              handleIngredientChange(layer.client_id, 'name', event.target.value)
+                            }
+                            placeholder="Fresh Basil"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
+                          <GlassInput
+                            type="text"
+                            value={layer.quantity}
+                            onChange={(event) =>
+                              handleIngredientChange(layer.client_id, 'quantity', event.target.value)
+                            }
+                            placeholder="6 leaves"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
+                        <GlassInput
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
+                        />
+                        <p className="mt-2 text-xs text-muted">
+                          {layer.image_file
+                            ? `Selected image: ${layer.image_file.name}`
+                            : layer.file_name
+                              ? `Current image: ${layer.file_name}`
+                              : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </GlassSurface>
 
       <div className="border-t border-stroke pt-6">
         <h3 className="mb-2 text-lg font-medium text-text">3D Assets</h3>
