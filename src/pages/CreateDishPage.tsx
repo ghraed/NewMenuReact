@@ -30,9 +30,19 @@ const CreateDishPage: React.FC = () => {
       if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
       if (dishData.usdz_file) formData.append('usdz_file', dishData.usdz_file);
 
-      await api.post('/dishes', formData, {
+      const response = await api.post('/dishes', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      if (dishData.preview_file) {
+        const previewFormData = new FormData();
+        previewFormData.append('type', 'preview_image');
+        previewFormData.append('file', dishData.preview_file);
+
+        await api.post(`/dishes/${response.data.id}/assets`, previewFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
 
       navigate('/admin/dashboard');
     } catch (err: unknown) {

@@ -14,6 +14,7 @@ export interface DishFormData {
   category: string;
   status: 'draft' | 'published';
   image_url: string;
+  preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
 }
@@ -27,6 +28,7 @@ interface DishFormProps {
   existingFiles?: {
     glb?: string | null;
     usdz?: string | null;
+    previewImage?: string | null;
     imageUrl?: string | null;
   };
 }
@@ -46,6 +48,7 @@ const DishForm: React.FC<DishFormProps> = ({
     category: initialValues?.category || '',
     status: initialValues?.status || 'published',
     image_url: initialValues?.image_url || '',
+    preview_file: null,
     glb_file: null,
     usdz_file: null,
   });
@@ -204,6 +207,29 @@ const DishForm: React.FC<DishFormProps> = ({
           />
         </div>
       </GlassSurface>
+
+      <div>
+        <label htmlFor="preview_file" className="mb-1 block text-sm font-medium text-text">
+          Preview Image Upload (Optional)
+        </label>
+        <GlassInput
+          type="file"
+          id="preview_file"
+          name="preview_file"
+          accept="image/*"
+          onChange={handleFileChange}
+        />
+        {formData.preview_file ? (
+          <p className="mt-2 text-xs text-muted">Selected preview: {formData.preview_file.name}</p>
+        ) : (
+          existingFiles?.previewImage && (
+            <p className="mt-2 text-xs text-muted">Current preview file: {existingFiles.previewImage}</p>
+          )
+        )}
+        <p className="mt-2 text-xs text-muted">
+          Uploading a new preview image replaces the current dish preview.
+        </p>
+      </div>
 
       <div>
         <label htmlFor="image_url" className="mb-1 block text-sm font-medium text-text">

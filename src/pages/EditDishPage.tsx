@@ -100,6 +100,15 @@ const EditDishPage: React.FC = () => {
         });
       }
 
+      if (data.preview_file) {
+        const previewPayload = new FormData();
+        previewPayload.append('file', data.preview_file);
+        previewPayload.append('type', 'preview_image');
+        await api.post(`/dishes/${dish_id}/assets`, previewPayload, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       navigate('/admin/dashboard');
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to update dish'));
@@ -179,8 +188,10 @@ const EditDishPage: React.FC = () => {
 
   const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
   const usdzAsset = dish.assets.find((asset) => asset.asset_type === 'usdz');
+  const previewAsset = dish.assets.find((asset) => asset.asset_type === 'preview_image');
   const glbUrl = resolveAssetUrl(glbAsset?.file_url);
   const usdzUrl = resolveAssetUrl(usdzAsset?.file_url);
+  const previewFileName = getAssetFileName(previewAsset);
   const glbFileName = getAssetFileName(glbAsset);
   const usdzFileName = getAssetFileName(usdzAsset);
   const ModelViewer = 'model-viewer' as React.ElementType;
@@ -283,6 +294,7 @@ const EditDishPage: React.FC = () => {
           existingFiles={{
             glb: glbFileName,
             usdz: usdzFileName,
+            previewImage: previewFileName,
             imageUrl: dish.image_url || null,
           }}
           requireModelUpload={false}

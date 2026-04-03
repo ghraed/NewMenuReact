@@ -20,7 +20,9 @@ const DishAssetThumbnail: React.FC<DishAssetThumbnailProps> = ({
 }) => {
   const [imageFailed, setImageFailed] = useState(false);
   const [modelFailed, setModelFailed] = useState(false);
-  const imageUrl = resolveAssetUrl(dish.image_url);
+  const imageUrl = resolveAssetUrl(
+    dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url || dish.image_url,
+  );
   const glbUrl = resolveAssetUrl(dish.assets.find((asset) => asset.asset_type === 'glb')?.file_url);
   const ModelViewer = 'model-viewer' as React.ElementType;
 

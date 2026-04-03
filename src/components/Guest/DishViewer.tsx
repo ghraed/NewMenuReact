@@ -44,7 +44,7 @@ const DishViewer: React.FC<DishViewerProps> = ({ dish, viewerClassName = 'h-96' 
   const animationIdRef = useRef<number>(0);
   const isCleaningUpRef = useRef(false);
   const posterUrl = resolveAssetUrl(
-    dish.image_url || dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url
+    dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url || dish.image_url
   );
 
   useEffect(() => {
