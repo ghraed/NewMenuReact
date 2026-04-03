@@ -303,7 +303,7 @@ const AdminDashboard: React.FC = () => {
                             ⋯
                           </button>
                           {openMenuDishId === dish.id && (
-                            <div className="absolute right-0 top-12 z-50 isolate w-44 overflow-hidden rounded-2xl border border-white/10 bg-panel p-1 shadow-2xl">
+                            <div className="absolute right-0 top-12 z-50 isolate w-44 overflow-hidden rounded-2xl border border-white/10 bg-[#121317] p-1 shadow-2xl">
                               {dish.status === 'published' && (
                                 <button
                                   type="button"
