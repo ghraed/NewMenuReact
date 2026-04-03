@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
@@ -27,10 +27,34 @@ const AdminDashboard: React.FC = () => {
   const [restaurantName, setRestaurantName] = useState(user?.restaurant?.name ?? '');
   const [restaurantError, setRestaurantError] = useState<string | null>(null);
   const [savingRestaurantName, setSavingRestaurantName] = useState(false);
+  const [openMenuDishId, setOpenMenuDishId] = useState<number | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setRestaurantName(user?.restaurant?.name ?? '');
   }, [user?.restaurant?.name]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setOpenMenuDishId(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuDishId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   const fetchDishes = useCallback(async () => {
     setLoading(true);
@@ -66,6 +90,7 @@ const AdminDashboard: React.FC = () => {
       const response = await api.patch(`/dishes/${dish.id}/${action}`);
       const updated = response.data as Dish;
       setDishes((prev) => prev.map((item) => (item.id === dish.id ? updated : item)));
+      setOpenMenuDishId(null);
     } catch (err: unknown) {
       alert(getErrorMessage(err, `Failed to ${action} dish`));
     }
@@ -80,6 +105,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await api.delete(`/dishes/${dish.id}`);
       setNotice(response?.data?.message || `Dish "${dish.name}" moved to deleted state.`);
+      setOpenMenuDishId(null);
       fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to delete dish'));
@@ -90,6 +116,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await api.post(`/dishes/${dish.id}/restore`);
       setNotice(response?.data?.message || `Dish "${dish.name}" restored.`);
+      setOpenMenuDishId(null);
       fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to restore dish'));
@@ -105,6 +132,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await api.delete(`/dishes/${dish.id}/force`);
       setNotice(response?.data?.message || `Dish "${dish.name}" permanently deleted.`);
+      setOpenMenuDishId(null);
       fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to permanently delete dish'));
@@ -251,20 +279,54 @@ const AdminDashboard: React.FC = () => {
                         </LiquidButton>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        <LiquidButton
-                          tone={dish.status === 'published' ? 'secondary' : 'tertiary'}
-                          onClick={() => handlePublishToggle(dish)}
-                          className="w-full px-3 py-1.5 text-xs"
-                        >
-                          {dish.status === 'published' ? 'Unpublish' : 'Publish'}
-                        </LiquidButton>
-                        <Link to={`/admin/dishes/${dish.id}/edit`} className="block">
-                          <LiquidButton tone="tertiary" className="w-full px-3 py-1.5 text-xs">Edit</LiquidButton>
-                        </Link>
-                        <LiquidButton tone="secondary" onClick={() => handleDelete(dish)} className="w-full px-3 py-1.5 text-xs">
-                          Delete
-                        </LiquidButton>
+                      <div className="flex items-center justify-end gap-2">
+                        {dish.status !== 'published' && (
+                          <LiquidButton
+                            tone="primary"
+                            onClick={() => handlePublishToggle(dish)}
+                            className="flex-1 px-3 py-1.5 text-xs"
+                          >
+                            Publish
+                          </LiquidButton>
+                        )}
+                        <div className="relative" ref={openMenuDishId === dish.id ? actionMenuRef : null}>
+                          <button
+                            type="button"
+                            aria-label={`More actions for ${dish.name}`}
+                            aria-expanded={openMenuDishId === dish.id}
+                            onClick={() => setOpenMenuDishId((current) => (current === dish.id ? null : dish.id))}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-text transition hover:border-gold/40 hover:bg-white/10"
+                          >
+                            ⋯
+                          </button>
+                          {openMenuDishId === dish.id && (
+                            <div className="absolute right-0 top-12 z-10 w-44 overflow-hidden rounded-2xl border border-white/10 bg-panel/95 p-1 shadow-2xl backdrop-blur-xl">
+                              {dish.status === 'published' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handlePublishToggle(dish)}
+                                  className="w-full rounded-xl px-3 py-2 text-left text-sm text-text transition hover:bg-white/10"
+                                >
+                                  Unpublish
+                                </button>
+                              )}
+                              <Link
+                                to={`/admin/dishes/${dish.id}/edit`}
+                                className="block rounded-xl px-3 py-2 text-sm text-text transition hover:bg-white/10"
+                                onClick={() => setOpenMenuDishId(null)}
+                              >
+                                Edit
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(dish)}
+                                className="w-full rounded-xl px-3 py-2 text-left text-sm text-spicy transition hover:bg-spicy/10"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
