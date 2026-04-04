@@ -6,9 +6,6 @@ import {
   LiquidButton,
 } from '../ui/liquid-glass';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
-import DishIngredientAnimationPreview, {
-  type DishIngredientAnimationItem,
-} from './DishIngredientAnimationPreview';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -109,16 +106,10 @@ const DishForm: React.FC<DishFormProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
   const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
-  const previewBlobUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
-      if (previewBlobUrlRef.current) {
-        URL.revokeObjectURL(previewBlobUrlRef.current);
-      }
-
       ingredientBlobUrlsRef.current.forEach((blobUrl) => {
         URL.revokeObjectURL(blobUrl);
       });
@@ -133,16 +124,6 @@ const DishForm: React.FC<DishFormProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
     const file = files && files.length > 0 ? files[0] : null;
-
-    if (name === 'preview_file') {
-      if (previewBlobUrlRef.current) {
-        URL.revokeObjectURL(previewBlobUrlRef.current);
-      }
-
-      const nextBlobUrl = file ? URL.createObjectURL(file) : null;
-      previewBlobUrlRef.current = nextBlobUrl;
-      setPreviewBlobUrl(nextBlobUrl);
-    }
 
     setFormData((prev) => ({ ...prev, [name]: file }));
   };
@@ -221,15 +202,6 @@ const DishForm: React.FC<DishFormProps> = ({
   };
 
   const imageUrlLooksSet = formData.image_url.trim().length > 0;
-  const centeredDishImageUrl = previewBlobUrl || existingFiles?.previewImageUrl || formData.image_url.trim() || null;
-  const animationIngredients: DishIngredientAnimationItem[] = formData.ingredient_layers
-    .filter((layer) => layer.image_url || layer.name.trim() || layer.quantity.trim())
-    .map((layer) => ({
-      id: layer.client_id,
-      name: layer.name.trim() || 'Ingredient',
-      quantity: layer.quantity.trim() || undefined,
-      imageUrl: layer.image_url,
-    }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -437,115 +409,107 @@ const DishForm: React.FC<DishFormProps> = ({
       </div>
 
       <GlassSurface className="space-y-5 p-5" sheen={false}>
-        <DishIngredientAnimationPreview
-          dishName={formData.name}
-          dishImageUrl={centeredDishImageUrl}
-          ingredients={animationIngredients}
-        />
-
-        <div className="border-t border-white/10 pt-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-medium text-text">Animated Ingredient Layers</h3>
-              <p className="mt-1 text-sm text-muted">
-                Upload dish-related ingredient images, then add the label and optional quantity shown during the final stage.
-              </p>
-            </div>
-            <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
-              Add Ingredient
-            </LiquidButton>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-medium text-text">Ingredient Layers for Menu Animation</h3>
+            <p className="mt-1 text-sm text-muted">
+              Upload dish-related ingredient images, then add the label and optional quantity shown on the public ingredient story page.
+            </p>
           </div>
+          <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
+            Add Ingredient
+          </LiquidButton>
+        </div>
 
-          {formData.ingredient_layers.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
-              No ingredient layers yet. Add one or more images to power the animated stack.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {formData.ingredient_layers.map((layer, index) => (
-                <div
-                  key={layer.client_id}
-                  className="rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
-                >
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
-                      <p className="mt-1 text-xs text-muted">
-                        The image should visually match the dish so the expansion feels natural.
-                      </p>
-                    </div>
-                    <LiquidButton
-                      type="button"
-                      tone="secondary"
-                      onClick={() => removeIngredientLayer(layer.client_id)}
-                    >
-                      Remove
-                    </LiquidButton>
+        {formData.ingredient_layers.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
+            No ingredient layers yet. Add one or more images to power the ingredient story page.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {formData.ingredient_layers.map((layer, index) => (
+              <div
+                key={layer.client_id}
+                className="rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
+              >
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
+                    <p className="mt-1 text-xs text-muted">
+                      The image should visually match the dish so the public ingredient story feels cohesive.
+                    </p>
+                  </div>
+                  <LiquidButton
+                    type="button"
+                    tone="secondary"
+                    onClick={() => removeIngredientLayer(layer.client_id)}
+                  >
+                    Remove
+                  </LiquidButton>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[160px_1fr]">
+                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
+                    {layer.image_url ? (
+                      <img
+                        src={layer.image_url}
+                        alt={layer.name || `Ingredient ${index + 1}`}
+                        className="h-36 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                        Upload Image
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid gap-4 lg:grid-cols-[160px_1fr]">
-                    <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
-                      {layer.image_url ? (
-                        <img
-                          src={layer.image_url}
-                          alt={layer.name || `Ingredient ${index + 1}`}
-                          className="h-36 w-full object-cover"
+                  <div className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
+                        <GlassInput
+                          type="text"
+                          value={layer.name}
+                          onChange={(event) =>
+                            handleIngredientChange(layer.client_id, 'name', event.target.value)
+                          }
+                          placeholder="Fresh Basil"
                         />
-                      ) : (
-                        <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                          Upload Image
-                        </div>
-                      )}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
+                        <GlassInput
+                          type="text"
+                          value={layer.quantity}
+                          onChange={(event) =>
+                            handleIngredientChange(layer.client_id, 'quantity', event.target.value)
+                          }
+                          placeholder="6 leaves"
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
-                          <GlassInput
-                            type="text"
-                            value={layer.name}
-                            onChange={(event) =>
-                              handleIngredientChange(layer.client_id, 'name', event.target.value)
-                            }
-                            placeholder="Fresh Basil"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
-                          <GlassInput
-                            type="text"
-                            value={layer.quantity}
-                            onChange={(event) =>
-                              handleIngredientChange(layer.client_id, 'quantity', event.target.value)
-                            }
-                            placeholder="6 leaves"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
-                        <GlassInput
-                          type="file"
-                          accept="image/*"
-                          onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
-                        />
-                        <p className="mt-2 text-xs text-muted">
-                          {layer.image_file
-                            ? `Selected image: ${layer.image_file.name}`
-                            : layer.file_name
-                              ? `Current image: ${layer.file_name}`
-                              : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
-                        </p>
-                      </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
+                      <GlassInput
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
+                      />
+                      <p className="mt-2 text-xs text-muted">
+                        {layer.image_file
+                          ? `Selected image: ${layer.image_file.name}`
+                          : layer.file_name
+                            ? `Current image: ${layer.file_name}`
+                            : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </GlassSurface>
 
       <div className="border-t border-stroke pt-6">

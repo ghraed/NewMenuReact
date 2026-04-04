@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
 import GuestDishPage from './pages/GuestDishPage';
+import GuestDishIngredientsPage from './pages/GuestDishIngredientsPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
@@ -19,6 +20,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
+        <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
         <Route path="/liquid-glass-preview" element={<LiquidGlassDemoPage />} />
 
         <Route path="/admin/login" element={<LoginPage />} />

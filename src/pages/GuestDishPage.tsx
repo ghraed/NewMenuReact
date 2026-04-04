@@ -79,7 +79,7 @@ const GuestDishPage: React.FC = () => {
 
         {!loading && !error && dish ? (
           <>
-            <DishDetailView dish={dish} />
+            <DishDetailView dish={dish} restaurantSlug={restaurant_slug} />
             <GuestInfoSection restaurantName={formatRestaurantLabel(restaurant_slug)} />
           </>
         ) : null}

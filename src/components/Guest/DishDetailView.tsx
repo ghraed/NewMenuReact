@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import type { Dish } from '../../types';
 import DishViewer from './DishViewer';
 import DishTags from './DishTags';
@@ -11,12 +12,14 @@ import {
 
 interface DishDetailViewProps {
   dish: Dish;
+  restaurantSlug?: string;
 }
 
-const DishDetailView: React.FC<DishDetailViewProps> = ({ dish }) => {
+const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug }) => {
   const price = Number(dish.price).toFixed(2);
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
+  const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
   const sections = [
     { title: 'Description', content: dish.description },
     { title: 'Ingredients', content: getDishIngredientsText(dish) },
@@ -42,6 +45,27 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish }) => {
 
           <div className="mt-5">
             <DishViewer dish={dish} viewerClassName="h-[22rem] sm:h-[26rem] lg:h-[34rem]" />
+          </div>
+
+          <div className="mt-5">
+            {hasIngredientStory ? (
+              <Link
+                to={restaurantSlug ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients` : '/'}
+                className="inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
+                style={{
+                  backgroundColor: 'var(--guest-accent)',
+                  borderColor: 'var(--guest-accent)',
+                  color: 'var(--guest-panel)',
+                  boxShadow: 'var(--guest-shadow-soft)',
+                }}
+              >
+                View Ingredient Story
+              </Link>
+            ) : (
+              <p className="text-sm text-[var(--guest-muted)]">
+                Ingredient story becomes available once ingredient images are uploaded in the admin dashboard.
+              </p>
+            )}
           </div>
         </section>
       </div>
