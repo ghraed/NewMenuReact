@@ -6,6 +6,7 @@ export interface DishAssetMetadata extends Record<string, unknown> {
   label?: string;
   quantity?: string | null;
   order_index?: number;
+  ingredient_library_id?: number | null;
 }
 
 export interface Dish {

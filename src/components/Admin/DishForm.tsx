@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   GlassInput,
+  GlassSelect,
   GlassSurface,
   GlassToggle,
   LiquidButton,
 } from '../ui/liquid-glass';
+import type { IngredientLibraryItem } from '../../types';
+import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 
 const createClientId = () =>
@@ -18,6 +21,10 @@ export interface DishIngredientLayerData {
   image_file: File | null;
   image_url: string | null;
   existing_image_url: string | null;
+  existing_file_name?: string | null;
+  library_image_url?: string | null;
+  library_ingredient_id: number | null;
+  initial_library_ingredient_id: number | null;
   file_name?: string | null;
 }
 
@@ -26,6 +33,7 @@ export interface ExistingDishIngredientLayer {
   name: string;
   quantity?: string | null;
   image_url: string | null;
+  library_ingredient_id?: number | null;
   file_name?: string | null;
   order_index?: number;
 }
@@ -40,6 +48,10 @@ const createIngredientLayer = (
   image_file: null,
   image_url: initial?.image_url || initial?.existing_image_url || null,
   existing_image_url: initial?.existing_image_url || initial?.image_url || null,
+  existing_file_name: initial?.existing_file_name || initial?.file_name || null,
+  library_image_url: initial?.library_image_url || null,
+  library_ingredient_id: initial?.library_ingredient_id ?? null,
+  initial_library_ingredient_id: initial?.initial_library_ingredient_id ?? initial?.library_ingredient_id ?? null,
   file_name: initial?.file_name || null,
 });
 
@@ -70,6 +82,7 @@ interface DishFormProps {
     imageUrl?: string | null;
     ingredients?: ExistingDishIngredientLayer[];
   };
+  ingredientLibrary?: IngredientLibraryItem[];
 }
 
 const DishForm: React.FC<DishFormProps> = ({
@@ -79,6 +92,7 @@ const DishForm: React.FC<DishFormProps> = ({
   submitLabel = 'Save Dish',
   submittingLabel = 'Saving...',
   existingFiles,
+  ingredientLibrary = [],
 }) => {
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
@@ -99,6 +113,8 @@ const DishForm: React.FC<DishFormProps> = ({
           quantity: ingredient.quantity || '',
           image_url: ingredient.image_url,
           existing_image_url: ingredient.image_url,
+          existing_file_name: ingredient.file_name,
+          library_ingredient_id: ingredient.library_ingredient_id ?? null,
           file_name: ingredient.file_name,
         })
       ),
@@ -173,7 +189,52 @@ const DishForm: React.FC<DishFormProps> = ({
           ...layer,
           image_file: file,
           image_url: nextBlobUrl ?? layer.existing_image_url,
-          file_name: file?.name ?? layer.file_name,
+          library_image_url: null,
+          library_ingredient_id: file ? null : layer.library_ingredient_id,
+          file_name: file?.name ?? layer.existing_file_name,
+        };
+      }),
+    }));
+  };
+
+  const handleIngredientLibraryChange = (
+    clientId: string,
+    ingredientIdValue: string
+  ) => {
+    const selectedIngredientId = ingredientIdValue ? Number(ingredientIdValue) : null;
+    const selectedIngredient = ingredientLibrary.find((ingredient) => ingredient.id === selectedIngredientId);
+
+    setFormData((prev) => ({
+      ...prev,
+      ingredient_layers: prev.ingredient_layers.map((layer) => {
+        if (layer.client_id !== clientId) {
+          return layer;
+        }
+
+        if (layer.image_url?.startsWith('blob:')) {
+          URL.revokeObjectURL(layer.image_url);
+          ingredientBlobUrlsRef.current.delete(layer.image_url);
+        }
+
+        if (!selectedIngredient) {
+          return {
+            ...layer,
+            image_file: null,
+            image_url: layer.existing_image_url,
+            library_image_url: null,
+            library_ingredient_id: null,
+            file_name: layer.existing_file_name,
+          };
+        }
+
+        return {
+          ...layer,
+          name: selectedIngredient.name,
+          image_file: null,
+          image_url: resolveAssetUrl(selectedIngredient.file_url) || layer.image_url,
+          library_image_url: resolveAssetUrl(selectedIngredient.file_url) || null,
+          library_ingredient_id: selectedIngredient.id,
+          file_name: selectedIngredient.source_file_name || layer.file_name,
         };
       }),
     }));
@@ -236,7 +297,8 @@ const DishForm: React.FC<DishFormProps> = ({
           layer.name.length > 0 ||
           layer.quantity.length > 0 ||
           !!layer.image_file ||
-          !!layer.existing_image_url
+          !!layer.existing_image_url ||
+          !!layer.library_ingredient_id
       );
 
     for (const [index, layer] of normalizedIngredientLayers.entries()) {
@@ -245,7 +307,7 @@ const DishForm: React.FC<DishFormProps> = ({
         return;
       }
 
-      if (!layer.image_file && !layer.existing_image_url) {
+      if (!layer.image_file && !layer.existing_image_url && !layer.library_ingredient_id) {
         setFormError(`Ingredient ${index + 1} needs an image.`);
         return;
       }
@@ -415,6 +477,11 @@ const DishForm: React.FC<DishFormProps> = ({
             <p className="mt-1 text-sm text-muted">
               Upload dish-related ingredient images, then add the label and optional quantity shown on the public ingredient story page.
             </p>
+            {ingredientLibrary.length > 0 && (
+              <p className="mt-2 text-xs text-gold2/85">
+                Saved ingredient selections replace the layer label and preview with the ingredient library version.
+              </p>
+            )}
           </div>
           <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
             Add Ingredient
@@ -465,6 +532,30 @@ const DishForm: React.FC<DishFormProps> = ({
 
                   <div className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
+                      {ingredientLibrary.length > 0 && (
+                        <div className="md:col-span-2">
+                          <label className="mb-1 block text-sm font-medium text-text">Choose from Ingredient Library</label>
+                          <GlassSelect
+                            value={layer.library_ingredient_id ? String(layer.library_ingredient_id) : ''}
+                            onChange={(event) =>
+                              handleIngredientLibraryChange(layer.client_id, event.target.value)
+                            }
+                            options={[
+                              { value: '', label: 'Use current or custom ingredient' },
+                              ...ingredientLibrary.map((ingredient) => ({
+                                value: String(ingredient.id),
+                                label: ingredient.name,
+                              })),
+                            ]}
+                          />
+                          <p className="mt-2 text-xs text-muted">
+                            {layer.library_ingredient_id
+                              ? 'This layer is using a saved ingredient. The label and image come from the library entry.'
+                              : 'Pick a saved ingredient to replace this layer with the library image and label.'}
+                          </p>
+                        </div>
+                      )}
+
                       <div>
                         <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
                         <GlassInput
@@ -473,6 +564,7 @@ const DishForm: React.FC<DishFormProps> = ({
                           onChange={(event) =>
                             handleIngredientChange(layer.client_id, 'name', event.target.value)
                           }
+                          disabled={layer.library_ingredient_id !== null}
                           placeholder="Fresh Basil"
                         />
                       </div>
@@ -499,6 +591,8 @@ const DishForm: React.FC<DishFormProps> = ({
                       <p className="mt-2 text-xs text-muted">
                         {layer.image_file
                           ? `Selected image: ${layer.image_file.name}`
+                          : layer.library_ingredient_id
+                            ? 'Uploading a custom image will clear the saved ingredient selection for this layer.'
                           : layer.file_name
                             ? `Current image: ${layer.file_name}`
                             : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}

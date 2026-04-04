@@ -5,7 +5,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
-import type { Dish } from '../types';
+import type { Dish, IngredientLibraryItem } from '../types';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 
 const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
@@ -48,21 +48,36 @@ const getAssetMetadataOrder = (asset: Dish['assets'][number]) => {
   return typeof value === 'number' ? value : 0;
 };
 
+const getAssetMetadataLibraryId = (asset: Dish['assets'][number]) => {
+  const value = asset.metadata?.ingredient_library_id;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  return null;
+};
+
 const uploadIngredientAsset = async (
   dishId: string,
   ingredient: DishFormData['ingredient_layers'][number],
   orderIndex: number
 ) => {
-  if (!ingredient.image_file) return;
-
   const payload = new FormData();
-  payload.append('type', 'ingredient_image');
-  payload.append('file', ingredient.image_file);
   payload.append('label', ingredient.name);
+  payload.append('type', 'ingredient_image');
   payload.append('order_index', String(orderIndex));
 
   if (ingredient.quantity) {
     payload.append('quantity', ingredient.quantity);
+  }
+
+  if (ingredient.library_ingredient_id) {
+    payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
+  } else if (ingredient.image_file) {
+    payload.append('file', ingredient.image_file);
+  } else {
+    return;
   }
 
   await api.post(`/dishes/${dishId}/assets`, payload, {
@@ -75,6 +90,7 @@ const EditDishPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [dish, setDish] = useState<Dish | null>(null);
+  const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -86,8 +102,23 @@ const EditDishPage: React.FC = () => {
       if (!dish_id) return;
 
       try {
-        const response = await api.get(`/dishes/${dish_id}`);
-        setDish(response.data);
+        const [dishResult, ingredientLibraryResult] = await Promise.allSettled([
+          api.get(`/dishes/${dish_id}`),
+          api.get('/ingredients'),
+        ]);
+
+        if (dishResult.status === 'rejected') {
+          throw dishResult.reason;
+        }
+
+        setDish(dishResult.value.data);
+
+        if (ingredientLibraryResult.status === 'fulfilled') {
+          setIngredientLibrary(Array.isArray(ingredientLibraryResult.value.data) ? ingredientLibraryResult.value.data : []);
+        } else {
+          console.error(ingredientLibraryResult.reason);
+          setIngredientLibrary([]);
+        }
       } catch (err) {
         console.error(err);
         setError('Failed to load dish');
@@ -155,7 +186,11 @@ const EditDishPage: React.FC = () => {
       );
 
       for (const [index, ingredient] of data.ingredient_layers.entries()) {
-        if (ingredient.asset_id && ingredient.image_file) {
+        const shouldReplaceWithLibrary =
+          ingredient.library_ingredient_id !== null &&
+          ingredient.library_ingredient_id !== ingredient.initial_library_ingredient_id;
+
+        if (ingredient.asset_id && (ingredient.image_file || shouldReplaceWithLibrary)) {
           await api.delete(`/assets/${ingredient.asset_id}`);
           await uploadIngredientAsset(dish_id, ingredient, index);
           continue;
@@ -166,6 +201,7 @@ const EditDishPage: React.FC = () => {
             label: ingredient.name,
             quantity: ingredient.quantity || null,
             order_index: index,
+            ingredient_library_id: ingredient.library_ingredient_id ?? null,
           });
           continue;
         }
@@ -370,10 +406,12 @@ const EditDishPage: React.FC = () => {
               name: getAssetMetadataString(asset, 'label'),
               quantity: getAssetMetadataString(asset, 'quantity'),
               image_url: resolveAssetUrl(asset.file_url) || null,
+              library_ingredient_id: getAssetMetadataLibraryId(asset),
               file_name: getAssetFileName(asset),
               order_index: getAssetMetadataOrder(asset),
             })),
           }}
+          ingredientLibrary={ingredientLibrary}
           requireModelUpload={false}
           submitLabel="Update Dish"
           submittingLabel="Updating..."
