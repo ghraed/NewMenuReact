@@ -115,12 +115,13 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               type="button"
               onClick={handleStartAnimation}
               disabled={!hasIngredients}
-              className="inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full sm:w-auto items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
               style={{
                 backgroundColor: 'var(--guest-accent)',
                 borderColor: 'var(--guest-accent)',
                 color: 'var(--guest-accent-button-text)',
                 boxShadow: 'var(--guest-shadow-soft)',
+                
               }}
             >
               {stage === 'idle' ? 'Show Animation' : 'Replay Animation'}
