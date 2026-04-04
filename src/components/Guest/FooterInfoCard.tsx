@@ -21,8 +21,8 @@ const FooterInfoCard: React.FC<FooterInfoCardProps> = ({ eyebrow, title, lines }
 
       <div className="mt-4 space-y-2">
         {lines.map((line) => (
-          <div key={line} className="overflow-x-auto no-scrollbar">
-            <p className="whitespace-nowrap text-sm text-[var(--guest-muted)]">{line}</p>
+          <div key={line} className="min-w-0">
+            <p className="break-words text-sm leading-7 text-[var(--guest-muted)]">{line}</p>
           </div>
         ))}
       </div>
@@ -31,4 +31,3 @@ const FooterInfoCard: React.FC<FooterInfoCardProps> = ({ eyebrow, title, lines }
 };
 
 export default FooterInfoCard;
-

@@ -82,7 +82,6 @@ const GuestDishListPage: React.FC = () => {
             titleId="dish-gallery-heading"
             eyebrow="Dish Gallery"
             title="Explore every dish with its own details page"
-            description={`${restaurantName} begins directly with the gallery so guests can search, filter, and open any dish without extra navigation layers.`}
             aside={(
               <span
                 className="inline-flex rounded-full border px-4 py-2 text-sm font-medium"
