@@ -47,6 +47,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
 
     return (
       <div className="space-y-2">
+        <p className="text-center text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.55))]">Requires Chrome and ARCore</p>
         <a
           href={viewerUrl}
           target="_blank"
@@ -63,7 +64,6 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         >
           <span>View in AR (Scene Viewer)</span>
         </a>
-        <p className="text-center text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.55))]">Requires Chrome and ARCore</p>
       </div>
     );
   }

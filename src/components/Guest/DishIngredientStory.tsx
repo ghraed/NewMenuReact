@@ -21,6 +21,7 @@ const labelEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const getCenteredOffset = (index: number, total: number) => index - (total - 1) / 2;
 const getFloatRotation = (index: number) => (index % 2 === 0 ? -1.7 : 1.7);
+const getDummyCalories = (index: number) => 45 + index * 18;
 
 const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   dishName,
@@ -28,6 +29,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   ingredients,
 }) => {
   const [stage, setStage] = useState<AnimationStage>('idle');
+  const [selectedIngredientId, setSelectedIngredientId] = useState<string | number | null>(null);
   const timeoutsRef = useRef<number[]>([]);
 
   const clearScheduledStages = () => {
@@ -40,6 +42,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   const handleStartAnimation = () => {
     clearScheduledStages();
     setStage('idle');
+    setSelectedIngredientId(null);
 
     timeoutsRef.current.push(window.setTimeout(() => setStage('expand'), 80));
     timeoutsRef.current.push(window.setTimeout(() => setStage('float'), 980));
@@ -97,7 +100,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               style={{
                 backgroundColor: 'var(--guest-accent)',
                 borderColor: 'var(--guest-accent)',
-                color: 'var(--guest-panel)',
+                color: 'var(--guest-accent-button-text)',
                 boxShadow: 'var(--guest-shadow-soft)',
               }}
             >
@@ -117,7 +120,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                       ? { y: previewAnchorTop - 36, scale: 0.9, opacity: 0.95, filter: 'blur(0.2px)' }
                       : stage === 'float'
                         ? { y: previewAnchorTop + 36, scale: 0.72, opacity: 0.66, filter: 'blur(0.8px)' }
-                        : { y: stageHeight - 160, scale: 0.45, opacity: 0.16, filter: 'blur(1.4px)' }
+                        : { y: stageHeight - 160, scale: 0.45, opacity: 0, filter: 'blur(1.4px)' }
                 }
                 transition={{ duration: 0.95, ease: premiumEase }}
                 className="relative w-[220px] overflow-hidden rounded-[34px] border border-white/50 bg-white shadow-[0_24px_64px_rgba(113,84,37,0.18)] sm:w-[260px]"
@@ -157,7 +160,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               return (
                 <div
                   key={ingredient.id}
-                  className="pointer-events-none absolute inset-x-0"
+                  className="absolute inset-x-0"
                   style={{ top: `${rowTop}px` }}
                 >
                   <div className="grid grid-cols-[minmax(0,1fr)_minmax(140px,1.1fr)] items-center gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(200px,1.1fr)] sm:gap-8">
@@ -176,23 +179,23 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                             </p>
                             {ingredient.quantity ? (
                               <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--guest-muted)]">
-                                {ingredient.quantity}
-                              </p>
-                            ) : null}
-                          </div>
-                          <div
-                            className="h-px w-7 rounded-full sm:w-10"
-                            style={{ backgroundColor: 'var(--guest-accent)' }}
-                          />
-                          <span className="text-sm text-[var(--guest-accent)] sm:text-base">→</span>
-                        </motion.div>
-                      ) : (
-                        <div />
-                      )}
+                            {ingredient.quantity}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="text-sm text-[var(--guest-accent)] sm:text-base">→</span>
+                    </motion.div>
+                  ) : (
+                    <div />
+                  )}
                     </AnimatePresence>
 
                     <div className="flex items-center justify-start sm:justify-center">
-                      <motion.div
+                      <motion.button
+                        type="button"
+                        onClick={() =>
+                          setSelectedIngredientId((current) => current === ingredient.id ? null : ingredient.id)
+                        }
                         animate={{
                           y: currentY,
                           scale: currentScale,
@@ -204,7 +207,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                           delay: index * 0.12,
                           ease: premiumEase,
                         }}
-                        className="flex items-center justify-center py-1.5 sm:py-2.5"
+                        className="relative flex appearance-none items-center justify-center border-0 bg-transparent p-0 py-2.5 sm:py-3.5"
                       >
                         {ingredient.imageUrl ? (
                           <img
@@ -227,42 +230,35 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                             Ingredient
                           </div>
                         )}
-                      </motion.div>
+                        <AnimatePresence>
+                          {selectedIngredientId === ingredient.id ? (
+                            <motion.div
+                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                              transition={{ duration: 0.22, ease: labelEase }}
+                              className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs font-semibold"
+                              style={{
+                                backgroundColor: 'var(--guest-panel)',
+                                borderColor: 'var(--guest-border)',
+                                color: 'var(--guest-text)',
+                                boxShadow: 'var(--guest-shadow-soft)',
+                              }}
+                            >
+                              {getDummyCalories(index)} kcal
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </motion.button>
                     </div>
                   </div>
                 </div>
               );
             })}
 
-            <div className="absolute inset-x-0 bottom-0 flex justify-center">
-              <div className="relative h-24 w-[min(90%,420px)]">
-                <div
-                  className="absolute inset-x-[10%] bottom-0 h-8 rounded-[50%]"
-                  style={{
-                    background: 'radial-gradient(circle at 50% 30%, rgba(0,0,0,0.08), rgba(0,0,0,0) 72%)',
-                  }}
-                />
-                <div
-                  className="absolute inset-x-0 bottom-4 h-16 rounded-[50%] border"
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--guest-accent) 18%, var(--guest-panel) 82%)',
-                    borderColor: 'color-mix(in srgb, var(--guest-accent) 56%, var(--guest-border) 44%)',
-                    boxShadow: '0 18px 30px rgba(91,67,32,0.12)',
-                  }}
-                />
-                <div
-                  className="absolute inset-x-[8%] bottom-8 h-10 rounded-[50%] border"
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, white 72%, var(--guest-accent) 28%)',
-                    borderColor: 'rgba(255,255,255,0.6)',
-                  }}
-                />
-              </div>
-            </div>
-
             {!hasIngredients ? (
               <div
-                className="absolute inset-x-4 bottom-28 rounded-[28px] border px-5 py-4 text-sm text-center sm:inset-x-16"
+                className="absolute inset-x-4 bottom-12 rounded-[28px] border px-5 py-4 text-sm text-center sm:inset-x-16"
                 style={{
                   backgroundColor: 'var(--guest-panel)',
                   borderColor: 'var(--guest-border)',

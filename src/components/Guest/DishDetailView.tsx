@@ -51,11 +51,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
             {hasIngredientStory ? (
               <Link
                 to={restaurantSlug ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients` : '/'}
-                className="inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center rounded-full border px-6 py-4 text-center text-sm font-semibold transition hover:-translate-y-0.5"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
                   borderColor: 'var(--guest-accent)',
-                  color: 'var(--guest-panel)',
+                  color: 'var(--guest-accent-button-text)',
                   boxShadow: 'var(--guest-shadow-soft)',
                 }}
               >
