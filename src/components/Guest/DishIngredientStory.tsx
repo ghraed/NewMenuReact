@@ -8,7 +8,7 @@ export interface DishIngredientStoryItem {
   imageUrl?: string | null;
 }
 
-type AnimationStage = 'idle' | 'expand' | 'float' | 'aligned' | 'labels';
+type AnimationStage = 'idle' | 'reset' | 'expand' | 'float' | 'aligned' | 'labels';
 
 interface DishIngredientStoryProps {
   dishName: string;
@@ -41,13 +41,13 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
 
   const handleStartAnimation = () => {
     clearScheduledStages();
-    setStage('idle');
+    setStage('reset');
     setSelectedIngredientId(null);
 
-    timeoutsRef.current.push(window.setTimeout(() => setStage('expand'), 80));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('float'), 980));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('aligned'), 2000));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 2860));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('expand'), 140));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('float'), 1040));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('aligned'), 2060));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 2920));
   };
 
   const hasIngredients = ingredients.length > 0;
@@ -114,7 +114,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
             <div className="absolute left-1/2 top-0 -translate-x-1/2">
               <motion.div
                 animate={
-                  stage === 'idle'
+                  stage === 'idle' || stage === 'reset'
                     ? { y: previewAnchorTop - 70, scale: 1, opacity: 1, filter: 'blur(0px)' }
                     : stage === 'expand'
                       ? { y: previewAnchorTop - 36, scale: 0.9, opacity: 0.95, filter: 'blur(0.2px)' }
@@ -122,7 +122,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                         ? { y: previewAnchorTop + 36, scale: 0.72, opacity: 0.66, filter: 'blur(0.8px)' }
                         : { y: stageHeight - 160, scale: 0.45, opacity: 0, filter: 'blur(1.4px)' }
                 }
-                transition={{ duration: 0.95, ease: premiumEase }}
+                transition={{ duration: stage === 'reset' ? 0 : 0.95, ease: premiumEase }}
                 className="relative w-[220px] overflow-hidden rounded-[34px] border border-white/50 bg-white shadow-[0_24px_64px_rgba(113,84,37,0.18)] sm:w-[260px]"
               >
                 {dishImageUrl ? (
@@ -140,7 +140,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               const centeredOffset = getCenteredOffset(index, ingredients.length);
               const startOffsetY = previewAnchorTop - rowTop - 10;
               const currentY =
-                stage === 'idle'
+                stage === 'idle' || stage === 'reset'
                   ? startOffsetY
                   : stage === 'expand'
                     ? startOffsetY * 0.38
@@ -149,7 +149,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                       : 0;
 
               const currentScale =
-                stage === 'idle'
+                stage === 'idle' || stage === 'reset'
                   ? 0.52
                   : stage === 'expand'
                     ? 0.82
@@ -169,7 +169,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                         <motion.div
                           initial={{ opacity: 0, x: 26 }}
                           animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 10 }}
+                          exit={{ opacity: 0, x: 10, transition: { duration: 0.12 } }}
                           transition={{ duration: 0.58, ease: labelEase, delay: index * 0.12 }}
                           className="flex items-center justify-end gap-2 sm:gap-3"
                         >
@@ -199,12 +199,12 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                         animate={{
                           y: currentY,
                           scale: currentScale,
-                          opacity: stage === 'idle' ? 0 : 1,
+                          opacity: stage === 'idle' || stage === 'reset' ? 0 : 1,
                           rotateZ: stage === 'float' ? getFloatRotation(index) : 0,
                         }}
                         transition={{
-                          duration: stage === 'expand' ? 0.92 : 1.02,
-                          delay: index * 0.12,
+                          duration: stage === 'reset' ? 0 : stage === 'expand' ? 0.92 : 1.02,
+                          delay: stage === 'reset' ? 0 : index * 0.12,
                           ease: premiumEase,
                         }}
                         className="relative flex appearance-none items-center justify-center border-0 bg-transparent p-0 py-2.5 sm:py-3.5"
