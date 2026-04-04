@@ -22,6 +22,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/admin/dishes/create', label: 'Create Dish', icon: '➕' },
+    { path: '/admin/ingredients/library', label: 'Ingredients', icon: '🥬' },
     { path: '/liquid-glass-preview', label: 'Theme Preview', icon: '✨' },
   ];
 

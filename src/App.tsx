@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
+import IngredientLibraryPage from './pages/IngredientLibraryPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import LiquidGlassDemoPage from './pages/LiquidGlassDemoPage';
@@ -48,6 +49,15 @@ const AppRoutes: React.FC = () => {
           element={(
             <ProtectedRoute>
               <EditDishPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/ingredients/library"
+          element={(
+            <ProtectedRoute>
+              <IngredientLibraryPage />
             </ProtectedRoute>
           )}
         />

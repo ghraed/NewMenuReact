@@ -35,6 +35,18 @@ export interface DishAsset {
   metadata: DishAssetMetadata;
 }
 
+export interface IngredientLibraryItem {
+  id: number;
+  uuid: string;
+  name: string;
+  file_url?: string | null;
+  source_file_name?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface QRCodeData {
   url: string;
   qr_image: string;
