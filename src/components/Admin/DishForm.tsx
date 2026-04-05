@@ -122,6 +122,7 @@ const DishForm: React.FC<DishFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
+  const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
   const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -129,6 +130,32 @@ const DishForm: React.FC<DishFormProps> = ({
       ingredientBlobUrlsRef.current.forEach((blobUrl) => {
         URL.revokeObjectURL(blobUrl);
       });
+    };
+  }, []);
+
+  useEffect(() => {
+    setIngredientSearchQuery('');
+  }, [openIngredientPickerId]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (target.closest('[data-ingredient-picker-root="true"]')) {
+        return;
+      }
+
+      setOpenIngredientPickerId(null);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
     };
   }, []);
 
@@ -505,6 +532,21 @@ const DishForm: React.FC<DishFormProps> = ({
                   ? resolveAssetUrl(selectedLibraryIngredient.file_url)
                   : null;
                 const ingredientPickerOpen = openIngredientPickerId === layer.client_id;
+                const normalizedSearchQuery = ingredientSearchQuery.trim().toLowerCase();
+                const filteredIngredientLibrary = ingredientLibrary.filter((ingredient) => {
+                  if (!normalizedSearchQuery) {
+                    return true;
+                  }
+
+                  const searchableText = `${ingredient.name} ${ingredient.source_file_name || ''}`.toLowerCase();
+                  return searchableText.includes(normalizedSearchQuery);
+                });
+                const visibleIngredients = selectedLibraryIngredient
+                  ? [
+                    selectedLibraryIngredient,
+                    ...filteredIngredientLibrary.filter((ingredient) => ingredient.id !== selectedLibraryIngredient.id),
+                  ]
+                  : filteredIngredientLibrary;
 
                 return (
                   <div
@@ -545,7 +587,7 @@ const DishForm: React.FC<DishFormProps> = ({
                       <div className="min-w-0 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
                           {ingredientLibrary.length > 0 && (
-                            <div className="min-w-0 md:col-span-2">
+                            <div className="relative z-20 min-w-0 md:col-span-2" data-ingredient-picker-root="true">
                               <label className="mb-1 block text-sm font-medium text-text">Choose Ingredient</label>
                               <button
                                 type="button"
@@ -590,7 +632,18 @@ const DishForm: React.FC<DishFormProps> = ({
                               </button>
 
                               {ingredientPickerOpen && (
-                                <div className="mt-3 max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/55 p-2">
+                                <div className="absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl">
+                                  <div className="mb-2">
+                                    <GlassInput
+                                      type="text"
+                                      value={ingredientSearchQuery}
+                                      onChange={(event) => setIngredientSearchQuery(event.target.value)}
+                                      placeholder="Search ingredients"
+                                      leftSlot={<span>🔎</span>}
+                                      className="min-w-0"
+                                    />
+                                  </div>
+
                                   {layer.library_ingredient_id !== null && (
                                     <button
                                       type="button"
@@ -604,46 +657,67 @@ const DishForm: React.FC<DishFormProps> = ({
                                     </button>
                                   )}
 
-                                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                                    {ingredientLibrary.map((ingredient) => {
+                                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                                    {selectedLibraryIngredient && (
+                                      <div className="px-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold2/80">
+                                        Selected
+                                      </div>
+                                    )}
+
+                                    {visibleIngredients.length === 0 && (
+                                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                                        No ingredients match your search.
+                                      </div>
+                                    )}
+
+                                    {visibleIngredients.map((ingredient, visibleIndex) => {
                                       const optionThumbnail = resolveAssetUrl(ingredient.file_url);
                                       const isActive = ingredient.id === layer.library_ingredient_id;
+                                      const shouldShowResultsLabel = selectedLibraryIngredient !== null
+                                        && visibleIndex === 0
+                                        && ingredient.id !== selectedLibraryIngredient.id;
 
                                       return (
-                                        <button
-                                          key={ingredient.id}
-                                          type="button"
-                                          onClick={() => {
-                                            handleIngredientLibraryChange(layer.client_id, String(ingredient.id));
-                                            setOpenIngredientPickerId(null);
-                                          }}
-                                          className={cx(
-                                            'flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
-                                            isActive
-                                              ? 'border-gold/35 bg-gold/12'
-                                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                                        <React.Fragment key={ingredient.id}>
+                                          {shouldShowResultsLabel && (
+                                            <div className="px-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted2">
+                                              Results
+                                            </div>
                                           )}
-                                        >
-                                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/20">
-                                            {optionThumbnail ? (
-                                              <img
-                                                src={optionThumbnail}
-                                                alt={ingredient.name}
-                                                className="h-full w-full object-cover"
-                                              />
-                                            ) : (
-                                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                                                Img
-                                              </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              handleIngredientLibraryChange(layer.client_id, String(ingredient.id));
+                                              setOpenIngredientPickerId(null);
+                                            }}
+                                            className={cx(
+                                              'flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
+                                              isActive
+                                                ? 'border-gold/35 bg-gold/12'
+                                                : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                                             )}
-                                          </div>
-                                          <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-medium text-text">{ingredient.name}</p>
-                                            <p className="truncate text-xs text-muted">
-                                              {ingredient.source_file_name || 'Saved ingredient'}
-                                            </p>
-                                          </div>
-                                        </button>
+                                          >
+                                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/20">
+                                              {optionThumbnail ? (
+                                                <img
+                                                  src={optionThumbnail}
+                                                  alt={ingredient.name}
+                                                  className="h-full w-full object-cover"
+                                                />
+                                              ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                                                  Img
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-sm font-medium text-text">{ingredient.name}</p>
+                                              <p className="truncate text-xs text-muted">
+                                                {ingredient.source_file_name || 'Saved ingredient'}
+                                              </p>
+                                            </div>
+                                          </button>
+                                        </React.Fragment>
                                       );
                                     })}
                                   </div>
