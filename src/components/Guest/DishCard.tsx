@@ -8,9 +8,10 @@ import { getDishEditorialLabel, getDishTags } from './guestPresentation';
 interface DishCardProps {
   dish: Dish;
   onOpen: () => void;
+  isIngredientAlert?: boolean;
 }
 
-const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
+const DishCard: React.FC<DishCardProps> = ({ dish, onOpen, isIngredientAlert = false }) => {
   const [isVisible, setIsVisible] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish]);
@@ -69,9 +70,9 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
         'cursor-pointer'
       )}
       style={{
-        backgroundColor: 'var(--guest-panel)',
-        borderColor: 'var(--guest-border)',
-        boxShadow: 'var(--guest-shadow-soft)',
+        backgroundColor: isIngredientAlert ? 'color-mix(in srgb, rgb(var(--color-spicy)) 10%, var(--guest-panel))' : 'var(--guest-panel)',
+        borderColor: isIngredientAlert ? 'color-mix(in srgb, rgb(var(--color-spicy)) 56%, var(--guest-border))' : 'var(--guest-border)',
+        boxShadow: isIngredientAlert ? '0 22px 52px rgba(214, 99, 89, 0.18)' : 'var(--guest-shadow-soft)',
       }}
     >
       <div className="relative z-10">
@@ -84,6 +85,19 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen }) => {
         />
 
         <div className="min-w-0 px-1 pb-1 pt-4">
+          {isIngredientAlert ? (
+            <div
+              className="mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
+              style={{
+                backgroundColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 16%, transparent)',
+                borderColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 44%, var(--guest-border))',
+                color: 'rgb(var(--color-spicy))',
+              }}
+            >
+              Ingredient Warning
+            </div>
+          ) : null}
+
           <div className="flex items-start justify-between gap-3">
             <h3 className="min-w-0 font-serif text-2xl leading-tight text-[var(--guest-text)] sm:text-[1.75rem]">{dish.name}</h3>
             <span

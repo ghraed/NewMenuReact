@@ -18,6 +18,8 @@ interface GuestListResponse {
   dishes: Dish[];
 }
 
+type IngredientFilterMode = 'hide' | 'highlight';
+
 const configuredRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
 const fallbackRestaurantSlug = 'admin-restaurant';
 
@@ -70,6 +72,7 @@ const GuestDishListPage: React.FC = () => {
   const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState('');
   const [ingredientFilterOpen, setIngredientFilterOpen] = useState(false);
+  const [ingredientFilterMode, setIngredientFilterMode] = useState<IngredientFilterMode>('hide');
 
   useEffect(() => {
     const fetchList = async (slug: string): Promise<GuestListResponse> => {
@@ -166,20 +169,39 @@ const GuestDishListPage: React.FC = () => {
       .filter((ingredient): ingredient is { value: string; label: string } => Boolean(ingredient));
   }, [allIngredients, selectedIngredients]);
 
+  const matchingDishIds = useMemo(() => {
+    const ids = new Set<number>();
+
+    if (selectedIngredients.length === 0) {
+      return ids;
+    }
+
+    dishes.forEach((dish) => {
+      const dishIngredients = getDishIngredients(dish).map((ingredient) => normalizeIngredientName(ingredient));
+      const hasMatchingIngredient = selectedIngredients.some((ingredient) => dishIngredients.includes(ingredient));
+
+      if (hasMatchingIngredient) {
+        ids.add(dish.id);
+      }
+    });
+
+    return ids;
+  }, [dishes, selectedIngredients]);
+
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
       const categoryMatch = category === 'All' || dish.category === category;
       const searchMatch =
         dish.name.toLowerCase().includes(search.toLowerCase()) ||
         dish.description.toLowerCase().includes(search.toLowerCase());
-      const dishIngredients = getDishIngredients(dish).map((ingredient) => normalizeIngredientName(ingredient));
       const ingredientMatch =
+        ingredientFilterMode === 'highlight' ||
         selectedIngredients.length === 0 ||
-        !selectedIngredients.some((ingredient) => dishIngredients.includes(ingredient));
+        !matchingDishIds.has(dish.id);
 
       return categoryMatch && searchMatch && ingredientMatch;
     });
-  }, [dishes, category, search, selectedIngredients]);
+  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds]);
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>
@@ -256,13 +278,13 @@ const GuestDishListPage: React.FC = () => {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
                       {selectedIngredientOptions.length > 0
-                        ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} hidden`
+                        ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} ${ingredientFilterMode === 'hide' ? 'hidden' : 'flagged'}`
                         : 'Choose ingredients to avoid'}
                     </p>
                     <p className="truncate text-xs text-[var(--guest-muted)]">
                       {selectedIngredientOptions.length > 0
                         ? selectedIngredientOptions.map((ingredient) => ingredient.label).join(', ')
-                        : 'Search allergens or other ingredients and hide matching dishes'}
+                        : 'Search allergens or other ingredients, then hide or highlight matching dishes'}
                     </p>
                   </div>
                   <span className="shrink-0 text-[var(--guest-muted)]">{ingredientFilterOpen ? '▴' : '▾'}</span>
@@ -290,6 +312,37 @@ const GuestDishListPage: React.FC = () => {
                           color: 'var(--guest-text)',
                         }}
                       />
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIngredientFilterMode('hide')}
+                        className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
+                        style={{
+                          backgroundColor: ingredientFilterMode === 'hide' ? 'var(--guest-accent-soft)' : 'var(--guest-panel-strong)',
+                          borderColor: 'var(--guest-border)',
+                          color: ingredientFilterMode === 'hide' ? 'var(--guest-accent)' : 'var(--guest-text)',
+                        }}
+                      >
+                        Hide Dishes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIngredientFilterMode('highlight')}
+                        className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
+                        style={{
+                          backgroundColor: ingredientFilterMode === 'highlight'
+                            ? 'color-mix(in srgb, rgb(var(--color-spicy)) 16%, var(--guest-panel-strong))'
+                            : 'var(--guest-panel-strong)',
+                          borderColor: ingredientFilterMode === 'highlight'
+                            ? 'color-mix(in srgb, rgb(var(--color-spicy)) 48%, var(--guest-border))'
+                            : 'var(--guest-border)',
+                          color: ingredientFilterMode === 'highlight' ? 'rgb(var(--color-spicy))' : 'var(--guest-text)',
+                        }}
+                      >
+                        Mark Red
+                      </button>
                     </div>
 
                     {selectedIngredientOptions.length > 0 ? (
@@ -343,7 +396,13 @@ const GuestDishListPage: React.FC = () => {
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-medium">{ingredient.label}</p>
                                 <p className="truncate text-xs text-[var(--guest-muted)]">
-                                  {isSelected ? 'Currently hidden from results' : 'Hide dishes containing this ingredient'}
+                                  {isSelected
+                                    ? ingredientFilterMode === 'hide'
+                                      ? 'Currently hidden from results'
+                                      : 'Currently highlighted in red'
+                                    : ingredientFilterMode === 'hide'
+                                      ? 'Hide dishes containing this ingredient'
+                                      : 'Highlight dishes containing this ingredient'}
                                 </p>
                               </div>
                               <span className="shrink-0 text-sm">{isSelected ? '✓' : '+'}</span>
@@ -364,7 +423,9 @@ const GuestDishListPage: React.FC = () => {
 
             {selectedIngredientOptions.length > 0 ? (
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--guest-accent)]">Avoiding</span>
+                <span className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--guest-accent)]">
+                  {ingredientFilterMode === 'hide' ? 'Avoiding' : 'Flagging'}
+                </span>
                 {selectedIngredientOptions.map((ingredient) => (
                   <button
                     key={ingredient.value}
@@ -430,6 +491,7 @@ const GuestDishListPage: React.FC = () => {
                   key={dish.id}
                   dish={dish}
                   onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
+                  isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
               ))}
             </div>
