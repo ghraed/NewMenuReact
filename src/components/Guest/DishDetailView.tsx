@@ -133,11 +133,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Restaurant Suggests With This Dish
             </p>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-2 no-scrollbar">
               {suggestedDishes.map((suggestedDish) => {
                 const content = (
                   <div
-                    className="rounded-[24px] border p-3 transition hover:-translate-y-0.5"
+                    className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
                       borderColor: 'var(--guest-border)',
