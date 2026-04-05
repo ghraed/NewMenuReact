@@ -12,6 +12,10 @@ import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const normalizeIngredientLookupValue = (value?: string | null): string => (
+  (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
+);
+
 export interface DishIngredientLayerData {
   client_id: string;
   asset_id?: number;
@@ -53,6 +57,40 @@ const createIngredientLayer = (
   initial_library_ingredient_id: initial?.initial_library_ingredient_id ?? initial?.library_ingredient_id ?? null,
   file_name: initial?.file_name || null,
 });
+
+const findMatchingLibraryIngredient = (
+  layer: Pick<DishIngredientLayerData, 'name' | 'existing_file_name' | 'file_name' | 'library_ingredient_id'>,
+  ingredientLibrary: IngredientLibraryItem[]
+): IngredientLibraryItem | null => {
+  if (layer.library_ingredient_id !== null) {
+    const byId = ingredientLibrary.find((ingredient) => ingredient.id === layer.library_ingredient_id);
+    if (byId) {
+      return byId;
+    }
+  }
+
+  const normalizedLabel = normalizeIngredientLookupValue(layer.name);
+  if (normalizedLabel) {
+    const byName = ingredientLibrary.find(
+      (ingredient) => normalizeIngredientLookupValue(ingredient.name) === normalizedLabel
+    );
+    if (byName) {
+      return byName;
+    }
+  }
+
+  const normalizedFileName = normalizeIngredientLookupValue(layer.existing_file_name || layer.file_name);
+  if (normalizedFileName) {
+    const byFileName = ingredientLibrary.find(
+      (ingredient) => normalizeIngredientLookupValue(ingredient.source_file_name) === normalizedFileName
+    );
+    if (byFileName) {
+      return byFileName;
+    }
+  }
+
+  return null;
+};
 
 export interface DishFormData {
   name: string;
@@ -105,18 +143,25 @@ const DishForm: React.FC<DishFormProps> = ({
     usdz_file: null,
     ingredient_layers: [...(existingFiles?.ingredients ?? [])]
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-      .map((ingredient) =>
-        createIngredientLayer({
+      .map((ingredient) => {
+        const matchedIngredient = findMatchingLibraryIngredient({
+          name: ingredient.name,
+          existing_file_name: ingredient.file_name,
+          library_ingredient_id: ingredient.library_ingredient_id ?? null,
+          file_name: ingredient.file_name,
+        }, ingredientLibrary);
+
+        return createIngredientLayer({
           asset_id: ingredient.asset_id,
           name: ingredient.name,
           quantity: ingredient.quantity || '',
           image_url: ingredient.image_url,
           existing_image_url: ingredient.image_url,
           existing_file_name: ingredient.file_name,
-          library_ingredient_id: ingredient.library_ingredient_id ?? null,
+          library_ingredient_id: matchedIngredient?.id ?? ingredient.library_ingredient_id ?? null,
           file_name: ingredient.file_name,
-        })
-      ),
+        });
+      }),
   }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -158,6 +203,42 @@ const DishForm: React.FC<DishFormProps> = ({
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (ingredientLibrary.length === 0) {
+      return;
+    }
+
+    setFormData((prev) => {
+      let hasChanges = false;
+
+      const nextLayers = prev.ingredient_layers.map((layer) => {
+        const matchedIngredient = findMatchingLibraryIngredient(layer, ingredientLibrary);
+
+        if (!matchedIngredient || layer.library_ingredient_id === matchedIngredient.id) {
+          return layer;
+        }
+
+        hasChanges = true;
+
+        return {
+          ...layer,
+          library_ingredient_id: matchedIngredient.id,
+          initial_library_ingredient_id: layer.initial_library_ingredient_id ?? matchedIngredient.id,
+          file_name: layer.file_name || matchedIngredient.source_file_name || null,
+        };
+      });
+
+      if (!hasChanges) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ingredient_layers: nextLayers,
+      };
+    });
+  }, [ingredientLibrary]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
