@@ -188,12 +188,16 @@ const GuestDishListPage: React.FC = () => {
     return ids;
   }, [dishes, selectedIngredients]);
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const hasActiveFilters = normalizedSearch.length > 0 || category !== 'All' || selectedIngredients.length > 0;
+
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
       const categoryMatch = category === 'All' || dish.category === category;
+      const ingredientLabels = getDishIngredients(dish).join(' ').toLowerCase();
+      const searchableText = `${dish.name} ${dish.description} ${dish.category} ${ingredientLabels}`.toLowerCase();
       const searchMatch =
-        dish.name.toLowerCase().includes(search.toLowerCase()) ||
-        dish.description.toLowerCase().includes(search.toLowerCase());
+        normalizedSearch.length === 0 || searchableText.includes(normalizedSearch);
       const ingredientMatch =
         ingredientFilterMode === 'highlight' ||
         selectedIngredients.length === 0 ||
@@ -201,7 +205,7 @@ const GuestDishListPage: React.FC = () => {
 
       return categoryMatch && searchMatch && ingredientMatch;
     });
-  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds]);
+  }, [dishes, category, normalizedSearch, selectedIngredients, ingredientFilterMode, matchingDishIds]);
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>
@@ -209,6 +213,15 @@ const GuestDishListPage: React.FC = () => {
         ? current.filter((value) => value !== ingredientValue)
         : [...current, ingredientValue]
     );
+  };
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setCategory('All');
+    setSelectedIngredients([]);
+    setIngredientSearch('');
+    setIngredientFilterMode('hide');
+    setIngredientFilterOpen(false);
   };
 
   return (
@@ -241,15 +254,42 @@ const GuestDishListPage: React.FC = () => {
               boxShadow: 'var(--guest-shadow)',
             }}
           >
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Advanced Search</p>
+                <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--guest-muted)]">
+                  Search by dish name, category, description, or ingredient. You can also choose one or more
+                  ingredients to filter the menu more precisely.
+                </p>
+              </div>
+
+              {hasActiveFilters ? (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="rounded-full border px-4 py-2 text-sm font-semibold transition"
+                  style={{
+                    backgroundColor: 'var(--guest-panel-strong)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-text)',
+                  }}
+                >
+                  Clear All
+                </button>
+              ) : null}
+            </div>
+
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
               <label className="block">
-                <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Search</span>
+                <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+                  Search by name or ingredient
+                </span>
                 <div className="relative mt-3">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--guest-muted)]">⌕</span>
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search dishes..."
+                    placeholder="Try dish names, categories, or ingredients..."
                     className="w-full rounded-full border py-3 pl-11 pr-4 text-sm outline-none transition"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
@@ -279,12 +319,12 @@ const GuestDishListPage: React.FC = () => {
                     <p className="truncate text-sm font-semibold">
                       {selectedIngredientOptions.length > 0
                         ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} ${ingredientFilterMode === 'hide' ? 'hidden' : 'flagged'}`
-                        : 'Choose ingredients to avoid'}
+                        : 'Choose ingredients'}
                     </p>
                     <p className="truncate text-xs text-[var(--guest-muted)]">
                       {selectedIngredientOptions.length > 0
                         ? selectedIngredientOptions.map((ingredient) => ingredient.label).join(', ')
-                        : 'Search allergens or other ingredients, then hide or highlight matching dishes'}
+                        : 'Pick one or more ingredients to hide or highlight matching dishes'}
                     </p>
                   </div>
                   <span className="shrink-0 text-[var(--guest-muted)]">{ingredientFilterOpen ? '▴' : '▾'}</span>
@@ -416,16 +456,44 @@ const GuestDishListPage: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto no-scrollbar">
-                <p className="mb-3 whitespace-nowrap text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Filter by category</p>
+                <p className="mb-3 whitespace-nowrap text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Category</p>
                 <DishTags tags={categories} activeTag={category} onTagClick={setCategory} />
               </div>
             </div>
 
-            {selectedIngredientOptions.length > 0 ? (
+            {hasActiveFilters ? (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--guest-accent)]">
-                  {ingredientFilterMode === 'hide' ? 'Avoiding' : 'Flagging'}
+                  Active Filters
                 </span>
+                {normalizedSearch ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                  >
+                    Search: {search} ×
+                  </button>
+                ) : null}
+                {category !== 'All' ? (
+                  <button
+                    type="button"
+                    onClick={() => setCategory('All')}
+                    className="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                  >
+                    Category: {category} ×
+                  </button>
+                ) : null}
                 {selectedIngredientOptions.map((ingredient) => (
                   <button
                     key={ingredient.value}
@@ -438,7 +506,7 @@ const GuestDishListPage: React.FC = () => {
                       color: 'var(--guest-text)',
                     }}
                   >
-                    {ingredient.label} ×
+                    {ingredientFilterMode === 'hide' ? 'Hide' : 'Mark'}: {ingredient.label} ×
                   </button>
                 ))}
               </div>
@@ -480,7 +548,7 @@ const GuestDishListPage: React.FC = () => {
                 color: 'var(--guest-muted)',
               }}
             >
-              No dishes found for your filter.
+              No dishes found for your current search.
             </div>
           ) : null}
 
