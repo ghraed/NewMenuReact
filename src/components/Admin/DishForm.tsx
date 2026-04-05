@@ -605,7 +605,7 @@ const DishForm: React.FC<DishFormProps> = ({
         )}
       </div>
 
-      <GlassSurface className="space-y-5 p-5" sheen={false}>
+      <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-medium text-text">Ingredient Layers for Menu Animation</h3>
@@ -760,13 +760,9 @@ const DishForm: React.FC<DishFormProps> = ({
                               {ingredientPickerOpen && (
                                 <div
                                   className={cx(
-                                    'absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border p-2 shadow-2xl backdrop-blur-xl',
-                                    glassControl
+                                    'absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl',
+                                    'supports-[backdrop-filter]:bg-bg1/95'
                                   )}
-                                  style={{
-                                    backgroundColor: 'color-mix(in srgb, rgba(255,255,255,0.96) 82%, transparent)',
-                                    borderColor: 'rgba(196, 171, 122, 0.28)',
-                                  }}
                                 >
                                   <div className="mb-2">
                                     <GlassInput

@@ -82,7 +82,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </div>
 
           <div className="lg:col-span-3">
-            <GlassBoard className="p-0">
+            <GlassBoard className="overflow-visible p-0">
               <div className="border-b border-stroke px-6 py-4">
                 <h1 className="text-2xl font-semibold text-text">{title}</h1>
               </div>
