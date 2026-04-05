@@ -105,6 +105,7 @@ const EditDishPage: React.FC = () => {
   const [dish, setDish] = useState<Dish | null>(null);
   const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
+  const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -141,10 +142,13 @@ const EditDishPage: React.FC = () => {
         }
 
         if (suggestedOptionsResult.status === 'fulfilled') {
-          setSuggestedDishOptions(extractDishOptions(suggestedOptionsResult.value.data));
+          const options = extractDishOptions(suggestedOptionsResult.value.data);
+          setSuggestedDishOptions(options);
+          setRelatedDishOptions(options);
         } else {
           console.error(suggestedOptionsResult.reason);
           setSuggestedDishOptions([]);
+          setRelatedDishOptions([]);
         }
       } catch (err) {
         console.error(err);
@@ -171,6 +175,7 @@ const EditDishPage: React.FC = () => {
         status: data.status,
         image_url: data.image_url || null,
         suggested_dish_ids: data.suggested_dish_ids,
+        related_dish_ids: data.related_dish_ids,
       });
 
       if (data.glb_file) {
@@ -423,6 +428,7 @@ const EditDishPage: React.FC = () => {
             image_url: dish.image_url || '',
             price: String(dish.price),
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
+            related_dish_ids: (dish.related_dishes || []).map((relatedDish) => relatedDish.id),
           }}
           existingFiles={{
             glb: glbFileName,
@@ -442,6 +448,7 @@ const EditDishPage: React.FC = () => {
           }}
           ingredientLibrary={ingredientLibrary}
           suggestedDishOptions={suggestedDishOptions.filter((option) => option.id !== dish.id)}
+          relatedDishOptions={relatedDishOptions.filter((option) => option.id !== dish.id)}
           requireModelUpload={false}
           submitLabel="Update Dish"
           submittingLabel="Updating..."

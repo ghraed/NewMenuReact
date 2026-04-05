@@ -103,6 +103,7 @@ export interface DishFormData {
   glb_file: File | null;
   usdz_file: File | null;
   suggested_dish_ids: number[];
+  related_dish_ids: number[];
   ingredient_layers: DishIngredientLayerData[];
 }
 
@@ -127,6 +128,12 @@ interface DishFormProps {
     category: string;
     status: 'draft' | 'published';
   }>;
+  relatedDishOptions?: Array<{
+    id: number;
+    name: string;
+    category: string;
+    status: 'draft' | 'published';
+  }>;
 }
 
 const DishForm: React.FC<DishFormProps> = ({
@@ -138,6 +145,7 @@ const DishForm: React.FC<DishFormProps> = ({
   existingFiles,
   ingredientLibrary = [],
   suggestedDishOptions = [],
+  relatedDishOptions = [],
 }) => {
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
@@ -150,6 +158,7 @@ const DishForm: React.FC<DishFormProps> = ({
     glb_file: null,
     usdz_file: null,
     suggested_dish_ids: initialValues?.suggested_dish_ids || [],
+    related_dish_ids: initialValues?.related_dish_ids || [],
     ingredient_layers: [...(existingFiles?.ingredients ?? [])]
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
       .map((ingredient) => {
@@ -179,6 +188,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
   const [suggestedDishesPickerOpen, setSuggestedDishesPickerOpen] = useState(false);
   const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
+  const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
+  const [relatedDishesSearch, setRelatedDishesSearch] = useState('');
   const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -198,6 +209,10 @@ const DishForm: React.FC<DishFormProps> = ({
   }, [suggestedDishesPickerOpen]);
 
   useEffect(() => {
+    setRelatedDishesSearch('');
+  }, [relatedDishesPickerOpen]);
+
+  useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target;
 
@@ -211,6 +226,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
       setOpenIngredientPickerId(null);
       setSuggestedDishesPickerOpen(false);
+      setRelatedDishesPickerOpen(false);
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -292,6 +308,15 @@ const DishForm: React.FC<DishFormProps> = ({
       suggested_dish_ids: prev.suggested_dish_ids.includes(dishId)
         ? prev.suggested_dish_ids.filter((id) => id !== dishId)
         : [...prev.suggested_dish_ids, dishId],
+    }));
+  };
+
+  const toggleRelatedDish = (dishId: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      related_dish_ids: prev.related_dish_ids.includes(dishId)
+        ? prev.related_dish_ids.filter((id) => id !== dishId)
+        : [...prev.related_dish_ids, dishId],
     }));
   };
 
@@ -434,6 +459,18 @@ const DishForm: React.FC<DishFormProps> = ({
   });
   const selectedSuggestedDishOptions = formData.suggested_dish_ids
     .map((dishId) => suggestedDishOptions.find((dish) => dish.id === dishId))
+    .filter((dish): dish is NonNullable<typeof dish> => Boolean(dish));
+  const normalizedRelatedDishesSearch = relatedDishesSearch.trim().toLowerCase();
+  const filteredRelatedDishOptions = relatedDishOptions.filter((dish) => {
+    if (!normalizedRelatedDishesSearch) {
+      return true;
+    }
+
+    const searchableText = `${dish.name} ${dish.category} ${dish.status}`.toLowerCase();
+    return searchableText.includes(normalizedRelatedDishesSearch);
+  });
+  const selectedRelatedDishOptions = formData.related_dish_ids
+    .map((dishId) => relatedDishOptions.find((dish) => dish.id === dishId))
     .filter((dish): dish is NonNullable<typeof dish> => Boolean(dish));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -660,6 +697,105 @@ const DishForm: React.FC<DishFormProps> = ({
 
           <p className="mt-2 text-xs text-muted">
             These dishes will appear on the public dish detail page as restaurant suggestions.
+          </p>
+        </div>
+      ) : null}
+
+      {relatedDishOptions.length > 0 ? (
+        <div className="relative" data-admin-overlay-root="true">
+          <label className="mb-1 block text-sm font-medium text-text">Related Dishes</label>
+          <button
+            type="button"
+            onClick={() => setRelatedDishesPickerOpen((current) => !current)}
+            className={cx(
+              'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
+              glassControl,
+              focusRing
+            )}
+            aria-expanded={relatedDishesPickerOpen}
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-text">
+                {selectedRelatedDishOptions.length > 0
+                  ? `${selectedRelatedDishOptions.length} related dish${selectedRelatedDishOptions.length > 1 ? 'es' : ''}`
+                  : 'Choose related dishes'}
+              </p>
+              <p className="truncate text-xs text-muted">
+                {selectedRelatedDishOptions.length > 0
+                  ? selectedRelatedDishOptions.map((dish) => dish.name).join(', ')
+                  : 'Pick dishes that should appear as related on this dish page'}
+              </p>
+            </div>
+            <span className="shrink-0 text-muted2">{relatedDishesPickerOpen ? '▴' : '▾'}</span>
+          </button>
+
+          {selectedRelatedDishOptions.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedRelatedDishOptions.map((dish) => (
+                <button
+                  key={dish.id}
+                  type="button"
+                  onClick={() => toggleRelatedDish(dish.id)}
+                  className="rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-400/15"
+                >
+                  {dish.name} ×
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {relatedDishesPickerOpen ? (
+            <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl supports-[backdrop-filter]:bg-bg1/95">
+              <div className="space-y-3 p-3">
+                <GlassInput
+                  type="text"
+                  value={relatedDishesSearch}
+                  onChange={(event) => setRelatedDishesSearch(event.target.value)}
+                  placeholder="Search dishes..."
+                  leftSlot={<span>⌕</span>}
+                />
+
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {filteredRelatedDishOptions.length === 0 ? (
+                    <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                      No dishes match your search.
+                    </div>
+                  ) : (
+                    filteredRelatedDishOptions.map((dish) => {
+                      const isSelected = formData.related_dish_ids.includes(dish.id);
+
+                      return (
+                        <button
+                          key={dish.id}
+                          type="button"
+                          onClick={() => toggleRelatedDish(dish.id)}
+                          className={cx(
+                            'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
+                            isSelected
+                              ? 'border-sky-400/30 bg-sky-400/10'
+                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-text">{dish.name}</p>
+                            <p className="truncate text-xs text-muted">
+                              {dish.category} · {dish.status === 'published' ? 'Published' : 'Draft'}
+                            </p>
+                          </div>
+                          <span className={cx('shrink-0 text-sm', isSelected ? 'text-sky-200' : 'text-muted2')}>
+                            {isSelected ? '✓' : '+'}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <p className="mt-2 text-xs text-muted">
+            These dishes will appear on the public dish detail page as related dishes.
           </p>
         </div>
       ) : null}

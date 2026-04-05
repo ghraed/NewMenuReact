@@ -22,6 +22,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
   const metadataTags = getDishTags(dish);
   const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
   const suggestedDishes = dish.suggested_dishes || [];
+  const relatedDishes = dish.related_dishes || [];
   const sections = [
     { title: 'Description', content: dish.description },
     { title: 'Ingredients', content: getDishIngredientsText(dish) },
@@ -159,6 +160,51 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
                   </Link>
                 ) : (
                   <div key={suggestedDish.id}>{content}</div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {relatedDishes.length > 0 ? (
+          <section
+            className="rounded-[28px] border p-5 sm:p-6"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border-soft)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+              Related Dishes
+            </p>
+
+            <div className="mt-4 flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              {relatedDishes.map((relatedDish) => {
+                const content = (
+                  <div
+                    className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                    }}
+                  >
+                    <DishAssetThumbnail dish={relatedDish} fit="cover" className="aspect-[4/3] w-full" />
+                    <div className="mt-3">
+                      <p className="font-serif text-xl text-[var(--guest-text)]">{relatedDish.name}</p>
+                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
+                        {relatedDish.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+
+                return restaurantSlug ? (
+                  <Link key={relatedDish.id} to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={relatedDish.id}>{content}</div>
                 );
               })}
             </div>

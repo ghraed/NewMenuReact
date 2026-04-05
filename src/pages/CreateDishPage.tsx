@@ -50,6 +50,7 @@ const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
+  const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
 
   useEffect(() => {
     const fetchSuggestedDishOptions = async () => {
@@ -61,7 +62,9 @@ const CreateDishPage: React.FC = () => {
           },
         });
 
-        setSuggestedDishOptions(extractDishOptions(response.data));
+        const options = extractDishOptions(response.data);
+        setSuggestedDishOptions(options);
+        setRelatedDishOptions(options);
       } catch (err) {
         console.error(err);
       }
@@ -81,6 +84,9 @@ const CreateDishPage: React.FC = () => {
       formData.append('status', dishData.status);
       dishData.suggested_dish_ids.forEach((dishId) => {
         formData.append('suggested_dish_ids[]', String(dishId));
+      });
+      dishData.related_dish_ids.forEach((dishId) => {
+        formData.append('related_dish_ids[]', String(dishId));
       });
 
       if (dishData.image_url) formData.append('image_url', dishData.image_url);
@@ -121,6 +127,7 @@ const CreateDishPage: React.FC = () => {
       <DishForm
         onSubmit={handleSubmit}
         suggestedDishOptions={suggestedDishOptions}
+        relatedDishOptions={relatedDishOptions}
         requireModelUpload
         submitLabel="Create Dish"
         submittingLabel="Creating..."
