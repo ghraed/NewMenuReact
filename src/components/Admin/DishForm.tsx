@@ -102,6 +102,7 @@ export interface DishFormData {
   preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
+  suggested_dish_ids: number[];
   ingredient_layers: DishIngredientLayerData[];
 }
 
@@ -120,6 +121,12 @@ interface DishFormProps {
     ingredients?: ExistingDishIngredientLayer[];
   };
   ingredientLibrary?: IngredientLibraryItem[];
+  suggestedDishOptions?: Array<{
+    id: number;
+    name: string;
+    category: string;
+    status: 'draft' | 'published';
+  }>;
 }
 
 const DishForm: React.FC<DishFormProps> = ({
@@ -130,6 +137,7 @@ const DishForm: React.FC<DishFormProps> = ({
   submittingLabel = 'Saving...',
   existingFiles,
   ingredientLibrary = [],
+  suggestedDishOptions = [],
 }) => {
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
@@ -141,6 +149,7 @@ const DishForm: React.FC<DishFormProps> = ({
     preview_file: null,
     glb_file: null,
     usdz_file: null,
+    suggested_dish_ids: initialValues?.suggested_dish_ids || [],
     ingredient_layers: [...(existingFiles?.ingredients ?? [])]
       .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
       .map((ingredient) => {
@@ -168,6 +177,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
   const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
+  const [suggestedDishesPickerOpen, setSuggestedDishesPickerOpen] = useState(false);
+  const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
   const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -183,6 +194,10 @@ const DishForm: React.FC<DishFormProps> = ({
   }, [openIngredientPickerId]);
 
   useEffect(() => {
+    setSuggestedDishesSearch('');
+  }, [suggestedDishesPickerOpen]);
+
+  useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target;
 
@@ -190,11 +205,12 @@ const DishForm: React.FC<DishFormProps> = ({
         return;
       }
 
-      if (target.closest('[data-ingredient-picker-root="true"]')) {
+      if (target.closest('[data-admin-overlay-root="true"]')) {
         return;
       }
 
       setOpenIngredientPickerId(null);
+      setSuggestedDishesPickerOpen(false);
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -267,6 +283,15 @@ const DishForm: React.FC<DishFormProps> = ({
       ingredient_layers: prev.ingredient_layers.map((layer) =>
         layer.client_id === clientId ? { ...layer, [field]: value } : layer
       ),
+    }));
+  };
+
+  const toggleSuggestedDish = (dishId: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      suggested_dish_ids: prev.suggested_dish_ids.includes(dishId)
+        ? prev.suggested_dish_ids.filter((id) => id !== dishId)
+        : [...prev.suggested_dish_ids, dishId],
     }));
   };
 
@@ -398,6 +423,18 @@ const DishForm: React.FC<DishFormProps> = ({
   };
 
   const imageUrlLooksSet = formData.image_url.trim().length > 0;
+  const normalizedSuggestedDishesSearch = suggestedDishesSearch.trim().toLowerCase();
+  const filteredSuggestedDishOptions = suggestedDishOptions.filter((dish) => {
+    if (!normalizedSuggestedDishesSearch) {
+      return true;
+    }
+
+    const searchableText = `${dish.name} ${dish.category} ${dish.status}`.toLowerCase();
+    return searchableText.includes(normalizedSuggestedDishesSearch);
+  });
+  const selectedSuggestedDishOptions = formData.suggested_dish_ids
+    .map((dishId) => suggestedDishOptions.find((dish) => dish.id === dishId))
+    .filter((dish): dish is NonNullable<typeof dish> => Boolean(dish));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -527,6 +564,105 @@ const DishForm: React.FC<DishFormProps> = ({
           />
         </div>
       </div>
+
+      {suggestedDishOptions.length > 0 ? (
+        <div className="relative" data-admin-overlay-root="true">
+          <label className="mb-1 block text-sm font-medium text-text">Restaurant Suggests With This Dish</label>
+          <button
+            type="button"
+            onClick={() => setSuggestedDishesPickerOpen((current) => !current)}
+            className={cx(
+              'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
+              glassControl,
+              focusRing
+            )}
+            aria-expanded={suggestedDishesPickerOpen}
+          >
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-text">
+                {selectedSuggestedDishOptions.length > 0
+                  ? `${selectedSuggestedDishOptions.length} suggested dish${selectedSuggestedDishOptions.length > 1 ? 'es' : ''}`
+                  : 'Choose suggested dishes'}
+              </p>
+              <p className="truncate text-xs text-muted">
+                {selectedSuggestedDishOptions.length > 0
+                  ? selectedSuggestedDishOptions.map((dish) => dish.name).join(', ')
+                  : 'Pick dishes the restaurant recommends alongside this one'}
+              </p>
+            </div>
+            <span className="shrink-0 text-muted2">{suggestedDishesPickerOpen ? '▴' : '▾'}</span>
+          </button>
+
+          {selectedSuggestedDishOptions.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedSuggestedDishOptions.map((dish) => (
+                <button
+                  key={dish.id}
+                  type="button"
+                  onClick={() => toggleSuggestedDish(dish.id)}
+                  className="rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold2 transition hover:bg-gold/15"
+                >
+                  {dish.name} ×
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {suggestedDishesPickerOpen ? (
+            <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl supports-[backdrop-filter]:bg-bg1/95">
+              <div className="space-y-3 p-3">
+                <GlassInput
+                  type="text"
+                  value={suggestedDishesSearch}
+                  onChange={(event) => setSuggestedDishesSearch(event.target.value)}
+                  placeholder="Search dishes..."
+                  leftSlot={<span>⌕</span>}
+                />
+
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {filteredSuggestedDishOptions.length === 0 ? (
+                    <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                      No dishes match your search.
+                    </div>
+                  ) : (
+                    filteredSuggestedDishOptions.map((dish) => {
+                      const isSelected = formData.suggested_dish_ids.includes(dish.id);
+
+                      return (
+                        <button
+                          key={dish.id}
+                          type="button"
+                          onClick={() => toggleSuggestedDish(dish.id)}
+                          className={cx(
+                            'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
+                            isSelected
+                              ? 'border-gold/25 bg-gold/10'
+                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-text">{dish.name}</p>
+                            <p className="truncate text-xs text-muted">
+                              {dish.category} · {dish.status === 'published' ? 'Published' : 'Draft'}
+                            </p>
+                          </div>
+                          <span className={cx('shrink-0 text-sm', isSelected ? 'text-gold2' : 'text-muted2')}>
+                            {isSelected ? '✓' : '+'}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <p className="mt-2 text-xs text-muted">
+            These dishes will appear on the public dish detail page as restaurant suggestions.
+          </p>
+        </div>
+      ) : null}
 
       <GlassSurface className="p-4" sheen={false}>
         <div className="flex items-center justify-between gap-4">
@@ -713,7 +849,7 @@ const DishForm: React.FC<DishFormProps> = ({
                       <div className="min-w-0 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2">
                           {ingredientLibrary.length > 0 && (
-                            <div className="relative z-20 min-w-0 md:col-span-2" data-ingredient-picker-root="true">
+                            <div className="relative z-20 min-w-0 md:col-span-2" data-admin-overlay-root="true">
                               <label className="mb-1 block text-sm font-medium text-text">Choose Ingredient</label>
                               <button
                                 type="button"

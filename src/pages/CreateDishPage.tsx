@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
+import type { Dish } from '../types';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -32,9 +33,42 @@ const uploadIngredientLayers = async (dishId: number, ingredientLayers: DishForm
   }
 };
 
+const extractDishOptions = (payload: unknown): Dish[] => {
+  if (Array.isArray(payload)) {
+    return payload as Dish[];
+  }
+
+  if (typeof payload === 'object' && payload !== null && 'data' in payload) {
+    const items = (payload as { data?: unknown }).data;
+    return Array.isArray(items) ? (items as Dish[]) : [];
+  }
+
+  return [];
+};
+
 const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
+
+  useEffect(() => {
+    const fetchSuggestedDishOptions = async () => {
+      try {
+        const response = await api.get('/dishes', {
+          params: {
+            include_deleted: '0',
+            per_page: '200',
+          },
+        });
+
+        setSuggestedDishOptions(extractDishOptions(response.data));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchSuggestedDishOptions();
+  }, []);
 
   const handleSubmit = async (dishData: DishFormData) => {
     setError(null);
@@ -45,6 +79,9 @@ const CreateDishPage: React.FC = () => {
       formData.append('price', dishData.price);
       formData.append('category', dishData.category);
       formData.append('status', dishData.status);
+      dishData.suggested_dish_ids.forEach((dishId) => {
+        formData.append('suggested_dish_ids[]', String(dishId));
+      });
 
       if (dishData.image_url) formData.append('image_url', dishData.image_url);
       if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
@@ -83,6 +120,7 @@ const CreateDishPage: React.FC = () => {
 
       <DishForm
         onSubmit={handleSubmit}
+        suggestedDishOptions={suggestedDishOptions}
         requireModelUpload
         submitLabel="Create Dish"
         submittingLabel="Creating..."

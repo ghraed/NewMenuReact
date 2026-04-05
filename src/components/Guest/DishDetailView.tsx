@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Dish } from '../../types';
 import DishViewer from './DishViewer';
 import DishTags from './DishTags';
+import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import {
   getDishEditorialLabel,
   getDishIngredientsText,
@@ -20,6 +21,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
   const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
+  const suggestedDishes = dish.suggested_dishes || [];
   const sections = [
     { title: 'Description', content: dish.description },
     { title: 'Ingredients', content: getDishIngredientsText(dish) },
@@ -117,6 +119,51 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
             </section>
           ))}
         </div>
+
+        {suggestedDishes.length > 0 ? (
+          <section
+            className="rounded-[28px] border p-5 sm:p-6"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border-soft)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+              Restaurant Suggests With This Dish
+            </p>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {suggestedDishes.map((suggestedDish) => {
+                const content = (
+                  <div
+                    className="rounded-[24px] border p-3 transition hover:-translate-y-0.5"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                    }}
+                  >
+                    <DishAssetThumbnail dish={suggestedDish} fit="cover" className="aspect-[4/3] w-full" />
+                    <div className="mt-3">
+                      <p className="font-serif text-xl text-[var(--guest-text)]">{suggestedDish.name}</p>
+                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
+                        {suggestedDish.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+
+                return restaurantSlug ? (
+                  <Link key={suggestedDish.id} to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}>
+                    {content}
+                  </Link>
+                ) : (
+                  <div key={suggestedDish.id}>{content}</div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
       </div>
     </article>
   );

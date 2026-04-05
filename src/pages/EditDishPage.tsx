@@ -85,12 +85,26 @@ const uploadIngredientAsset = async (
   });
 };
 
+const extractDishOptions = (payload: unknown): Dish[] => {
+  if (Array.isArray(payload)) {
+    return payload as Dish[];
+  }
+
+  if (typeof payload === 'object' && payload !== null && 'data' in payload) {
+    const items = (payload as { data?: unknown }).data;
+    return Array.isArray(items) ? (items as Dish[]) : [];
+  }
+
+  return [];
+};
+
 const EditDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
 
   const [dish, setDish] = useState<Dish | null>(null);
   const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
+  const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -102,9 +116,15 @@ const EditDishPage: React.FC = () => {
       if (!dish_id) return;
 
       try {
-        const [dishResult, ingredientLibraryResult] = await Promise.allSettled([
+        const [dishResult, ingredientLibraryResult, suggestedOptionsResult] = await Promise.allSettled([
           api.get(`/dishes/${dish_id}`),
           api.get('/ingredients'),
+          api.get('/dishes', {
+            params: {
+              include_deleted: '0',
+              per_page: '200',
+            },
+          }),
         ]);
 
         if (dishResult.status === 'rejected') {
@@ -118,6 +138,13 @@ const EditDishPage: React.FC = () => {
         } else {
           console.error(ingredientLibraryResult.reason);
           setIngredientLibrary([]);
+        }
+
+        if (suggestedOptionsResult.status === 'fulfilled') {
+          setSuggestedDishOptions(extractDishOptions(suggestedOptionsResult.value.data));
+        } else {
+          console.error(suggestedOptionsResult.reason);
+          setSuggestedDishOptions([]);
         }
       } catch (err) {
         console.error(err);
@@ -143,6 +170,7 @@ const EditDishPage: React.FC = () => {
         category: data.category,
         status: data.status,
         image_url: data.image_url || null,
+        suggested_dish_ids: data.suggested_dish_ids,
       });
 
       if (data.glb_file) {
@@ -394,6 +422,7 @@ const EditDishPage: React.FC = () => {
             status: dish.status,
             image_url: dish.image_url || '',
             price: String(dish.price),
+            suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
           }}
           existingFiles={{
             glb: glbFileName,
@@ -412,6 +441,7 @@ const EditDishPage: React.FC = () => {
             })),
           }}
           ingredientLibrary={ingredientLibrary}
+          suggestedDishOptions={suggestedDishOptions.filter((option) => option.id !== dish.id)}
           requireModelUpload={false}
           submitLabel="Update Dish"
           submittingLabel="Updating..."

@@ -19,6 +19,7 @@ export interface Dish {
   status: 'draft' | 'published';
   image_url?: string;
   assets: DishAsset[];
+  suggested_dishes?: Dish[];
   model_state?: 'none' | 'processing' | 'ready' | 'error';
   is_model_ready?: boolean;
   created_at: string;
