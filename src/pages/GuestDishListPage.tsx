@@ -197,7 +197,7 @@ const GuestDishListPage: React.FC = () => {
       const ingredientMatch =
         ingredientFilterMode === 'highlight' ||
         selectedIngredients.length === 0 ||
-        !matchingDishIds.has(dish.id);
+        matchingDishIds.has(dish.id);
 
       return categoryMatch && searchMatch && ingredientMatch;
     });
@@ -278,13 +278,13 @@ const GuestDishListPage: React.FC = () => {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
                       {selectedIngredientOptions.length > 0
-                        ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} ${ingredientFilterMode === 'hide' ? 'hidden' : 'flagged'}`
-                        : 'Choose ingredients to avoid'}
+                        ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} ${ingredientFilterMode === 'hide' ? 'selected' : 'flagged'}`
+                        : 'Choose ingredients to show'}
                     </p>
                     <p className="truncate text-xs text-[var(--guest-muted)]">
                       {selectedIngredientOptions.length > 0
                         ? selectedIngredientOptions.map((ingredient) => ingredient.label).join(', ')
-                        : 'Search allergens or other ingredients, then hide or highlight matching dishes'}
+                        : 'Search ingredients, then show matching dishes or mark them red'}
                     </p>
                   </div>
                   <span className="shrink-0 text-[var(--guest-muted)]">{ingredientFilterOpen ? '▴' : '▾'}</span>
@@ -398,10 +398,10 @@ const GuestDishListPage: React.FC = () => {
                                 <p className="truncate text-xs text-[var(--guest-muted)]">
                                   {isSelected
                                     ? ingredientFilterMode === 'hide'
-                                      ? 'Currently hidden from results'
+                                      ? 'Currently showing dishes with this ingredient'
                                       : 'Currently highlighted in red'
                                     : ingredientFilterMode === 'hide'
-                                      ? 'Hide dishes containing this ingredient'
+                                      ? 'Show dishes containing this ingredient'
                                       : 'Highlight dishes containing this ingredient'}
                                 </p>
                               </div>
@@ -424,7 +424,7 @@ const GuestDishListPage: React.FC = () => {
             {selectedIngredientOptions.length > 0 ? (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--guest-accent)]">
-                  {ingredientFilterMode === 'hide' ? 'Avoiding' : 'Flagging'}
+                  {ingredientFilterMode === 'hide' ? 'Showing' : 'Flagging'}
                 </span>
                 {selectedIngredientOptions.map((ingredient) => (
                   <button
