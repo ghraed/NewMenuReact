@@ -123,7 +123,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
         {suggestedDishes.length > 0 ? (
           <section
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="overflow-x-auto overflow-y-hidden rounded-[28px] border p-5 sm:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -134,7 +134,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Restaurant Suggests With This Dish
             </p>
 
-            <div className="mt-4 flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+            <div className="mt-4 flex w-max gap-3 pb-2 no-scrollbar">
               {suggestedDishes.map((suggestedDish) => {
                 const content = (
                   <div
@@ -155,11 +155,15 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
                 );
 
                 return restaurantSlug ? (
-                  <Link key={suggestedDish.id} to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}>
+                  <Link
+                    key={suggestedDish.id}
+                    to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}
+                    className="shrink-0"
+                  >
                     {content}
                   </Link>
                 ) : (
-                  <div key={suggestedDish.id}>{content}</div>
+                  <div key={suggestedDish.id} className="shrink-0">{content}</div>
                 );
               })}
             </div>
@@ -168,7 +172,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
         {relatedDishes.length > 0 ? (
           <section
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="overflow-x-auto overflow-y-hidden rounded-[28px] border p-5 sm:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -179,7 +183,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Related Dishes
             </p>
 
-            <div className="mt-4 flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+            <div className="mt-4 flex w-max gap-3 pb-2 no-scrollbar">
               {relatedDishes.map((relatedDish) => {
                 const content = (
                   <div
@@ -200,11 +204,15 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
                 );
 
                 return restaurantSlug ? (
-                  <Link key={relatedDish.id} to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}>
+                  <Link
+                    key={relatedDish.id}
+                    to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}
+                    className="shrink-0"
+                  >
                     {content}
                   </Link>
                 ) : (
-                  <div key={relatedDish.id}>{content}</div>
+                  <div key={relatedDish.id} className="shrink-0">{content}</div>
                 );
               })}
             </div>
