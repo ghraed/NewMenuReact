@@ -355,6 +355,31 @@ const DishForm: React.FC<DishFormProps> = ({
     }));
   };
 
+  const moveIngredientLayer = (clientId: string, direction: 'up' | 'down') => {
+    setFormData((prev) => {
+      const currentIndex = prev.ingredient_layers.findIndex((layer) => layer.client_id === clientId);
+
+      if (currentIndex === -1) {
+        return prev;
+      }
+
+      const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+      if (nextIndex < 0 || nextIndex >= prev.ingredient_layers.length) {
+        return prev;
+      }
+
+      const nextLayers = [...prev.ingredient_layers];
+      const [movedLayer] = nextLayers.splice(currentIndex, 1);
+      nextLayers.splice(nextIndex, 0, movedLayer);
+
+      return {
+        ...prev,
+        ingredient_layers: nextLayers,
+      };
+    });
+  };
+
   const removeIngredientLayer = (clientId: string) => {
     setFormData((prev) => {
       const target = prev.ingredient_layers.find((layer) => layer.client_id === clientId);
@@ -641,13 +666,33 @@ const DishForm: React.FC<DishFormProps> = ({
                           The image should visually match the dish so the public ingredient story feels cohesive.
                         </p>
                       </div>
-                      <LiquidButton
-                        type="button"
-                        tone="secondary"
-                        onClick={() => removeIngredientLayer(layer.client_id)}
-                      >
-                        Remove
-                      </LiquidButton>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <LiquidButton
+                          type="button"
+                          tone="tertiary"
+                          onClick={() => moveIngredientLayer(layer.client_id, 'up')}
+                          disabled={index === 0}
+                          className="px-3 py-2 text-xs"
+                        >
+                          ↑ Up
+                        </LiquidButton>
+                        <LiquidButton
+                          type="button"
+                          tone="tertiary"
+                          onClick={() => moveIngredientLayer(layer.client_id, 'down')}
+                          disabled={index === formData.ingredient_layers.length - 1}
+                          className="px-3 py-2 text-xs"
+                        >
+                          ↓ Down
+                        </LiquidButton>
+                        <LiquidButton
+                          type="button"
+                          tone="secondary"
+                          onClick={() => removeIngredientLayer(layer.client_id)}
+                        >
+                          Remove
+                        </LiquidButton>
+                      </div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-[160px_minmax(0,1fr)]">
@@ -713,7 +758,16 @@ const DishForm: React.FC<DishFormProps> = ({
                               </button>
 
                               {ingredientPickerOpen && (
-                                <div className="absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/95 p-2 shadow-2xl backdrop-blur-xl">
+                                <div
+                                  className={cx(
+                                    'absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border p-2 shadow-2xl backdrop-blur-xl',
+                                    glassControl
+                                  )}
+                                  style={{
+                                    backgroundColor: 'color-mix(in srgb, rgba(255,255,255,0.96) 82%, transparent)',
+                                    borderColor: 'rgba(196, 171, 122, 0.28)',
+                                  }}
+                                >
                                   <div className="mb-2">
                                     <GlassInput
                                       type="text"
@@ -809,6 +863,9 @@ const DishForm: React.FC<DishFormProps> = ({
                                 {layer.library_ingredient_id
                                   ? 'This layer is using a saved ingredient. The label and image come from the library entry.'
                                   : 'Choose ingredient from the library to replace this layer image and label.'}
+                              </p>
+                              <p className="mt-1 text-xs text-muted2">
+                                Order here controls the animation stack from top to bottom.
                               </p>
                             </div>
                           )}
