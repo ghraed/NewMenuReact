@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   GlassInput,
-  GlassSelect,
   GlassSurface,
   GlassToggle,
   LiquidButton,
@@ -122,6 +121,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
   const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -254,6 +254,8 @@ const DishForm: React.FC<DishFormProps> = ({
         URL.revokeObjectURL(target.image_url);
         ingredientBlobUrlsRef.current.delete(target.image_url);
       }
+
+      setOpenIngredientPickerId((current) => (current === clientId ? null : current));
 
       return {
         ...prev,
@@ -495,112 +497,214 @@ const DishForm: React.FC<DishFormProps> = ({
         ) : (
           <div className="space-y-4">
             {formData.ingredient_layers.map((layer, index) => (
-              <div
-                key={layer.client_id}
-                className="rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
-              >
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
-                    <p className="mt-1 text-xs text-muted">
-                      The image should visually match the dish so the public ingredient story feels cohesive.
-                    </p>
-                  </div>
-                  <LiquidButton
-                    type="button"
-                    tone="secondary"
-                    onClick={() => removeIngredientLayer(layer.client_id)}
+              (() => {
+                const selectedLibraryIngredient = ingredientLibrary.find(
+                  (ingredient) => ingredient.id === layer.library_ingredient_id
+                ) ?? null;
+                const selectedLibraryThumbnail = selectedLibraryIngredient
+                  ? resolveAssetUrl(selectedLibraryIngredient.file_url)
+                  : null;
+                const ingredientPickerOpen = openIngredientPickerId === layer.client_id;
+
+                return (
+                  <div
+                    key={layer.client_id}
+                    className="min-w-0 rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
                   >
-                    Remove
-                  </LiquidButton>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[160px_1fr]">
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
-                    {layer.image_url ? (
-                      <img
-                        src={layer.image_url}
-                        alt={layer.name || `Ingredient ${index + 1}`}
-                        className="h-36 w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                        Upload Image
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
+                        <p className="mt-1 text-xs text-muted">
+                          The image should visually match the dish so the public ingredient story feels cohesive.
+                        </p>
                       </div>
-                    )}
-                  </div>
+                      <LiquidButton
+                        type="button"
+                        tone="secondary"
+                        onClick={() => removeIngredientLayer(layer.client_id)}
+                      >
+                        Remove
+                      </LiquidButton>
+                    </div>
 
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {ingredientLibrary.length > 0 && (
-                        <div className="md:col-span-2">
-                          <label className="mb-1 block text-sm font-medium text-text">Choose from Ingredient Library</label>
-                          <GlassSelect
-                            value={layer.library_ingredient_id ? String(layer.library_ingredient_id) : ''}
-                            onChange={(event) =>
-                              handleIngredientLibraryChange(layer.client_id, event.target.value)
-                            }
-                            options={[
-                              { value: '', label: 'Use current or custom ingredient' },
-                              ...ingredientLibrary.map((ingredient) => ({
-                                value: String(ingredient.id),
-                                label: ingredient.name,
-                              })),
-                            ]}
+                    <div className="grid gap-4 lg:grid-cols-[160px_minmax(0,1fr)]">
+                      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
+                        {layer.image_url ? (
+                          <img
+                            src={layer.image_url}
+                            alt={layer.name || `Ingredient ${index + 1}`}
+                            className="h-36 w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
+                            Upload Image
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {ingredientLibrary.length > 0 && (
+                            <div className="min-w-0 md:col-span-2">
+                              <label className="mb-1 block text-sm font-medium text-text">Choose Ingredient</label>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenIngredientPickerId((current) =>
+                                    current === layer.client_id ? null : layer.client_id
+                                  )
+                                }
+                                className={cx(
+                                  'flex w-full min-w-0 items-center justify-between gap-3 rounded-[24px] border px-4 py-3 text-left',
+                                  glassControl,
+                                  focusRing
+                                )}
+                                aria-expanded={ingredientPickerOpen}
+                              >
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-[18px] border border-white/12 bg-black/20">
+                                    {selectedLibraryThumbnail ? (
+                                      <img
+                                        src={selectedLibraryThumbnail}
+                                        alt={selectedLibraryIngredient?.name || 'Ingredient thumbnail'}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
+                                        Pick
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-text">
+                                      {selectedLibraryIngredient?.name || 'Choose ingredient'}
+                                    </p>
+                                    <p className="truncate text-xs text-muted">
+                                      {selectedLibraryIngredient
+                                        ? 'Saved ingredient selected'
+                                        : 'Pick from your ingredient library'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="shrink-0 text-muted2">{ingredientPickerOpen ? '▴' : '▾'}</span>
+                              </button>
+
+                              {ingredientPickerOpen && (
+                                <div className="mt-3 max-w-full overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/55 p-2">
+                                  {layer.library_ingredient_id !== null && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleIngredientLibraryChange(layer.client_id, '');
+                                        setOpenIngredientPickerId(null);
+                                      }}
+                                      className="mb-2 flex w-full items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-gold2 transition hover:bg-white/10"
+                                    >
+                                      Clear saved ingredient
+                                    </button>
+                                  )}
+
+                                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                                    {ingredientLibrary.map((ingredient) => {
+                                      const optionThumbnail = resolveAssetUrl(ingredient.file_url);
+                                      const isActive = ingredient.id === layer.library_ingredient_id;
+
+                                      return (
+                                        <button
+                                          key={ingredient.id}
+                                          type="button"
+                                          onClick={() => {
+                                            handleIngredientLibraryChange(layer.client_id, String(ingredient.id));
+                                            setOpenIngredientPickerId(null);
+                                          }}
+                                          className={cx(
+                                            'flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
+                                            isActive
+                                              ? 'border-gold/35 bg-gold/12'
+                                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                                          )}
+                                        >
+                                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/20">
+                                            {optionThumbnail ? (
+                                              <img
+                                                src={optionThumbnail}
+                                                alt={ingredient.name}
+                                                className="h-full w-full object-cover"
+                                              />
+                                            ) : (
+                                              <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
+                                                Img
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium text-text">{ingredient.name}</p>
+                                            <p className="truncate text-xs text-muted">
+                                              {ingredient.source_file_name || 'Saved ingredient'}
+                                            </p>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              <p className="mt-2 text-xs text-muted">
+                                {layer.library_ingredient_id
+                                  ? 'This layer is using a saved ingredient. The label and image come from the library entry.'
+                                  : 'Choose ingredient from the library to replace this layer image and label.'}
+                              </p>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
+                            <GlassInput
+                              type="text"
+                              value={layer.name}
+                              onChange={(event) =>
+                                handleIngredientChange(layer.client_id, 'name', event.target.value)
+                              }
+                              disabled={layer.library_ingredient_id !== null}
+                              placeholder="Fresh Basil"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
+                            <GlassInput
+                              type="text"
+                              value={layer.quantity}
+                              onChange={(event) =>
+                                handleIngredientChange(layer.client_id, 'quantity', event.target.value)
+                              }
+                              placeholder="6 leaves"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
+                          <GlassInput
+                            type="file"
+                            accept="image/*"
+                            onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
                           />
                           <p className="mt-2 text-xs text-muted">
-                            {layer.library_ingredient_id
-                              ? 'This layer is using a saved ingredient. The label and image come from the library entry.'
-                              : 'Pick a saved ingredient to replace this layer with the library image and label.'}
+                            {layer.image_file
+                              ? `Selected image: ${layer.image_file.name}`
+                              : layer.library_ingredient_id
+                                ? 'Uploading a custom image will clear the saved ingredient selection for this layer.'
+                                : layer.file_name
+                                  ? `Current image: ${layer.file_name}`
+                                  : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
                           </p>
                         </div>
-                      )}
-
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
-                        <GlassInput
-                          type="text"
-                          value={layer.name}
-                          onChange={(event) =>
-                            handleIngredientChange(layer.client_id, 'name', event.target.value)
-                          }
-                          disabled={layer.library_ingredient_id !== null}
-                          placeholder="Fresh Basil"
-                        />
                       </div>
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
-                        <GlassInput
-                          type="text"
-                          value={layer.quantity}
-                          onChange={(event) =>
-                            handleIngredientChange(layer.client_id, 'quantity', event.target.value)
-                          }
-                          placeholder="6 leaves"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
-                      <GlassInput
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
-                      />
-                      <p className="mt-2 text-xs text-muted">
-                        {layer.image_file
-                          ? `Selected image: ${layer.image_file.name}`
-                          : layer.library_ingredient_id
-                            ? 'Uploading a custom image will clear the saved ingredient selection for this layer.'
-                          : layer.file_name
-                            ? `Current image: ${layer.file_name}`
-                            : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
-                      </p>
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()
             ))}
           </div>
         )}
