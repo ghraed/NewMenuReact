@@ -31,7 +31,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
   return (
     <article className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <section
           className="rounded-[32px] border p-5 sm:p-6"
           style={{
@@ -70,7 +70,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
         </section>
       </div>
 
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <section
           className="rounded-[32px] border p-6 sm:p-8"
           style={{
@@ -123,7 +123,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
         {suggestedDishes.length > 0 ? (
           <section
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="min-w-0 max-w-full rounded-[28px] border p-5 sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -134,8 +134,8 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Restaurant Suggests With This Dish
             </p>
 
-            <div className="-mx-5 mt-4 overflow-x-auto overflow-y-hidden px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain sm:-mx-6 sm:px-6">
-              <div className="flex min-w-max gap-3 no-scrollbar">
+            <div className="mt-4 max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain">
+              <div className="inline-flex min-w-max gap-3 no-scrollbar">
                 {suggestedDishes.map((suggestedDish) => {
                   const content = (
                     <div
@@ -174,7 +174,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
         {relatedDishes.length > 0 ? (
           <section
-            className="rounded-[28px] border p-5 sm:p-6"
+            className="min-w-0 max-w-full rounded-[28px] border p-5 sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -185,8 +185,8 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Related Dishes
             </p>
 
-            <div className="-mx-5 mt-4 overflow-x-auto overflow-y-hidden px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain sm:-mx-6 sm:px-6">
-              <div className="flex min-w-max gap-3 no-scrollbar">
+            <div className="mt-4 max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain">
+              <div className="inline-flex min-w-max gap-3 no-scrollbar">
                 {relatedDishes.map((relatedDish) => {
                   const content = (
                     <div
