@@ -46,12 +46,29 @@ export const getDishPairing = (dish: Dish): string => {
 };
 
 export const getDishIngredientsText = (dish: Dish): string => {
+  const assetIngredients = dish.assets
+    .filter((asset) => asset.asset_type === 'ingredient_image')
+    .sort((left, right) => {
+      const leftOrder = typeof left.metadata?.order_index === 'number' ? left.metadata.order_index : 0;
+      const rightOrder = typeof right.metadata?.order_index === 'number' ? right.metadata.order_index : 0;
+      return leftOrder - rightOrder;
+    })
+    .map((asset) => {
+      const label = asset.metadata?.label;
+      return typeof label === 'string' && label.trim() ? label.trim() : null;
+    })
+    .filter((label): label is string => Boolean(label));
+
+  if (assetIngredients.length > 0) {
+    return unique(assetIngredients).join(', ');
+  }
+
   const parts = dish.description
     .split(/[,.;]/)
     .map((part) => part.trim())
     .filter(Boolean);
 
-  if (parts.length >= 2) {
+  if (parts.length >= 1) {
     return unique(parts).slice(0, 3).join(', ');
   }
 
@@ -60,6 +77,5 @@ export const getDishIngredientsText = (dish: Dish): string => {
   if (hasKeyword(text, oceanKeywords)) return 'Sea-led ingredients, aromatic herbs, restrained citrus, and a refined finishing sauce.';
   if (hasKeyword(text, gardenKeywords)) return 'Seasonal produce, herbaceous accents, gentle textures, and a bright final seasoning.';
   if (hasKeyword(text, pastryKeywords)) return 'Layered sweetness, soft cream notes, and a composed finish built for a delicate close.';
-  return 'Thoughtful seasonal ingredients arranged for balance, texture, and a clean premium presentation.';
+  return dish.description?.trim() || dish.category || dish.name;
 };
-
