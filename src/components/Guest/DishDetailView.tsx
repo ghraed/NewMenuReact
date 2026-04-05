@@ -123,7 +123,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
 
         {suggestedDishes.length > 0 ? (
           <section
-            className="overflow-x-auto overflow-y-hidden rounded-[28px] border p-5 sm:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain"
+            className="rounded-[28px] border p-5 sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -134,45 +134,47 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Restaurant Suggests With This Dish
             </p>
 
-            <div className="mt-4 flex w-max gap-3 pb-2 no-scrollbar">
-              {suggestedDishes.map((suggestedDish) => {
-                const content = (
-                  <div
-                    className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
-                    style={{
-                      backgroundColor: 'var(--guest-panel-strong)',
-                      borderColor: 'var(--guest-border)',
-                    }}
-                  >
-                    <DishAssetThumbnail dish={suggestedDish} fit="cover" className="aspect-[4/3] w-full" />
-                    <div className="mt-3">
-                      <p className="font-serif text-xl text-[var(--guest-text)]">{suggestedDish.name}</p>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
-                        {suggestedDish.description}
-                      </p>
+            <div className="-mx-5 mt-4 overflow-x-auto overflow-y-hidden px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain sm:-mx-6 sm:px-6">
+              <div className="flex min-w-max gap-3 no-scrollbar">
+                {suggestedDishes.map((suggestedDish) => {
+                  const content = (
+                    <div
+                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                      }}
+                    >
+                      <DishAssetThumbnail dish={suggestedDish} fit="cover" className="aspect-[4/3] w-full" />
+                      <div className="mt-3">
+                        <p className="font-serif text-xl text-[var(--guest-text)]">{suggestedDish.name}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
+                          {suggestedDish.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
 
-                return restaurantSlug ? (
-                  <Link
-                    key={suggestedDish.id}
-                    to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}
-                    className="shrink-0"
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={suggestedDish.id} className="shrink-0">{content}</div>
-                );
-              })}
+                  return restaurantSlug ? (
+                    <Link
+                      key={suggestedDish.id}
+                      to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}
+                      className="block shrink-0"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={suggestedDish.id} className="shrink-0">{content}</div>
+                  );
+                })}
+              </div>
             </div>
           </section>
         ) : null}
 
         {relatedDishes.length > 0 ? (
           <section
-            className="overflow-x-auto overflow-y-hidden rounded-[28px] border p-5 sm:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain"
+            className="rounded-[28px] border p-5 sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel)',
               borderColor: 'var(--guest-border-soft)',
@@ -183,38 +185,40 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
               Related Dishes
             </p>
 
-            <div className="mt-4 flex w-max gap-3 pb-2 no-scrollbar">
-              {relatedDishes.map((relatedDish) => {
-                const content = (
-                  <div
-                    className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
-                    style={{
-                      backgroundColor: 'var(--guest-panel-strong)',
-                      borderColor: 'var(--guest-border)',
-                    }}
-                  >
-                    <DishAssetThumbnail dish={relatedDish} fit="cover" className="aspect-[4/3] w-full" />
-                    <div className="mt-3">
-                      <p className="font-serif text-xl text-[var(--guest-text)]">{relatedDish.name}</p>
-                      <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
-                        {relatedDish.description}
-                      </p>
+            <div className="-mx-5 mt-4 overflow-x-auto overflow-y-hidden px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain sm:-mx-6 sm:px-6">
+              <div className="flex min-w-max gap-3 no-scrollbar">
+                {relatedDishes.map((relatedDish) => {
+                  const content = (
+                    <div
+                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                      }}
+                    >
+                      <DishAssetThumbnail dish={relatedDish} fit="cover" className="aspect-[4/3] w-full" />
+                      <div className="mt-3">
+                        <p className="font-serif text-xl text-[var(--guest-text)]">{relatedDish.name}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
+                          {relatedDish.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
 
-                return restaurantSlug ? (
-                  <Link
-                    key={relatedDish.id}
-                    to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}
-                    className="shrink-0"
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={relatedDish.id} className="shrink-0">{content}</div>
-                );
-              })}
+                  return restaurantSlug ? (
+                    <Link
+                      key={relatedDish.id}
+                      to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}
+                      className="block shrink-0"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={relatedDish.id} className="shrink-0">{content}</div>
+                  );
+                })}
+              </div>
             </div>
           </section>
         ) : null}

@@ -39,8 +39,9 @@ const DishAssetThumbnail: React.FC<DishAssetThumbnailProps> = ({
           src={imageUrl}
           alt={dish.name}
           loading="lazy"
+          draggable={false}
           onError={() => setImageFailed(true)}
-          className={`h-full w-full object-center ${fit === 'cover' ? 'object-cover' : 'object-contain p-1.5'} ${imageClassName}`}
+          className={`pointer-events-none select-none h-full w-full object-center ${fit === 'cover' ? 'object-cover' : 'object-contain p-1.5'} ${imageClassName}`}
         />
       ) : glbUrl && !modelFailed ? (
         <div className="pointer-events-none h-full w-full p-1.5">
