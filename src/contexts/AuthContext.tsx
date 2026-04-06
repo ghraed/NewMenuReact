@@ -1,16 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import type { RestaurantSummary, UserRole } from '../types';
+import { getDefaultRouteForRole } from '../utils/auth';
 
 export interface AuthUser {
   id: number;
   name: string;
   email: string;
-  restaurant: {
-    id: number;
-    name: string;
-    slug: string;
-  } | null;
+  role: UserRole;
+  restaurant: RestaurantSummary | null;
 }
 
 interface AuthContextValue {
@@ -18,9 +17,12 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  isAdmin: boolean;
+  isStaff: boolean;
+  defaultRoute: string;
+  login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser>;
 }
 
 const TOKEN_STORAGE_KEY = 'admin_auth_token';
@@ -34,7 +36,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = React.useCallback(async () => {
     const response = await api.get('/auth/me');
-    setUser(response.data.user);
+    const nextUser = response.data.user as AuthUser;
+    setUser(nextUser);
+    return nextUser;
   }, []);
 
   useEffect(() => {
@@ -69,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
     setToken(nextToken);
     setUser(nextUser);
+    return nextUser;
   };
 
   const logout = async () => {
@@ -89,6 +94,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       token,
       loading,
       isAuthenticated: !!token,
+      isAdmin: user?.role === 'admin',
+      isStaff: user?.role === 'staff',
+      defaultRoute: getDefaultRouteForRole(user?.role),
       login,
       logout,
       refreshUser,

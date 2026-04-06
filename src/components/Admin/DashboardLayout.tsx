@@ -17,14 +17,19 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
-  const navItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-    { path: '/admin/dishes/create', label: 'Create Dish', icon: '➕' },
-    { path: '/admin/ingredients/library', label: 'Ingredients', icon: '🥬' },
-    { path: '/liquid-glass-preview', label: 'Theme Preview', icon: '✨' },
-  ];
+  const navItems = user?.role === 'staff'
+    ? [
+        { path: '/staff/orders', label: 'Pending Orders', icon: '🧾' },
+      ]
+    : [
+        { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
+        { path: '/staff/orders', label: 'Pending Orders', icon: '🧾' },
+        { path: '/admin/dishes/create', label: 'Create Dish', icon: '➕' },
+        { path: '/admin/ingredients/library', label: 'Ingredients', icon: '🥬' },
+        { path: '/liquid-glass-preview', label: 'Theme Preview', icon: '✨' },
+      ];
 
   const handleLogout = async () => {
     await logout();
@@ -40,7 +45,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               <div className="rounded-full border border-gold/30 bg-gold/10 p-2 text-lg">🍽️</div>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">Control Room</p>
-                <h1 className="text-2xl font-semibold text-text">AR Menu Admin</h1>
+                <h1 className="text-2xl font-semibold text-text">
+                  {user?.role === 'staff' ? 'AR Menu Staff' : 'AR Menu Admin'}
+                </h1>
               </div>
             </div>
 

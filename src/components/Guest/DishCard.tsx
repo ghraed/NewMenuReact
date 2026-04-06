@@ -8,10 +8,18 @@ import { getDishIngredientsText, getDishTags } from './guestPresentation';
 interface DishCardProps {
   dish: Dish;
   onOpen: () => void;
+  onAddToCart?: () => void;
+  cartQuantity?: number;
   isIngredientAlert?: boolean;
 }
 
-const DishCard: React.FC<DishCardProps> = ({ dish, onOpen, isIngredientAlert = false }) => {
+const DishCard: React.FC<DishCardProps> = ({
+  dish,
+  onOpen,
+  onAddToCart,
+  cartQuantity = 0,
+  isIngredientAlert = false,
+}) => {
   const [isVisible, setIsVisible] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish]);
@@ -146,25 +154,49 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen, isIngredientAlert = f
               ) : null}
             </div>
 
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onOpen();
-              }}
-              className={cx(
-                'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:w-auto sm:min-w-[160px]',
-                'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5',
-                focusRing
-              )}
-              style={{
-                backgroundColor: 'var(--guest-text)',
-                borderColor: 'var(--guest-text)',
-                color: 'var(--guest-bg)',
-              }}
-            >
-              View Details
-            </button>
+            <div className="flex w-full gap-2 sm:w-auto">
+              {onAddToCart ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAddToCart();
+                  }}
+                  className={cx(
+                    'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[140px]',
+                    'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5',
+                    focusRing
+                  )}
+                  style={{
+                    backgroundColor: 'var(--guest-accent-soft)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-accent)',
+                  }}
+                >
+                  {cartQuantity > 0 ? `Add More (${cartQuantity})` : 'Add to Cart'}
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpen();
+                }}
+                className={cx(
+                  'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:w-auto sm:min-w-[160px]',
+                  'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5',
+                  focusRing
+                )}
+                style={{
+                  backgroundColor: 'var(--guest-text)',
+                  borderColor: 'var(--guest-text)',
+                  color: 'var(--guest-bg)',
+                }}
+              >
+                View Details
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/useAuth';
+import { getDefaultRouteForRole } from '../utils/auth';
 import {
   GlassBoard,
   GlassIconButton,
@@ -21,7 +22,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
   const [email, setEmail] = useState('admin@example.com');
@@ -31,9 +32,9 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/admin/dashboard', { replace: true });
+      navigate(getDefaultRouteForRole(user?.role), { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user?.role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +42,9 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const nextUser = await login(email, password);
       showToast('Successfully signed in', 'primary');
-      navigate('/admin/dashboard', { replace: true });
+      navigate(getDefaultRouteForRole(nextUser.role), { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Login failed'));
     } finally {
@@ -58,10 +59,10 @@ const LoginPage: React.FC = () => {
           <div className="mb-8 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-stroke bg-panel2 px-3 py-2">
               <GlassIconButton aria-hidden="true">🍽️</GlassIconButton>
-              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">Hotel Admin</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">Control Room Access</span>
             </div>
-            <h1 className="text-3xl font-semibold text-text">AR Menu Admin</h1>
-            <p className="mt-2 text-sm text-muted">Login to manage dishes and 3D models.</p>
+            <h1 className="text-3xl font-semibold text-text">AR Menu Operations</h1>
+            <p className="mt-2 text-sm text-muted">Login to manage dishes or confirm guest orders.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

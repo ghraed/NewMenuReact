@@ -2,6 +2,7 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import { useGuestTheme } from '../../hooks/useGuestTheme';
 import { getGuestThemeStyle } from './guestTheme';
+import GuestCartShortcut from './GuestCartShortcut';
 
 interface GuestPageShellProps {
   children: ReactNode;
@@ -16,6 +17,7 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
       style={getGuestThemeStyle(theme)}
     >
       <div className="relative z-10">{children}</div>
+      <GuestCartShortcut />
     </div>
   );
 };

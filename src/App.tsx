@@ -8,20 +8,34 @@ import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
 import IngredientLibraryPage from './pages/IngredientLibraryPage';
+import AdminDishPage from './pages/AdminDishPage';
+import OrderReviewPage from './pages/OrderReviewPage';
+import StaffOrdersPage from './pages/StaffOrdersPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import { OrderCartProvider } from './contexts/OrderCartContext';
+import { useAuth } from './contexts/useAuth';
 import LiquidGlassDemoPage from './pages/LiquidGlassDemoPage';
 import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
+
+const RoleHomeRedirect: React.FC = () => {
+  const { defaultRoute, isAuthenticated } = useAuth();
+
+  return <Navigate to={isAuthenticated ? defaultRoute : '/admin/login'} replace />;
+};
 
 const AppRoutes: React.FC = () => {
   return (
     <AppThemeShell>
       <Routes>
         <Route path="/" element={<GuestDishListPage />} />
+        <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
+        <Route path="/dish/:dish_id" element={<GuestDishPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
+        <Route path="/order/review" element={<OrderReviewPage />} />
         <Route path="/liquid-glass-preview" element={<LiquidGlassDemoPage />} />
 
         <Route path="/admin/login" element={<LoginPage />} />
@@ -29,7 +43,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/dashboard"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
           )}
@@ -38,8 +52,17 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/dishes/create"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <CreateDishPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/dish/:dish_id"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDishPage />
             </ProtectedRoute>
           )}
         />
@@ -47,7 +70,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/dishes/:dish_id/edit"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <EditDishPage />
             </ProtectedRoute>
           )}
@@ -56,8 +79,17 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/ingredients/library"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <IngredientLibraryPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/staff/orders"
+          element={(
+            <ProtectedRoute allowedRoles={['staff', 'admin']}>
+              <StaffOrdersPage />
             </ProtectedRoute>
           )}
         />
@@ -65,14 +97,16 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/theme-demo"
           element={(
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['admin']}>
               <LiquidGlassDemoPage />
             </ProtectedRoute>
           )}
         />
 
         <Route path="/login" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/dashboard" element={<RoleHomeRedirect />} />
+        <Route path="/admin" element={<RoleHomeRedirect />} />
+        <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
         <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
 
         <Route
@@ -84,7 +118,9 @@ const AppRoutes: React.FC = () => {
                 <p className="mt-2 text-muted">Visit:</p>
                 <ul className="mt-3 space-y-1 text-sm text-muted">
                   <li>• <a href="/" className="underline underline-offset-4">/</a> - Guest dishes list</li>
+                  <li>• <a href="/order/review" className="underline underline-offset-4">/order/review</a> - Guest order review</li>
                   <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - Admin login</li>
+                  <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - Staff pending orders</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - Theme preview</li>
                 </ul>
               </GlassBoard>
@@ -99,11 +135,13 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppThemeProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AppThemeProvider>
+      <OrderCartProvider>
+        <AppThemeProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </AppThemeProvider>
+      </OrderCartProvider>
     </AuthProvider>
   );
 };

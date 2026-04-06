@@ -14,9 +14,16 @@ import {
 interface DishDetailViewProps {
   dish: Dish;
   restaurantSlug?: string;
+  onAddToCart?: () => void;
+  cartQuantity?: number;
 }
 
-const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug }) => {
+const DishDetailView: React.FC<DishDetailViewProps> = ({
+  dish,
+  restaurantSlug,
+  onAddToCart,
+  cartQuantity = 0,
+}) => {
   const price = Number(dish.price).toFixed(2);
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
@@ -108,6 +115,29 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
           </div>
 
           <DishTags tags={metadataTags} className="mt-5" />
+
+          {onAddToCart ? (
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={onAddToCart}
+                className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition hover:-translate-y-0.5"
+                style={{
+                  backgroundColor: 'var(--guest-accent)',
+                  borderColor: 'var(--guest-accent)',
+                  color: 'var(--guest-accent-button-text)',
+                  boxShadow: 'var(--guest-shadow-soft)',
+                }}
+              >
+                {cartQuantity > 0 ? `Add Another (${cartQuantity} in cart)` : 'Add to Cart'}
+              </button>
+              {cartQuantity > 0 ? (
+                <p className="text-sm text-[var(--guest-muted)]">
+                  Review the full order from the cart shortcut at the bottom of the page.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </section>
 
         <div className="grid gap-4">

@@ -1,5 +1,8 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
+export type UserRole = 'admin' | 'staff';
+export type OrderStatus = 'pending_confirmation' | 'confirmed';
+export type DiscountType = 'fixed' | 'percentage';
 
 export interface DishAssetMetadata extends Record<string, unknown> {
   file_name?: string;
@@ -27,6 +30,12 @@ export interface Dish {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+}
+
+export interface RestaurantSummary {
+  id: number;
+  name: string;
+  slug: string;
 }
 
 export interface DishAsset {
@@ -67,6 +76,91 @@ export interface DeviceCapabilities {
   isIOS: boolean;
   isAndroid: boolean;
   hasCameraAccess: boolean;
+}
+
+export interface OrderCartRestaurant {
+  id?: number;
+  name?: string;
+  slug: string;
+}
+
+export interface OrderCartItem {
+  dishId: number;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  calories?: number | null;
+  previewImageUrl?: string;
+}
+
+export interface GuestOrderDraft {
+  guestName: string;
+  guestPhone: string;
+  guestEmail: string;
+  notes: string;
+}
+
+export interface CreateGuestOrderRequest {
+  guest_name: string;
+  guest_phone?: string;
+  guest_email?: string;
+  notes?: string;
+  items: Array<{
+    dish_id: number;
+    quantity: number;
+  }>;
+}
+
+export interface ConfirmOrderRequest {
+  vat_rate?: number;
+  discount_type?: DiscountType;
+  discount_value?: number;
+}
+
+export interface OrderInvoiceSummary {
+  subtotal: string;
+  discount_type: DiscountType | null;
+  discount_value: string;
+  discount_amount: string;
+  taxable_subtotal: string;
+  vat_rate: string;
+  vat_amount: string;
+  total: string;
+}
+
+export interface OrderActorSummary {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface OrderLineItem {
+  id: number;
+  dish_id: number | null;
+  dish_name: string;
+  unit_price: string;
+  quantity: number;
+  line_subtotal: string;
+}
+
+export interface OrderRecord {
+  id: number;
+  uuid: string;
+  order_number: string | null;
+  invoice_number: string | null;
+  status: OrderStatus;
+  guest_name: string;
+  guest_phone?: string | null;
+  guest_email?: string | null;
+  notes?: string | null;
+  created_at: string | null;
+  confirmed_at: string | null;
+  restaurant: RestaurantSummary;
+  items: OrderLineItem[];
+  invoice: OrderInvoiceSummary;
+  confirmed_by: OrderActorSummary | null;
 }
 
 export const trackEvent: (

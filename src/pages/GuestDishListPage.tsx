@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api';
 import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -8,6 +8,8 @@ import DishTags from '../components/Guest/DishTags';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import SectionHeading from '../components/Guest/SectionHeading';
+import { useOrderCart } from '../contexts/useOrderCart';
+import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 
 interface GuestListResponse {
   restaurant: {
@@ -19,9 +21,6 @@ interface GuestListResponse {
 }
 
 type IngredientFilterMode = 'show' | 'hide' | 'highlight';
-
-const configuredRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
-const fallbackRestaurantSlug = 'admin-restaurant';
 
 const normalizeIngredientName = (value?: string | null) => (
   (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
@@ -60,10 +59,12 @@ const getDishIngredients = (dish: Dish) => {
 };
 
 const GuestDishListPage: React.FC = () => {
+  const { restaurant_slug } = useParams<{ restaurant_slug?: string }>();
   const navigate = useNavigate();
+  const { addDish, getDishQuantity } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState('Menu');
-  const [restaurantSlug, setRestaurantSlug] = useState(configuredRestaurantSlug);
+  const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || getPreferredGuestRestaurantSlug());
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,11 +82,30 @@ const GuestDishListPage: React.FC = () => {
     };
 
     const fetchDishes = async () => {
-      try {
-        let data = await fetchList(configuredRestaurantSlug);
+      setLoading(true);
+      setError(null);
 
-        if (data.dishes.length === 0 && configuredRestaurantSlug !== fallbackRestaurantSlug) {
-          data = await fetchList(fallbackRestaurantSlug);
+      try {
+        const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
+        let data: GuestListResponse | null = null;
+
+        for (const candidateSlug of candidateSlugs) {
+          try {
+            const nextData = await fetchList(candidateSlug);
+
+            if (nextData.dishes.length > 0 || candidateSlugs.length === 1 || candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
+              data = nextData;
+              break;
+            }
+          } catch (err) {
+            if (candidateSlugs.length === 1) {
+              throw err;
+            }
+          }
+        }
+
+        if (!data) {
+          throw new Error('No restaurant data could be loaded.');
         }
 
         setRestaurantName(data.restaurant.name);
@@ -100,7 +120,7 @@ const GuestDishListPage: React.FC = () => {
     };
 
     fetchDishes();
-  }, []);
+  }, [restaurant_slug]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -520,6 +540,13 @@ const GuestDishListPage: React.FC = () => {
                 <DishCard
                   key={dish.id}
                   dish={dish}
+                  onAddToCart={() => addDish(dish, {
+                    restaurant: {
+                      name: restaurantName,
+                      slug: restaurantSlug,
+                    },
+                  })}
+                  cartQuantity={getDishQuantity(dish.id)}
                   onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />

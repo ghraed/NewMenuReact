@@ -6,24 +6,52 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DishDetailView from '../components/Guest/DishDetailView';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
-
-const formatRestaurantLabel = (value?: string) => value?.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || 'Menu';
+import { useOrderCart } from '../contexts/useOrderCart';
+import {
+  formatRestaurantLabel,
+  getGuestRestaurantCandidateSlugs,
+  getPreferredGuestRestaurantSlug,
+} from '../utils/guestRestaurant';
 
 const GuestDishPage: React.FC = () => {
-  const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
+  const { restaurant_slug, dish_id } = useParams<{ restaurant_slug?: string; dish_id: string }>();
+  const { addDish, getDishQuantity } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
+  const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDish = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        const response = await api.get(`/menu/${restaurant_slug}/dish/${dish_id}`, {
-          headers: {
-            'ngrok-skip-browser-warning': 'true',
-          },
-        });
-        setDish(response.data);
+        const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
+        let loaded = false;
+
+        for (const candidateSlug of candidateSlugs) {
+          try {
+            const response = await api.get(`/menu/${candidateSlug}/dish/${dish_id}`, {
+              headers: {
+                'ngrok-skip-browser-warning': 'true',
+              },
+            });
+
+            setDish(response.data);
+            setResolvedRestaurantSlug(candidateSlug);
+            loaded = true;
+            break;
+          } catch (err) {
+            if (candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
+              throw err;
+            }
+          }
+        }
+
+        if (!loaded) {
+          throw new Error('Failed to load dish');
+        }
       } catch (err) {
         setError('Failed to load dish');
         console.error(err);
@@ -79,8 +107,18 @@ const GuestDishPage: React.FC = () => {
 
         {!loading && !error && dish ? (
           <>
-            <DishDetailView dish={dish} restaurantSlug={restaurant_slug} />
-            <GuestInfoSection restaurantName={formatRestaurantLabel(restaurant_slug)} />
+            <DishDetailView
+              dish={dish}
+              restaurantSlug={resolvedRestaurantSlug}
+              onAddToCart={() => addDish(dish, {
+                restaurant: {
+                  name: formatRestaurantLabel(resolvedRestaurantSlug || getPreferredGuestRestaurantSlug()),
+                  slug: resolvedRestaurantSlug || getPreferredGuestRestaurantSlug(),
+                },
+              })}
+              cartQuantity={getDishQuantity(dish.id)}
+            />
+            <GuestInfoSection restaurantName={formatRestaurantLabel(resolvedRestaurantSlug)} />
           </>
         ) : null}
       </main>
