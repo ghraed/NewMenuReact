@@ -96,6 +96,7 @@ export interface DishFormData {
   name: string;
   description: string;
   price: string;
+  calories: string;
   category: string;
   status: 'draft' | 'published';
   image_url: string;
@@ -151,6 +152,7 @@ const DishForm: React.FC<DishFormProps> = ({
     name: initialValues?.name || '',
     description: initialValues?.description || '',
     price: initialValues?.price || '',
+    calories: initialValues?.calories || '',
     category: initialValues?.category || '',
     status: initialValues?.status || 'published',
     image_url: initialValues?.image_url || '',
@@ -568,7 +570,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div>
           <label htmlFor="price" className="mb-1 block text-sm font-medium text-text">
             Price ($) *
@@ -583,6 +585,22 @@ const DishForm: React.FC<DishFormProps> = ({
             step="0.01"
             min="0"
             placeholder="12.99"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="calories" className="mb-1 block text-sm font-medium text-text">
+            Calories
+          </label>
+          <GlassInput
+            type="number"
+            id="calories"
+            name="calories"
+            value={formData.calories}
+            onChange={handleChange}
+            min="0"
+            step="1"
+            placeholder="420"
           />
         </div>
 

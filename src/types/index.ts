@@ -15,6 +15,7 @@ export interface Dish {
   name: string;
   description: string;
   price: number;
+  calories?: number | null;
   category: string;
   status: 'draft' | 'published';
   image_url?: string;

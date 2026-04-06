@@ -21,7 +21,6 @@ const labelEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const getCenteredOffset = (index: number, total: number) => index - (total - 1) / 2;
 const getFloatRotation = (index: number) => (index % 2 === 0 ? -1.7 : 1.7);
-const getDummyCalories = (index: number) => 45 + index * 18;
 
 const getHorizontalTravel = () => {
   if (typeof window === 'undefined') {
@@ -45,7 +44,6 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   ingredients,
 }) => {
   const [stage, setStage] = useState<AnimationStage>('idle');
-  const [selectedIngredientId, setSelectedIngredientId] = useState<string | number | null>(null);
   const timeoutsRef = useRef<number[]>([]);
 
   const clearScheduledStages = () => {
@@ -58,7 +56,6 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   const handleStartAnimation = () => {
     clearScheduledStages();
     setStage('reset');
-    setSelectedIngredientId(null);
 
     timeoutsRef.current.push(window.setTimeout(() => setStage('expand'), 140));
     timeoutsRef.current.push(window.setTimeout(() => setStage('float'), 1120));
@@ -224,11 +221,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                     </AnimatePresence>
 
                     <div className="flex items-center justify-start sm:justify-center">
-                      <motion.button
-                        type="button"
-                        onClick={() =>
-                          setSelectedIngredientId((current) => (current === ingredient.id ? null : ingredient.id))
-                        }
+                      <motion.div
                         animate={{
                           x: currentX,
                           y: currentY,
@@ -241,7 +234,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                           delay: stage === 'reset' ? 0 : index * 0.12,
                           ease: premiumEase,
                         }}
-                        className="relative flex appearance-none items-center justify-center border-0 bg-transparent p-0 py-2.5 sm:py-3.5"
+                        className="flex items-center justify-center py-2.5 sm:py-3.5"
                       >
                         {ingredient.imageUrl ? (
                           <img
@@ -264,27 +257,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                             Ingredient
                           </div>
                         )}
-
-                        <AnimatePresence>
-                          {selectedIngredientId === ingredient.id ? (
-                            <motion.div
-                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                              transition={{ duration: 0.22, ease: labelEase }}
-                              className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs font-semibold"
-                              style={{
-                                backgroundColor: 'var(--guest-panel)',
-                                borderColor: 'var(--guest-border)',
-                                color: 'var(--guest-text)',
-                                boxShadow: 'var(--guest-shadow-soft)',
-                              }}
-                            >
-                              {getDummyCalories(index)} kcal
-                            </motion.div>
-                          ) : null}
-                        </AnimatePresence>
-                      </motion.button>
+                      </motion.div>
                     </div>
                   </div>
                 </div>

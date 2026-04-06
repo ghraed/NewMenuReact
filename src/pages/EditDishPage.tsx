@@ -171,6 +171,7 @@ const EditDishPage: React.FC = () => {
         name: data.name,
         description: data.description,
         price: parseFloat(data.price),
+        calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
         status: data.status,
         image_url: data.image_url || null,
@@ -427,6 +428,7 @@ const EditDishPage: React.FC = () => {
             status: dish.status,
             image_url: dish.image_url || '',
             price: String(dish.price),
+            calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
             related_dish_ids: (dish.related_dishes || []).map((relatedDish) => relatedDish.id),
           }}

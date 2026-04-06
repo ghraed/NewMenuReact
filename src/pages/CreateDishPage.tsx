@@ -80,6 +80,7 @@ const CreateDishPage: React.FC = () => {
       formData.append('name', dishData.name);
       formData.append('description', dishData.description);
       formData.append('price', dishData.price);
+      if (dishData.calories.trim()) formData.append('calories', dishData.calories.trim());
       formData.append('category', dishData.category);
       formData.append('status', dishData.status);
       dishData.suggested_dish_ids.forEach((dishId) => {
