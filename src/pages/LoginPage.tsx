@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {
   const { login, isAuthenticated, user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
-  const [email, setEmail] = useState('admin@example.com');
+  const [identifier, setIdentifier] = useState('admin@example.com');
   const [password, setPassword] = useState('admin@example.com');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const nextUser = await login(email, password);
+      const nextUser = await login(identifier, password);
       showToast('Successfully signed in', 'primary');
       navigate(getDefaultRouteForRole(nextUser.role), { replace: true });
     } catch (err: unknown) {
@@ -67,14 +67,14 @@ const LoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="mb-1 block text-sm font-medium text-text">
-                Email
+              <label htmlFor="identifier" className="mb-1 block text-sm font-medium text-text">
+                Email or phone
               </label>
               <GlassInput
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 leftSlot={<span>✉️</span>}
               />

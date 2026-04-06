@@ -34,6 +34,7 @@ const AdminStaffPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [createdStaff, setCreatedStaff] = useState<StaffMember | null>(null);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -65,6 +66,7 @@ const AdminStaffPage: React.FC = () => {
       });
 
       setCreatedStaff(response.staff);
+      setTemporaryPassword(response.temporary_password);
       setName('');
       setEmail('');
       setPhone('');
@@ -172,6 +174,8 @@ const AdminStaffPage: React.FC = () => {
                   <p className="mt-1">Role: {createdStaff.role}</p>
                   <p>Email: {createdStaff.email || 'Not provided'}</p>
                   <p>Phone: {createdStaff.phone || 'Not provided'}</p>
+                  <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
+                  <p>Temporary password: <span className="font-semibold text-text">{temporaryPassword || 'Unavailable'}</span></p>
                 </div>
               </div>
             ) : (

@@ -7,7 +7,8 @@ import { getDefaultRouteForRole } from '../utils/auth';
 export interface AuthUser {
   id: number;
   name: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
   role: UserRole;
   restaurant: RestaurantSummary | null;
 }
@@ -20,7 +21,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   isStaff: boolean;
   defaultRoute: string;
-  login: (email: string, password: string) => Promise<AuthUser>;
+  login: (identifier: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<AuthUser>;
 }
@@ -65,8 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     bootstrap();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+  const login = async (identifier: string, password: string) => {
+    const response = await api.post('/auth/login', { email: identifier, password });
     const nextToken = response.data.token as string;
     const nextUser = response.data.user as AuthUser;
 

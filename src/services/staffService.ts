@@ -1,9 +1,10 @@
 import api from './api';
 import type { CreateStaffRequest, StaffMember } from '../types';
 
-interface CreateStaffResponse {
+export interface CreateStaffResponse {
   message: string;
   staff: StaffMember;
+  temporary_password: string;
 }
 
 const sanitizeCreateStaffPayload = (payload: CreateStaffRequest): CreateStaffRequest => {
