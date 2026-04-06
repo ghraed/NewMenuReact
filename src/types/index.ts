@@ -4,6 +4,21 @@ export type UserRole = 'admin' | 'staff';
 export type OrderStatus = 'pending_confirmation' | 'confirmed';
 export type DiscountType = 'fixed' | 'percentage';
 
+export interface StaffMember {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role: UserRole;
+  created_at?: string | null;
+}
+
+export interface CreateStaffRequest {
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface DishAssetMetadata extends Record<string, unknown> {
   file_name?: string;
   label?: string;

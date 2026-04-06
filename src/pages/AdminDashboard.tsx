@@ -174,11 +174,18 @@ const AdminDashboard: React.FC = () => {
     <DashboardLayout title="Dashboard">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-text">Your Dishes 123</h2>
-        <Link to="/admin/dishes/create">
-          <LiquidButton tone="primary">
-            <span>➕</span> Create New Dish
-          </LiquidButton>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/admin/staff">
+            <LiquidButton tone="secondary">
+              <span>👥</span> Manage Staff
+            </LiquidButton>
+          </Link>
+          <Link to="/admin/dishes/create">
+            <LiquidButton tone="primary">
+              <span>➕</span> Create New Dish
+            </LiquidButton>
+          </Link>
+        </div>
       </div>
 
       <GlassCard className="mb-6">
