@@ -12,6 +12,7 @@ import AdminDishPage from './pages/AdminDishPage';
 import OrderReviewPage from './pages/OrderReviewPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import AdminStaffPage from './pages/AdminStaffPage';
+import AccountingOrdersPage from './pages/AccountingOrdersPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
@@ -105,6 +106,15 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route
+          path="/admin/accounting"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AccountingOrdersPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/admin/theme-demo"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
@@ -117,6 +127,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/dashboard" element={<RoleHomeRedirect />} />
         <Route path="/admin" element={<RoleHomeRedirect />} />
         <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
+        <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
         <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
 
         <Route
@@ -132,6 +143,7 @@ const AppRoutes: React.FC = () => {
                   <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - Admin login</li>
                   <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - Admin staff creation</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - Staff pending orders</li>
+                  <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - Admin accounting queue</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - Theme preview</li>
                 </ul>
               </GlassBoard>

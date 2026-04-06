@@ -1,8 +1,10 @@
 import api from './api';
 import type {
-  ConfirmOrderRequest,
+  AccountOrderRequest,
   CreateGuestOrderRequest,
   OrderRecord,
+  RestaurantSummary,
+  RestaurantTableSummary,
 } from '../types';
 
 interface OrderResponse {
@@ -14,8 +16,13 @@ interface PendingOrdersResponse {
   orders: OrderRecord[];
 }
 
-const sanitizeConfirmPayload = (payload: ConfirmOrderRequest): ConfirmOrderRequest => {
-  const nextPayload: ConfirmOrderRequest = {};
+interface GuestTablesResponse {
+  restaurant: RestaurantSummary;
+  tables: RestaurantTableSummary[];
+}
+
+const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRequest => {
+  const nextPayload: AccountOrderRequest = {};
 
   if (typeof payload.vat_rate === 'number' && !Number.isNaN(payload.vat_rate)) {
     nextPayload.vat_rate = payload.vat_rate;
@@ -32,6 +39,11 @@ const sanitizeConfirmPayload = (payload: ConfirmOrderRequest): ConfirmOrderReque
   return nextPayload;
 };
 
+export const fetchGuestTables = async (restaurantSlug: string): Promise<GuestTablesResponse> => {
+  const response = await api.get<GuestTablesResponse>(`/menu/${restaurantSlug}/tables`);
+  return response.data;
+};
+
 export const createGuestOrder = async (
   restaurantSlug: string,
   payload: CreateGuestOrderRequest
@@ -45,10 +57,25 @@ export const fetchPendingOrders = async (): Promise<OrderRecord[]> => {
   return response.data.orders;
 };
 
-export const confirmPendingOrder = async (
+export const confirmPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`);
+  return response.data;
+};
+
+export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`);
+  return response.data;
+};
+
+export const fetchAccountingOrders = async (): Promise<OrderRecord[]> => {
+  const response = await api.get<PendingOrdersResponse>('/orders/accounting');
+  return response.data.orders;
+};
+
+export const accountConfirmedOrder = async (
   orderId: number,
-  payload: ConfirmOrderRequest
+  payload: AccountOrderRequest
 ): Promise<OrderResponse> => {
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`, sanitizeConfirmPayload(payload));
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/account`, sanitizeAccountingPayload(payload));
   return response.data;
 };

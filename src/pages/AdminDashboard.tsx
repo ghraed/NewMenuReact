@@ -175,6 +175,11 @@ const AdminDashboard: React.FC = () => {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-text">Your Dishes 123</h2>
         <div className="flex flex-wrap items-center gap-3">
+          <Link to="/admin/accounting">
+            <LiquidButton tone="tertiary">
+              <span>💳</span> Accounting
+            </LiquidButton>
+          </Link>
           <Link to="/admin/staff">
             <LiquidButton tone="secondary">
               <span>👥</span> Manage Staff

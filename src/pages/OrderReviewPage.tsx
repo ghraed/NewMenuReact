@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { createGuestOrder } from '../services/orderService';
-import type { OrderRecord } from '../types';
+import { createGuestOrder, fetchGuestTables } from '../services/orderService';
+import type { OrderRecord, RestaurantTableSummary } from '../types';
 import { formatRestaurantLabel, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -32,13 +32,38 @@ const OrderReviewPage: React.FC = () => {
   } = useOrderCart();
 
   const [submitting, setSubmitting] = useState(false);
+  const [tablesLoading, setTablesLoading] = useState(false);
+  const [tablesError, setTablesError] = useState<string | null>(null);
+  const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
 
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug || getPreferredGuestRestaurantSlug();
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
-  const canSubmit = items.length > 0 && draft.guestName.trim().length > 0 && !submitting;
+  const canSubmit = items.length > 0 && draft.tableReference.trim().length > 0 && !submitting;
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+
+  useEffect(() => {
+    if (!restaurantSlug || submittedOrder) {
+      return;
+    }
+
+    const loadTables = async () => {
+      setTablesLoading(true);
+      setTablesError(null);
+
+      try {
+        const response = await fetchGuestTables(restaurantSlug);
+        setTables(response.tables);
+      } catch (err: unknown) {
+        setTablesError(getErrorMessage(err, 'Failed to load restaurant tables.'));
+      } finally {
+        setTablesLoading(false);
+      }
+    };
+
+    loadTables();
+  }, [restaurantSlug, submittedOrder]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -48,14 +73,17 @@ const OrderReviewPage: React.FC = () => {
       return;
     }
 
+    if (!draft.tableReference.trim()) {
+      setError('Select the table placing this order.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
       const response = await createGuestOrder(restaurantSlug, {
-        guest_name: draft.guestName.trim(),
-        guest_phone: draft.guestPhone.trim() || undefined,
-        guest_email: draft.guestEmail.trim() || undefined,
+        table_reference: draft.tableReference.trim(),
         notes: draft.notes.trim() || undefined,
         items: items.map((item) => ({
           dish_id: item.dishId,
@@ -104,12 +132,16 @@ const OrderReviewPage: React.FC = () => {
             }}
           >
             <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Request Received</p>
-            <h2 className="mt-3 font-serif text-3xl text-[var(--guest-text)]">Order sent for confirmation</h2>
+            <h2 className="mt-3 font-serif text-3xl text-[var(--guest-text)]">Order sent to the staff team</h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--guest-muted)]">
-              Your order is now waiting for a restaurant team member to confirm it.
+              Your order for table
+              {' '}
+              <span className="font-semibold text-[var(--guest-text)]">{submittedOrder.table_reference}</span>
+              {' '}
+              is now waiting for staff confirmation.
             </p>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
               <div
                 className="rounded-[24px] border p-5"
                 style={{
@@ -130,18 +162,37 @@ const OrderReviewPage: React.FC = () => {
                   borderColor: 'var(--guest-border)',
                 }}
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Status</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Table</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--guest-text)]">
-                  {submittedOrder.status.replace('_', ' ')}
+                  {submittedOrder.table_reference}
+                </p>
+              </div>
+
+              <div
+                className="rounded-[24px] border p-5"
+                style={{
+                  backgroundColor: 'var(--guest-panel-strong)',
+                  borderColor: 'var(--guest-border)',
+                }}
+              >
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Status</p>
+                <p className="mt-2 text-lg font-semibold capitalize text-[var(--guest-text)]">
+                  {submittedOrder.status.replace(/_/g, ' ')}
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 rounded-[24px] border p-5" style={{ backgroundColor: 'var(--guest-panel-strong)', borderColor: 'var(--guest-border)' }}>
-              <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Current Total</p>
-              <p className="mt-2 text-3xl font-semibold text-[var(--guest-text)]">${submittedOrder.invoice.total}</p>
+            <div
+              className="mt-6 rounded-[24px] border p-5"
+              style={{
+                backgroundColor: 'var(--guest-panel-strong)',
+                borderColor: 'var(--guest-border)',
+              }}
+            >
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Current Subtotal</p>
+              <p className="mt-2 text-3xl font-semibold text-[var(--guest-text)]">${submittedOrder.invoice.subtotal}</p>
               <p className="mt-2 text-sm text-[var(--guest-muted)]">
-                VAT and discounts can still be adjusted by the restaurant when they confirm the order.
+                Staff will confirm or cancel this request first. Accounting will only be applied after staff approval.
               </p>
             </div>
           </section>
@@ -263,62 +314,63 @@ const OrderReviewPage: React.FC = () => {
                 boxShadow: 'var(--guest-shadow)',
               }}
             >
-              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Guest Details</p>
-              <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">Send confirmation request</h2>
+              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Table Request</p>
+              <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">Send this order to staff</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--guest-muted)]">
-                The restaurant team will review this order and confirm it from their dashboard.
+                Select the table placing this order. Staff will confirm or cancel the request before it reaches accounting.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Name</span>
-                  <input
-                    value={draft.guestName}
-                    onChange={(event) => updateDraft({ guestName: event.target.value })}
+                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Table reference</span>
+                  <select
+                    value={draft.tableReference}
+                    onChange={(event) => updateDraft({ tableReference: event.target.value })}
                     className="w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
                       borderColor: 'var(--guest-border)',
                       color: 'var(--guest-text)',
                     }}
-                    placeholder="Your name"
                     required
-                  />
+                  >
+                    <option value="">Select a table</option>
+                    {tables.map((table) => (
+                      <option key={table.id} value={table.name}>
+                        {table.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Phone</span>
-                  <input
-                    value={draft.guestPhone}
-                    onChange={(event) => updateDraft({ guestPhone: event.target.value })}
-                    className="w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
+                {tablesLoading ? (
+                  <div
+                    className="rounded-[22px] border p-4 text-sm"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
                       borderColor: 'var(--guest-border)',
-                      color: 'var(--guest-text)',
+                      color: 'var(--guest-muted)',
                     }}
-                    placeholder="+961..."
-                  />
-                </label>
+                  >
+                    Loading available tables...
+                  </div>
+                ) : null}
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Email</span>
-                  <input
-                    value={draft.guestEmail}
-                    onChange={(event) => updateDraft({ guestEmail: event.target.value })}
-                    className="w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
+                {tablesError ? (
+                  <div
+                    className="rounded-[22px] border p-4 text-sm"
                     style={{
-                      backgroundColor: 'var(--guest-panel-strong)',
-                      borderColor: 'var(--guest-border)',
-                      color: 'var(--guest-text)',
+                      backgroundColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 12%, var(--guest-panel))',
+                      borderColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 38%, var(--guest-border))',
+                      color: 'rgb(var(--color-spicy))',
                     }}
-                    placeholder="name@example.com"
-                    type="email"
-                  />
-                </label>
+                  >
+                    {tablesError}
+                  </div>
+                ) : null}
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Notes</span>
+                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Notes for the team</span>
                   <textarea
                     value={draft.notes}
                     onChange={(event) => updateDraft({ notes: event.target.value })}
@@ -328,7 +380,7 @@ const OrderReviewPage: React.FC = () => {
                       borderColor: 'var(--guest-border)',
                       color: 'var(--guest-text)',
                     }}
-                    placeholder="Allergies, table note, special request..."
+                    placeholder="Optional service note for the staff..."
                   />
                 </label>
 
@@ -356,7 +408,7 @@ const OrderReviewPage: React.FC = () => {
                     boxShadow: 'var(--guest-shadow-soft)',
                   }}
                 >
-                  {submitting ? 'Sending request...' : 'Request Order Confirmation'}
+                  {submitting ? 'Sending request...' : 'Send Order Request'}
                 </button>
               </form>
             </section>

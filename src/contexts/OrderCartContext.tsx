@@ -36,9 +36,7 @@ interface OrderCartContextValue {
 const ORDER_CART_STORAGE_KEY = 'guest_order_cart_state';
 
 const defaultDraft: GuestOrderDraft = {
-  guestName: '',
-  guestPhone: '',
-  guestEmail: '',
+  tableReference: '',
   notes: '',
 };
 
@@ -76,9 +74,7 @@ const normalizeState = (value: unknown): OrderCartState => {
           }))
       : [],
     draft: {
-      guestName: typeof candidate.draft?.guestName === 'string' ? candidate.draft.guestName : '',
-      guestPhone: typeof candidate.draft?.guestPhone === 'string' ? candidate.draft.guestPhone : '',
-      guestEmail: typeof candidate.draft?.guestEmail === 'string' ? candidate.draft.guestEmail : '',
+      tableReference: typeof candidate.draft?.tableReference === 'string' ? candidate.draft.tableReference : '',
       notes: typeof candidate.draft?.notes === 'string' ? candidate.draft.notes : '',
     },
   };

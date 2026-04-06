@@ -1,7 +1,7 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
 export type UserRole = 'admin' | 'staff';
-export type OrderStatus = 'pending_confirmation' | 'confirmed';
+export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type DiscountType = 'fixed' | 'percentage';
 
 export interface StaffMember {
@@ -51,6 +51,11 @@ export interface RestaurantSummary {
   id: number;
   name: string;
   slug: string;
+}
+
+export interface RestaurantTableSummary {
+  id: number;
+  name: string;
 }
 
 export interface DishAsset {
@@ -110,16 +115,12 @@ export interface OrderCartItem {
 }
 
 export interface GuestOrderDraft {
-  guestName: string;
-  guestPhone: string;
-  guestEmail: string;
+  tableReference: string;
   notes: string;
 }
 
 export interface CreateGuestOrderRequest {
-  guest_name: string;
-  guest_phone?: string;
-  guest_email?: string;
+  table_reference: string;
   notes?: string;
   items: Array<{
     dish_id: number;
@@ -127,7 +128,7 @@ export interface CreateGuestOrderRequest {
   }>;
 }
 
-export interface ConfirmOrderRequest {
+export interface AccountOrderRequest {
   vat_rate?: number;
   discount_type?: DiscountType;
   discount_value?: number;
@@ -147,7 +148,8 @@ export interface OrderInvoiceSummary {
 export interface OrderActorSummary {
   id: number;
   name: string;
-  email: string;
+  email?: string | null;
+  phone?: string | null;
   role: UserRole;
 }
 
@@ -166,16 +168,19 @@ export interface OrderRecord {
   order_number: string | null;
   invoice_number: string | null;
   status: OrderStatus;
-  guest_name: string;
-  guest_phone?: string | null;
-  guest_email?: string | null;
+  table_reference: string;
+  table: RestaurantTableSummary | null;
   notes?: string | null;
   created_at: string | null;
   confirmed_at: string | null;
+  cancelled_at: string | null;
+  accounted_at: string | null;
   restaurant: RestaurantSummary;
   items: OrderLineItem[];
   invoice: OrderInvoiceSummary;
   confirmed_by: OrderActorSummary | null;
+  cancelled_by: OrderActorSummary | null;
+  accounted_by: OrderActorSummary | null;
 }
 
 export const trackEvent: (

@@ -159,9 +159,9 @@ const AdminStaffPage: React.FC = () => {
           <GlassCard>
             <h3 className="text-lg font-semibold text-text">Access summary</h3>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
-              <li>Staff can log in and access `/staff/orders` to confirm guest orders.</li>
+              <li>Staff can log in and access `/staff/orders` to confirm or cancel guest table orders.</li>
               <li>Staff should not get admin dish-management routes.</li>
-              <li>Admins still keep full access to dishes, ingredients, and order confirmations.</li>
+              <li>Admins still keep full access to dishes, ingredients, staff setup, and accounting.</li>
             </ul>
           </GlassCard>
 
