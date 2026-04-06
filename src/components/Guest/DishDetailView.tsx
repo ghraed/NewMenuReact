@@ -18,6 +18,7 @@ interface DishDetailViewProps {
 
 const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug }) => {
   const price = Number(dish.price).toFixed(2);
+  const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} kcal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
   const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
@@ -87,6 +88,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({ dish, restaurantSlug })
             <div className="min-w-0">
               <h1 className="font-serif text-4xl leading-tight text-[var(--guest-text)] sm:text-[3.5rem]">{dish.name}</h1>
               <p className="mt-3 max-w-2xl text-base leading-8 text-[var(--guest-muted)]">{dish.description}</p>
+              {caloriesText ? (
+                <p className="mt-3 text-sm font-medium uppercase tracking-[0.18em] text-[var(--guest-accent)]">
+                  - {caloriesText}
+                </p>
+              ) : null}
             </div>
 
             <span

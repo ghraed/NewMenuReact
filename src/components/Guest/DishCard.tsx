@@ -37,6 +37,7 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen, isIngredientAlert = f
   }, [dish]);
 
   const price = Number(dish.price).toFixed(2);
+  const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} kcal` : null;
 
   useEffect(() => {
     const node = articleRef.current;
@@ -136,8 +137,13 @@ const DishCard: React.FC<DishCardProps> = ({ dish, onOpen, isIngredientAlert = f
           <DishTags tags={tags} className="mt-4" />
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-h-5 text-sm text-[var(--guest-accent)] sm:max-w-[65%]">
-              <span className="line-clamp-2 font-medium">{ingredientsText}</span>
+            <div className="min-h-5 text-sm sm:max-w-[65%]">
+              <span className="line-clamp-2 font-medium text-[var(--guest-accent)]">{ingredientsText}</span>
+              {caloriesText ? (
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--guest-muted)]">
+                  {caloriesText}
+                </p>
+              ) : null}
             </div>
 
             <button
