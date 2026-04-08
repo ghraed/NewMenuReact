@@ -10,6 +10,7 @@ export interface StaffMember {
   email?: string | null;
   phone?: string | null;
   role: UserRole;
+  assigned_tables?: RestaurantTableSummary[];
   created_at?: string | null;
 }
 
@@ -17,6 +18,7 @@ export interface CreateStaffRequest {
   name: string;
   email?: string;
   phone?: string;
+  table_ids?: number[];
 }
 
 export interface DishAssetMetadata extends Record<string, unknown> {

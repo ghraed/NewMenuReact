@@ -7,6 +7,15 @@ export interface CreateStaffResponse {
   temporary_password: string;
 }
 
+export interface StaffListResponse {
+  staff: StaffMember[];
+}
+
+export interface UpdateStaffTablesResponse {
+  message: string;
+  staff: StaffMember;
+}
+
 const sanitizeCreateStaffPayload = (payload: CreateStaffRequest): CreateStaffRequest => {
   const nextPayload: CreateStaffRequest = {
     name: payload.name.trim(),
@@ -20,10 +29,30 @@ const sanitizeCreateStaffPayload = (payload: CreateStaffRequest): CreateStaffReq
     nextPayload.phone = payload.phone.trim();
   }
 
+  if (payload.table_ids?.length) {
+    nextPayload.table_ids = payload.table_ids;
+  }
+
   return nextPayload;
 };
 
 export const createStaffMember = async (payload: CreateStaffRequest): Promise<CreateStaffResponse> => {
   const response = await api.post<CreateStaffResponse>('/restaurant/staff', sanitizeCreateStaffPayload(payload));
+  return response.data;
+};
+
+export const fetchStaffMembers = async (): Promise<StaffMember[]> => {
+  const response = await api.get<StaffListResponse>('/restaurant/staff');
+  return response.data.staff;
+};
+
+export const updateStaffMemberTables = async (
+  staffId: number,
+  tableIds: number[]
+): Promise<UpdateStaffTablesResponse> => {
+  const response = await api.patch<UpdateStaffTablesResponse>(`/restaurant/staff/${staffId}/tables`, {
+    table_ids: tableIds,
+  });
+
   return response.data;
 };
