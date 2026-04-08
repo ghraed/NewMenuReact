@@ -354,6 +354,14 @@ const AccountingOrdersPage: React.FC = () => {
     }
   };
 
+  const handlePrintInvoice = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.print();
+  };
+
   return (
     <DashboardLayout title="Accounting">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -698,6 +706,14 @@ const AccountingOrdersPage: React.FC = () => {
                   disabled={processingTarget === `table:${selectedTable}`}
                 >
                   {isShowingSelectedInvoicePreview ? 'Hide Invoice Preview' : 'Show Invoice In Page'}
+                </LiquidButton>
+
+                <LiquidButton
+                  tone="secondary"
+                  onClick={handlePrintInvoice}
+                  disabled={!isShowingSelectedInvoicePreview || processingTarget === `table:${selectedTable}`}
+                >
+                  Print Invoice
                 </LiquidButton>
 
                 <LiquidButton
