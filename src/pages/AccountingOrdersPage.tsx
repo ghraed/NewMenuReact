@@ -119,6 +119,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
+  const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -177,6 +178,26 @@ const AccountingOrdersPage: React.FC = () => {
 
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isTableMenuOpen]);
+
+  useEffect(() => {
+    if (!isTableMenuOpen || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const prefersDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (!prefersDesktopPointer) {
+      return undefined;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      tableSearchInputRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
     };
   }, [isTableMenuOpen]);
 
@@ -360,6 +381,7 @@ const AccountingOrdersPage: React.FC = () => {
               >
                 <div className="px-1 pb-2">
                   <GlassInput
+                    ref={tableSearchInputRef}
                     type="search"
                     value={tableSearchQuery}
                     onChange={(event) => setTableSearchQuery(event.target.value)}
