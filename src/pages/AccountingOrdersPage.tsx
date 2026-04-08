@@ -4,10 +4,12 @@ import {
   GlassCard,
   GlassChip,
   GlassInput,
+  GlassSelect,
   LiquidButton,
 } from '../components/ui/liquid-glass';
-import { accountConfirmedOrder, fetchAccountingOrders } from '../services/orderService';
-import type { AccountOrderRequest, DiscountType, OrderRecord } from '../types';
+import { useAuth } from '../contexts/useAuth';
+import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
+import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
 
 type DraftState = Record<number, {
   vatRate: string;
@@ -93,10 +95,15 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const AccountingOrdersPage: React.FC = () => {
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [drafts, setDrafts] = useState<DraftState>({});
+  const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
+  const [selectedTable, setSelectedTable] = useState('');
   const [loading, setLoading] = useState(true);
+  const [tablesLoading, setTablesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tablesError, setTablesError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
 
@@ -135,9 +142,51 @@ const AccountingOrdersPage: React.FC = () => {
     loadOrders();
   }, [loadOrders]);
 
+  useEffect(() => {
+    if (!user?.restaurant?.slug) {
+      setTables([]);
+      return;
+    }
+
+    const loadTables = async () => {
+      setTablesLoading(true);
+      setTablesError(null);
+
+      try {
+        const response = await fetchGuestTables(user.restaurant!.slug);
+        setTables(response.tables);
+      } catch (err: unknown) {
+        setTablesError(getErrorMessage(err, 'Failed to load restaurant tables.'));
+      } finally {
+        setTablesLoading(false);
+      }
+    };
+
+    loadTables();
+  }, [user?.restaurant?.slug]);
+
+  const filteredOrders = useMemo(() => (
+    selectedTable
+      ? orders.filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
+      : orders
+  ), [orders, selectedTable]);
+
+  const selectedTableStats = useMemo(() => {
+    if (!selectedTable) {
+      return null;
+    }
+
+    const total = filteredOrders.reduce((sum, order) => sum + Number(order.invoice.subtotal || 0), 0);
+
+    return {
+      orderCount: filteredOrders.length,
+      subtotal: total,
+    };
+  }, [filteredOrders, selectedTable]);
+
   const orderCountLabel = useMemo(() => (
-    `${orders.length} staff-confirmed order${orders.length === 1 ? '' : 's'} waiting for accounting`
-  ), [orders.length]);
+    `${filteredOrders.length} staff-confirmed order${filteredOrders.length === 1 ? '' : 's'} waiting for accounting`
+  ), [filteredOrders.length]);
 
   const updateDraft = (orderId: number, nextValue: Partial<DraftState[number]>) => {
     setDrafts((current) => ({
@@ -186,9 +235,23 @@ const AccountingOrdersPage: React.FC = () => {
           <p className="mt-1 text-sm text-muted">{orderCountLabel}</p>
         </div>
 
-        <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
-          {loading ? 'Refreshing...' : 'Refresh'}
-        </LiquidButton>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[220px]">
+            <GlassSelect
+              value={selectedTable}
+              onChange={(event) => setSelectedTable(event.target.value)}
+              disabled={tablesLoading}
+              options={[
+                { value: '', label: tablesLoading ? 'Loading tables...' : 'All tables' },
+                ...tables.map((table) => ({ value: table.name, label: table.name })),
+              ]}
+            />
+          </div>
+
+          <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </LiquidButton>
+        </div>
       </div>
 
       {notice ? (
@@ -203,21 +266,48 @@ const AccountingOrdersPage: React.FC = () => {
         </div>
       ) : null}
 
+      {tablesError ? (
+        <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
+          {tablesError}
+        </div>
+      ) : null}
+
+      {selectedTable && selectedTableStats ? (
+        <GlassCard className="mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Selected Table</p>
+              <h3 className="mt-2 text-2xl font-semibold text-text">{selectedTable}</h3>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted">{selectedTableStats.orderCount} order{selectedTableStats.orderCount === 1 ? '' : 's'} in queue</p>
+              <p className="mt-1 text-lg font-semibold text-text">${selectedTableStats.subtotal.toFixed(2)}</p>
+            </div>
+          </div>
+        </GlassCard>
+      ) : null}
+
       {loading ? (
         <div className="py-12 text-center text-muted">Loading accounting queue...</div>
       ) : null}
 
-      {!loading && orders.length === 0 ? (
+      {!loading && filteredOrders.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">💳</div>
-          <h3 className="mb-2 text-xl font-medium text-text">No orders waiting for accounting</h3>
-          <p className="text-muted">Staff-confirmed orders will appear here for VAT, discounts, and invoice finalization.</p>
+          <h3 className="mb-2 text-xl font-medium text-text">
+            {selectedTable ? `No accounting orders for ${selectedTable}` : 'No orders waiting for accounting'}
+          </h3>
+          <p className="text-muted">
+            {selectedTable
+              ? 'Try another table from the dropdown, or wait for staff-confirmed orders to reach accounting.'
+              : 'Staff-confirmed orders will appear here for VAT, discounts, and invoice finalization.'}
+          </p>
         </div>
       ) : null}
 
       {!loading ? (
         <div className="space-y-4">
-          {orders.map((order) => {
+          {filteredOrders.map((order) => {
             const draft = drafts[order.id] || { vatRate: '0', discountType: '', discountValue: '0' };
             const preview = calculateInvoicePreview(order, draft);
 
