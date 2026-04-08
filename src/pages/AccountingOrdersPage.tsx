@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
+  GlassChip,
   GlassInput,
-  GlassSelect,
   LiquidButton,
 } from '../components/ui/liquid-glass';
 import { accountConfirmedOrder, fetchAccountingOrders } from '../services/orderService';
@@ -20,6 +20,66 @@ const discountOptions = [
   { value: 'fixed', label: 'Fixed amount' },
   { value: 'percentage', label: 'Percentage' },
 ] satisfies Array<{ value: '' | DiscountType; label: string }>;
+
+type InvoicePreview = {
+  subtotal: number;
+  discountType: '' | DiscountType;
+  discountValue: number;
+  discountAmount: number;
+  taxableSubtotal: number;
+  vatRate: number;
+  vatAmount: number;
+  total: number;
+};
+
+const parseDraftNumber = (value: string): number => {
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toCents = (value: number | string): number => Math.round(Number(value || 0) * 100);
+
+const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
+
+const calculateInvoicePreview = (
+  order: OrderRecord,
+  draft: DraftState[number]
+): InvoicePreview => {
+  const subtotalCents = toCents(order.invoice.subtotal);
+  const vatRate = Math.max(parseDraftNumber(draft.vatRate), 0);
+  const rawDiscountValue = Math.max(parseDraftNumber(draft.discountValue), 0);
+  const discountValue = draft.discountType === 'percentage'
+    ? Math.min(rawDiscountValue, 100)
+    : rawDiscountValue;
+
+  let discountAmountCents = 0;
+
+  if (draft.discountType === 'percentage' && discountValue > 0) {
+    discountAmountCents = Math.round(subtotalCents * discountValue / 100);
+  }
+
+  if (draft.discountType === 'fixed' && discountValue > 0) {
+    discountAmountCents = toCents(discountValue);
+  }
+
+  discountAmountCents = Math.min(discountAmountCents, subtotalCents);
+
+  const taxableSubtotalCents = Math.max(subtotalCents - discountAmountCents, 0);
+  const vatAmountCents = Math.round(taxableSubtotalCents * vatRate / 100);
+  const totalCents = taxableSubtotalCents + vatAmountCents;
+
+  return {
+    subtotal: subtotalCents / 100,
+    discountType: draft.discountType,
+    discountValue,
+    discountAmount: discountAmountCents / 100,
+    taxableSubtotal: taxableSubtotalCents / 100,
+    vatRate,
+    vatAmount: vatAmountCents / 100,
+    total: totalCents / 100,
+  };
+};
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -46,9 +106,9 @@ const AccountingOrdersPage: React.FC = () => {
 
       nextOrders.forEach((order) => {
         nextDrafts[order.id] = current[order.id] || {
-          vatRate: '0',
-          discountType: '',
-          discountValue: '0',
+          vatRate: order.invoice.vat_rate || '0',
+          discountType: order.invoice.discount_type || '',
+          discountValue: order.invoice.discount_value || '0',
         };
       });
 
@@ -93,19 +153,14 @@ const AccountingOrdersPage: React.FC = () => {
 
   const handleFinalize = async (order: OrderRecord) => {
     const draft = drafts[order.id] || { vatRate: '0', discountType: '', discountValue: '0' };
+    const preview = calculateInvoicePreview(order, draft);
     const payload: AccountOrderRequest = {};
-    const parsedVatRate = Number(draft.vatRate);
-    const parsedDiscountValue = Number(draft.discountValue);
 
-    if (!Number.isNaN(parsedVatRate)) {
-      payload.vat_rate = parsedVatRate;
-    }
+    payload.vat_rate = preview.vatRate;
 
-    if (draft.discountType) {
-      payload.discount_type = draft.discountType;
-      if (!Number.isNaN(parsedDiscountValue)) {
-        payload.discount_value = parsedDiscountValue;
-      }
+    if (preview.discountType) {
+      payload.discount_type = preview.discountType;
+      payload.discount_value = preview.discountValue;
     }
 
     setProcessingOrderId(order.id);
@@ -164,6 +219,7 @@ const AccountingOrdersPage: React.FC = () => {
         <div className="space-y-4">
           {orders.map((order) => {
             const draft = drafts[order.id] || { vatRate: '0', discountType: '', discountValue: '0' };
+            const preview = calculateInvoicePreview(order, draft);
 
             return (
               <GlassCard key={order.id} className="space-y-5">
@@ -219,41 +275,76 @@ const AccountingOrdersPage: React.FC = () => {
                           max="100"
                           step="0.01"
                           value={draft.vatRate}
+                          rightSlot="%"
                           onChange={(event) => updateDraft(order.id, { vatRate: event.target.value })}
                         />
                       </div>
 
                       <div>
                         <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">Discount Type</label>
-                        <GlassSelect
-                          value={draft.discountType}
-                          onChange={(event) => updateDraft(order.id, {
-                            discountType: event.target.value as '' | DiscountType,
-                            discountValue: event.target.value ? draft.discountValue : '0',
-                          })}
-                          options={discountOptions}
-                        />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {discountOptions.map((option) => (
+                            <GlassChip
+                              key={option.value || 'none'}
+                              type="button"
+                              active={draft.discountType === option.value}
+                              onClick={() => updateDraft(order.id, {
+                                discountType: option.value,
+                                discountValue: option.value ? draft.discountValue : '0',
+                              })}
+                              className="px-4 py-2 text-sm"
+                            >
+                              {option.label}
+                            </GlassChip>
+                          ))}
+                        </div>
                       </div>
 
                       <div>
-                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">Discount Value</label>
+                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
+                          {draft.discountType === 'percentage' ? 'Discount %' : 'Discount Value'}
+                        </label>
                         <GlassInput
                           type="number"
                           min="0"
+                          max={draft.discountType === 'percentage' ? '100' : undefined}
                           step="0.01"
                           value={draft.discountValue}
                           disabled={!draft.discountType}
+                          rightSlot={draft.discountType === 'percentage' ? '%' : '$'}
                           onChange={(event) => updateDraft(order.id, { discountValue: event.target.value })}
                         />
                       </div>
 
                       <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
-                        <div className="flex items-center justify-between gap-3 text-sm text-muted">
-                          <span>Pre-accounting total</span>
-                          <span className="font-medium text-text">${order.invoice.total}</span>
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted2">Live Invoice Preview</p>
+                        <div className="mt-3 space-y-2 text-sm text-muted">
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Subtotal</span>
+                            <span className="font-medium text-text">{formatMoney(preview.subtotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>
+                              Discount
+                              {preview.discountType === 'percentage' ? ` (${preview.discountValue.toFixed(2)}%)` : ''}
+                            </span>
+                            <span className="font-medium text-text">- {formatMoney(preview.discountAmount)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>Taxable subtotal</span>
+                            <span className="font-medium text-text">{formatMoney(preview.taxableSubtotal)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span>VAT ({preview.vatRate.toFixed(2)}%)</span>
+                            <span className="font-medium text-text">+ {formatMoney(preview.vatAmount)}</span>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-base">
+                            <span className="font-semibold text-text">Final total</span>
+                            <span className="text-lg font-semibold text-gold2">{formatMoney(preview.total)}</span>
+                          </div>
                         </div>
                         <p className="mt-3 text-xs text-muted2">
-                          VAT and discounts are applied here, after staff approves the table order.
+                          This preview matches the accounting calculation that will be saved when you finalize.
                         </p>
                       </div>
 
