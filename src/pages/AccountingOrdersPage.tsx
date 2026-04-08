@@ -17,6 +17,22 @@ type DraftState = Record<number, {
   discountValue: string;
 }>;
 
+type TableDraftState = Record<string, {
+  vatRate: string;
+  discountType: '' | DiscountType;
+  discountValue: string;
+}>;
+
+const emptyAccountingDraft = {
+  vatRate: '0',
+  discountType: '',
+  discountValue: '0',
+} satisfies {
+  vatRate: string;
+  discountType: '' | DiscountType;
+  discountValue: string;
+};
+
 const discountOptions = [
   { value: '', label: 'No discount' },
   { value: 'fixed', label: 'Fixed amount' },
@@ -45,10 +61,10 @@ const toCents = (value: number | string): number => Math.round(Number(value || 0
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
 
 const calculateInvoicePreview = (
-  order: OrderRecord,
-  draft: DraftState[number]
+  subtotalSource: number | string,
+  draft: { vatRate: string; discountType: '' | DiscountType; discountValue: string }
 ): InvoicePreview => {
-  const subtotalCents = toCents(order.invoice.subtotal);
+  const subtotalCents = toCents(subtotalSource);
   const vatRate = Math.max(parseDraftNumber(draft.vatRate), 0);
   const rawDiscountValue = Math.max(parseDraftNumber(draft.discountValue), 0);
   const discountValue = draft.discountType === 'percentage'
@@ -98,6 +114,7 @@ const AccountingOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [drafts, setDrafts] = useState<DraftState>({});
+  const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
@@ -106,7 +123,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tablesError, setTablesError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
 
   const syncDrafts = useCallback((nextOrders: OrderRecord[]) => {
@@ -220,9 +237,21 @@ const AccountingOrdersPage: React.FC = () => {
     }));
   };
 
+  const updateTableDraft = (tableName: string, nextValue: Partial<TableDraftState[string]>) => {
+    setTableDrafts((current) => ({
+      ...current,
+      [tableName]: {
+        vatRate: current[tableName]?.vatRate ?? emptyAccountingDraft.vatRate,
+        discountType: current[tableName]?.discountType ?? emptyAccountingDraft.discountType,
+        discountValue: current[tableName]?.discountValue ?? emptyAccountingDraft.discountValue,
+        ...nextValue,
+      },
+    }));
+  };
+
   const handleFinalize = async (order: OrderRecord) => {
-    const draft = drafts[order.id] || { vatRate: '0', discountType: '', discountValue: '0' };
-    const preview = calculateInvoicePreview(order, draft);
+    const draft = drafts[order.id] || emptyAccountingDraft;
+    const preview = calculateInvoicePreview(order.invoice.subtotal, draft);
     const payload: AccountOrderRequest = {};
 
     payload.vat_rate = preview.vatRate;
@@ -232,7 +261,7 @@ const AccountingOrdersPage: React.FC = () => {
       payload.discount_value = preview.discountValue;
     }
 
-    setProcessingOrderId(order.id);
+    setProcessingTarget(`order:${order.id}`);
     setNotice(null);
     setError(null);
 
@@ -243,7 +272,108 @@ const AccountingOrdersPage: React.FC = () => {
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to finalize accounting.'));
     } finally {
-      setProcessingOrderId(null);
+      setProcessingTarget(null);
+    }
+  };
+
+  const selectedTableOrders = useMemo(() => (
+    selectedTable
+      ? orders.filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
+      : []
+  ), [orders, selectedTable]);
+
+  const selectedTableDraft = useMemo(() => (
+    selectedTable
+      ? tableDrafts[selectedTable] || emptyAccountingDraft
+      : emptyAccountingDraft
+  ), [selectedTable, tableDrafts]);
+
+  const selectedTableInvoiceSubtotal = useMemo(() => (
+    selectedTableOrders.reduce((sum, order) => sum + Number(order.invoice.subtotal || 0), 0)
+  ), [selectedTableOrders]);
+
+  const selectedTablePreview = useMemo(() => (
+    selectedTable
+      ? calculateInvoicePreview(selectedTableInvoiceSubtotal, selectedTableDraft)
+      : null
+  ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
+
+  const selectedTableLineItems = useMemo(() => {
+    if (!selectedTable) {
+      return [];
+    }
+
+    const grouped = new Map<string, {
+      key: string;
+      dish_name: string;
+      quantity: number;
+      unit_price: string;
+      line_subtotal: string;
+    }>();
+
+    selectedTableOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        const key = `${item.dish_id ?? item.dish_name}-${item.unit_price}`;
+        const existing = grouped.get(key);
+        const quantity = (existing?.quantity || 0) + item.quantity;
+        const lineSubtotal = (Number(existing?.line_subtotal || 0) + Number(item.line_subtotal || 0)).toFixed(2);
+
+        grouped.set(key, {
+          key,
+          dish_name: item.dish_name,
+          quantity,
+          unit_price: item.unit_price,
+          line_subtotal: lineSubtotal,
+        });
+      });
+    });
+
+    return Array.from(grouped.values()).sort((a, b) => a.dish_name.localeCompare(b.dish_name));
+  }, [selectedTable, selectedTableOrders]);
+
+  const selectedTableNotes = useMemo(() => (
+    selectedTableOrders
+      .map((order) => order.notes?.trim())
+      .filter((note): note is string => Boolean(note))
+  ), [selectedTableOrders]);
+
+  const selectedTableActors = useMemo(() => {
+    const names = Array.from(new Set(
+      selectedTableOrders
+        .map((order) => order.confirmed_by?.name?.trim())
+        .filter((name): name is string => Boolean(name))
+    ));
+
+    return names;
+  }, [selectedTableOrders]);
+
+  const handleFinalizeSelectedTable = async () => {
+    if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
+      return;
+    }
+
+    const payload: AccountOrderRequest = {
+      vat_rate: selectedTablePreview.vatRate,
+    };
+
+    if (selectedTablePreview.discountType) {
+      payload.discount_type = selectedTablePreview.discountType;
+      payload.discount_value = selectedTablePreview.discountValue;
+    }
+
+    setProcessingTarget(`table:${selectedTable}`);
+    setNotice(null);
+    setError(null);
+
+    try {
+      await Promise.all(selectedTableOrders.map((order) => accountConfirmedOrder(order.id, payload)));
+      const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
+      setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
+      setNotice(`Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, `Failed to finalize accounting for ${selectedTable}.`));
+    } finally {
+      setProcessingTarget(null);
     }
   };
 
@@ -380,11 +510,170 @@ const AccountingOrdersPage: React.FC = () => {
         </div>
       ) : null}
 
-      {!loading ? (
+      {!loading && selectedTable && selectedTableOrders.length > 0 && selectedTablePreview ? (
+        <GlassCard className="space-y-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Table Invoice</p>
+              <h3 className="mt-2 text-2xl font-semibold text-text">{selectedTable}</h3>
+              <p className="mt-2 text-sm text-muted">
+                {selectedTableOrders.length} confirmed order{selectedTableOrders.length === 1 ? '' : 's'} included
+                {selectedTableActors.length > 0 ? ` • Confirmed by ${selectedTableActors.join(', ')}` : ''}
+              </p>
+              {selectedTableNotes.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {selectedTableNotes.map((note, index) => (
+                    <p
+                      key={`${selectedTable}-note-${index + 1}`}
+                      className="max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted"
+                    >
+                      {note}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Combined Subtotal</p>
+              <p className="mt-2 text-2xl font-semibold text-text">{formatMoney(selectedTablePreview.subtotal)}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+            <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-text">Items Across This Table</p>
+              <div className="mt-3 space-y-3">
+                {selectedTableLineItems.map((item) => (
+                  <div key={item.key} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-text">{item.dish_name}</p>
+                      <p className="text-sm text-muted">
+                        {item.quantity} × ${item.unit_price}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-sm font-semibold text-gold2">${item.line_subtotal}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-[22px] border border-white/10 bg-black/10 p-4">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted2">Included Orders</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedTableOrders.map((order) => (
+                    <span
+                      key={order.id}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-muted"
+                    >
+                      {order.order_number || `Order #${order.id}`}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-text">Invoice Settings</p>
+              <div className="mt-4 grid gap-3">
+                <div>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">VAT %</label>
+                  <GlassInput
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={selectedTableDraft.vatRate}
+                    rightSlot="%"
+                    onChange={(event) => updateTableDraft(selectedTable, { vatRate: event.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">Discount Type</label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {discountOptions.map((option) => (
+                      <GlassChip
+                        key={`table-${selectedTable}-${option.value || 'none'}`}
+                        type="button"
+                        active={selectedTableDraft.discountType === option.value}
+                        onClick={() => updateTableDraft(selectedTable, {
+                          discountType: option.value,
+                          discountValue: option.value ? selectedTableDraft.discountValue : '0',
+                        })}
+                        className="px-4 py-2 text-sm"
+                      >
+                        {option.label}
+                      </GlassChip>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
+                    {selectedTableDraft.discountType === 'percentage' ? 'Discount %' : 'Discount Value'}
+                  </label>
+                  <GlassInput
+                    type="number"
+                    min="0"
+                    max={selectedTableDraft.discountType === 'percentage' ? '100' : undefined}
+                    step="0.01"
+                    value={selectedTableDraft.discountValue}
+                    disabled={!selectedTableDraft.discountType}
+                    rightSlot={selectedTableDraft.discountType === 'percentage' ? '%' : '$'}
+                    onChange={(event) => updateTableDraft(selectedTable, { discountValue: event.target.value })}
+                  />
+                </div>
+
+                <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted2">Live Table Invoice Preview</p>
+                  <div className="mt-3 space-y-2 text-sm text-muted">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Subtotal</span>
+                      <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        Discount
+                        {selectedTablePreview.discountType === 'percentage' ? ` (${selectedTablePreview.discountValue.toFixed(2)}%)` : ''}
+                      </span>
+                      <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Taxable subtotal</span>
+                      <span className="font-medium text-text">{formatMoney(selectedTablePreview.taxableSubtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>VAT ({selectedTablePreview.vatRate.toFixed(2)}%)</span>
+                      <span className="font-medium text-text">+ {formatMoney(selectedTablePreview.vatAmount)}</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-base">
+                      <span className="font-semibold text-text">Final total</span>
+                      <span className="text-lg font-semibold text-gold2">{formatMoney(selectedTablePreview.total)}</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted2">
+                    Finalizing from this view applies the same VAT and discount settings to every confirmed order on {selectedTable}.
+                  </p>
+                </div>
+
+                <LiquidButton
+                  tone="primary"
+                  onClick={handleFinalizeSelectedTable}
+                  disabled={processingTarget === `table:${selectedTable}`}
+                >
+                  {processingTarget === `table:${selectedTable}` ? 'Finalizing...' : `Finalize ${selectedTable} Invoice`}
+                </LiquidButton>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      ) : null}
+
+      {!loading && !selectedTable ? (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
-            const draft = drafts[order.id] || { vatRate: '0', discountType: '', discountValue: '0' };
-            const preview = calculateInvoicePreview(order, draft);
+            const draft = drafts[order.id] || emptyAccountingDraft;
+            const preview = calculateInvoicePreview(order.invoice.subtotal, draft);
 
             return (
               <GlassCard key={order.id} className="space-y-5">
@@ -516,9 +805,9 @@ const AccountingOrdersPage: React.FC = () => {
                       <LiquidButton
                         tone="primary"
                         onClick={() => handleFinalize(order)}
-                        disabled={processingOrderId === order.id}
+                        disabled={processingTarget === `order:${order.id}`}
                       >
-                        {processingOrderId === order.id ? 'Finalizing...' : 'Finalize Invoice'}
+                        {processingTarget === `order:${order.id}` ? 'Finalizing...' : 'Finalize Invoice'}
                       </LiquidButton>
                     </div>
                   </div>
