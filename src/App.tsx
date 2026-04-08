@@ -13,6 +13,7 @@ import OrderReviewPage from './pages/OrderReviewPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
+import InvoicePrintPage from './pages/InvoicePrintPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
@@ -39,6 +40,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
         <Route path="/order/review" element={<OrderReviewPage />} />
         <Route path="/liquid-glass-preview" element={<LiquidGlassDemoPage />} />
+        <Route path="/invoice/print" element={<InvoicePrintPage />} />
 
         <Route path="/admin/login" element={<LoginPage />} />
 

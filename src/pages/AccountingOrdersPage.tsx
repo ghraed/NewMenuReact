@@ -9,10 +9,8 @@ import {
 import { useAuth } from '../contexts/useAuth';
 import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
 import { cx, focusRing, glassControl } from '../theme/liquidGlass';
+import { savePrintableInvoice } from '../utils/printableInvoice';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
-
-const invoicePrintModeClass = 'accounting-invoice-print-mode';
-const invoicePrintSectionId = 'accounting-invoice-print-section';
 
 type TableDraftState = Record<string, {
   vatRate: string;
@@ -125,7 +123,6 @@ const AccountingOrdersPage: React.FC = () => {
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -206,12 +203,6 @@ const AccountingOrdersPage: React.FC = () => {
       window.cancelAnimationFrame(animationFrameId);
     };
   }, [isTableMenuOpen]);
-
-  useEffect(() => () => {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove(invoicePrintModeClass);
-    }
-  }, []);
 
   const filteredOrders = useMemo(() => (
     selectedTable
@@ -365,70 +356,46 @@ const AccountingOrdersPage: React.FC = () => {
   };
 
   const handlePrintInvoice = () => {
-    if (
-      typeof window === 'undefined'
-      || typeof document === 'undefined'
-      || !isShowingSelectedInvoicePreview
-      || !invoicePreviewRef.current
-    ) {
+    if (typeof window === 'undefined' || !isShowingSelectedInvoicePreview || !selectedTablePreview) {
       return;
     }
 
-    const cleanup = () => {
-      document.body.classList.remove(invoicePrintModeClass);
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.body.classList.add(invoicePrintModeClass);
-    window.addEventListener('afterprint', cleanup);
-
-    window.requestAnimationFrame(() => {
-      invoicePreviewRef.current?.scrollIntoView({ block: 'start' });
-      window.print();
-      window.setTimeout(cleanup, 1000);
+    savePrintableInvoice({
+      restaurantName: user?.restaurant?.name || 'Restaurant',
+      tableName: selectedTable,
+      generatedAt: new Date().toLocaleString(),
+      notes: selectedTableNotes,
+      items: selectedTableLineItems.map((item) => ({
+        key: item.key,
+        dishName: item.dish_name,
+        quantity: item.quantity,
+        unitPrice: `$${item.unit_price}`,
+        lineSubtotal: formatMoney(Number(item.line_subtotal)),
+      })),
+      includedOrders: selectedTableOrders.map((order) => order.order_number || `Order #${order.id}`),
+      summary: {
+        subtotal: formatMoney(selectedTablePreview.subtotal),
+        discountLabel: selectedTablePreview.discountType === 'percentage'
+          ? `Discount (${selectedTablePreview.discountValue.toFixed(2)}%)`
+          : 'Discount',
+        discountAmount: formatMoney(selectedTablePreview.discountAmount),
+        taxableSubtotal: formatMoney(selectedTablePreview.taxableSubtotal),
+        vatLabel: `VAT (${selectedTablePreview.vatRate.toFixed(2)}%)`,
+        vatAmount: formatMoney(selectedTablePreview.vatAmount),
+        total: formatMoney(selectedTablePreview.total),
+      },
     });
+
+    const printUrl = `${window.location.origin}/invoice/print`;
+    const printWindow = window.open(printUrl, '_blank', 'noopener,noreferrer');
+
+    if (!printWindow) {
+      window.location.assign(printUrl);
+    }
   };
 
   return (
     <DashboardLayout title="Accounting">
-      <style>
-        {`
-          @media print {
-            body.${invoicePrintModeClass} * {
-              visibility: hidden !important;
-            }
-
-            body.${invoicePrintModeClass} #${invoicePrintSectionId},
-            body.${invoicePrintModeClass} #${invoicePrintSectionId} * {
-              visibility: visible !important;
-            }
-
-            body.${invoicePrintModeClass} #${invoicePrintSectionId} {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              margin: 0;
-              padding: 0;
-              border: 0;
-              box-shadow: none;
-              background: transparent;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-
-            body.${invoicePrintModeClass} {
-              background: #111111 !important;
-            }
-
-            @page {
-              size: auto;
-              margin: 12mm;
-            }
-          }
-        `}
-      </style>
-
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-text">Confirmed orders waiting for accounting</h2>
@@ -796,11 +763,7 @@ const AccountingOrdersPage: React.FC = () => {
 
       {!loading && isShowingSelectedInvoicePreview && selectedTable && selectedTablePreview ? (
         <GlassCard className="mt-4">
-          <div
-            id={invoicePrintSectionId}
-            ref={invoicePreviewRef}
-            className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8"
-          >
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-6 border-b border-white/10 pb-6">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Invoice Preview</p>
