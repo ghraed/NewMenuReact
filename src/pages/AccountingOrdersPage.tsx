@@ -110,6 +110,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
+  const [invoiceTable, setInvoiceTable] = useState('');
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -268,6 +269,8 @@ const AccountingOrdersPage: React.FC = () => {
       : null
   ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
 
+  const isViewingSelectedInvoice = selectedTable !== '' && invoiceTable === selectedTable;
+
   const selectedTableLineItems = useMemo(() => {
     if (!selectedTable) {
       return [];
@@ -340,6 +343,7 @@ const AccountingOrdersPage: React.FC = () => {
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
       setNotice(`Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`);
+      setInvoiceTable('');
     } catch (err: unknown) {
       setError(getErrorMessage(err, `Failed to finalize accounting for ${selectedTable}.`));
     } finally {
@@ -394,6 +398,7 @@ const AccountingOrdersPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedTable('');
+                    setInvoiceTable('');
                     setTableSearchQuery('');
                     setIsTableMenuOpen(false);
                   }}
@@ -422,6 +427,9 @@ const AccountingOrdersPage: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setSelectedTable(table.name);
+                          if (invoiceTable !== table.name) {
+                            setInvoiceTable('');
+                          }
                           setTableSearchQuery('');
                           setIsTableMenuOpen(false);
                         }}
@@ -471,9 +479,18 @@ const AccountingOrdersPage: React.FC = () => {
               <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Selected Table</p>
               <h3 className="mt-2 text-2xl font-semibold text-text">{selectedTable}</h3>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-muted">{selectedTableStats.orderCount} order{selectedTableStats.orderCount === 1 ? '' : 's'} in queue</p>
-              <p className="mt-1 text-lg font-semibold text-text">${selectedTableStats.subtotal.toFixed(2)}</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-muted">{selectedTableStats.orderCount} order{selectedTableStats.orderCount === 1 ? '' : 's'} in queue</p>
+                <p className="mt-1 text-lg font-semibold text-text">${selectedTableStats.subtotal.toFixed(2)}</p>
+              </div>
+              <LiquidButton
+                tone="primary"
+                onClick={() => setInvoiceTable(selectedTable)}
+                disabled={selectedTableStats.orderCount === 0}
+              >
+                {isViewingSelectedInvoice ? 'Invoice Ready' : 'Create Invoice'}
+              </LiquidButton>
             </div>
           </div>
         </GlassCard>
@@ -486,9 +503,9 @@ const AccountingOrdersPage: React.FC = () => {
       {!loading && !selectedTable ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">🧾</div>
-          <h3 className="mb-2 text-xl font-medium text-text">Select a table to open its invoice</h3>
+          <h3 className="mb-2 text-xl font-medium text-text">Select a table to create its invoice</h3>
           <p className="text-muted">
-            Choose a table from the dropdown above to load one combined invoice for that table.
+            Choose a table from the dropdown above, then click `Create Invoice`.
           </p>
         </div>
       ) : null}
@@ -505,7 +522,17 @@ const AccountingOrdersPage: React.FC = () => {
         </div>
       ) : null}
 
-      {!loading && selectedTable && selectedTableOrders.length > 0 && selectedTablePreview ? (
+      {!loading && selectedTable && filteredOrders.length > 0 && !isViewingSelectedInvoice ? (
+        <div className="py-12 text-center">
+          <div className="mb-4 text-5xl">🧾</div>
+          <h3 className="mb-2 text-xl font-medium text-text">Ready to create an invoice for {selectedTable}</h3>
+          <p className="text-muted">
+            Click `Create Invoice` above to open the combined accounting view for this table.
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && isViewingSelectedInvoice && selectedTable && selectedTableOrders.length > 0 && selectedTablePreview ? (
         <GlassCard className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
