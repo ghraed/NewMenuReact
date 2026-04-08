@@ -111,6 +111,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
   const [invoiceTable, setInvoiceTable] = useState('');
+  const [visibleInvoiceTable, setVisibleInvoiceTable] = useState('');
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -270,6 +271,7 @@ const AccountingOrdersPage: React.FC = () => {
   ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
 
   const isViewingSelectedInvoice = selectedTable !== '' && invoiceTable === selectedTable;
+  const isShowingSelectedInvoicePreview = isViewingSelectedInvoice && visibleInvoiceTable === selectedTable;
 
   const selectedTableLineItems = useMemo(() => {
     if (!selectedTable) {
@@ -344,6 +346,7 @@ const AccountingOrdersPage: React.FC = () => {
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
       setNotice(`Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`);
       setInvoiceTable('');
+      setVisibleInvoiceTable('');
     } catch (err: unknown) {
       setError(getErrorMessage(err, `Failed to finalize accounting for ${selectedTable}.`));
     } finally {
@@ -399,6 +402,7 @@ const AccountingOrdersPage: React.FC = () => {
                   onClick={() => {
                     setSelectedTable('');
                     setInvoiceTable('');
+                    setVisibleInvoiceTable('');
                     setTableSearchQuery('');
                     setIsTableMenuOpen(false);
                   }}
@@ -429,6 +433,9 @@ const AccountingOrdersPage: React.FC = () => {
                           setSelectedTable(table.name);
                           if (invoiceTable !== table.name) {
                             setInvoiceTable('');
+                          }
+                          if (visibleInvoiceTable !== table.name) {
+                            setVisibleInvoiceTable('');
                           }
                           setTableSearchQuery('');
                           setIsTableMenuOpen(false);
@@ -486,7 +493,12 @@ const AccountingOrdersPage: React.FC = () => {
               </div>
               <LiquidButton
                 tone="primary"
-                onClick={() => setInvoiceTable(selectedTable)}
+                onClick={() => {
+                  setInvoiceTable(selectedTable);
+                  if (visibleInvoiceTable !== selectedTable) {
+                    setVisibleInvoiceTable('');
+                  }
+                }}
                 disabled={selectedTableStats.orderCount === 0}
               >
                 {isViewingSelectedInvoice ? 'Invoice Ready' : 'Create Invoice'}
@@ -679,12 +691,122 @@ const AccountingOrdersPage: React.FC = () => {
                 </div>
 
                 <LiquidButton
+                  tone="tertiary"
+                  onClick={() => setVisibleInvoiceTable(
+                    isShowingSelectedInvoicePreview ? '' : selectedTable
+                  )}
+                  disabled={processingTarget === `table:${selectedTable}`}
+                >
+                  {isShowingSelectedInvoicePreview ? 'Hide Invoice Preview' : 'Show Invoice In Page'}
+                </LiquidButton>
+
+                <LiquidButton
                   tone="primary"
                   onClick={handleFinalizeSelectedTable}
                   disabled={processingTarget === `table:${selectedTable}`}
                 >
                   {processingTarget === `table:${selectedTable}` ? 'Finalizing...' : `Finalize ${selectedTable} Invoice`}
                 </LiquidButton>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+      ) : null}
+
+      {!loading && isShowingSelectedInvoicePreview && selectedTable && selectedTablePreview ? (
+        <GlassCard className="mt-4">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-6 border-b border-white/10 pb-6">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Invoice Preview</p>
+                <h3 className="mt-3 text-3xl font-semibold text-text">Table {selectedTable}</h3>
+                <p className="mt-2 text-sm text-muted">
+                  {user?.restaurant?.name || 'Restaurant'}
+                  {' • '}
+                  {new Date().toLocaleString()}
+                </p>
+              </div>
+
+              <div className="rounded-[22px] border border-gold/20 bg-gold/10 px-5 py-4 text-right">
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Amount Due</p>
+                <p className="mt-2 text-3xl font-semibold text-text">{formatMoney(selectedTablePreview.total)}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <div>
+                <p className="text-sm font-semibold text-text">Invoice Items</p>
+                <div className="mt-4 overflow-hidden rounded-[24px] border border-white/10">
+                  <div className="grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted2">
+                    <span>Item</span>
+                    <span className="text-right">Qty</span>
+                    <span className="text-right">Total</span>
+                  </div>
+                  <div className="divide-y divide-white/10">
+                    {selectedTableLineItems.map((item) => (
+                      <div
+                        key={`invoice-${item.key}`}
+                        className="grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 px-4 py-4 text-sm text-text"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{item.dish_name}</p>
+                          <p className="mt-1 text-xs text-muted">${item.unit_price} each</p>
+                        </div>
+                        <span className="text-right text-muted">{item.quantity}</span>
+                        <span className="text-right font-medium">{formatMoney(Number(item.line_subtotal))}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedTableNotes.length > 0 ? (
+                  <div className="mt-5 rounded-[22px] border border-white/10 bg-black/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted2">Notes</p>
+                    <div className="mt-3 space-y-2 text-sm text-muted">
+                      {selectedTableNotes.map((note, index) => (
+                        <p key={`invoice-note-${index + 1}`}>{note}</p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-text">Invoice Summary</p>
+                <div className="mt-4 rounded-[24px] border border-white/10 bg-black/10 p-5">
+                  <div className="space-y-3 text-sm text-muted">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Subtotal</span>
+                      <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        Discount
+                        {selectedTablePreview.discountType === 'percentage' ? ` (${selectedTablePreview.discountValue.toFixed(2)}%)` : ''}
+                      </span>
+                      <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>Taxable subtotal</span>
+                      <span className="font-medium text-text">{formatMoney(selectedTablePreview.taxableSubtotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>VAT ({selectedTablePreview.vatRate.toFixed(2)}%)</span>
+                      <span className="font-medium text-text">+ {formatMoney(selectedTablePreview.vatAmount)}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-base font-semibold text-text">Grand Total</span>
+                      <span className="text-2xl font-semibold text-gold2">{formatMoney(selectedTablePreview.total)}</span>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 text-xs text-muted2">
+                    This is the in-page invoice layout that can be used for printing later.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
