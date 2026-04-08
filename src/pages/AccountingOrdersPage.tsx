@@ -110,6 +110,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
+  const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tablesLoading, setTablesLoading] = useState(false);
@@ -162,6 +163,7 @@ const AccountingOrdersPage: React.FC = () => {
 
   useEffect(() => {
     if (!isTableMenuOpen) {
+      setTableSearchQuery('');
       return undefined;
     }
 
@@ -183,6 +185,16 @@ const AccountingOrdersPage: React.FC = () => {
       ? orders.filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
       : orders
   ), [orders, selectedTable]);
+
+  const filteredTableOptions = useMemo(() => {
+    const normalizedQuery = tableSearchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return tables;
+    }
+
+    return tables.filter((table) => table.name.toLowerCase().includes(normalizedQuery));
+  }, [tables, tableSearchQuery]);
 
   const selectedTableStats = useMemo(() => {
     if (!selectedTable) {
@@ -346,10 +358,21 @@ const AccountingOrdersPage: React.FC = () => {
                 role="listbox"
                 className="absolute right-0 z-30 mt-2 w-full min-w-[220px] rounded-[28px] border border-stroke bg-bg1 p-2 shadow-lux2"
               >
+                <div className="px-1 pb-2">
+                  <GlassInput
+                    type="search"
+                    value={tableSearchQuery}
+                    onChange={(event) => setTableSearchQuery(event.target.value)}
+                    placeholder="Search tables..."
+                    leftSlot={<span>⌕</span>}
+                  />
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedTable('');
+                    setTableSearchQuery('');
                     setIsTableMenuOpen(false);
                   }}
                   className={cx(
@@ -364,7 +387,11 @@ const AccountingOrdersPage: React.FC = () => {
                 <div className="my-2 h-px bg-white/10" />
 
                 <div className="max-h-72 overflow-y-auto">
-                  {tables.map((table) => {
+                  {filteredTableOptions.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-sm text-muted">
+                      No tables match "{tableSearchQuery.trim()}".
+                    </div>
+                  ) : filteredTableOptions.map((table) => {
                     const isActive = selectedTable === table.name;
 
                     return (
@@ -373,6 +400,7 @@ const AccountingOrdersPage: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setSelectedTable(table.name);
+                          setTableSearchQuery('');
                           setIsTableMenuOpen(false);
                         }}
                         className={cx(
