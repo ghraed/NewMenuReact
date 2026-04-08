@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
   GlassChip,
   GlassInput,
-  GlassSelect,
   LiquidButton,
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
+import { cx, focusRing, glassControl } from '../theme/liquidGlass';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
 
 type DraftState = Record<number, {
@@ -100,12 +100,14 @@ const AccountingOrdersPage: React.FC = () => {
   const [drafts, setDrafts] = useState<DraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
+  const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tablesLoading, setTablesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tablesError, setTablesError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const tableMenuRef = useRef<HTMLDivElement | null>(null);
 
   const syncDrafts = useCallback((nextOrders: OrderRecord[]) => {
     setDrafts((current) => {
@@ -164,6 +166,24 @@ const AccountingOrdersPage: React.FC = () => {
 
     loadTables();
   }, [user?.restaurant?.slug]);
+
+  useEffect(() => {
+    if (!isTableMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!tableMenuRef.current?.contains(event.target as Node)) {
+        setIsTableMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isTableMenuOpen]);
 
   const filteredOrders = useMemo(() => (
     selectedTable
@@ -236,16 +256,71 @@ const AccountingOrdersPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-[220px]">
-            <GlassSelect
-              value={selectedTable}
-              onChange={(event) => setSelectedTable(event.target.value)}
+          <div ref={tableMenuRef} className="relative min-w-[220px]">
+            <button
+              type="button"
               disabled={tablesLoading}
-              options={[
-                { value: '', label: tablesLoading ? 'Loading tables...' : 'All tables' },
-                ...tables.map((table) => ({ value: table.name, label: table.name })),
-              ]}
-            />
+              aria-haspopup="listbox"
+              aria-expanded={isTableMenuOpen}
+              onClick={() => setIsTableMenuOpen((current) => !current)}
+              className={cx(
+                'flex w-full items-center justify-between gap-3 rounded-full border px-4 py-2.5 text-left text-sm text-text',
+                glassControl,
+                focusRing,
+                tablesLoading && 'cursor-not-allowed opacity-60'
+              )}
+            >
+              <span className="truncate">{tablesLoading ? 'Loading tables...' : selectedTable || 'All tables'}</span>
+              <span className={cx('text-xs text-muted2 transition-transform', isTableMenuOpen && 'rotate-180')}>▾</span>
+            </button>
+
+            {isTableMenuOpen ? (
+              <div
+                role="listbox"
+                className="absolute right-0 z-30 mt-2 w-full min-w-[220px] rounded-[28px] border border-stroke bg-bg1 p-2 shadow-lux2"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTable('');
+                    setIsTableMenuOpen(false);
+                  }}
+                  className={cx(
+                    'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
+                    !selectedTable ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
+                  )}
+                >
+                  <span>All tables</span>
+                  {!selectedTable ? <span className="text-gold2">Selected</span> : null}
+                </button>
+
+                <div className="my-2 h-px bg-white/10" />
+
+                <div className="max-h-72 overflow-y-auto">
+                  {tables.map((table) => {
+                    const isActive = selectedTable === table.name;
+
+                    return (
+                      <button
+                        key={table.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTable(table.name);
+                          setIsTableMenuOpen(false);
+                        }}
+                        className={cx(
+                          'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
+                          isActive ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
+                        )}
+                      >
+                        <span>{table.name}</span>
+                        {isActive ? <span className="text-gold2">Selected</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
