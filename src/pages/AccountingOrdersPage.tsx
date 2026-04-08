@@ -11,12 +11,6 @@ import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '
 import { cx, focusRing, glassControl } from '../theme/liquidGlass';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
 
-type DraftState = Record<number, {
-  vatRate: string;
-  discountType: '' | DiscountType;
-  discountValue: string;
-}>;
-
 type TableDraftState = Record<string, {
   vatRate: string;
   discountType: '' | DiscountType;
@@ -113,7 +107,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const AccountingOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [drafts, setDrafts] = useState<DraftState>({});
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
@@ -126,22 +119,6 @@ const AccountingOrdersPage: React.FC = () => {
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const syncDrafts = useCallback((nextOrders: OrderRecord[]) => {
-    setDrafts((current) => {
-      const nextDrafts: DraftState = {};
-
-      nextOrders.forEach((order) => {
-        nextDrafts[order.id] = current[order.id] || {
-          vatRate: order.invoice.vat_rate || '0',
-          discountType: order.invoice.discount_type || '',
-          discountValue: order.invoice.discount_value || '0',
-        };
-      });
-
-      return nextDrafts;
-    });
-  }, []);
-
   const loadOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -149,13 +126,12 @@ const AccountingOrdersPage: React.FC = () => {
     try {
       const nextOrders = await fetchAccountingOrders();
       setOrders(nextOrders);
-      syncDrafts(nextOrders);
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to load accounting orders.'));
     } finally {
       setLoading(false);
     }
-  }, [syncDrafts]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -225,18 +201,6 @@ const AccountingOrdersPage: React.FC = () => {
     `${filteredOrders.length} staff-confirmed order${filteredOrders.length === 1 ? '' : 's'} waiting for accounting`
   ), [filteredOrders.length]);
 
-  const updateDraft = (orderId: number, nextValue: Partial<DraftState[number]>) => {
-    setDrafts((current) => ({
-      ...current,
-      [orderId]: {
-        vatRate: current[orderId]?.vatRate ?? '0',
-        discountType: current[orderId]?.discountType ?? '',
-        discountValue: current[orderId]?.discountValue ?? '0',
-        ...nextValue,
-      },
-    }));
-  };
-
   const updateTableDraft = (tableName: string, nextValue: Partial<TableDraftState[string]>) => {
     setTableDrafts((current) => ({
       ...current,
@@ -247,33 +211,6 @@ const AccountingOrdersPage: React.FC = () => {
         ...nextValue,
       },
     }));
-  };
-
-  const handleFinalize = async (order: OrderRecord) => {
-    const draft = drafts[order.id] || emptyAccountingDraft;
-    const preview = calculateInvoicePreview(order.invoice.subtotal, draft);
-    const payload: AccountOrderRequest = {};
-
-    payload.vat_rate = preview.vatRate;
-
-    if (preview.discountType) {
-      payload.discount_type = preview.discountType;
-      payload.discount_value = preview.discountValue;
-    }
-
-    setProcessingTarget(`order:${order.id}`);
-    setNotice(null);
-    setError(null);
-
-    try {
-      const response = await accountConfirmedOrder(order.id, payload);
-      setOrders((current) => current.filter((item) => item.id !== order.id));
-      setNotice(`Finalized ${response.order.invoice_number || response.order.order_number || `order #${response.order.id}`}.`);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to finalize accounting.'));
-    } finally {
-      setProcessingTarget(null);
-    }
   };
 
   const selectedTableOrders = useMemo(() => (
@@ -496,16 +433,24 @@ const AccountingOrdersPage: React.FC = () => {
         <div className="py-12 text-center text-muted">Loading accounting queue...</div>
       ) : null}
 
-      {!loading && filteredOrders.length === 0 ? (
+      {!loading && !selectedTable ? (
+        <div className="py-12 text-center">
+          <div className="mb-4 text-5xl">🧾</div>
+          <h3 className="mb-2 text-xl font-medium text-text">Select a table to open its invoice</h3>
+          <p className="text-muted">
+            Choose a table from the dropdown above to load one combined invoice for that table.
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && selectedTable && filteredOrders.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">💳</div>
           <h3 className="mb-2 text-xl font-medium text-text">
-            {selectedTable ? `No accounting orders for ${selectedTable}` : 'No orders waiting for accounting'}
+            {`No accounting orders for ${selectedTable}`}
           </h3>
           <p className="text-muted">
-            {selectedTable
-              ? 'Try another table from the dropdown, or wait for staff-confirmed orders to reach accounting.'
-              : 'Staff-confirmed orders will appear here for VAT, discounts, and invoice finalization.'}
+            Try another table from the dropdown, or wait for staff-confirmed orders to reach accounting.
           </p>
         </div>
       ) : null}
@@ -669,154 +614,7 @@ const AccountingOrdersPage: React.FC = () => {
         </GlassCard>
       ) : null}
 
-      {!loading && !selectedTable ? (
-        <div className="space-y-4">
-          {filteredOrders.map((order) => {
-            const draft = drafts[order.id] || emptyAccountingDraft;
-            const preview = calculateInvoicePreview(order.invoice.subtotal, draft);
-
-            return (
-              <GlassCard key={order.id} className="space-y-5">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Awaiting Accounting</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-text">
-                      {order.order_number || `Order #${order.id}`}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted">
-                      Table {order.table_reference}
-                      {order.confirmed_by ? ` • Confirmed by ${order.confirmed_by.name}` : ''}
-                    </p>
-                    {order.notes ? (
-                      <p className="mt-3 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted">
-                        {order.notes}
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
-                    <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Subtotal</p>
-                    <p className="mt-2 text-2xl font-semibold text-text">${order.invoice.subtotal}</p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                  <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm font-semibold text-text">Items</p>
-                    <div className="mt-3 space-y-3">
-                      {order.items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-text">{item.dish_name}</p>
-                            <p className="text-sm text-muted">
-                              {item.quantity} × ${item.unit_price}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-sm font-semibold text-gold2">${item.line_subtotal}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm font-semibold text-text">Invoice Settings</p>
-                    <div className="mt-4 grid gap-3">
-                      <div>
-                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">VAT %</label>
-                        <GlassInput
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={draft.vatRate}
-                          rightSlot="%"
-                          onChange={(event) => updateDraft(order.id, { vatRate: event.target.value })}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">Discount Type</label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {discountOptions.map((option) => (
-                            <GlassChip
-                              key={option.value || 'none'}
-                              type="button"
-                              active={draft.discountType === option.value}
-                              onClick={() => updateDraft(order.id, {
-                                discountType: option.value,
-                                discountValue: option.value ? draft.discountValue : '0',
-                              })}
-                              className="px-4 py-2 text-sm"
-                            >
-                              {option.label}
-                            </GlassChip>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
-                          {draft.discountType === 'percentage' ? 'Discount %' : 'Discount Value'}
-                        </label>
-                        <GlassInput
-                          type="number"
-                          min="0"
-                          max={draft.discountType === 'percentage' ? '100' : undefined}
-                          step="0.01"
-                          value={draft.discountValue}
-                          disabled={!draft.discountType}
-                          rightSlot={draft.discountType === 'percentage' ? '%' : '$'}
-                          onChange={(event) => updateDraft(order.id, { discountValue: event.target.value })}
-                        />
-                      </div>
-
-                      <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-muted2">Live Invoice Preview</p>
-                        <div className="mt-3 space-y-2 text-sm text-muted">
-                          <div className="flex items-center justify-between gap-3">
-                            <span>Subtotal</span>
-                            <span className="font-medium text-text">{formatMoney(preview.subtotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span>
-                              Discount
-                              {preview.discountType === 'percentage' ? ` (${preview.discountValue.toFixed(2)}%)` : ''}
-                            </span>
-                            <span className="font-medium text-text">- {formatMoney(preview.discountAmount)}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span>Taxable subtotal</span>
-                            <span className="font-medium text-text">{formatMoney(preview.taxableSubtotal)}</span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span>VAT ({preview.vatRate.toFixed(2)}%)</span>
-                            <span className="font-medium text-text">+ {formatMoney(preview.vatAmount)}</span>
-                          </div>
-                          <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-base">
-                            <span className="font-semibold text-text">Final total</span>
-                            <span className="text-lg font-semibold text-gold2">{formatMoney(preview.total)}</span>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-xs text-muted2">
-                          This preview matches the accounting calculation that will be saved when you finalize.
-                        </p>
-                      </div>
-
-                      <LiquidButton
-                        tone="primary"
-                        onClick={() => handleFinalize(order)}
-                        disabled={processingTarget === `order:${order.id}`}
-                      >
-                        {processingTarget === `order:${order.id}` ? 'Finalizing...' : 'Finalize Invoice'}
-                      </LiquidButton>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            );
-          })}
-        </div>
-      ) : null}
+      
     </DashboardLayout>
   );
 };
