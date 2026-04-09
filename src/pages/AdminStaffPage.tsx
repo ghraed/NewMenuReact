@@ -247,7 +247,7 @@ const AdminStaffPage: React.FC = () => {
                   {selectedTableIds.length} selected
                 </span>
               </div>
-              <div className="rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
+              <div className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
                 {tablesLoading ? (
                   <p className="text-sm text-muted">Loading restaurant tables...</p>
                 ) : (
@@ -298,7 +298,7 @@ const AdminStaffPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-text">Latest created staff</h3>
             {createdStaff ? (
               <div className="mt-4 space-y-3 text-sm text-muted">
-                <div className="rounded-xl2 border border-sage/35 bg-sage/10 p-4">
+                <div className="relative isolate overflow-hidden rounded-xl2 border border-sage/35 bg-sage/10 p-4">
                   <p className="text-base font-semibold text-text">{createdStaff.name}</p>
                   <p className="mt-1">Role: {createdStaff.role}</p>
                   <p>Email: {createdStaff.email || 'Not provided'}</p>
@@ -347,7 +347,10 @@ const AdminStaffPage: React.FC = () => {
                 .filter((tableName): tableName is string => Boolean(tableName));
 
               return (
-                <div key={staff.id} className="rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
+                <div
+                  key={staff.id}
+                  className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-lg font-semibold text-text">{staff.name}</p>
