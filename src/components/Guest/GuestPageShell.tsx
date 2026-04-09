@@ -13,8 +13,12 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
 
   return (
     <div
+      data-guest-theme={theme}
       className="relative min-h-screen overflow-hidden font-sans transition-colors duration-500"
-      style={getGuestThemeStyle(theme)}
+      style={{
+        ...getGuestThemeStyle(theme),
+        colorScheme: theme,
+      }}
     >
       <div className="relative z-10">{children}</div>
       <GuestCartShortcut />

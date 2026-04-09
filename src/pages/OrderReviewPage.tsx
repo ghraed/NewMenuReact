@@ -326,7 +326,7 @@ const OrderReviewPage: React.FC = () => {
                   <select
                     value={draft.tableReference}
                     onChange={(event) => updateDraft({ tableReference: event.target.value })}
-                    className="w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
+                    className="themed-native-select w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
                       borderColor: 'var(--guest-border)',

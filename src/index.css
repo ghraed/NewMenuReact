@@ -69,6 +69,22 @@
     font: inherit;
   }
 
+  .themed-native-select {
+    color-scheme: inherit;
+    background-color: var(--guest-panel-strong, rgb(var(--color-bg1)));
+    color: var(--guest-text, rgb(var(--color-text) / 0.92));
+  }
+
+  .themed-native-select option,
+  .themed-native-select optgroup {
+    background-color: var(--guest-panel-strong, rgb(var(--color-bg1)));
+    color: var(--guest-text, rgb(var(--color-text) / 0.92));
+  }
+
+  .themed-native-select option:disabled {
+    color: var(--guest-muted, rgb(var(--color-text) / 0.55));
+  }
+
   ::selection {
     background: rgb(var(--color-gold) / 0.28);
     color: rgb(var(--color-text) / 0.98);
