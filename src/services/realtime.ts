@@ -9,10 +9,20 @@ declare global {
 }
 
 let echoInstance: Echo<'pusher'> | null = null;
+let hasBoundDebugEvents = false;
 
 const toNumber = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const logRealtime = (message: string, details?: Record<string, unknown>): void => {
+  if (details) {
+    console.info(`[Realtime] ${message}`, details);
+    return;
+  }
+
+  console.info(`[Realtime] ${message}`);
 };
 
 export const getEcho = (): Echo<'pusher'> | null => {
@@ -23,6 +33,7 @@ export const getEcho = (): Echo<'pusher'> | null => {
   const key = import.meta.env.VITE_PUSHER_APP_KEY;
 
   if (!key) {
+    console.warn('[Realtime] Missing VITE_PUSHER_APP_KEY. Echo will not start.');
     return null;
   }
 
@@ -35,13 +46,24 @@ export const getEcho = (): Echo<'pusher'> | null => {
   const wsHost = import.meta.env.VITE_PUSHER_HOST || undefined;
   const wsPort = toNumber(import.meta.env.VITE_PUSHER_PORT, 443);
   const forceTls = (import.meta.env.VITE_PUSHER_SCHEME || 'https') === 'https';
+  const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1';
 
   window.Pusher = Pusher;
+
+  logRealtime('Initializing Echo', {
+    apiOrigin,
+    key,
+    cluster,
+    wsHost: wsHost || 'default',
+    wsPort,
+    forceTls,
+    hasAuthToken: Boolean(authToken),
+  });
 
   echoInstance = new Echo({
     broadcaster: 'pusher',
     key,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
+    cluster,
     wsHost,
     wsPort,
     wssPort: wsPort,
@@ -55,6 +77,28 @@ export const getEcho = (): Echo<'pusher'> | null => {
     },
   });
 
+  const pusherConnection = (echoInstance.connector as { pusher?: Pusher }).pusher?.connection;
+
+  if (pusherConnection && !hasBoundDebugEvents) {
+    hasBoundDebugEvents = true;
+
+    pusherConnection.bind('state_change', (states: { previous: string; current: string }) => {
+      logRealtime('Connection state changed', states);
+    });
+
+    pusherConnection.bind('connected', () => {
+      logRealtime('Connected to Pusher successfully');
+    });
+
+    pusherConnection.bind('error', (error: unknown) => {
+      console.error('[Realtime] Pusher connection error', error);
+    });
+
+    pusherConnection.bind('disconnected', () => {
+      console.warn('[Realtime] Pusher disconnected');
+    });
+  }
+
   return echoInstance;
 };
 
@@ -65,4 +109,5 @@ export const resetEcho = (): void => {
 
   echoInstance.disconnect();
   echoInstance = null;
+  hasBoundDebugEvents = false;
 };

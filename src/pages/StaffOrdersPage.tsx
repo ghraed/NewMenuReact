@@ -90,12 +90,16 @@ const StaffOrdersPage: React.FC = () => {
 
   useEffect(() => {
     if (!user?.restaurant?.id) {
+      console.warn('[Realtime] Skipping Echo subscription because no restaurant is linked to this user.');
       return undefined;
     }
+
+    const restaurantId = user.restaurant.id;
 
     const echo = getEcho();
 
     if (!echo) {
+      console.warn('[Realtime] Echo client is unavailable on the staff page.');
       return undefined;
     }
 
@@ -104,13 +108,23 @@ const StaffOrdersPage: React.FC = () => {
       : (user.assigned_tables ?? []).map((table) => table.id);
 
     if (tableIds.length === 0) {
+      console.warn('[Realtime] No table ids available for staff wave subscription.', {
+        role: user.role,
+        restaurantId,
+      });
       return undefined;
     }
 
     const uniqueTableIds = Array.from(new Set(tableIds));
     const channelNames = uniqueTableIds.map(
-      (tableId) => `restaurant.${user.restaurant!.id}.table.${tableId}.waves`
+      (tableId) => `restaurant.${restaurantId}.table.${tableId}.waves`
     );
+
+    console.info('[Realtime] Subscribing to staff wave channels', {
+      role: user.role,
+      restaurantId,
+      channelNames,
+    });
 
     channelNames.forEach((channelName) => {
       const channel = echo.private(channelName);
@@ -119,8 +133,15 @@ const StaffOrdersPage: React.FC = () => {
         const nextWave = event.wave;
 
         if (!nextWave) {
+          console.warn('[Realtime] Received table-wave.created without a wave payload.', { channelName });
           return;
         }
+
+        console.info('[Realtime] Received table-wave.created', {
+          channelName,
+          waveId: nextWave.id,
+          tableReference: nextWave.table_reference,
+        });
 
         setWaves((current) => {
           const alreadyExists = current.some((wave) => wave.id === nextWave.id);
@@ -133,20 +154,32 @@ const StaffOrdersPage: React.FC = () => {
         });
 
         setNotice(`New wave from ${nextWave.table_reference}.`);
+        window.alert(`New wave from table ${nextWave.table_reference}.`);
       });
 
       channel.listen('.table-wave.resolved', (event: { wave?: TableWaveRecord }) => {
         const resolvedWave = event.wave;
 
         if (!resolvedWave) {
+          console.warn('[Realtime] Received table-wave.resolved without a wave payload.', { channelName });
           return;
         }
+
+        console.info('[Realtime] Received table-wave.resolved', {
+          channelName,
+          waveId: resolvedWave.id,
+          tableReference: resolvedWave.table_reference,
+        });
 
         setWaves((current) => current.filter((wave) => wave.id !== resolvedWave.id));
       });
     });
 
     return () => {
+      console.info('[Realtime] Leaving staff wave channels', {
+        restaurantId,
+        channelNames,
+      });
       channelNames.forEach((channelName) => {
         echo.leave(channelName);
       });
