@@ -310,7 +310,7 @@ const AdminDashboard: React.FC = () => {
                             aria-label={`More actions for ${dish.name}`}
                             aria-expanded={openMenuDishId === dish.id}
                             onClick={() => setOpenMenuDishId((current) => (current === dish.id ? null : dish.id))}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-text transition hover:border-gold/40 hover:bg-white/10"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-text transition"
                           >
                             ⋯
                           </button>
@@ -323,14 +323,14 @@ const AdminDashboard: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => handlePublishToggle(dish)}
-                                  className="w-full rounded-xl px-3 py-2 text-left text-sm text-text transition hover:bg-white/10"
+                                  className="w-full rounded-xl px-3 py-2 text-left text-sm text-text transition"
                                 >
                                   Unpublish
                                 </button>
                               )}
                               <Link
                                 to={`/admin/dishes/${dish.id}/edit`}
-                                className="block rounded-xl px-3 py-2 text-sm text-text transition hover:bg-white/10"
+                                className="block rounded-xl px-3 py-2 text-sm text-text transition"
                                 onClick={() => setOpenMenuDishId(null)}
                               >
                                 Edit
@@ -338,7 +338,7 @@ const AdminDashboard: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDelete(dish)}
-                                className="w-full rounded-xl px-3 py-2 text-left text-sm text-spicy transition hover:bg-spicy/10"
+                                className="w-full rounded-xl px-3 py-2 text-left text-sm text-spicy transition"
                               >
                                 Delete
                               </button>

@@ -20,7 +20,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
         'relative isolate overflow-hidden rounded-xl2 p-4',
         glassSurface,
         interactive
-          && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-lux2',
+          && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none',
         noise && 'lg-noise',
         className
       )}

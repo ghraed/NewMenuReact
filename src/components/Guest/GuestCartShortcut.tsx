@@ -14,7 +14,7 @@ const GuestCartShortcut: React.FC = () => {
     <div className="pointer-events-none fixed inset-x-4 bottom-4 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
       <Link
         to="/order/review"
-        className="pointer-events-auto inline-flex min-w-[220px] items-center justify-between gap-4 rounded-full border px-5 py-3 text-sm font-semibold transition duration-300 hover:-translate-y-0.5"
+        className="pointer-events-auto inline-flex min-w-[220px] items-center justify-between gap-4 rounded-full border px-5 py-3 text-sm font-semibold transition duration-300"
         style={{
           backgroundColor: 'var(--guest-text)',
           borderColor: 'var(--guest-text)',

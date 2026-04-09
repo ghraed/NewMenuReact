@@ -59,7 +59,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             {hasIngredientStory ? (
               <Link
                 to={restaurantSlug ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients` : '/'}
-                className="inline-flex w-full items-center justify-center rounded-full border px-6 py-4 text-center text-sm font-semibold transition hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center rounded-full border px-6 py-4 text-center text-sm font-semibold transition"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
                   borderColor: 'var(--guest-accent)',
@@ -121,7 +121,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
               <button
                 type="button"
                 onClick={onAddToCart}
-                className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
                   borderColor: 'var(--guest-accent)',
@@ -175,7 +175,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                 {suggestedDishes.map((suggestedDish) => {
                   const content = (
                     <div
-                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
+                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition sm:w-[280px]"
                       style={{
                         backgroundColor: 'var(--guest-panel-strong)',
                         borderColor: 'var(--guest-border)',
@@ -226,7 +226,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                 {relatedDishes.map((relatedDish) => {
                   const content = (
                     <div
-                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:-translate-y-0.5 sm:w-[280px]"
+                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition sm:w-[280px]"
                       style={{
                         backgroundColor: 'var(--guest-panel-strong)',
                         borderColor: 'var(--guest-border)',

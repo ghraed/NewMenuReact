@@ -92,7 +92,7 @@ const DishCard: React.FC<DishCardProps> = ({
       }}
       className={cx(
         'group relative w-full overflow-hidden rounded-[28px] border p-3 sm:p-4',
-        'transition duration-700 ease-fluid motion-reduce:transform-none motion-reduce:opacity-100 motion-safe:hover:-translate-y-1',
+        'transition duration-700 ease-fluid motion-reduce:transform-none motion-reduce:opacity-100',
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
         focusRing,
         'cursor-pointer'
@@ -108,7 +108,7 @@ const DishCard: React.FC<DishCardProps> = ({
           dish={dish}
           fit="cover"
           className="aspect-[4/3] w-full"
-          imageClassName="transition duration-500 ease-fluid group-hover:scale-[1.03]"
+          imageClassName="transition duration-500 ease-fluid"
           overlayClassName="bg-black/5"
         />
 
@@ -164,7 +164,7 @@ const DishCard: React.FC<DishCardProps> = ({
                   }}
                   className={cx(
                     'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[140px]',
-                    'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5',
+                    'transition duration-300 ease-fluid motion-reduce:transition-none',
                     focusRing
                   )}
                   style={{
@@ -185,7 +185,7 @@ const DishCard: React.FC<DishCardProps> = ({
                 }}
                 className={cx(
                   'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:w-auto sm:min-w-[160px]',
-                  'transition duration-300 ease-fluid motion-reduce:transition-none motion-safe:hover:-translate-y-0.5',
+                  'transition duration-300 ease-fluid motion-reduce:transition-none',
                   focusRing
                 )}
                 style={{

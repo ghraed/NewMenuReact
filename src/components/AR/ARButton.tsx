@@ -28,7 +28,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
         href={usdzUrlAbs}
         rel="ar"
         className={cx(
-          'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid hover:-translate-y-0.5',
+          'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid',
           focusRing
         )}
         style={{
@@ -53,7 +53,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           target="_blank"
           rel="noopener noreferrer"
           className={cx(
-            'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid hover:-translate-y-0.5',
+            'group block w-full rounded-full border px-6 py-4 text-center font-semibold transition duration-300 ease-fluid',
             focusRing
           )}
           style={{

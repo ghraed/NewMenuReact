@@ -248,7 +248,7 @@ const IngredientLibraryPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={clearSelectedFiles}
-                  className="text-sm font-medium text-gold2 transition hover:text-gold"
+                  className="text-sm font-medium text-gold2 transition"
                 >
                   Clear selection
                 </button>

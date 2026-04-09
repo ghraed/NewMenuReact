@@ -655,7 +655,7 @@ const DishForm: React.FC<DishFormProps> = ({
                   key={dish.id}
                   type="button"
                   onClick={() => toggleSuggestedDish(dish.id)}
-                  className="rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold2 transition hover:bg-gold/15"
+                  className="rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold2 transition"
                 >
                   {dish.name} ×
                 </button>
@@ -692,7 +692,7 @@ const DishForm: React.FC<DishFormProps> = ({
                             'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
                             isSelected
                               ? 'border-gold/25 bg-gold/10'
-                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                              : 'border-white/10 bg-white/[0.03]'
                           )}
                         >
                           <div className="min-w-0">
@@ -754,7 +754,7 @@ const DishForm: React.FC<DishFormProps> = ({
                   key={dish.id}
                   type="button"
                   onClick={() => toggleRelatedDish(dish.id)}
-                  className="rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition hover:bg-sky-400/15"
+                  className="rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition"
                 >
                   {dish.name} ×
                 </button>
@@ -791,7 +791,7 @@ const DishForm: React.FC<DishFormProps> = ({
                             'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
                             isSelected
                               ? 'border-sky-400/30 bg-sky-400/10'
-                              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                              : 'border-white/10 bg-white/[0.03]'
                           )}
                         >
                           <div className="min-w-0">
@@ -1072,7 +1072,7 @@ const DishForm: React.FC<DishFormProps> = ({
                                         handleIngredientLibraryChange(layer.client_id, '');
                                         setOpenIngredientPickerId(null);
                                       }}
-                                      className="mb-2 flex w-full items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-gold2 transition hover:bg-white/10"
+                                      className="mb-2 flex w-full items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-gold2 transition"
                                     >
                                       Clear saved ingredient
                                     </button>
@@ -1115,7 +1115,7 @@ const DishForm: React.FC<DishFormProps> = ({
                                               'flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
                                               isActive
                                                 ? 'border-gold/35 bg-gold/12'
-                                                : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                                                : 'border-white/10 bg-white/[0.03]'
                                             )}
                                           >
                                             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/20">

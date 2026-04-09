@@ -448,7 +448,7 @@ const AccountingOrdersPage: React.FC = () => {
                   }}
                   className={cx(
                     'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
-                    !selectedTable ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
+                    !selectedTable ? 'bg-gold/15 text-text' : 'text-muted'
                   )}
                 >
                   <span>All tables</span>
@@ -482,7 +482,7 @@ const AccountingOrdersPage: React.FC = () => {
                         }}
                         className={cx(
                           'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
-                          isActive ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
+                          isActive ? 'bg-gold/15 text-text' : 'text-muted'
                         )}
                       >
                         <span>{table.name}</span>
