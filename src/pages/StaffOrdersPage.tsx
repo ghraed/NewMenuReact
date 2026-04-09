@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/useAuth';
 import {
   enableStaffPushNotifications,
   getStaffPushState,
+  PushSetupError,
   refreshStaffPushSubscription,
 } from '../services/pushNotifications';
 import { ensureEchoConnection, getEcho } from '../services/realtime';
@@ -81,6 +82,27 @@ const isLikelyMobileDevice = (): boolean => {
   return coarsePointer || mobileUserAgent;
 };
 
+const getPushSetupMessage = (error: unknown): string | null => {
+  if (error instanceof PushSetupError) {
+    switch (error.code) {
+      case 'iphone_home_screen_required':
+        return 'On iPhone, add this app to your Home Screen first. Then open the installed app and enable push notifications there.';
+      case 'server_not_configured':
+        return 'Web push is not configured on the server yet. Add the VAPID keys on the API server, rebuild the container, then try again.';
+      case 'service_worker_registration_failed':
+        return 'The browser could not register the background notification service. Reload the page and try again.';
+      case 'subscription_create_failed':
+        return 'The browser allowed notifications, but could not create a push subscription for this device.';
+      case 'subscription_sync_failed':
+        return 'The phone created a subscription, but the server rejected or could not save it.';
+      default:
+        return error.message;
+    }
+  }
+
+  return null;
+};
+
 const StaffOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -97,7 +119,18 @@ const StaffOrdersPage: React.FC = () => {
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
   const [mobilePollingEnabled, setMobilePollingEnabled] = useState<boolean>(() => isLikelyMobileDevice());
+  const [isIosLike, setIsIosLike] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [requiresHomeScreenInstall, setRequiresHomeScreenInstall] = useState(false);
   const refreshInFlightRef = useRef(false);
+
+  const applyPushState = useCallback((nextState: Awaited<ReturnType<typeof getStaffPushState>>) => {
+    setNotificationStatus(nextState.permission);
+    setPushSubscribed(nextState.subscribed);
+    setIsIosLike(nextState.isIosLike);
+    setIsStandalone(nextState.isStandalone);
+    setRequiresHomeScreenInstall(nextState.requiresHomeScreenInstall);
+  }, []);
 
   const refreshStaffActivity = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -192,11 +225,16 @@ const StaffOrdersPage: React.FC = () => {
           return;
         }
 
-        setNotificationStatus(nextState.permission);
-        setPushSubscribed(nextState.subscribed);
+        applyPushState(nextState);
 
         if (nextState.permission === 'granted' && nextState.subscribed) {
-          await refreshStaffPushSubscription();
+          const syncedState = await refreshStaffPushSubscription();
+
+          if (!isActive) {
+            return;
+          }
+
+          applyPushState(syncedState);
         }
       } catch (error) {
         console.warn('[Push] Failed to inspect the current push subscription state.', error);
@@ -208,7 +246,7 @@ const StaffOrdersPage: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [applyPushState]);
 
   useEffect(() => {
     const resumeRealtime = () => {
@@ -404,8 +442,7 @@ const StaffOrdersPage: React.FC = () => {
 
     try {
       const nextState = await enableStaffPushNotifications();
-      setNotificationStatus(nextState.permission);
-      setPushSubscribed(nextState.subscribed);
+      applyPushState(nextState);
 
       if (nextState.permission === 'granted' && nextState.subscribed) {
         setNotice('Mobile push notifications are now enabled for guest waves.');
@@ -419,7 +456,7 @@ const StaffOrdersPage: React.FC = () => {
 
       setNotice('Notification permission was not granted yet.');
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to enable push notifications.'));
+      setError(getPushSetupMessage(err) ?? getErrorMessage(err, 'Failed to enable push notifications.'));
     } finally {
       setPushBusy(false);
     }
@@ -506,9 +543,27 @@ const StaffOrdersPage: React.FC = () => {
         </div>
       ) : null}
 
+      {mobilePollingEnabled ? (
+        <div className="mb-4 rounded-xl2 border border-white/10 bg-white/[0.03] p-3 text-sm text-muted">
+          Mobile live fallback is active. If a phone websocket stalls, this page refreshes staff activity automatically every 10 seconds while it is open and visible.
+        </div>
+      ) : null}
+
+      {requiresHomeScreenInstall ? (
+        <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
+          Add this app to your Home Screen to enable push notifications on iPhone. In a normal iPhone browser tab, realtime fallback polling will still keep the visible page updated.
+        </div>
+      ) : null}
+
       {notificationStatus === 'granted' && pushSubscribed ? (
         <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
           Push notifications are active for this staff browser. Guest waves can alert this device even when the page is backgrounded.
+        </div>
+      ) : null}
+
+      {isIosLike && isStandalone && notificationStatus === 'granted' && !pushSubscribed ? (
+        <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
+          Notifications are allowed, but this iPhone app is not subscribed to web push yet. Tap the push button again to finish device registration.
         </div>
       ) : null}
 
