@@ -3,6 +3,7 @@ export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image
 export type UserRole = 'admin' | 'staff';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type DiscountType = 'fixed' | 'percentage';
+export type TableWaveStatus = 'pending' | 'resolved';
 
 export interface StaffMember {
   id: number;
@@ -183,6 +184,18 @@ export interface OrderRecord {
   confirmed_by: OrderActorSummary | null;
   cancelled_by: OrderActorSummary | null;
   accounted_by: OrderActorSummary | null;
+}
+
+export interface TableWaveRecord {
+  id: number;
+  uuid: string;
+  status: TableWaveStatus;
+  table_reference: string;
+  table: RestaurantTableSummary | null;
+  restaurant: RestaurantSummary;
+  created_at: string | null;
+  resolved_at: string | null;
+  resolved_by: OrderActorSummary | null;
 }
 
 export const trackEvent: (

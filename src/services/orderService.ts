@@ -5,6 +5,7 @@ import type {
   OrderRecord,
   RestaurantSummary,
   RestaurantTableSummary,
+  TableWaveRecord,
 } from '../types';
 
 interface OrderResponse {
@@ -19,6 +20,15 @@ interface PendingOrdersResponse {
 interface GuestTablesResponse {
   restaurant: RestaurantSummary;
   tables: RestaurantTableSummary[];
+}
+
+interface WaveResponse {
+  message: string;
+  wave: TableWaveRecord;
+}
+
+interface PendingWavesResponse {
+  waves: TableWaveRecord[];
 }
 
 const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRequest => {
@@ -52,9 +62,27 @@ export const createGuestOrder = async (
   return response.data;
 };
 
+export const sendGuestWave = async (
+  restaurantSlug: string,
+  payload: { table_reference: string }
+): Promise<WaveResponse> => {
+  const response = await api.post<WaveResponse>(`/menu/${restaurantSlug}/waves`, payload);
+  return response.data;
+};
+
 export const fetchPendingOrders = async (): Promise<OrderRecord[]> => {
   const response = await api.get<PendingOrdersResponse>('/orders/pending-confirmation');
   return response.data.orders;
+};
+
+export const fetchPendingWaves = async (): Promise<TableWaveRecord[]> => {
+  const response = await api.get<PendingWavesResponse>('/waves/pending');
+  return response.data.waves;
+};
+
+export const resolvePendingWave = async (waveId: number): Promise<WaveResponse> => {
+  const response = await api.post<WaveResponse>(`/waves/${waveId}/resolve`);
+  return response.data;
 };
 
 export const confirmPendingOrder = async (orderId: number): Promise<OrderResponse> => {

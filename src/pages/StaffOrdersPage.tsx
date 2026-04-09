@@ -2,8 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { cancelPendingOrder, confirmPendingOrder, fetchPendingOrders } from '../services/orderService';
-import type { OrderRecord } from '../types';
+import {
+  cancelPendingOrder,
+  confirmPendingOrder,
+  fetchPendingOrders,
+  fetchPendingWaves,
+  resolvePendingWave,
+} from '../services/orderService';
+import type { OrderRecord, TableWaveRecord } from '../types';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -19,20 +25,26 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const StaffOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [waves, setWaves] = useState<TableWaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const nextOrders = await fetchPendingOrders();
+      const [nextOrders, nextWaves] = await Promise.all([
+        fetchPendingOrders(),
+        fetchPendingWaves(),
+      ]);
       setOrders(nextOrders);
+      setWaves(nextWaves);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load pending orders.'));
+      setError(getErrorMessage(err, 'Failed to load pending staff activity.'));
     } finally {
       setLoading(false);
     }
@@ -45,6 +57,10 @@ const StaffOrdersPage: React.FC = () => {
   const orderCountLabel = useMemo(() => (
     `${orders.length} request${orders.length === 1 ? '' : 's'} waiting for staff action`
   ), [orders.length]);
+
+  const waveCountLabel = useMemo(() => (
+    `${waves.length} wave${waves.length === 1 ? '' : 's'} waiting for service`
+  ), [waves.length]);
 
   const handleConfirm = async (order: OrderRecord) => {
     setProcessingOrderId(order.id);
@@ -78,14 +94,30 @@ const StaffOrdersPage: React.FC = () => {
     }
   };
 
+  const handleResolveWave = async (wave: TableWaveRecord) => {
+    setProcessingWaveId(wave.id);
+    setNotice(null);
+    setError(null);
+
+    try {
+      const response = await resolvePendingWave(wave.id);
+      setWaves((current) => current.filter((item) => item.id !== wave.id));
+      setNotice(`Marked the wave from ${response.wave.table_reference} as handled.`);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to resolve wave.'));
+    } finally {
+      setProcessingWaveId(null);
+    }
+  };
+
   return (
-    <DashboardLayout title="Staff Order Requests">
+    <DashboardLayout title="Staff Service Requests">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-text">
             {user?.role === 'staff' ? 'Orders waiting for your decision' : 'Staff order confirmations'}
           </h2>
-          <p className="mt-1 text-sm text-muted">{orderCountLabel}</p>
+          <p className="mt-1 text-sm text-muted">{waveCountLabel} • {orderCountLabel}</p>
         </div>
 
         <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
@@ -106,19 +138,52 @@ const StaffOrdersPage: React.FC = () => {
       ) : null}
 
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading pending order requests...</div>
+        <div className="py-12 text-center text-muted">Loading pending staff activity...</div>
       ) : null}
 
-      {!loading && orders.length === 0 ? (
+      {!loading && waves.length === 0 && orders.length === 0 ? (
         <div className="py-12 text-center">
-          <div className="mb-4 text-5xl">🧾</div>
-          <h3 className="mb-2 text-xl font-medium text-text">No pending requests</h3>
-          <p className="text-muted">New table orders will appear here for staff review.</p>
+          <div className="mb-4 text-5xl">👋</div>
+          <h3 className="mb-2 text-xl font-medium text-text">No pending staff activity</h3>
+          <p className="text-muted">New guest waves and table orders will appear here for staff review.</p>
         </div>
       ) : null}
 
       {!loading ? (
         <div className="space-y-4">
+          {waves.map((wave) => (
+            <GlassCard key={`wave-${wave.id}`} className="space-y-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Guest Wave</p>
+                  <h3 className="mt-2 flex items-center gap-2 text-2xl font-semibold text-text">
+                    <span aria-hidden="true">👋</span>
+                    <span>Table {wave.table_reference}</span>
+                  </h3>
+                  <p className="mt-2 text-sm text-muted">
+                    Guest is calling for staff assistance.
+                    {wave.created_at ? ` • ${new Date(wave.created_at).toLocaleString()}` : ''}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Service Call</p>
+                  <p className="mt-2 text-lg font-semibold text-text">{wave.table_reference}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <LiquidButton
+                  tone="primary"
+                  onClick={() => handleResolveWave(wave)}
+                  disabled={processingWaveId === wave.id}
+                >
+                  {processingWaveId === wave.id ? 'Processing...' : 'Mark Handled'}
+                </LiquidButton>
+              </div>
+            </GlassCard>
+          ))}
+
           {orders.map((order) => (
             <GlassCard key={order.id} className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
