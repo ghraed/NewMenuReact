@@ -179,7 +179,7 @@ const AdminStaffPage: React.FC = () => {
   return (
     <DashboardLayout title="Staff Management">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
-        <GlassCard>
+        <GlassCard noise={false}>
           <div className="mb-6">
             <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">Restaurant Team</p>
             <h2 className="mt-2 text-2xl font-semibold text-text">Create a staff account</h2>
@@ -285,7 +285,7 @@ const AdminStaffPage: React.FC = () => {
         </GlassCard>
 
         <div className="space-y-6">
-          <GlassCard>
+          <GlassCard noise={false}>
             <h3 className="text-lg font-semibold text-text">Access summary</h3>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
               <li>Admins can assign each staff member to one or many tables.</li>
@@ -323,7 +323,7 @@ const AdminStaffPage: React.FC = () => {
         </div>
       </div>
 
-      <GlassCard className="mt-6">
+      <GlassCard className="mt-6" noise={false}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">Assignments</p>

@@ -13,7 +13,7 @@ export const glassControl =
   'bg-bg1 border border-stroke shadow-lux2';
 
 export const glassInteractive =
-  'transition duration-300 ease-fluid motion-reduce:transition-none active:scale-[0.99]';
+  'transition duration-300 ease-fluid motion-reduce:transition-none';
 
 export const focusRing =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg1';
