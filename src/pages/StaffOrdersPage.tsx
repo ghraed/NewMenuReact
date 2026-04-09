@@ -87,8 +87,12 @@ const getPushSetupMessage = (error: unknown): string | null => {
     switch (error.code) {
       case 'iphone_home_screen_required':
         return 'On iPhone, add this app to your Home Screen first. Then open the installed app and enable push notifications there.';
+      case 'insecure_context':
+        return 'Push notifications only work from a secure HTTPS page or installed app. Open the staff page from the live HTTPS site and try again.';
       case 'server_not_configured':
         return 'Web push is not configured on the server yet. Add the VAPID keys on the API server, rebuild the container, then try again.';
+      case 'service_worker_script_unavailable':
+        return 'The site is not serving /sw.js correctly yet. Redeploy the frontend build and confirm https://your-domain/sw.js opens directly in the browser.';
       case 'service_worker_registration_failed':
         return 'The browser could not register the background notification service. Reload the page and try again.';
       case 'subscription_create_failed':

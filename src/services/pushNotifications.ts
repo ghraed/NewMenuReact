@@ -3,7 +3,9 @@ import api from './api';
 export type WebPushPermission = NotificationPermission | 'unsupported';
 export type PushSetupIssueCode =
   | 'iphone_home_screen_required'
+  | 'insecure_context'
   | 'server_not_configured'
+  | 'service_worker_script_unavailable'
   | 'service_worker_registration_failed'
   | 'subscription_create_failed'
   | 'subscription_sync_failed';
@@ -63,7 +65,10 @@ export const isIosLikeDevice = (): boolean => {
     return false;
   }
 
-  return /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+  const { userAgent, platform, maxTouchPoints } = window.navigator;
+
+  return /iPhone|iPad|iPod/i.test(userAgent)
+    || (platform === 'MacIntel' && maxTouchPoints > 1);
 };
 
 export const isStandaloneApp = (): boolean => {
@@ -90,10 +95,54 @@ export const getWebPushPermission = (): WebPushPermission => {
   return window.Notification.permission;
 };
 
+const ensureSecurePushContext = (): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (!window.isSecureContext) {
+    throw new PushSetupError(
+      'insecure_context',
+      'Push notifications require HTTPS or a secure installed app context.'
+    );
+  }
+};
+
+const ensureServiceWorkerScriptIsReachable = async (): Promise<void> => {
+  const response = await fetch(SERVICE_WORKER_URL, {
+    method: 'GET',
+    cache: 'no-store',
+    credentials: 'same-origin',
+  });
+
+  if (!response.ok) {
+    throw new PushSetupError(
+      'service_worker_script_unavailable',
+      `The browser could not load ${SERVICE_WORKER_URL} from this site.`
+    );
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.includes('javascript') && !contentType.includes('text/plain')) {
+    const snippet = (await response.text()).slice(0, 120).toLowerCase();
+
+    if (snippet.includes('<!doctype html') || snippet.includes('<html')) {
+      throw new PushSetupError(
+        'service_worker_script_unavailable',
+        `${SERVICE_WORKER_URL} is not being served as a service worker script.`
+      );
+    }
+  }
+};
+
 export const registerPushServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!isWebPushSupported()) {
     return null;
   }
+
+  ensureSecurePushContext();
+  await ensureServiceWorkerScriptIsReachable();
 
   const existingRegistration = await navigator.serviceWorker.getRegistration('/');
 
@@ -140,6 +189,17 @@ export const getStaffPushState = async (): Promise<StaffPushState> => {
     };
   }
 
+  if (requiresHomeScreenInstall) {
+    return {
+      supported: true,
+      permission,
+      subscribed: false,
+      isIosLike,
+      isStandalone,
+      requiresHomeScreenInstall,
+    };
+  }
+
   const registration = await registerPushServiceWorker();
   const existingSubscription = await registration?.pushManager.getSubscription();
 
@@ -175,6 +235,8 @@ export const enableStaffPushNotifications = async (): Promise<StaffPushState> =>
       'On iPhone, add this app to your Home Screen first, then open the installed app to enable push notifications.'
     );
   }
+
+  ensureSecurePushContext();
 
   const permission = await window.Notification.requestPermission();
 
@@ -257,11 +319,23 @@ export const refreshStaffPushSubscription = async (): Promise<StaffPushState> =>
   }
 
   const permission = getWebPushPermission();
-  const registration = await registerPushServiceWorker();
-  const subscription = await registration?.pushManager.getSubscription();
   const isIosLike = isIosLikeDevice();
   const isStandalone = isStandaloneApp();
   const requiresHomeScreenInstall = requiresHomeScreenInstallForPush();
+
+  if (requiresHomeScreenInstall) {
+    return {
+      supported: true,
+      permission,
+      subscribed: false,
+      isIosLike,
+      isStandalone,
+      requiresHomeScreenInstall,
+    };
+  }
+
+  const registration = await registerPushServiceWorker();
+  const subscription = await registration?.pushManager.getSubscription();
 
   if (permission === 'granted' && subscription) {
     await syncSubscriptionWithBackend(subscription);
