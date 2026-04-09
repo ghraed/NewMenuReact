@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
+import { getEcho } from '../services/realtime';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
+  fetchGuestTables,
   fetchPendingOrders,
   fetchPendingWaves,
   resolvePendingWave,
@@ -31,6 +33,7 @@ const StaffOrdersPage: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
+  const [adminRealtimeTableIds, setAdminRealtimeTableIds] = useState<number[]>([]);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -53,6 +56,102 @@ const StaffOrdersPage: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin' || !user.restaurant?.slug) {
+      setAdminRealtimeTableIds([]);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadRealtimeTables = async () => {
+      try {
+        const response = await fetchGuestTables(user.restaurant!.slug);
+
+        if (!isActive) {
+          return;
+        }
+
+        setAdminRealtimeTableIds(response.tables.map((table) => table.id));
+      } catch {
+        if (isActive) {
+          setAdminRealtimeTableIds([]);
+        }
+      }
+    };
+
+    loadRealtimeTables();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.role, user?.restaurant?.slug]);
+
+  useEffect(() => {
+    if (!user?.restaurant?.id) {
+      return undefined;
+    }
+
+    const echo = getEcho();
+
+    if (!echo) {
+      return undefined;
+    }
+
+    const tableIds = user.role === 'admin'
+      ? adminRealtimeTableIds
+      : (user.assigned_tables ?? []).map((table) => table.id);
+
+    if (tableIds.length === 0) {
+      return undefined;
+    }
+
+    const uniqueTableIds = Array.from(new Set(tableIds));
+    const channelNames = uniqueTableIds.map(
+      (tableId) => `restaurant.${user.restaurant!.id}.table.${tableId}.waves`
+    );
+
+    channelNames.forEach((channelName) => {
+      const channel = echo.private(channelName);
+
+      channel.listen('.table-wave.created', (event: { wave?: TableWaveRecord }) => {
+        const nextWave = event.wave;
+
+        if (!nextWave) {
+          return;
+        }
+
+        setWaves((current) => {
+          const alreadyExists = current.some((wave) => wave.id === nextWave.id);
+
+          if (alreadyExists) {
+            return current.map((wave) => (wave.id === nextWave.id ? nextWave : wave));
+          }
+
+          return [nextWave, ...current];
+        });
+
+        setNotice(`New wave from ${nextWave.table_reference}.`);
+      });
+
+      channel.listen('.table-wave.resolved', (event: { wave?: TableWaveRecord }) => {
+        const resolvedWave = event.wave;
+
+        if (!resolvedWave) {
+          return;
+        }
+
+        setWaves((current) => current.filter((wave) => wave.id !== resolvedWave.id));
+      });
+    });
+
+    return () => {
+      channelNames.forEach((channelName) => {
+        echo.leave(channelName);
+      });
+    };
+  }, [adminRealtimeTableIds, user?.assigned_tables, user?.restaurant?.id, user?.role]);
 
   const orderCountLabel = useMemo(() => (
     `${orders.length} request${orders.length === 1 ? '' : 's'} waiting for staff action`

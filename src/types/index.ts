@@ -15,6 +15,16 @@ export interface StaffMember {
   created_at?: string | null;
 }
 
+export interface AuthUserSummary {
+  id: number;
+  name: string;
+  email: string | null;
+  phone?: string | null;
+  role: UserRole;
+  restaurant: RestaurantSummary | null;
+  assigned_tables?: RestaurantTableSummary[];
+}
+
 export interface CreateStaffRequest {
   name: string;
   email?: string;

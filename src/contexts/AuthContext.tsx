@@ -1,17 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
-import type { RestaurantSummary, UserRole } from '../types';
+import { resetEcho } from '../services/realtime';
+import type { AuthUserSummary } from '../types';
 import { getDefaultRouteForRole } from '../utils/auth';
 
-export interface AuthUser {
-  id: number;
-  name: string;
-  email: string | null;
-  phone?: string | null;
-  role: UserRole;
-  restaurant: RestaurantSummary | null;
-}
+export interface AuthUser extends AuthUserSummary {}
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -58,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setToken(null);
         setUser(null);
+        resetEcho();
       } finally {
         setLoading(false);
       }
@@ -72,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const nextUser = response.data.user as AuthUser;
 
     localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
+    resetEcho();
     setToken(nextToken);
     setUser(nextUser);
     return nextUser;
@@ -84,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // ignore API logout failures and clear local auth state
     } finally {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
+      resetEcho();
       setToken(null);
       setUser(null);
     }
