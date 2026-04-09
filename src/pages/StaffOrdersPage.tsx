@@ -2,6 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
+import {
+  enableStaffPushNotifications,
+  getStaffPushState,
+  refreshStaffPushSubscription,
+} from '../services/pushNotifications';
 import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
   cancelPendingOrder,
@@ -32,14 +37,6 @@ const getNotificationStatus = (): BrowserNotificationStatus => {
   }
 
   return window.Notification.permission;
-};
-
-const requestNotificationAccess = async (): Promise<BrowserNotificationStatus> => {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return 'unsupported';
-  }
-
-  return window.Notification.requestPermission();
 };
 
 const showWaveNotification = (wave: TableWaveRecord): boolean => {
@@ -85,6 +82,8 @@ const StaffOrdersPage: React.FC = () => {
   const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationStatus>(() => (
     getNotificationStatus()
   ));
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -125,6 +124,35 @@ const StaffOrdersPage: React.FC = () => {
     return () => {
       window.removeEventListener('focus', syncNotificationStatus);
       document.removeEventListener('visibilitychange', syncNotificationStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const syncPushState = async () => {
+      try {
+        const nextState = await getStaffPushState();
+
+        if (!isActive) {
+          return;
+        }
+
+        setNotificationStatus(nextState.permission);
+        setPushSubscribed(nextState.subscribed);
+
+        if (nextState.permission === 'granted' && nextState.subscribed) {
+          await refreshStaffPushSubscription();
+        }
+      } catch (error) {
+        console.warn('[Push] Failed to inspect the current push subscription state.', error);
+      }
+    };
+
+    syncPushState();
+
+    return () => {
+      isActive = false;
     };
   }, []);
 
@@ -293,21 +321,29 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleEnableNotifications = async () => {
     setError(null);
+    setPushBusy(true);
 
-    const nextStatus = await requestNotificationAccess();
-    setNotificationStatus(nextStatus);
+    try {
+      const nextState = await enableStaffPushNotifications();
+      setNotificationStatus(nextState.permission);
+      setPushSubscribed(nextState.subscribed);
 
-    if (nextStatus === 'granted') {
-      setNotice('Staff browser notifications are now enabled for guest waves.');
-      return;
+      if (nextState.permission === 'granted' && nextState.subscribed) {
+        setNotice('Mobile push notifications are now enabled for guest waves.');
+        return;
+      }
+
+      if (nextState.permission === 'denied') {
+        setError('Browser notifications are blocked. Enable them in your browser settings to receive guest wave popups.');
+        return;
+      }
+
+      setNotice('Notification permission was not granted yet.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to enable push notifications.'));
+    } finally {
+      setPushBusy(false);
     }
-
-    if (nextStatus === 'denied') {
-      setError('Browser notifications are blocked. Enable them in your browser settings to receive guest wave popups.');
-      return;
-    }
-
-    setNotice('Notification permission was not granted yet.');
   };
 
   const handleConfirm = async (order: OrderRecord) => {
@@ -369,9 +405,13 @@ const StaffOrdersPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {notificationStatus === 'default' ? (
-            <LiquidButton tone="secondary" onClick={handleEnableNotifications}>
-              Enable Notifications
+          {notificationStatus !== 'unsupported' ? (
+            <LiquidButton tone="secondary" onClick={handleEnableNotifications} disabled={pushBusy}>
+              {pushBusy
+                ? 'Connecting Push...'
+                : pushSubscribed
+                  ? 'Reconnect Push'
+                  : 'Enable Push Notifications'}
             </LiquidButton>
           ) : null}
 
@@ -383,7 +423,13 @@ const StaffOrdersPage: React.FC = () => {
 
       {notificationStatus === 'default' ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
-          Enable browser notifications to receive a popup as soon as a guest waves for staff.
+          Enable push notifications to receive a popup on mobile and desktop as soon as a guest waves for staff.
+        </div>
+      ) : null}
+
+      {notificationStatus === 'granted' && pushSubscribed ? (
+        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
+          Push notifications are active for this staff browser. Guest waves can alert this device even when the page is backgrounded.
         </div>
       ) : null}
 

@@ -1,0 +1,16 @@
+{
+  "name": "Rozer Staff Console",
+  "short_name": "Rozer Staff",
+  "start_url": "/staff/orders",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
