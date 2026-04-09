@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { getEcho } from '../services/realtime';
+import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
@@ -125,6 +125,28 @@ const StaffOrdersPage: React.FC = () => {
     return () => {
       window.removeEventListener('focus', syncNotificationStatus);
       document.removeEventListener('visibilitychange', syncNotificationStatus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const resumeRealtime = () => {
+      if (document.visibilityState === 'visible') {
+        ensureEchoConnection();
+      }
+    };
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.addEventListener('focus', resumeRealtime);
+    document.addEventListener('visibilitychange', resumeRealtime);
+    window.addEventListener('online', resumeRealtime);
+
+    return () => {
+      window.removeEventListener('focus', resumeRealtime);
+      document.removeEventListener('visibilitychange', resumeRealtime);
+      window.removeEventListener('online', resumeRealtime);
     };
   }, []);
 

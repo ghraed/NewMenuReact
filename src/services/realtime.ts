@@ -68,7 +68,7 @@ export const getEcho = (): Echo<'pusher'> | null => {
     wsPort,
     wssPort: wsPort,
     forceTLS: forceTls,
-    enabledTransports: ['ws', 'wss'],
+    disableStats: true,
     authEndpoint: `${apiOrigin}/api/broadcasting/auth`,
     auth: {
       headers: authToken ? {
@@ -100,6 +100,22 @@ export const getEcho = (): Echo<'pusher'> | null => {
   }
 
   return echoInstance;
+};
+
+export const ensureEchoConnection = (): void => {
+  if (!echoInstance) {
+    return;
+  }
+
+  const pusher = (echoInstance.connector as { pusher?: Pusher }).pusher;
+  const state = pusher?.connection.state;
+
+  if (!pusher || state === 'connected' || state === 'connecting') {
+    return;
+  }
+
+  logRealtime('Attempting to reconnect Echo transport', { state });
+  pusher.connect();
 };
 
 export const resetEcho = (): void => {
