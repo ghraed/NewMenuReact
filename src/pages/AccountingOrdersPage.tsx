@@ -8,7 +8,7 @@ import {
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
-import { cx, focusRing, glassControl } from '../theme/liquidGlass';
+import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
 
@@ -413,6 +413,7 @@ const AccountingOrdersPage: React.FC = () => {
               className={cx(
                 'flex w-full items-center justify-between gap-3 rounded-full border px-4 py-2.5 text-left text-sm text-text',
                 glassControl,
+                glassControlHover,
                 focusRing,
                 tablesLoading && 'cursor-not-allowed opacity-60'
               )}
@@ -448,7 +449,7 @@ const AccountingOrdersPage: React.FC = () => {
                   }}
                   className={cx(
                     'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
-                    !selectedTable ? 'bg-gold/15 text-text' : 'text-muted'
+                    !selectedTable ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
                   )}
                 >
                   <span>All tables</span>
@@ -482,7 +483,7 @@ const AccountingOrdersPage: React.FC = () => {
                         }}
                         className={cx(
                           'flex w-full items-center justify-between rounded-[20px] px-4 py-3 text-left text-sm transition',
-                          isActive ? 'bg-gold/15 text-text' : 'text-muted'
+                          isActive ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
                         )}
                       >
                         <span>{table.name}</span>

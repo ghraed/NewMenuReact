@@ -3,6 +3,7 @@ import {
   cx,
   focusRing,
   glassControl,
+  glassControlHover,
   glassInteractive,
   primaryTone,
   secondaryTone,
@@ -34,6 +35,7 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
       className={cx(
         'group relative inline-flex items-center justify-center rounded-full border px-5 py-2.5 font-semibold',
         glassControl,
+        glassControlHover,
         glassInteractive,
         focusRing,
         toneClass[tone],

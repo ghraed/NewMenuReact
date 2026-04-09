@@ -32,7 +32,7 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-xs text-muted transition"
+              className="rounded-full border border-white/20 bg-white/10 px-2 py-1 text-xs text-muted transition hover:bg-white/16 hover:text-text"
             >
               Close
             </button>

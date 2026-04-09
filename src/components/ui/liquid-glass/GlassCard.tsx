@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx, glassSurface } from '../../../theme/liquidGlass';
+import { cx, glassSurface, glassSurfaceHover } from '../../../theme/liquidGlass';
 
 interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   modern?: boolean;
@@ -19,8 +19,8 @@ const GlassCard: React.FC<GlassCardProps> = ({
       className={cx(
         'relative isolate overflow-hidden rounded-xl2 p-4',
         glassSurface,
-        interactive
-          && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none',
+        interactive && glassSurfaceHover,
+        interactive && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none',
         noise && 'lg-noise',
         className
       )}

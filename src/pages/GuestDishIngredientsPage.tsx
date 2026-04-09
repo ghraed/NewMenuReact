@@ -79,7 +79,7 @@ const GuestDishIngredientsPage: React.FC = () => {
         <div className="mb-8">
           <Link
             to={restaurant_slug && dish_id ? `/menu/${restaurant_slug}/dish/${dish_id}` : '/'}
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
           >
             <span aria-hidden="true">←</span>
             Back to dish
