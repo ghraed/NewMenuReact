@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -19,6 +19,7 @@ import {
 import type { OrderRecord, TableWaveRecord } from '../types';
 
 type BrowserNotificationStatus = NotificationPermission | 'unsupported';
+const MOBILE_POLL_INTERVAL_MS = 10000;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -69,6 +70,17 @@ const showWaveNotification = (wave: TableWaveRecord): boolean => {
   }
 };
 
+const isLikelyMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  const mobileUserAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent);
+
+  return coarsePointer || mobileUserAgent;
+};
+
 const StaffOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -84,10 +96,22 @@ const StaffOrdersPage: React.FC = () => {
   ));
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [mobilePollingEnabled, setMobilePollingEnabled] = useState<boolean>(() => isLikelyMobileDevice());
+  const refreshInFlightRef = useRef(false);
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const refreshStaffActivity = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const [nextOrders, nextWaves] = await Promise.all([
@@ -97,15 +121,45 @@ const StaffOrdersPage: React.FC = () => {
       setOrders(nextOrders);
       setWaves(nextWaves);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load pending staff activity.'));
+      if (!silent) {
+        setError(getErrorMessage(err, 'Failed to load pending staff activity.'));
+      } else {
+        console.warn('[Staff Polling] Silent refresh failed.', err);
+      }
     } finally {
-      setLoading(false);
+      refreshInFlightRef.current = false;
+
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const loadOrders = useCallback(async () => {
+    await refreshStaffActivity();
+  }, [refreshStaffActivity]);
 
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    const syncMobileEnvironment = () => {
+      setMobilePollingEnabled(isLikelyMobileDevice());
+    };
+
+    syncMobileEnvironment();
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.addEventListener('resize', syncMobileEnvironment);
+
+    return () => {
+      window.removeEventListener('resize', syncMobileEnvironment);
+    };
+  }, []);
 
   useEffect(() => {
     const syncNotificationStatus = () => {
@@ -160,6 +214,7 @@ const StaffOrdersPage: React.FC = () => {
     const resumeRealtime = () => {
       if (document.visibilityState === 'visible') {
         ensureEchoConnection();
+        void refreshStaffActivity({ silent: true });
       }
     };
 
@@ -176,7 +231,31 @@ const StaffOrdersPage: React.FC = () => {
       document.removeEventListener('visibilitychange', resumeRealtime);
       window.removeEventListener('online', resumeRealtime);
     };
-  }, []);
+  }, [refreshStaffActivity]);
+
+  useEffect(() => {
+    if (!mobilePollingEnabled || !user?.restaurant?.id) {
+      return undefined;
+    }
+
+    const runSilentRefresh = () => {
+      if (typeof navigator !== 'undefined' && 'onLine' in navigator && !navigator.onLine) {
+        return;
+      }
+
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      void refreshStaffActivity({ silent: true });
+    };
+
+    const intervalId = window.setInterval(runSilentRefresh, MOBILE_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [mobilePollingEnabled, refreshStaffActivity, user?.restaurant?.id]);
 
   useEffect(() => {
     if (user?.role !== 'admin' || !user.restaurant?.slug) {
