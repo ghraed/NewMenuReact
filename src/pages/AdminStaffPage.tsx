@@ -294,7 +294,7 @@ const AdminStaffPage: React.FC = () => {
             </ul>
           </GlassCard>
 
-          <GlassCard>
+          <GlassCard interactive={false} noise={false}>
             <h3 className="text-lg font-semibold text-text">Latest created staff</h3>
             {createdStaff ? (
               <div className="mt-4 space-y-3 text-sm text-muted">
