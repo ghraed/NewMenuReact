@@ -13,6 +13,8 @@ import {
 } from '../services/orderService';
 import type { OrderRecord, TableWaveRecord } from '../types';
 
+type BrowserNotificationStatus = NotificationPermission | 'unsupported';
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -22,6 +24,52 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return fallback;
+};
+
+const getNotificationStatus = (): BrowserNotificationStatus => {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return 'unsupported';
+  }
+
+  return window.Notification.permission;
+};
+
+const requestNotificationAccess = async (): Promise<BrowserNotificationStatus> => {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return 'unsupported';
+  }
+
+  return window.Notification.requestPermission();
+};
+
+const showWaveNotification = (wave: TableWaveRecord): boolean => {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return false;
+  }
+
+  if (window.Notification.permission !== 'granted') {
+    return false;
+  }
+
+  try {
+    const notification = new window.Notification(`Guest wave from ${wave.table_reference}`, {
+      body: 'A guest is calling for staff assistance right now.',
+      icon: '/vite.svg',
+      badge: '/vite.svg',
+      tag: `table-wave-${wave.id}`,
+      requireInteraction: true,
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+
+    return true;
+  } catch (error) {
+    console.warn('[Realtime] Browser notification failed to show.', error);
+    return false;
+  }
 };
 
 const StaffOrdersPage: React.FC = () => {
@@ -34,6 +82,9 @@ const StaffOrdersPage: React.FC = () => {
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
   const [adminRealtimeTableIds, setAdminRealtimeTableIds] = useState<number[]>([]);
+  const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationStatus>(() => (
+    getNotificationStatus()
+  ));
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -56,6 +107,26 @@ const StaffOrdersPage: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    const syncNotificationStatus = () => {
+      setNotificationStatus(getNotificationStatus());
+    };
+
+    syncNotificationStatus();
+
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.addEventListener('focus', syncNotificationStatus);
+    document.addEventListener('visibilitychange', syncNotificationStatus);
+
+    return () => {
+      window.removeEventListener('focus', syncNotificationStatus);
+      document.removeEventListener('visibilitychange', syncNotificationStatus);
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.role !== 'admin' || !user.restaurant?.slug) {
@@ -153,8 +224,12 @@ const StaffOrdersPage: React.FC = () => {
           return [nextWave, ...current];
         });
 
-        setNotice(`New wave from ${nextWave.table_reference}.`);
-        window.alert(`New wave from table ${nextWave.table_reference}.`);
+        const notificationShown = showWaveNotification(nextWave);
+        setNotice(
+          notificationShown
+            ? `New wave from ${nextWave.table_reference}. A browser notification was sent.`
+            : `New wave from ${nextWave.table_reference}.`
+        );
       });
 
       channel.listen('.table-wave.resolved', (event: { wave?: TableWaveRecord }) => {
@@ -193,6 +268,25 @@ const StaffOrdersPage: React.FC = () => {
   const waveCountLabel = useMemo(() => (
     `${waves.length} wave${waves.length === 1 ? '' : 's'} waiting for service`
   ), [waves.length]);
+
+  const handleEnableNotifications = async () => {
+    setError(null);
+
+    const nextStatus = await requestNotificationAccess();
+    setNotificationStatus(nextStatus);
+
+    if (nextStatus === 'granted') {
+      setNotice('Staff browser notifications are now enabled for guest waves.');
+      return;
+    }
+
+    if (nextStatus === 'denied') {
+      setError('Browser notifications are blocked. Enable them in your browser settings to receive guest wave popups.');
+      return;
+    }
+
+    setNotice('Notification permission was not granted yet.');
+  };
 
   const handleConfirm = async (order: OrderRecord) => {
     setProcessingOrderId(order.id);
@@ -252,10 +346,36 @@ const StaffOrdersPage: React.FC = () => {
           <p className="mt-1 text-sm text-muted">{waveCountLabel} • {orderCountLabel}</p>
         </div>
 
-        <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
-          {loading ? 'Refreshing...' : 'Refresh'}
-        </LiquidButton>
+        <div className="flex flex-wrap items-center gap-3">
+          {notificationStatus === 'default' ? (
+            <LiquidButton tone="secondary" onClick={handleEnableNotifications}>
+              Enable Notifications
+            </LiquidButton>
+          ) : null}
+
+          <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </LiquidButton>
+        </div>
       </div>
+
+      {notificationStatus === 'default' ? (
+        <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
+          Enable browser notifications to receive a popup as soon as a guest waves for staff.
+        </div>
+      ) : null}
+
+      {notificationStatus === 'denied' ? (
+        <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
+          Browser notifications are blocked for this site. Allow them in your browser settings to get realtime guest wave popups.
+        </div>
+      ) : null}
+
+      {notificationStatus === 'unsupported' ? (
+        <div className="mb-4 rounded-xl2 border border-white/10 bg-white/[0.03] p-3 text-sm text-muted">
+          This browser does not support desktop notifications, so guest waves will only appear inside the staff page.
+        </div>
+      ) : null}
 
       {notice ? (
         <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
