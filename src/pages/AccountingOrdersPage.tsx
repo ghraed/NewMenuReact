@@ -126,7 +126,6 @@ const AccountingOrdersPage: React.FC = () => {
   const [tablesLoading, setTablesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tablesError, setTablesError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
@@ -410,14 +409,17 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     setProcessingTarget(`table:${selectedTable}`);
-    setNotice(null);
     setError(null);
 
     try {
       await Promise.all(selectedTableOrders.map((order) => accountConfirmedOrder(order.id, payload)));
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
-      setNotice(`Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`);
+      showToast(
+        `Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`,
+        'secondary',
+        4200
+      );
       setInvoiceTable('');
       setVisibleInvoiceTable('');
     } catch (err: unknown) {
@@ -573,12 +575,6 @@ const AccountingOrdersPage: React.FC = () => {
           </LiquidButton>
         </div>
       </div>
-
-      {notice ? (
-        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
-          {notice}
-        </div>
-      ) : null}
 
       {error ? (
         <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">

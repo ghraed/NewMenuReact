@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
 import api from '../services/api';
-import { GlassCard, GlassInput, GlassPill, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassInput, GlassPill, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
 import { useAuth } from '../contexts/useAuth';
 
@@ -19,10 +19,10 @@ type DishFilter = 'all' | 'active' | 'deleted';
 
 const AdminDashboard: React.FC = () => {
   const { user, refreshUser } = useAuth();
+  const { toast, showToast, dismiss } = useGlassToast(3600);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<DishFilter>('all');
   const [restaurantName, setRestaurantName] = useState(user?.restaurant?.name ?? '');
   const [restaurantError, setRestaurantError] = useState<string | null>(null);
@@ -104,9 +104,9 @@ const AdminDashboard: React.FC = () => {
 
     try {
       const response = await api.delete(`/dishes/${dish.id}`);
-      setNotice(response?.data?.message || `Dish "${dish.name}" moved to deleted state.`);
+      showToast(response?.data?.message || `Dish "${dish.name}" moved to deleted state.`, 'secondary', 4200);
       setOpenMenuDishId(null);
-      fetchDishes();
+      void fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to delete dish'));
     }
@@ -115,9 +115,9 @@ const AdminDashboard: React.FC = () => {
   const handleRestore = async (dish: Dish) => {
     try {
       const response = await api.post(`/dishes/${dish.id}/restore`);
-      setNotice(response?.data?.message || `Dish "${dish.name}" restored.`);
+      showToast(response?.data?.message || `Dish "${dish.name}" restored.`, 'secondary', 4200);
       setOpenMenuDishId(null);
-      fetchDishes();
+      void fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to restore dish'));
     }
@@ -131,9 +131,9 @@ const AdminDashboard: React.FC = () => {
 
     try {
       const response = await api.delete(`/dishes/${dish.id}/force`);
-      setNotice(response?.data?.message || `Dish "${dish.name}" permanently deleted.`);
+      showToast(response?.data?.message || `Dish "${dish.name}" permanently deleted.`, 'secondary', 4200);
       setOpenMenuDishId(null);
-      fetchDishes();
+      void fetchDishes();
     } catch (err: unknown) {
       alert(getErrorMessage(err, 'Failed to permanently delete dish'));
     }
@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await api.patch('/restaurant/name', { name: nextName });
       setRestaurantName(response.data?.restaurant?.name ?? nextName);
-      setNotice(response.data?.message || 'Restaurant name updated.');
+      showToast(response.data?.message || 'Restaurant name updated.', 'secondary', 4200);
       await refreshUser();
     } catch (err: unknown) {
       setRestaurantError(getErrorMessage(err, 'Failed to update restaurant name'));
@@ -219,12 +219,6 @@ const AdminDashboard: React.FC = () => {
         <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassPill>
         <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassPill>
       </div>
-
-      {notice && (
-        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
-          {notice}
-        </div>
-      )}
 
       {loading ? (
         <div className="py-12 text-center text-muted">Loading dishes...</div>
@@ -354,6 +348,8 @@ const AdminDashboard: React.FC = () => {
           ))}
         </div>
       )}
+
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

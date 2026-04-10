@@ -21,7 +21,7 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
     <div
       aria-live="polite"
       className={cx(
-        'pointer-events-none fixed right-4 top-4 z-[120] transition-all duration-300 ease-fluid motion-reduce:transition-none',
+        'pointer-events-none fixed right-4 top-4 z-[1000] transition-all duration-300 ease-fluid motion-reduce:transition-none',
         toast.open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
       )}
     >

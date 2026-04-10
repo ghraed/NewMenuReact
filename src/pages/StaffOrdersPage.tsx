@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   enableStaffPushNotifications,
@@ -109,11 +109,11 @@ const getPushSetupMessage = (error: unknown): string | null => {
 
 const StaffOrdersPage: React.FC = () => {
   const { user } = useAuth();
+  const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [waves, setWaves] = useState<TableWaveRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
   const [adminRealtimeTableIds, setAdminRealtimeTableIds] = useState<number[]>([]);
@@ -396,10 +396,12 @@ const StaffOrdersPage: React.FC = () => {
         });
 
         const notificationShown = showWaveNotification(nextWave);
-        setNotice(
+        showToast(
           notificationShown
             ? `New wave from ${nextWave.table_reference}. A browser notification was sent.`
-            : `New wave from ${nextWave.table_reference}.`
+            : `New wave from ${nextWave.table_reference}.`,
+          'secondary',
+          4200
         );
       });
 
@@ -449,7 +451,11 @@ const StaffOrdersPage: React.FC = () => {
       applyPushState(nextState);
 
       if (nextState.permission === 'granted' && nextState.subscribed) {
-        setNotice('Mobile push notifications are now enabled for guest waves.');
+        showToast(
+          'Push notifications are active for this staff browser. Guest waves can alert this device even when the page is backgrounded.',
+          'secondary',
+          4200
+        );
         return;
       }
 
@@ -458,7 +464,7 @@ const StaffOrdersPage: React.FC = () => {
         return;
       }
 
-      setNotice('Notification permission was not granted yet.');
+      showToast('Notification permission was not granted yet.', 'tertiary', 3600);
     } catch (err: unknown) {
       setError(getPushSetupMessage(err) ?? getErrorMessage(err, 'Failed to enable push notifications.'));
     } finally {
@@ -468,13 +474,16 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleConfirm = async (order: OrderRecord) => {
     setProcessingOrderId(order.id);
-    setNotice(null);
     setError(null);
 
     try {
       const response = await confirmPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
-      setNotice(`Confirmed ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`);
+      showToast(
+        `Confirmed ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`,
+        'secondary',
+        4200
+      );
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to confirm order.'));
     } finally {
@@ -484,13 +493,16 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleCancel = async (order: OrderRecord) => {
     setProcessingOrderId(order.id);
-    setNotice(null);
     setError(null);
 
     try {
       const response = await cancelPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
-      setNotice(`Cancelled ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`);
+      showToast(
+        `Cancelled ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`,
+        'secondary',
+        4200
+      );
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to cancel order.'));
     } finally {
@@ -500,13 +512,12 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleResolveWave = async (wave: TableWaveRecord) => {
     setProcessingWaveId(wave.id);
-    setNotice(null);
     setError(null);
 
     try {
       const response = await resolvePendingWave(wave.id);
       setWaves((current) => current.filter((item) => item.id !== wave.id));
-      setNotice(`Marked the wave from ${response.wave.table_reference} as handled.`);
+      showToast(`Marked the wave from ${response.wave.table_reference} as handled.`, 'secondary', 4200);
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to resolve wave.'));
     } finally {
@@ -559,12 +570,6 @@ const StaffOrdersPage: React.FC = () => {
         </div>
       ) : null}
 
-      {notificationStatus === 'granted' && pushSubscribed ? (
-        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
-          Push notifications are active for this staff browser. Guest waves can alert this device even when the page is backgrounded.
-        </div>
-      ) : null}
-
       {isIosLike && isStandalone && notificationStatus === 'granted' && !pushSubscribed ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
           Notifications are allowed, but this iPhone app is not subscribed to web push yet. Tap the push button again to finish device registration.
@@ -580,12 +585,6 @@ const StaffOrdersPage: React.FC = () => {
       {notificationStatus === 'unsupported' ? (
         <div className="mb-4 rounded-xl2 border border-white/10 bg-white/[0.03] p-3 text-sm text-muted">
           This browser does not support desktop notifications, so guest waves will only appear inside the staff page.
-        </div>
-      ) : null}
-
-      {notice ? (
-        <div className="mb-4 rounded-xl2 border border-sage/40 bg-sage/10 p-3 text-sm text-sage">
-          {notice}
         </div>
       ) : null}
 
@@ -624,14 +623,15 @@ const StaffOrdersPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
+                <div className="w-full rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-left">
                   <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Service Call</p>
                   <p className="mt-2 text-lg font-semibold text-text">{wave.table_reference}</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="flex w-full flex-wrap gap-3">
                 <LiquidButton
+                  className="w-full"
                   tone="primary"
                   onClick={() => handleResolveWave(wave)}
                   disabled={processingWaveId === wave.id}
@@ -704,6 +704,8 @@ const StaffOrdersPage: React.FC = () => {
           ))}
         </div>
       ) : null}
+
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };
