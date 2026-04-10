@@ -3,9 +3,11 @@ import type {
   AccountOrderRequest,
   CreateGuestOrderRequest,
   OrderRecord,
+  PublishedDishSummary,
   RestaurantSummary,
   RestaurantTableSummary,
   TableWaveRecord,
+  UpdatePendingOrderRequest,
 } from '../types';
 
 interface OrderResponse {
@@ -15,6 +17,10 @@ interface OrderResponse {
 
 interface PendingOrdersResponse {
   orders: OrderRecord[];
+}
+
+interface PublishedDishesResponse {
+  dishes: PublishedDishSummary[];
 }
 
 interface GuestTablesResponse {
@@ -90,9 +96,22 @@ export const confirmPendingOrder = async (orderId: number): Promise<OrderRespons
   return response.data;
 };
 
+export const updatePendingOrder = async (
+  orderId: number,
+  payload: UpdatePendingOrderRequest
+): Promise<OrderResponse> => {
+  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload);
+  return response.data;
+};
+
 export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse> => {
   const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`);
   return response.data;
+};
+
+export const fetchPublishedDishes = async (): Promise<PublishedDishSummary[]> => {
+  const response = await api.get<PublishedDishesResponse>('/dishes/published');
+  return response.data.dishes;
 };
 
 export const fetchAccountingOrders = async (): Promise<OrderRecord[]> => {

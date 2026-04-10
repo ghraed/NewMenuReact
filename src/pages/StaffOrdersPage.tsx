@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
@@ -12,12 +13,14 @@ import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
+  fetchPublishedDishes,
   fetchGuestTables,
   fetchPendingOrders,
   fetchPendingWaves,
   resolvePendingWave,
+  updatePendingOrder,
 } from '../services/orderService';
-import type { OrderRecord, TableWaveRecord } from '../types';
+import type { OrderRecord, PublishedDishSummary, TableWaveRecord, UpdatePendingOrderRequest } from '../types';
 
 type BrowserNotificationStatus = NotificationPermission | 'unsupported';
 const MOBILE_POLL_INTERVAL_MS = 10000;
@@ -116,6 +119,11 @@ const StaffOrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
+  const [editorBusyAction, setEditorBusyAction] = useState<'save' | 'saveConfirm' | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
+  const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
+  const [publishedDishesLoading, setPublishedDishesLoading] = useState(false);
+  const [publishedDishesError, setPublishedDishesError] = useState<string | null>(null);
   const [adminRealtimeTableIds, setAdminRealtimeTableIds] = useState<number[]>([]);
   const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationStatus>(() => (
     getNotificationStatus()
@@ -127,6 +135,7 @@ const StaffOrdersPage: React.FC = () => {
   const [isStandalone, setIsStandalone] = useState(false);
   const [requiresHomeScreenInstall, setRequiresHomeScreenInstall] = useState(false);
   const refreshInFlightRef = useRef(false);
+  const hasLoadedPublishedDishesRef = useRef(false);
 
   const applyPushState = useCallback((nextState: Awaited<ReturnType<typeof getStaffPushState>>) => {
     setNotificationStatus(nextState.permission);
@@ -172,6 +181,29 @@ const StaffOrdersPage: React.FC = () => {
     }
   }, []);
 
+  const replaceOrder = useCallback((nextOrder: OrderRecord) => {
+    setOrders((current) => current.map((item) => (item.id === nextOrder.id ? nextOrder : item)));
+  }, []);
+
+  const loadPublishedMenu = useCallback(async () => {
+    if (publishedDishesLoading || hasLoadedPublishedDishesRef.current) {
+      return;
+    }
+
+    setPublishedDishesLoading(true);
+    setPublishedDishesError(null);
+
+    try {
+      const nextDishes = await fetchPublishedDishes();
+      setPublishedDishes(nextDishes);
+      hasLoadedPublishedDishesRef.current = true;
+    } catch (err: unknown) {
+      setPublishedDishesError(getErrorMessage(err, 'Failed to load published dishes.'));
+    } finally {
+      setPublishedDishesLoading(false);
+    }
+  }, [publishedDishesLoading]);
+
   const loadOrders = useCallback(async () => {
     await refreshStaffActivity();
   }, [refreshStaffActivity]);
@@ -179,6 +211,13 @@ const StaffOrdersPage: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    setEditingOrder(null);
+    setPublishedDishes([]);
+    setPublishedDishesError(null);
+    hasLoadedPublishedDishesRef.current = false;
+  }, [user?.restaurant?.id]);
 
   useEffect(() => {
     const syncMobileEnvironment = () => {
@@ -276,7 +315,7 @@ const StaffOrdersPage: React.FC = () => {
   }, [refreshStaffActivity]);
 
   useEffect(() => {
-    if (!mobilePollingEnabled || !user?.restaurant?.id) {
+    if (!mobilePollingEnabled || !user?.restaurant?.id || editingOrder !== null) {
       return undefined;
     }
 
@@ -297,7 +336,7 @@ const StaffOrdersPage: React.FC = () => {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [mobilePollingEnabled, refreshStaffActivity, user?.restaurant?.id]);
+  }, [editingOrder, mobilePollingEnabled, refreshStaffActivity, user?.restaurant?.id]);
 
   useEffect(() => {
     if (user?.role !== 'admin' || !user.restaurant?.slug) {
@@ -525,6 +564,72 @@ const StaffOrdersPage: React.FC = () => {
     }
   };
 
+  const handleOpenEditor = (order: OrderRecord) => {
+    if (order.items.some((item) => item.dish_id === null)) {
+      showToast('This order contains legacy items and can only be confirmed or cancelled.', 'tertiary', 4200);
+      return;
+    }
+
+    setEditingOrder(order);
+    void loadPublishedMenu();
+  };
+
+  const handleSaveEditedOrder = async (payload: UpdatePendingOrderRequest) => {
+    if (!editingOrder) {
+      return;
+    }
+
+    setEditorBusyAction('save');
+    setError(null);
+
+    try {
+      const response = await updatePendingOrder(editingOrder.id, payload);
+      replaceOrder(response.order);
+      setEditingOrder(null);
+      showToast(response.message || `Updated ${response.order.order_number || `order #${response.order.id}`}.`, 'secondary', 4200);
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Failed to save order changes.'), 'tertiary', 4800);
+    } finally {
+      setEditorBusyAction(null);
+    }
+  };
+
+  const handleSaveAndConfirmEditedOrder = async (payload: UpdatePendingOrderRequest) => {
+    if (!editingOrder) {
+      return;
+    }
+
+    setEditorBusyAction('saveConfirm');
+    setError(null);
+
+    try {
+      const updateResponse = await updatePendingOrder(editingOrder.id, payload);
+      replaceOrder(updateResponse.order);
+      setEditingOrder(null);
+
+      try {
+        const confirmResponse = await confirmPendingOrder(updateResponse.order.id);
+        setOrders((current) => current.filter((item) => item.id !== updateResponse.order.id));
+        showToast(
+          `Saved changes and confirmed ${confirmResponse.order.order_number || `order #${confirmResponse.order.id}`} for ${confirmResponse.order.table_reference}.`,
+          'secondary',
+          4200
+        );
+      } catch (confirmError: unknown) {
+        setError(getErrorMessage(confirmError, 'Failed to confirm order after saving changes.'));
+        showToast(
+          `Changes saved, but confirming ${updateResponse.order.order_number || `order #${updateResponse.order.id}`} failed.`,
+          'tertiary',
+          5200
+        );
+      }
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Failed to save order changes.'), 'tertiary', 4800);
+    } finally {
+      setEditorBusyAction(null);
+    }
+  };
+
   return (
     <DashboardLayout title="Staff Service Requests">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -684,11 +789,20 @@ const StaffOrdersPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <LiquidButton
+                  tone="secondary"
+                  onClick={() => handleOpenEditor(order)}
+                  disabled={processingOrderId === order.id || order.items.some((item) => item.dish_id === null)}
+                  className="w-full"
+                >
+                  Edit Order
+                </LiquidButton>
                 <LiquidButton
                   tone="tertiary"
                   onClick={() => handleCancel(order)}
                   disabled={processingOrderId === order.id}
+                  className="w-full"
                 >
                   {processingOrderId === order.id ? 'Processing...' : 'Cancel Request'}
                 </LiquidButton>
@@ -696,14 +810,32 @@ const StaffOrdersPage: React.FC = () => {
                   tone="primary"
                   onClick={() => handleConfirm(order)}
                   disabled={processingOrderId === order.id}
+                  className="w-full"
                 >
                   {processingOrderId === order.id ? 'Processing...' : 'Confirm Request'}
                 </LiquidButton>
               </div>
+
+              {order.items.some((item) => item.dish_id === null) ? (
+                <p className="text-sm text-muted">
+                  This order contains legacy items and can only be confirmed or cancelled.
+                </p>
+              ) : null}
             </GlassCard>
           ))}
         </div>
       ) : null}
+
+      <StaffOrderEditor
+        order={editingOrder}
+        dishes={publishedDishes}
+        dishesLoading={publishedDishesLoading}
+        dishesError={publishedDishesError}
+        busyAction={editorBusyAction}
+        onClose={() => setEditingOrder(null)}
+        onSave={handleSaveEditedOrder}
+        onSaveAndConfirm={handleSaveAndConfirmEditedOrder}
+      />
 
       <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>

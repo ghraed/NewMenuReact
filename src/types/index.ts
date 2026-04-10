@@ -141,6 +141,13 @@ export interface CreateGuestOrderRequest {
   }>;
 }
 
+export interface UpdatePendingOrderRequest {
+  items: Array<{
+    dish_id: number;
+    quantity: number;
+  }>;
+}
+
 export interface AccountOrderRequest {
   vat_rate?: number;
   discount_type?: DiscountType;
@@ -206,6 +213,13 @@ export interface TableWaveRecord {
   created_at: string | null;
   resolved_at: string | null;
   resolved_by: OrderActorSummary | null;
+}
+
+export interface PublishedDishSummary {
+  id: number;
+  name: string;
+  price: number;
+  category: string;
 }
 
 export const trackEvent: (
