@@ -10,8 +10,8 @@ interface GlassToastProps {
 }
 
 const toneClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'border-emerald-700 bg-emerald-600 text-white',
-  secondary: 'border-green-800 bg-green-700 text-white',
+  primary: 'border-lime-700 bg-lime-600 text-white',
+  secondary: 'border-green-700 bg-green-600 text-white',
   tertiary: 'border-red-800 bg-red-700 text-white',
 };
 
@@ -39,9 +39,10 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-white/30 bg-white text-xs text-black transition hover:bg-white/90"
+              aria-label="Close toast"
+              className="text-sm font-semibold leading-none text-white/90 transition hover:text-white"
             >
-              Close
+              X
             </button>
           )}
         </div>
