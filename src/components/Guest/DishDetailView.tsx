@@ -52,7 +52,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
           <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">Explore the plated form</h2>
 
           <div className="mt-5">
-            <DishViewer dish={dish} viewerClassName="h-[22rem] sm:h-[26rem] lg:h-[34rem]" />
+            <DishViewer
+              dish={dish}
+              viewerClassName="h-[22rem] sm:h-[26rem] lg:h-[34rem]"
+              missingModelBehavior="image-note"
+            />
           </div>
 
           <div className="mt-5">
