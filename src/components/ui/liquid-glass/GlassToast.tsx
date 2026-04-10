@@ -9,7 +9,15 @@ interface GlassToastProps {
   className?: string;
 }
 
+const toneClass: Record<NonNullable<ToastState['tone']>, string> = {
+  primary: 'border-emerald-700 bg-emerald-600 text-white',
+  secondary: 'border-green-800 bg-green-700 text-white',
+  tertiary: 'border-red-800 bg-red-700 text-white',
+};
+
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
+  const tone = toast.tone || 'primary';
+
   const content = (
     <div
       aria-live="polite"
@@ -20,17 +28,18 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
     >
       <div
         className={cx(
-          'pointer-events-auto relative rounded-2xl border border-black/10 bg-white px-4 py-3 text-black shadow-[0_18px_40px_rgba(0,0,0,0.22)]',
+          'pointer-events-auto relative rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)]',
+          toneClass[tone],
           className
         )}
       >
         <div className="relative z-10 flex items-center gap-3">
-          <span className="text-sm font-medium text-black">{toast.message}</span>
+          <span className="text-sm font-medium text-white">{toast.message}</span>
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-black/10 bg-black/[0.04] px-2 py-1 text-xs text-black/80 transition hover:bg-black/[0.08] hover:text-black"
+              className="rounded-full border border-white/30 bg-white text-xs text-black transition hover:bg-white/90"
             >
               Close
             </button>
