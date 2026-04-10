@@ -629,7 +629,7 @@ const StaffOrdersPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex w-full flex-wrap gap-3">
+              <div className="mt-2 flex w-full flex-wrap gap-3">
                 <LiquidButton
                   className="w-full"
                   tone="primary"

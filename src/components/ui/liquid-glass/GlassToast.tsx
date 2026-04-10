@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { cx } from '../../../theme/liquidGlass';
 import type { ToastState } from './useGlassToast';
 
@@ -17,11 +18,11 @@ const toneClass: Record<NonNullable<ToastState['tone']>, string> = {
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
   const tone = toast.tone || 'primary';
 
-  return (
+  const content = (
     <div
       aria-live="polite"
       className={cx(
-        'pointer-events-none fixed right-4 top-4 z-[1000] transition-all duration-300 ease-fluid motion-reduce:transition-none',
+        'pointer-events-none fixed right-4 top-4 z-[2147483647] transition-all duration-300 ease-fluid motion-reduce:transition-none',
         toast.open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
       )}
     >
@@ -41,6 +42,12 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') {
+    return content;
+  }
+
+  return createPortal(content, document.body);
 };
 
 export default GlassToast;
