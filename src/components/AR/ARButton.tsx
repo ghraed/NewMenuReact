@@ -42,6 +42,22 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
     );
   }
 
+  if (isIOS && glbUrlAbs && !usdzUrlAbs) {
+    return (
+      <div
+        className="rounded-[24px] border p-4 text-sm"
+        style={{
+          backgroundColor: 'var(--guest-accent-soft, rgb(var(--color-gold) / 0.12))',
+          borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+          color: 'var(--guest-text, rgb(var(--color-text) / 0.92))',
+        }}
+      >
+        iPhone/iPad AR is not available for this dish yet. The 3D viewer still works, but this item needs a USDZ
+        model file for Quick Look.
+      </div>
+    );
+  }
+
   if (isAndroid && glbUrlAbs) {
     const viewerUrl = `https://arvr.google.com/scene-viewer/1.0?file=${encodeURIComponent(glbUrlAbs)}&mode=ar_preferred`;
 

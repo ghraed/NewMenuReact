@@ -1235,8 +1235,11 @@ const DishForm: React.FC<DishFormProps> = ({
           </div>
           <p className="text-xs text-muted">
             {requireModelUpload
-              ? 'Upload at least one file. Allowed extensions: .glb, .usdz'
-              : 'Optional on update. Upload new model files only when needed.'}
+              ? 'Upload at least one file. GLB powers Android/WebXR, and USDZ powers iPhone/iPad AR.'
+              : 'Optional on update. Upload new model files only when needed. GLB powers Android/WebXR, and USDZ powers iPhone/iPad AR.'}
+          </p>
+          <p className="text-xs text-muted">
+            Upload both files if you want the dish to support AR on both platforms.
           </p>
         </div>
       </div>

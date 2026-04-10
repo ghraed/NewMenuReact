@@ -120,7 +120,7 @@ const CreateDishPage: React.FC = () => {
     <DashboardLayout title="Create New Dish">
       <div className="mb-6">
         <h2 className="mb-2 text-xl font-semibold text-text">Add a new menu item</h2>
-        <p className="text-muted">Create a dish with at least one 3D model (.glb or .usdz).</p>
+        <p className="text-muted">Create a dish with 3D assets. Upload both .glb and .usdz if you want AR on Android and iPhone/iPad.</p>
       </div>
 
       {error && <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>}

@@ -409,6 +409,19 @@ const EditDishPage: React.FC = () => {
           </div>
         )}
 
+        {glbUrl && !usdzUrl && (
+          <div className="mt-3 rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-sm text-gold2">
+            Android/WebXR is available, but iPhone/iPad AR is not. Upload a USDZ file to enable Quick Look on iOS.
+          </div>
+        )}
+
+        {!glbUrl && usdzUrl && (
+          <div className="mt-3 rounded-xl2 border border-gold/35 bg-gold/10 p-4 text-sm text-gold2">
+            iPhone/iPad AR is available, but Android/WebXR is not. Upload a GLB file to enable Scene Viewer and the web
+            viewer.
+          </div>
+        )}
+
         <div className="mt-3 text-xs text-muted">
           {glbUrl && <div>GLB: {glbUrl}</div>}
           {usdzUrl && <div>USDZ: {usdzUrl}</div>}
