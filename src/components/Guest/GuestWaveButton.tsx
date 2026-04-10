@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { fetchGuestTables, sendGuestWave } from '../../services/orderService';
 import type { RestaurantTableSummary } from '../../types';
@@ -20,6 +21,7 @@ const GuestWaveButton: React.FC = () => {
   const location = useLocation();
   const params = useParams<{ restaurant_slug?: string }>();
   const { restaurant, draft, updateDraft, totalItems } = useOrderCart();
+  const { toast, showToast, dismiss } = useGlassToast(3200);
 
   const restaurantSlug = restaurant?.slug || params.restaurant_slug || getPreferredGuestRestaurantSlug();
   const hasCartShortcut = totalItems > 0 && location.pathname !== '/order/review';
@@ -28,7 +30,6 @@ const GuestWaveButton: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingTables, setIsLoadingTables] = useState(false);
   const [tablesError, setTablesError] = useState<string | null>(null);
-  const [waveNotice, setWaveNotice] = useState<string | null>(null);
   const [waveError, setWaveError] = useState<string | null>(null);
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [pendingTableReference, setPendingTableReference] = useState(selectedTable);
@@ -41,18 +42,6 @@ const GuestWaveButton: React.FC = () => {
     setTables([]);
     setTablesError(null);
   }, [restaurantSlug]);
-
-  useEffect(() => {
-    if (!waveNotice) {
-      return undefined;
-    }
-
-    const timer = window.setTimeout(() => {
-      setWaveNotice(null);
-    }, 3200);
-
-    return () => window.clearTimeout(timer);
-  }, [waveNotice]);
 
   useEffect(() => {
     if (!isDialogOpen || !restaurantSlug || tables.length > 0) {
@@ -97,7 +86,7 @@ const GuestWaveButton: React.FC = () => {
       });
       updateDraft({ tableReference });
       setIsDialogOpen(false);
-      setWaveNotice(response.message);
+      showToast(response.message || 'Wave sent to the staff team.', 'primary', 3200);
     } catch (error: unknown) {
       setWaveError(getErrorMessage(error, 'Failed to send the wave to staff.'));
       setPendingTableReference(tableReference);
@@ -123,20 +112,6 @@ const GuestWaveButton: React.FC = () => {
     <>
       <div className={wrapperClassName}>
         <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
-          {waveNotice ? (
-            <div
-              className="max-w-xs rounded-[22px] border px-4 py-3 text-sm"
-              style={{
-                backgroundColor: 'var(--guest-panel)',
-                borderColor: 'var(--guest-border)',
-                color: 'var(--guest-text)',
-                boxShadow: 'var(--guest-shadow-soft)',
-              }}
-            >
-              {waveNotice}
-            </div>
-          ) : null}
-
           <button
             type="button"
             onClick={handleWaveClick}
@@ -154,6 +129,8 @@ const GuestWaveButton: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <GlassToast toast={toast} onClose={dismiss} />
 
       {isDialogOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 px-4 py-6 sm:items-center">
