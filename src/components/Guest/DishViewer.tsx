@@ -12,23 +12,24 @@ import { resolveAssetUrl } from '../../services/api';
 interface DishViewerProps {
   dish: Dish;
   viewerClassName?: string;
-  missingModelBehavior?: 'error' | 'image-note';
+  presentationMode?: 'default' | 'guest-detail';
 }
 
 const DishViewer: React.FC<DishViewerProps> = ({
   dish,
   viewerClassName = 'h-96',
-  missingModelBehavior = 'error',
+  presentationMode = 'default',
 }) => {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCanvasVisible, setIsCanvasVisible] = useState(false);
+  const [isModelReady, setIsModelReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelLoadFailed, setModelLoadFailed] = useState(false);
   const capabilities = useDeviceCapability();
   const { trackEvent } = useAnalytics();
+  const isGuestDetail = presentationMode === 'guest-detail';
 
   // The project uses broad local shims for three.js example modules, so these refs stay loosely typed here.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,13 +39,20 @@ const DishViewer: React.FC<DishViewerProps> = ({
   const animationIdRef = useRef<number>(0);
   const isCleaningUpRef = useRef(false);
   const hasDishAssets = Array.isArray(dish?.assets);
-  const posterUrl = resolveAssetUrl(
-    hasDishAssets ? dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url || dish.image_url : null
+  const previewAssetUrl = resolveAssetUrl(
+    hasDishAssets ? dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url : null
   );
+  const dishPhotoUrl = resolveAssetUrl(dish?.image_url ?? null);
   const glbUrl = resolveAssetUrl(hasDishAssets ? dish.assets.find((asset) => asset.asset_type === 'glb')?.file_url : null);
-  const shouldUseImageFallback = missingModelBehavior === 'image-note' && (!glbUrl || modelLoadFailed);
-  const shouldShowArButton = !shouldUseImageFallback && Boolean(glbUrl) && (capabilities.isARSupported || isIOS || isAndroid);
-  const shouldShowArUnsupportedNotice = !shouldUseImageFallback && Boolean(glbUrl) && !capabilities.isARSupported && !isIOS && !isAndroid;
+  const guestPreviewUrl = dishPhotoUrl || previewAssetUrl;
+  const defaultPreviewUrl = previewAssetUrl || dishPhotoUrl;
+  const loadingPreviewUrl = isGuestDetail ? guestPreviewUrl : defaultPreviewUrl;
+  const fallbackPreviewUrl = guestPreviewUrl || defaultPreviewUrl;
+  const shouldShowStaticFallback = isGuestDetail && (!glbUrl || modelLoadFailed);
+  const shouldShowLoadingPreview = isGuestDetail && Boolean(glbUrl) && !modelLoadFailed && !isModelReady;
+  const isInteractive = Boolean(glbUrl) && !modelLoadFailed && isModelReady;
+  const shouldShowArButton = Boolean(glbUrl) && !modelLoadFailed && (capabilities.isARSupported || isIOS || isAndroid);
+  const shouldShowArUnsupportedNotice = Boolean(glbUrl) && !modelLoadFailed && !capabilities.isARSupported && !isIOS && !isAndroid;
 
   useEffect(() => {
     if (!hasDishAssets) {
@@ -57,7 +65,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
     /* eslint-disable react-hooks/set-state-in-effect */
     isCleaningUpRef.current = false;
     setIsLoading(true);
-    setIsCanvasVisible(false);
+    setIsModelReady(false);
     setError(null);
     setModelLoadFailed(false);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -68,7 +76,12 @@ const DishViewer: React.FC<DishViewerProps> = ({
     if (!glbUrl) {
       controlsRef.current = null;
       rendererRef.current = null;
-      setError('No 3D model available');
+      if (isGuestDetail) {
+        setModelLoadFailed(true);
+        setError(null);
+      } else {
+        setError('No 3D model available');
+      }
       setIsLoading(false);
       return;
     }
@@ -87,21 +100,6 @@ const DishViewer: React.FC<DishViewerProps> = ({
     renderer.domElement.style.opacity = '0';
     renderer.domElement.style.transition = 'opacity 450ms cubic-bezier(0.16, 1, 0.3, 1)';
     rendererRef.current = renderer;
-    mountNode.appendChild(renderer.domElement);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-    controls.enablePan = false;
-    controls.minDistance = 1.5;
-    controls.maxDistance = 5;
-    controls.autoRotate = false;
-    controls.minPolarAngle = 0;
-    controls.maxPolarAngle = Math.PI - 0.08;
-    controlsRef.current = controls;
-
-    renderer.domElement.style.touchAction = 'none';
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
     scene.add(ambientLight);
@@ -156,6 +154,46 @@ const DishViewer: React.FC<DishViewerProps> = ({
 
     const loader = new GLTFLoader();
 
+    const enableInteractiveViewer = () => {
+      if (!mountNode.contains(renderer.domElement)) {
+        mountNode.appendChild(renderer.domElement);
+      }
+
+      renderer.domElement.style.touchAction = 'none';
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enableZoom = true;
+      controls.enablePan = false;
+      controls.minDistance = 1.5;
+      controls.maxDistance = 5;
+      controls.autoRotate = false;
+      controls.minPolarAngle = 0;
+      controls.maxPolarAngle = Math.PI - 0.08;
+      controls.target.set(0, 0, 0);
+      controls.update();
+      controlsRef.current = controls;
+
+      const animate = () => {
+        if (isCleaningUpRef.current) return;
+        animationIdRef.current = requestAnimationFrame(animate);
+        controlsRef.current?.update();
+        renderer.render(scene, camera);
+      };
+
+      renderer.render(scene, camera);
+
+      requestAnimationFrame(() => {
+        if (isCleaningUpRef.current) return;
+        renderer.domElement.style.opacity = '1';
+        setIsModelReady(true);
+        setIsLoading(false);
+        animate();
+        trackEvent('3d_model_loaded');
+      });
+    };
+
     loader.load(
       glbUrl,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -184,19 +222,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
         scene.add(model);
 
         camera.position.set(0, 1.8, 2.2);
-        controls.target.set(0, 0, 0);
-        controls.autoRotate = false;
-        controls.update();
-
-        renderer.render(scene, camera);
-        requestAnimationFrame(() => {
-          if (isCleaningUpRef.current) return;
-          renderer.domElement.style.opacity = '1';
-          setIsCanvasVisible(true);
-        });
-
-        setIsLoading(false);
-        trackEvent('3d_model_loaded');
+        enableInteractiveViewer();
       },
       undefined,
       () => {
@@ -204,7 +230,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
 
         cleanupViewer();
 
-        if (missingModelBehavior === 'image-note') {
+        if (isGuestDetail) {
           setModelLoadFailed(true);
           setError(null);
         } else {
@@ -213,14 +239,6 @@ const DishViewer: React.FC<DishViewerProps> = ({
         setIsLoading(false);
       }
     );
-
-    const animate = () => {
-      if (isCleaningUpRef.current) return;
-      animationIdRef.current = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
 
     const handleResize = () => {
       if (!mountNode || !rendererRef.current) return;
@@ -236,7 +254,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
       isCleaningUpRef.current = true;
       cleanupViewer();
     };
-  }, [dish.id, dish.assets, glbUrl, hasDishAssets, missingModelBehavior, trackEvent]);
+  }, [dish.id, dish.assets, glbUrl, hasDishAssets, isGuestDetail, trackEvent]);
 
   if (!hasDishAssets) {
     return (
@@ -253,10 +271,10 @@ const DishViewer: React.FC<DishViewerProps> = ({
     );
   }
 
-  const posterContent = posterUrl ? (
+  const posterContent = (loadingPreviewUrl || fallbackPreviewUrl) ? (
     <>
       <img
-        src={posterUrl}
+        src={loadingPreviewUrl || fallbackPreviewUrl}
         alt={dish.name}
         className="h-full w-full object-cover"
         draggable={false}
@@ -282,20 +300,26 @@ const DishViewer: React.FC<DishViewerProps> = ({
     <div className="space-y-4">
       <div
         ref={containerRef}
-        className={`relative w-full overflow-hidden rounded-[28px] border ${shouldUseImageFallback ? '' : 'cursor-grab active:cursor-grabbing'} ${viewerClassName}`}
-        aria-label={shouldUseImageFallback ? 'Dish image preview' : '3D dish viewer - click and drag to rotate'}
+        className={`relative w-full overflow-hidden rounded-[28px] border ${isInteractive ? 'cursor-grab active:cursor-grabbing' : ''} ${viewerClassName}`}
+        aria-label={isInteractive ? '3D dish viewer - click and drag to rotate' : 'Dish image preview'}
         style={{
           backgroundColor: 'var(--guest-panel-strong, rgb(var(--color-bg1)))',
           borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
         }}
       >
-        {!shouldUseImageFallback && posterUrl && !isCanvasVisible && (
+        {!isGuestDetail && !isModelReady && defaultPreviewUrl && (
           <div className="pointer-events-none absolute inset-0">
             {posterContent}
           </div>
         )}
 
-        {shouldUseImageFallback && (
+        {shouldShowLoadingPreview && (
+          <div className="absolute inset-0">
+            {posterContent}
+          </div>
+        )}
+
+        {shouldShowStaticFallback && (
           <>
             <div className="absolute inset-0">
               {posterContent}
@@ -318,7 +342,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
           </>
         )}
 
-        {!shouldUseImageFallback && isLoading && !posterUrl && (
+        {!shouldShowStaticFallback && !shouldShowLoadingPreview && !isModelReady && isLoading && !defaultPreviewUrl && !guestPreviewUrl && (
           <div
             className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm"
             style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 72%, transparent)' }}
@@ -330,7 +354,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
           </div>
         )}
 
-        {!shouldUseImageFallback && error && (
+        {!isGuestDetail && error && (
           <div
             className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4"
             style={{ backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 86%, transparent)' }}

@@ -55,7 +55,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             <DishViewer
               dish={dish}
               viewerClassName="h-[22rem] sm:h-[26rem] lg:h-[34rem]"
-              missingModelBehavior="image-note"
+              presentationMode="guest-detail"
             />
           </div>
 
