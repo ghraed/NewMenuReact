@@ -4,13 +4,17 @@ import {
   GlassCard,
   GlassChip,
   GlassInput,
+  GlassToast,
   LiquidButton,
+  useGlassToast,
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
+
+const ACCOUNTING_POLL_INTERVAL_MS = 5000;
 
 type TableDraftState = Record<string, {
   vatRate: string;
@@ -54,6 +58,8 @@ const parseDraftNumber = (value: string): number => {
 const toCents = (value: number | string): number => Math.round(Number(value || 0) * 100);
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
+
+const getOrderLabel = (order: OrderRecord): string => order.order_number || `order #${order.id}`;
 
 const calculateInvoicePreview = (
   subtotalSource: number | string,
@@ -107,6 +113,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const AccountingOrdersPage: React.FC = () => {
   const { user } = useAuth();
+  const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
@@ -123,23 +130,88 @@ const AccountingOrdersPage: React.FC = () => {
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const hasLoadedOrdersRef = useRef(false);
+  const knownOrderIdsRef = useRef<Set<number>>(new Set());
+  const refreshInFlightRef = useRef(false);
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       const nextOrders = await fetchAccountingOrders();
+      const previousKnownOrderIds = knownOrderIdsRef.current;
+      const newOrders = hasLoadedOrdersRef.current
+        ? nextOrders.filter((order) => !previousKnownOrderIds.has(order.id))
+        : [];
+
       setOrders(nextOrders);
+      setError(null);
+      knownOrderIdsRef.current = new Set(nextOrders.map((order) => order.id));
+      hasLoadedOrdersRef.current = true;
+
+      if (newOrders.length === 1) {
+        const nextOrder = newOrders[0];
+        showToast(
+          `New order ${getOrderLabel(nextOrder)} arrived from ${nextOrder.table_reference}.`,
+          'secondary'
+        );
+      } else if (newOrders.length > 1) {
+        showToast(`${newOrders.length} new orders arrived for accounting.`, 'secondary', 4200);
+      }
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load accounting orders.'));
+      if (!silent) {
+        setError(getErrorMessage(err, 'Failed to load accounting orders.'));
+      }
     } finally {
-      setLoading(false);
+      refreshInFlightRef.current = false;
+
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
-    loadOrders();
+    void loadOrders();
+  }, [loadOrders]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const runSilentRefresh = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      void loadOrders({ silent: true });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void loadOrders({ silent: true });
+      }
+    };
+
+    const intervalId = window.setInterval(runSilentRefresh, ACCOUNTING_POLL_INTERVAL_MS);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [loadOrders]);
 
   useEffect(() => {
@@ -496,7 +568,7 @@ const AccountingOrdersPage: React.FC = () => {
             ) : null}
           </div>
 
-          <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
+          <LiquidButton tone="tertiary" onClick={() => void loadOrders()} disabled={loading}>
             {loading ? 'Refreshing...' : 'Refresh'}
           </LiquidButton>
         </div>
@@ -863,6 +935,7 @@ const AccountingOrdersPage: React.FC = () => {
       ) : null}
 
       
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };
