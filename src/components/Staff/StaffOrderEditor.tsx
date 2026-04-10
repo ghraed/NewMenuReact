@@ -284,13 +284,14 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-            <section>
+            <div className="flex min-h-full flex-col gap-6">
+            <section className="flex min-h-[calc(100vh-24rem)] flex-col sm:min-h-[24rem]">
               <div>
                 <p className="text-sm font-semibold text-text">Current Items</p>
                 <p className="mt-1 text-sm text-muted">Use the large quantity controls to adjust the order quickly.</p>
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 flex-1 space-y-3">
                 {draftItems.length === 0 ? (
                   <div className="rounded-[24px] border border-spicy/30 bg-spicy/10 px-4 py-4 text-sm text-spicy">
                     Add at least one dish before saving this order.
@@ -346,7 +347,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
               </div>
             </section>
 
-            <section className="mt-6">
+            <section className="flex min-h-[calc(100vh-24rem)] flex-col sm:min-h-[24rem]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text">Add Dishes</p>
@@ -363,7 +364,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
               </div>
 
               {isAddSectionOpen ? (
-                <div className="mt-4 rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="mt-4 flex-1 rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
                   <GlassInput
                     ref={searchInputRef}
                     type="search"
@@ -436,6 +437,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                 </div>
               ) : null}
             </section>
+            </div>
           </div>
 
           <div className="sticky bottom-0 z-20 border-t border-white/10 bg-bg1/95 px-4 py-4 backdrop-blur-xl sm:px-6">
