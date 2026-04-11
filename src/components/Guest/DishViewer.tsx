@@ -335,9 +335,6 @@ const DishViewer: React.FC<DishViewerProps> = ({
               <p className="text-sm font-medium text-[var(--guest-text, rgb(var(--color-text) / 0.92))]">
                 3D preview unavailable for this dish.
               </p>
-              <p className="mt-1 text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.72))]">
-                Swipe or scroll here to keep moving through the page.
-              </p>
             </div>
           </>
         )}
