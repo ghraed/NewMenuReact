@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing } from '../../theme/liquidGlass';
 
@@ -9,6 +10,8 @@ interface ARButtonProps {
 }
 
 const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
+  const { t } = useTranslation();
+
   if (!dish?.assets || !Array.isArray(dish.assets)) {
     return null;
   }
@@ -37,7 +40,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           color: 'var(--guest-bg, rgb(var(--color-bg0)))',
         }}
       >
-        <span>View in AR (iOS)</span>
+        <span>{t('ar.viewInArIos')}</span>
       </a>
     );
   }
@@ -52,8 +55,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
           color: 'var(--guest-text, rgb(var(--color-text) / 0.92))',
         }}
       >
-        iPhone/iPad AR is not available for this dish yet. The 3D viewer still works, but this item needs a USDZ
-        model file for Quick Look.
+        {t('ar.iosUnavailable')}
       </div>
     );
   }
@@ -63,7 +65,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
 
     return (
       <div className="space-y-2">
-        <p className="text-center text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.55))]">Requires Chrome and ARCore</p>
+        <p className="text-center text-xs text-[var(--guest-muted, rgb(var(--color-text) / 0.55))]">{t('ar.requiresChrome')}</p>
         <a
           href={viewerUrl}
           target="_blank"
@@ -78,7 +80,7 @@ const ARButton: React.FC<ARButtonProps> = ({ dish }) => {
             color: 'var(--guest-bg, rgb(var(--color-bg0)))',
           }}
         >
-          <span>View in AR (Scene Viewer)</span>
+          <span>{t('ar.viewInArSceneViewer')}</span>
         </a>
       </div>
     );

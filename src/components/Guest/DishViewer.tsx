@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -20,6 +21,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
   viewerClassName = 'h-96',
   presentationMode = 'default',
 }) => {
+  const { t } = useTranslation();
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +82,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
         setModelLoadFailed(true);
         setError(null);
       } else {
-        setError('No 3D model available');
+        setError(t('dishViewer.noModel'));
       }
       setIsLoading(false);
       return;
@@ -234,7 +236,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
           setModelLoadFailed(true);
           setError(null);
         } else {
-          setError('Failed to load 3D model');
+          setError(t('dishViewer.failedToLoadModel'));
         }
         setIsLoading(false);
       }
@@ -266,7 +268,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
           color: 'var(--guest-text, rgb(var(--color-text) / 0.92))',
         }}
       >
-        Error: Dish data not available
+        {t('dishViewer.noDishData')}
       </div>
     );
   }
@@ -301,7 +303,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
       <div
         ref={containerRef}
         className={`relative w-full overflow-hidden rounded-[28px] border ${isInteractive ? 'cursor-grab active:cursor-grabbing' : ''} ${viewerClassName}`}
-        aria-label={isInteractive ? '3D dish viewer - click and drag to rotate' : 'Dish image preview'}
+        aria-label={isInteractive ? t('dishViewer.interactiveLabel') : t('dishViewer.previewLabel')}
         style={{
           backgroundColor: 'var(--guest-panel-strong, rgb(var(--color-bg1)))',
           borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',

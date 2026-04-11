@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../../contexts/useOrderCart';
 
 const GuestCartShortcut: React.FC = () => {
   const location = useLocation();
+  const { t } = useTranslation();
   const { totalItems, subtotal } = useOrderCart();
 
   if (totalItems === 0 || location.pathname === '/order/review') {
@@ -22,7 +24,7 @@ const GuestCartShortcut: React.FC = () => {
           boxShadow: 'var(--guest-shadow)',
         }}
       >
-        <span>{totalItems} item{totalItems === 1 ? '' : 's'} in cart</span>
+        <span>{t('cart.itemsInCart', { count: totalItems })}</span>
         <span>${subtotal.toFixed(2)}</span>
       </Link>
     </div>

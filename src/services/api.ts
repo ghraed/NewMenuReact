@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getStoredLanguage } from '../i18n/language';
 
 const isLocalhost = window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1';
@@ -16,10 +17,16 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('admin_auth_token');
+  const language = getStoredLanguage();
+
+  config.headers = config.headers || {};
+
   if (token) {
-    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  config.headers['Accept-Language'] = language;
+  config.headers['X-Locale'] = language;
   return config;
 });
 

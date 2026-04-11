@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 
 export type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -160,18 +161,24 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
 export default LoadingSpinner;
 
-export const PageLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => (
-  <LoadingSpinner size="lg" type="ring" fullPage text="Loading..." variant="primary" {...props} />
-);
+export const PageLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => {
+  const { t } = useTranslation();
+
+  return <LoadingSpinner size="lg" type="ring" fullPage text={t('common.loading')} variant="primary" {...props} />;
+};
 
 export const ButtonLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => (
   <LoadingSpinner size="sm" type="dots" inline variant="light" {...props} />
 );
 
-export const CardLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => (
-  <LoadingSpinner size="md" type="pulse" text="Loading content..." variant="secondary" {...props} />
-);
+export const CardLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => {
+  const { t } = useTranslation();
 
-export const TableLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => (
-  <LoadingSpinner size="md" type="bars" text="Loading data..." variant="primary" {...props} />
-);
+  return <LoadingSpinner size="md" type="pulse" text={t('common.loadingContent')} variant="secondary" {...props} />;
+};
+
+export const TableLoader: React.FC<Partial<LoadingSpinnerProps>> = (props) => {
+  const { t } = useTranslation();
+
+  return <LoadingSpinner size="md" type="bars" text={t('common.loadingData')} variant="primary" {...props} />;
+};

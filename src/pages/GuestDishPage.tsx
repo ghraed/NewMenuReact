@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -15,6 +16,7 @@ import {
 
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, dish_id } = useParams<{ restaurant_slug?: string; dish_id: string }>();
+  const { t } = useTranslation();
   const { addDish, getDishQuantity } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
   const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
@@ -50,10 +52,10 @@ const GuestDishPage: React.FC = () => {
         }
 
         if (!loaded) {
-          throw new Error('Failed to load dish');
+          throw new Error(t('dishPage.failedToLoad'));
         }
       } catch (err) {
-        setError('Failed to load dish');
+        setError(t('dishPage.failedToLoad'));
         console.error(err);
       } finally {
         setLoading(false);
@@ -75,7 +77,7 @@ const GuestDishPage: React.FC = () => {
               boxShadow: 'var(--guest-shadow)',
             }}
           >
-            <LoadingSpinner inline text="Loading dish..." />
+            <LoadingSpinner inline text={t('dishPage.loadingDish')} />
           </div>
         ) : null}
 
@@ -101,7 +103,7 @@ const GuestDishPage: React.FC = () => {
               color: 'var(--guest-muted)',
             }}
           >
-            Dish not found
+            {t('dishPage.notFound')}
           </div>
         ) : null}
 

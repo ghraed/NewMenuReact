@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { GuestThemeMode } from '../../hooks/useGuestTheme';
 
 interface ThemeToggleProps {
@@ -22,15 +23,17 @@ const MoonIcon = () => (
 );
 
 const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
+  const { t } = useTranslation();
   const isLight = theme === 'light';
 
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
-      className="fixed right-4 top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:right-6 sm:top-6"
+      aria-label={isLight ? t('theme.switchToDark') : t('theme.switchToLight')}
+      className="fixed top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
       style={{
+        insetInlineEnd: '1rem',
         backgroundColor: 'var(--guest-panel)',
         borderColor: 'var(--guest-border)',
         boxShadow: 'var(--guest-shadow-soft)',

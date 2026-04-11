@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { fetchGuestTables, sendGuestWave } from '../../services/orderService';
@@ -20,6 +21,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const GuestWaveButton: React.FC = () => {
   const location = useLocation();
   const params = useParams<{ restaurant_slug?: string }>();
+  const { t } = useTranslation();
   const { restaurant, draft, updateDraft, totalItems } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
 
@@ -56,7 +58,7 @@ const GuestWaveButton: React.FC = () => {
         const response = await fetchGuestTables(restaurantSlug);
         setTables(response.tables);
       } catch (error: unknown) {
-        setTablesError(getErrorMessage(error, 'Failed to load tables for this restaurant.'));
+        setTablesError(getErrorMessage(error, t('wave.failedTables')));
       } finally {
         setIsLoadingTables(false);
       }
@@ -73,7 +75,7 @@ const GuestWaveButton: React.FC = () => {
 
   const submitWave = async (tableReference: string) => {
     if (!restaurantSlug) {
-      setWaveError('No restaurant is selected for this guest session.');
+      setWaveError(t('wave.noRestaurant'));
       return;
     }
 
@@ -86,9 +88,9 @@ const GuestWaveButton: React.FC = () => {
       });
       updateDraft({ tableReference });
       setIsDialogOpen(false);
-      showToast(response.message || 'Wave sent to the staff team.', 'primary', 3200);
+      showToast(response.message || t('wave.success'), 'primary', 3200);
     } catch (error: unknown) {
-      setWaveError(getErrorMessage(error, 'Failed to send the wave to staff.'));
+      setWaveError(getErrorMessage(error, t('wave.failedSend')));
       setPendingTableReference(tableReference);
       setIsDialogOpen(true);
     } finally {
@@ -125,7 +127,7 @@ const GuestWaveButton: React.FC = () => {
             }}
           >
             <span aria-hidden="true" className="text-base leading-none">👋</span>
-            <span>{isSending ? 'Waving...' : 'Wave Staff'}</span>
+            <span>{isSending ? t('wave.buttonSending') : t('wave.buttonIdle')}</span>
           </button>
         </div>
       </div>
@@ -144,10 +146,10 @@ const GuestWaveButton: React.FC = () => {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">Wave Staff</p>
-                <h3 className="mt-2 font-serif text-2xl text-[var(--guest-text)]">Choose your table</h3>
+                <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('wave.dialogEyebrow')}</p>
+                <h3 className="mt-2 font-serif text-2xl text-[var(--guest-text)]">{t('wave.dialogTitle')}</h3>
                 <p className="mt-2 text-sm leading-7 text-[var(--guest-muted)]">
-                  The staff team needs your table reference to know where to come.
+                  {t('wave.dialogDescription')}
                 </p>
               </div>
 
@@ -161,13 +163,13 @@ const GuestWaveButton: React.FC = () => {
                   color: 'var(--guest-muted)',
                 }}
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
 
             <div className="mt-5 space-y-4">
               <label className="block">
-                <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Table reference</span>
+                <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">{t('common.tableReference')}</span>
                 <select
                   value={pendingTableReference}
                   onChange={(event) => setPendingTableReference(event.target.value)}
@@ -178,7 +180,7 @@ const GuestWaveButton: React.FC = () => {
                     color: 'var(--guest-text)',
                   }}
                 >
-                  <option value="">Select a table</option>
+                  <option value="">{t('common.selectTable')}</option>
                   {tables.map((table) => (
                     <option key={table.id} value={table.name}>
                       {table.name}
@@ -196,7 +198,7 @@ const GuestWaveButton: React.FC = () => {
                     color: 'var(--guest-muted)',
                   }}
                 >
-                  Loading restaurant tables...
+                  {t('wave.loadingTables')}
                 </div>
               ) : null}
 
@@ -239,7 +241,7 @@ const GuestWaveButton: React.FC = () => {
                 }}
               >
                 <span aria-hidden="true" className="text-base leading-none">👋</span>
-                <span>{isSending ? 'Sending Wave...' : 'Send Wave'}</span>
+                <span>{isSending ? t('wave.sending') : t('wave.send')}</span>
               </button>
             </div>
           </div>

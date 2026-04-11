@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Dish } from '../../types';
 import DishViewer from './DishViewer';
 import DishTags from './DishTags';
@@ -24,6 +25,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   onAddToCart,
   cartQuantity = 0,
 }) => {
+  const { t } = useTranslation();
   const price = Number(dish.price).toFixed(2);
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
@@ -32,9 +34,9 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const suggestedDishes = dish.suggested_dishes || [];
   const relatedDishes = dish.related_dishes || [];
   const sections = [
-    { title: 'Description', content: dish.description },
-    { title: 'Ingredients', content: getDishIngredientsText(dish) },
-    { title: 'Recommended Pairing', content: getDishPairing(dish) },
+    { title: t('dishDetail.description'), content: dish.description },
+    { title: t('dishDetail.ingredients'), content: getDishIngredientsText(dish) },
+    { title: t('dishDetail.recommendedPairing'), content: getDishPairing(dish) },
   ];
 
   return (
@@ -48,8 +50,8 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             boxShadow: 'var(--guest-shadow)',
           }}
         >
-          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">3D Experience</p>
-          <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">Explore the plated form</h2>
+          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('dishDetail.experience')}</p>
+          <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">{t('dishDetail.explorePlatedForm')}</h2>
 
           <div className="mt-5">
             <DishViewer
@@ -71,11 +73,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                   boxShadow: 'var(--guest-shadow-soft)',
                 }}
               >
-                View Ingredient Story
+                {t('dishDetail.viewIngredientStory')}
               </Link>
             ) : (
               <p className="text-sm text-[var(--guest-muted)]">
-                Ingredient story becomes available once ingredient images are uploaded in the admin dashboard.
+                {t('dishDetail.ingredientStoryUnavailable')}
               </p>
             )}
           </div>
@@ -133,11 +135,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                   boxShadow: 'var(--guest-shadow-soft)',
                 }}
               >
-                {cartQuantity > 0 ? `Add Another (${cartQuantity} in cart)` : 'Add to Cart'}
+                {cartQuantity > 0 ? t('dishDetail.addAnother', { count: cartQuantity }) : t('dishCard.addToCart')}
               </button>
               {cartQuantity > 0 ? (
                 <p className="text-sm text-[var(--guest-muted)]">
-                  Review the full order from the cart shortcut at the bottom of the page.
+                  {t('dishDetail.reviewCartHint')}
                 </p>
               ) : null}
             </div>
@@ -171,7 +173,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             }}
           >
             <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
-              Restaurant Suggests With This Dish
+              {t('dishDetail.restaurantSuggests')}
             </p>
 
             <div className="mt-4 max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain">
@@ -222,7 +224,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             }}
           >
             <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
-              Related Dishes
+              {t('dishDetail.relatedDishes')}
             </p>
 
             <div className="mt-4 max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain">

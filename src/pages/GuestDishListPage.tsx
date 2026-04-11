@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -61,9 +62,10 @@ const getDishIngredients = (dish: Dish) => {
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug } = useParams<{ restaurant_slug?: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { addDish, getDishQuantity } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
-  const [restaurantName, setRestaurantName] = useState('Menu');
+  const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || getPreferredGuestRestaurantSlug());
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,7 @@ const GuestDishListPage: React.FC = () => {
         }
 
         if (!data) {
-          throw new Error('No restaurant data could be loaded.');
+          throw new Error(t('menuList.noRestaurantData'));
         }
 
         setRestaurantName(data.restaurant.name);
@@ -113,7 +115,7 @@ const GuestDishListPage: React.FC = () => {
         setDishes(data.dishes);
       } catch (err) {
         console.error(err);
-        setError('Failed to load dishes');
+        setError(t('menuList.failedToLoad'));
       } finally {
         setLoading(false);
       }
@@ -146,8 +148,8 @@ const GuestDishListPage: React.FC = () => {
 
   const categories = useMemo(() => {
     const values = Array.from(new Set(dishes.map((dish) => dish.category).filter(Boolean)));
-    return ['All', ...values];
-  }, [dishes]);
+    return [t('menuList.allCategories'), ...values];
+  }, [dishes, t]);
 
   const allIngredients = useMemo(() => {
     const values = new Map<string, string>();
@@ -210,7 +212,7 @@ const GuestDishListPage: React.FC = () => {
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
-      const categoryMatch = category === 'All' || dish.category === category;
+      const categoryMatch = category === t('menuList.allCategories') || dish.category === category;
       const searchMatch =
         dish.name.toLowerCase().includes(search.toLowerCase()) ||
         dish.description.toLowerCase().includes(search.toLowerCase());
@@ -241,8 +243,8 @@ const GuestDishListPage: React.FC = () => {
         <section aria-labelledby="dish-gallery-heading">
           <SectionHeading
             titleId="dish-gallery-heading"
-            eyebrow="Dish Gallery"
-            title="Explore every dish with its own details page"
+            eyebrow={t('menuList.dishGallery')}
+            title={t('menuList.title')}
             aside={(
               <span
                 className="inline-flex rounded-full border px-4 py-2 text-sm font-medium"
@@ -252,7 +254,7 @@ const GuestDishListPage: React.FC = () => {
                   color: 'var(--guest-muted)',
                 }}
               >
-                {filteredDishes.length} dishes
+                {t('menuList.dishesCount', { count: filteredDishes.length })}
               </span>
             )}
           />
@@ -267,13 +269,13 @@ const GuestDishListPage: React.FC = () => {
           >
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-end">
               <label className="block">
-                <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Search</span>
+                <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('menuList.searchLabel')}</span>
                 <div className="relative mt-3">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--guest-muted)]">⌕</span>
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search dishes..."
+                    placeholder={t('menuList.searchPlaceholder')}
                     className="w-full rounded-full border py-3 pl-11 pr-4 text-sm outline-none transition"
                     style={{
                       backgroundColor: 'var(--guest-panel-strong)',
@@ -286,7 +288,7 @@ const GuestDishListPage: React.FC = () => {
 
               <div ref={ingredientFilterRef} className="relative min-w-0">
                 <span className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
-                  Filter by ingredients
+                  {t('menuList.ingredientFilter')}
                 </span>
                 <button
                   type="button"
@@ -302,19 +304,20 @@ const GuestDishListPage: React.FC = () => {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">
                       {selectedIngredientOptions.length > 0
-                        ? `${selectedIngredientOptions.length} ingredient${selectedIngredientOptions.length > 1 ? 's' : ''} ${
-                          ingredientFilterMode === 'show'
-                            ? 'shown'
+                        ? t('menuList.selectedIngredientsSummary', {
+                          count: selectedIngredientOptions.length,
+                          mode: ingredientFilterMode === 'show'
+                            ? t('menuList.modeShown')
                             : ingredientFilterMode === 'hide'
-                              ? 'hidden'
-                              : 'flagged'
-                        }`
-                        : 'Choose ingredients to show'}
+                              ? t('menuList.modeHidden')
+                              : t('menuList.modeFlagged'),
+                        })
+                        : t('menuList.chooseIngredients')}
                     </p>
                     <p className="truncate text-xs text-[var(--guest-muted)]">
                       {selectedIngredientOptions.length > 0
                         ? selectedIngredientOptions.map((ingredient) => ingredient.label).join(', ')
-                        : 'Search ingredients, then show, hide, or mark matching dishes red'}
+                        : t('menuList.ingredientSearchHelp')}
                     </p>
                   </div>
                   <span className="shrink-0 text-[var(--guest-muted)]">{ingredientFilterOpen ? '▴' : '▾'}</span>
@@ -334,7 +337,7 @@ const GuestDishListPage: React.FC = () => {
                       <input
                         value={ingredientSearch}
                         onChange={(event) => setIngredientSearch(event.target.value)}
-                        placeholder="Search ingredients..."
+                        placeholder={t('menuList.ingredientFilterPlaceholder')}
                         className="w-full rounded-full border py-3 pl-11 pr-4 text-sm outline-none transition"
                         style={{
                           backgroundColor: 'var(--guest-panel-strong)',
@@ -355,7 +358,7 @@ const GuestDishListPage: React.FC = () => {
                           color: ingredientFilterMode === 'show' ? 'var(--guest-accent)' : 'var(--guest-text)',
                         }}
                       >
-                        Show Dishes
+                        {t('menuList.showDishes')}
                       </button>
                       <button
                         type="button"
@@ -367,7 +370,7 @@ const GuestDishListPage: React.FC = () => {
                           color: ingredientFilterMode === 'hide' ? 'var(--guest-accent)' : 'var(--guest-text)',
                         }}
                       >
-                        Hide Dishes
+                        {t('menuList.hideDishes')}
                       </button>
                       <button
                         type="button"
@@ -383,7 +386,7 @@ const GuestDishListPage: React.FC = () => {
                           color: ingredientFilterMode === 'highlight' ? 'rgb(var(--color-spicy))' : 'var(--guest-text)',
                         }}
                       >
-                        Mark Red
+                        {t('menuList.markRed')}
                       </button>
                     </div>
 
@@ -417,7 +420,7 @@ const GuestDishListPage: React.FC = () => {
                             color: 'var(--guest-muted)',
                           }}
                         >
-                          No ingredients match your search.
+                          {t('menuList.noIngredientMatches')}
                         </div>
                       ) : (
                         filteredIngredientOptions.map((ingredient) => {
@@ -440,15 +443,15 @@ const GuestDishListPage: React.FC = () => {
                                 <p className="truncate text-xs text-[var(--guest-muted)]">
                                   {isSelected
                                     ? ingredientFilterMode === 'show'
-                                      ? 'Currently showing dishes with this ingredient'
+                                      ? t('menuList.ingredientOptionSelectedShow')
                                       : ingredientFilterMode === 'hide'
-                                        ? 'Currently hiding dishes with this ingredient'
-                                        : 'Currently highlighted in red'
+                                        ? t('menuList.ingredientOptionSelectedHide')
+                                        : t('menuList.ingredientOptionSelectedHighlight')
                                     : ingredientFilterMode === 'show'
-                                      ? 'Show dishes containing this ingredient'
+                                      ? t('menuList.ingredientOptionShow')
                                       : ingredientFilterMode === 'hide'
-                                        ? 'Hide dishes containing this ingredient'
-                                        : 'Highlight dishes containing this ingredient'}
+                                        ? t('menuList.ingredientOptionHide')
+                                        : t('menuList.ingredientOptionHighlight')}
                                 </p>
                               </div>
                               <span className="shrink-0 text-sm">{isSelected ? '✓' : '+'}</span>
@@ -462,7 +465,7 @@ const GuestDishListPage: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto no-scrollbar">
-                <p className="mb-3 whitespace-nowrap text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Filter by category</p>
+                <p className="mb-3 whitespace-nowrap text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('menuList.filterByCategory')}</p>
                 <DishTags tags={categories} activeTag={category} onTagClick={setCategory} />
               </div>
             </div>
@@ -471,10 +474,10 @@ const GuestDishListPage: React.FC = () => {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--guest-accent)]">
                   {ingredientFilterMode === 'show'
-                    ? 'Showing'
+                    ? t('menuList.showing')
                     : ingredientFilterMode === 'hide'
-                      ? 'Hiding'
-                      : 'Flagging'}
+                      ? t('menuList.hiding')
+                      : t('menuList.flagging')}
                 </span>
                 {selectedIngredientOptions.map((ingredient) => (
                   <button
@@ -504,7 +507,7 @@ const GuestDishListPage: React.FC = () => {
                 boxShadow: 'var(--guest-shadow-soft)',
               }}
             >
-              <LoadingSpinner inline text="Loading menu..." />
+              <LoadingSpinner inline text={t('menuList.loadingMenu')} />
             </div>
           ) : null}
 

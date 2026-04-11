@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/useAuth';
 import { getDefaultRouteForRole } from '../utils/auth';
 import {
@@ -24,6 +25,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
+  const { t } = useTranslation();
 
   const [identifier, setIdentifier] = useState('admin@example.com');
   const [password, setPassword] = useState('admin@example.com');
@@ -43,10 +45,10 @@ const LoginPage: React.FC = () => {
 
     try {
       const nextUser = await login(identifier, password);
-      showToast('Successfully signed in', 'primary');
+      showToast(t('login.success'), 'primary');
       navigate(getDefaultRouteForRole(nextUser.role), { replace: true });
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Login failed'));
+      setError(getErrorMessage(err, t('login.failed')));
     } finally {
       setLoading(false);
     }
@@ -59,16 +61,16 @@ const LoginPage: React.FC = () => {
           <div className="mb-8 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-stroke bg-panel2 px-3 py-2">
               <GlassIconButton aria-hidden="true">🍽️</GlassIconButton>
-              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">Control Room Access</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">{t('login.badge')}</span>
             </div>
-            <h1 className="text-3xl font-semibold text-text">AR Menu Operations</h1>
-            <p className="mt-2 text-sm text-muted">Login to manage dishes or confirm guest orders.</p>
+            <h1 className="text-3xl font-semibold text-text">{t('login.title')}</h1>
+            <p className="mt-2 text-sm text-muted">{t('login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="identifier" className="mb-1 block text-sm font-medium text-text">
-                Email or phone
+                {t('login.identifier')}
               </label>
               <GlassInput
                 id="identifier"
@@ -82,7 +84,7 @@ const LoginPage: React.FC = () => {
 
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-text">
-                Password
+                {t('login.password')}
               </label>
               <GlassInput
                 id="password"
@@ -101,7 +103,7 @@ const LoginPage: React.FC = () => {
             )}
 
             <LiquidButton type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </LiquidButton>
           </form>
         </GlassBoard>

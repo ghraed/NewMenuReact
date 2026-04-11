@@ -22,6 +22,8 @@ import LiquidGlassDemoPage from './pages/LiquidGlassDemoPage';
 import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
+import AppLocaleSync from './components/AppLocaleSync';
+import { useTranslation } from 'react-i18next';
 
 const RoleHomeRedirect: React.FC = () => {
   const { defaultRoute, isAuthenticated } = useAuth();
@@ -30,6 +32,8 @@ const RoleHomeRedirect: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <AppThemeShell>
       <Routes>
@@ -137,16 +141,16 @@ const AppRoutes: React.FC = () => {
           element={(
             <div className="flex min-h-screen items-center justify-center p-4">
               <GlassBoard className="w-full max-w-lg">
-                <h1 className="text-2xl font-bold text-text">AR Menu Platform</h1>
-                <p className="mt-2 text-muted">Visit:</p>
+                <h1 className="text-2xl font-bold text-text">{t('app.brand')}</h1>
+                <p className="mt-2 text-muted">{t('app.visit')}</p>
                 <ul className="mt-3 space-y-1 text-sm text-muted">
-                  <li>• <a href="/" className="underline underline-offset-4">/</a> - Guest dishes list</li>
-                  <li>• <a href="/order/review" className="underline underline-offset-4">/order/review</a> - Guest order review</li>
-                  <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - Admin login</li>
-                  <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - Admin staff creation</li>
-                  <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - Staff pending orders</li>
-                  <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - Admin accounting queue</li>
-                  <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - Theme preview</li>
+                  <li>• <a href="/" className="underline underline-offset-4">/</a> - {t('app.guestDishList')}</li>
+                  <li>• <a href="/order/review" className="underline underline-offset-4">/order/review</a> - {t('app.guestOrderReview')}</li>
+                  <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - {t('app.adminLogin')}</li>
+                  <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - {t('app.adminStaff')}</li>
+                  <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
+                  <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
+                  <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>
                 </ul>
               </GlassBoard>
             </div>
@@ -162,6 +166,7 @@ const App: React.FC = () => {
     <AuthProvider>
       <OrderCartProvider>
         <AppThemeProvider>
+          <AppLocaleSync />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>

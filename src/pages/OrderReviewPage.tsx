@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
@@ -20,6 +21,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const OrderReviewPage: React.FC = () => {
+  const { t } = useTranslation();
   const {
     restaurant,
     items,
@@ -56,7 +58,7 @@ const OrderReviewPage: React.FC = () => {
         const response = await fetchGuestTables(restaurantSlug);
         setTables(response.tables);
       } catch (err: unknown) {
-        setTablesError(getErrorMessage(err, 'Failed to load restaurant tables.'));
+        setTablesError(getErrorMessage(err, t('wave.failedTables')));
       } finally {
         setTablesLoading(false);
       }
@@ -69,12 +71,12 @@ const OrderReviewPage: React.FC = () => {
     event.preventDefault();
 
     if (items.length === 0 || !restaurantSlug) {
-      setError('Add at least one dish before sending an order request.');
+      setError(t('orderReview.validationEmptyCart'));
       return;
     }
 
     if (!draft.tableReference.trim()) {
-      setError('Select the table placing this order.');
+      setError(t('orderReview.validationMissingTable'));
       return;
     }
 
@@ -94,7 +96,7 @@ const OrderReviewPage: React.FC = () => {
       setSubmittedOrder(response.order);
       clearCart();
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to send your order request.'));
+      setError(getErrorMessage(err, t('orderReview.failedToSend')));
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +106,7 @@ const OrderReviewPage: React.FC = () => {
     <GuestPageShell>
       <main className="mx-auto max-w-5xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
         <SectionHeading
-          title="Review Your Order"
+          title={t('orderReview.title')}
           eyebrow={restaurantName}
           titleId="order-review-heading"
           aside={(
@@ -117,7 +119,7 @@ const OrderReviewPage: React.FC = () => {
                 color: 'var(--guest-text)',
               }}
             >
-              Back to menu
+              {t('common.backToMenu')}
             </Link>
           )}
         />
@@ -131,14 +133,10 @@ const OrderReviewPage: React.FC = () => {
               boxShadow: 'var(--guest-shadow)',
             }}
           >
-            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Request Received</p>
-            <h2 className="mt-3 font-serif text-3xl text-[var(--guest-text)]">Order sent to the staff team</h2>
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('orderReview.requestReceived')}</p>
+            <h2 className="mt-3 font-serif text-3xl text-[var(--guest-text)]">{t('orderReview.requestSentTitle')}</h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--guest-muted)]">
-              Your order for table
-              {' '}
-              <span className="font-semibold text-[var(--guest-text)]">{submittedOrder.table_reference}</span>
-              {' '}
-              is now waiting for staff confirmation.
+              {t('orderReview.requestSentDescription', { table: submittedOrder.table_reference })}
             </p>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -149,9 +147,9 @@ const OrderReviewPage: React.FC = () => {
                   borderColor: 'var(--guest-border)',
                 }}
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Order Number</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.orderNumber')}</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--guest-text)]">
-                  {submittedOrder.order_number || 'Pending assignment'}
+                  {submittedOrder.order_number || t('common.pendingAssignment')}
                 </p>
               </div>
 
@@ -162,7 +160,7 @@ const OrderReviewPage: React.FC = () => {
                   borderColor: 'var(--guest-border)',
                 }}
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Table</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.table')}</p>
                 <p className="mt-2 text-lg font-semibold text-[var(--guest-text)]">
                   {submittedOrder.table_reference}
                 </p>
@@ -175,7 +173,7 @@ const OrderReviewPage: React.FC = () => {
                   borderColor: 'var(--guest-border)',
                 }}
               >
-                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Status</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.status')}</p>
                 <p className="mt-2 text-lg font-semibold capitalize text-[var(--guest-text)]">
                   {submittedOrder.status.replace(/_/g, ' ')}
                 </p>
@@ -189,10 +187,10 @@ const OrderReviewPage: React.FC = () => {
                 borderColor: 'var(--guest-border)',
               }}
             >
-              <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">Current Subtotal</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.currentSubtotal')}</p>
               <p className="mt-2 text-3xl font-semibold text-[var(--guest-text)]">${submittedOrder.invoice.subtotal}</p>
               <p className="mt-2 text-sm text-[var(--guest-muted)]">
-                Staff will confirm or cancel this request first. Accounting will only be applied after staff approval.
+                {t('orderReview.subtotalNote')}
               </p>
             </div>
           </section>
@@ -208,8 +206,8 @@ const OrderReviewPage: React.FC = () => {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Cart</p>
-                  <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">{itemCount} item{itemCount === 1 ? '' : 's'}</h2>
+                  <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('orderReview.cartEyebrow')}</p>
+                  <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">{t('orderReview.itemCount', { count: itemCount })}</h2>
                 </div>
                 <span
                   className="rounded-full border px-4 py-2 text-sm font-semibold"
@@ -232,7 +230,7 @@ const OrderReviewPage: React.FC = () => {
                     color: 'var(--guest-muted)',
                   }}
                 >
-                  Your cart is empty. Add dishes from the guest menu to start an order.
+                  {t('orderReview.emptyCart')}
                 </div>
               ) : (
                 <div className="mt-6 space-y-4">
@@ -260,7 +258,7 @@ const OrderReviewPage: React.FC = () => {
                             color: 'var(--guest-muted)',
                           }}
                         >
-                          Remove
+                          {t('common.remove')}
                         </button>
                       </div>
 
@@ -294,7 +292,7 @@ const OrderReviewPage: React.FC = () => {
                         </div>
 
                         <div className="text-right">
-                          <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">${item.price.toFixed(2)} each</p>
+                          <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.eachPrice', { price: item.price.toFixed(2) })}</p>
                           <p className="mt-1 text-lg font-semibold text-[var(--guest-text)]">
                             ${(item.price * item.quantity).toFixed(2)}
                           </p>
@@ -314,15 +312,15 @@ const OrderReviewPage: React.FC = () => {
                 boxShadow: 'var(--guest-shadow)',
               }}
             >
-              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Table Request</p>
-              <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">Send this order to staff</h2>
+              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('orderReview.tableRequestEyebrow')}</p>
+              <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)]">{t('orderReview.tableRequestTitle')}</h2>
               <p className="mt-3 text-sm leading-7 text-[var(--guest-muted)]">
-                Select the table placing this order. Staff will confirm or cancel the request before it reaches accounting.
+                {t('orderReview.tableRequestDescription')}
               </p>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Table reference</span>
+                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">{t('common.tableReference')}</span>
                   <select
                     value={draft.tableReference}
                     onChange={(event) => updateDraft({ tableReference: event.target.value })}
@@ -334,7 +332,7 @@ const OrderReviewPage: React.FC = () => {
                     }}
                     required
                   >
-                    <option value="">Select a table</option>
+                    <option value="">{t('common.selectTable')}</option>
                     {tables.map((table) => (
                       <option key={table.id} value={table.name}>
                         {table.name}
@@ -352,7 +350,7 @@ const OrderReviewPage: React.FC = () => {
                       color: 'var(--guest-muted)',
                     }}
                   >
-                    Loading available tables...
+                    {t('orderReview.loadingTables')}
                   </div>
                 ) : null}
 
@@ -370,7 +368,7 @@ const OrderReviewPage: React.FC = () => {
                 ) : null}
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">Notes for the team</span>
+                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">{t('common.notesForTeam')}</span>
                   <textarea
                     value={draft.notes}
                     onChange={(event) => updateDraft({ notes: event.target.value })}
@@ -380,7 +378,7 @@ const OrderReviewPage: React.FC = () => {
                       borderColor: 'var(--guest-border)',
                       color: 'var(--guest-text)',
                     }}
-                    placeholder="Optional service note for the staff..."
+                    placeholder={t('common.optionalServiceNote')}
                   />
                 </label>
 
@@ -408,7 +406,7 @@ const OrderReviewPage: React.FC = () => {
                     boxShadow: 'var(--guest-shadow-soft)',
                   }}
                 >
-                  {submitting ? 'Sending request...' : 'Send Order Request'}
+                  {submitting ? t('orderReview.sendingRequest') : t('orderReview.sendRequest')}
                 </button>
               </form>
             </section>

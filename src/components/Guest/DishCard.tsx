@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Dish } from '../../types';
 import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
@@ -20,6 +21,7 @@ const DishCard: React.FC<DishCardProps> = ({
   cartQuantity = 0,
   isIngredientAlert = false,
 }) => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish]);
@@ -45,7 +47,7 @@ const DishCard: React.FC<DishCardProps> = ({
   }, [dish]);
 
   const price = Number(dish.price).toFixed(2);
-  const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} kcal` : null;
+  const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
 
   useEffect(() => {
     const node = articleRef.current;
@@ -123,7 +125,7 @@ const DishCard: React.FC<DishCardProps> = ({
                 color: 'rgb(var(--color-spicy))',
               }}
             >
-              Ingredient Warning
+              {t('dishCard.ingredientWarning')}
             </div>
           ) : null}
 
@@ -175,7 +177,7 @@ const DishCard: React.FC<DishCardProps> = ({
                     color: 'var(--guest-accent)',
                   }}
                 >
-                  {cartQuantity > 0 ? `Add More (${cartQuantity})` : 'Add to Cart'}
+                  {cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart')}
                 </button>
               ) : null}
 
@@ -197,7 +199,7 @@ const DishCard: React.FC<DishCardProps> = ({
                   color: 'var(--guest-bg)',
                 }}
               >
-                View Details
+                {t('dishCard.viewDetails')}
               </button>
             </div>
           </div>

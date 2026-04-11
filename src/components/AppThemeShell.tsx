@@ -5,6 +5,7 @@ import FixedBackground from './FixedBackground';
 import ThemeToggle from './Guest/ThemeToggle';
 import { getAppThemeStyle } from './Guest/guestTheme';
 import { useAppTheme } from '../hooks/useGuestTheme';
+import LanguageToggle from './LanguageToggle';
 
 const TRANSITION_NAME = 'app-theme-shell';
 const REVEAL_DURATION_MS = 650;
@@ -137,6 +138,7 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
         />
       ) : null}
 
+      <LanguageToggle />
       <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
 
       <div className="relative min-h-screen">{children}</div>

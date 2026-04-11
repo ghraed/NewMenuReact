@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
 import {
   GlassBoard,
@@ -18,19 +19,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { t } = useTranslation();
 
   const navItems = user?.role === 'staff'
     ? [
-        { path: '/staff/orders', label: 'Pending Orders', icon: '🧾' },
+        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
       ]
     : [
-        { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
-        { path: '/staff/orders', label: 'Staff Orders', icon: '🧾' },
-        { path: '/admin/accounting', label: 'Accounting', icon: '💳' },
-        { path: '/admin/staff', label: 'Staff', icon: '👥' },
-        { path: '/admin/dishes/create', label: 'Create Dish', icon: '➕' },
-        { path: '/admin/ingredients/library', label: 'Ingredients', icon: '🥬' },
-        { path: '/liquid-glass-preview', label: 'Theme Preview', icon: '✨' },
+        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
+        { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
+        { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳' },
+        { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },
+        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: '➕' },
+        { path: '/admin/ingredients/library', label: t('admin.ingredients'), icon: '🥬' },
+        { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
       ];
 
   const handleLogout = async () => {
@@ -46,19 +48,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             <div className="flex items-center gap-3">
               <div className="rounded-full border border-gold/30 bg-gold/10 p-2 text-lg">🍽️</div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">Control Room</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('admin.controlRoom')}</p>
                 <h1 className="text-2xl font-semibold text-text">
-                  {user?.role === 'staff' ? 'AR Menu Staff' : 'AR Menu Admin'}
+                  {user?.role === 'staff' ? t('admin.staffTitle') : t('admin.adminTitle')}
                 </h1>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <a href="/" target="_blank" rel="noreferrer">
-                <GlassIconButton aria-label="Guest view">👁️</GlassIconButton>
+                <GlassIconButton aria-label={t('admin.guestView')}>👁️</GlassIconButton>
               </a>
               <LiquidButton tone="tertiary" onClick={handleLogout} className="px-4 py-2 text-sm">
-                Logout
+                {t('admin.logout')}
               </LiquidButton>
             </div>
           </div>
@@ -67,7 +69,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
             <GlassBoard className="p-4">
-              <h2 className="mb-4 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted2">Navigation</h2>
+              <h2 className="mb-4 px-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted2">{t('admin.navigation')}</h2>
               <ul className="space-y-2">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path;
@@ -80,7 +82,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                           <span>{item.label}</span>
                         </span>
                         <GlassPill active={isActive} className="px-2.5 py-1 text-[11px]">
-                          {isActive ? 'Active' : 'Open'}
+                          {isActive ? t('admin.active') : t('admin.open')}
                         </GlassPill>
                       </Link>
                     </li>
