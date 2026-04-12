@@ -214,6 +214,11 @@ export const resources = {
         filesReady: '{{count}} files ready for upload',
         clearSelection: 'Clear selection',
         supportedTypes: 'Supported image types: JPG, JPEG, PNG, WEBP, HEIC, HEIF.',
+        introLineOne: 'Pick a folder of ingredient images and we will upload every supported image inside it.',
+        introLineTwo: 'Each ingredient label is generated from the filename, so {{fileName}} becomes {{ingredientName}}.',
+        storageRule: 'Ingredients are stored once per restaurant. Uploading a file with the same generated name replaces the old image, so the library stays clean while you iterate.',
+        nextStepDescription: 'Once you are happy with this library, we can connect dish records to selected ingredients and reuse the same images in the dish detail page and animated ingredient story.',
+        confirmDeleteAll: 'Delete all {{count}} ingredient images and their database records?',
       },
       adminStaff: {
         pageTitle: 'Staff Management',
@@ -629,6 +634,11 @@ export const resources = {
         filesReady: '{{count}} ملفات جاهزة للرفع',
         clearSelection: 'مسح التحديد',
         supportedTypes: 'أنواع الصور المدعومة: JPG وJPEG وPNG وWEBP وHEIC وHEIF.',
+        introLineOne: 'اختر مجلدًا لصور المكونات وسنرفع كل صورة مدعومة بداخله.',
+        introLineTwo: 'يتم توليد اسم كل مكوّن من اسم الملف، لذلك يصبح {{fileName}} هو {{ingredientName}}.',
+        storageRule: 'يتم تخزين المكونات مرة واحدة فقط لكل مطعم. وعند رفع ملف يحمل الاسم المولّد نفسه، يتم استبدال الصورة القديمة حتى تبقى المكتبة نظيفة أثناء التطوير.',
+        nextStepDescription: 'بعد أن تصبح هذه المكتبة جاهزة، يمكننا ربط سجلات الأطباق بالمكونات المختارة وإعادة استخدام الصور نفسها في صفحة تفاصيل الطبق وقصة المكونات المتحركة.',
+        confirmDeleteAll: 'هل تريد حذف جميع صور المكونات وعددها {{count}} مع سجلات قاعدة البيانات الخاصة بها؟',
       },
       adminStaff: {
         pageTitle: 'إدارة الطاقم',

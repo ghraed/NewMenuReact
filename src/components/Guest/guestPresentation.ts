@@ -1,5 +1,6 @@
 import type { Dish } from '../../types';
 import i18n from '../../i18n';
+import { translateIngredientLabel } from '../../i18n/ingredients';
 import { translateCategoryLabel } from '../../i18n/dynamic';
 
 const hasKeyword = (text: string, keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
@@ -62,7 +63,9 @@ export const getDishIngredientsText = (dish: Dish): string => {
     .filter((label): label is string => Boolean(label));
 
   if (assetIngredients.length > 0) {
-    return unique(assetIngredients).join(', ');
+    return unique(assetIngredients)
+      .map((ingredient) => translateIngredientLabel(ingredient, i18n.resolvedLanguage))
+      .join(', ');
   }
 
   const parts = dish.description

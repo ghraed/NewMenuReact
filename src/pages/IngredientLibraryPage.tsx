@@ -7,6 +7,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
+import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
 import type { IngredientLibraryItem } from '../types';
 
@@ -44,7 +45,7 @@ const formatBytes = (bytes?: number | null, unknownLabel = 'Unknown size'): stri
 };
 
 const IngredientLibraryPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [ingredients, setIngredients] = useState<IngredientLibraryItem[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<DirectoryFile[]>([]);
@@ -162,7 +163,7 @@ const IngredientLibraryPage: React.FC = () => {
     }
 
     const confirmed = window.confirm(
-      `Delete all ${ingredients.length} ingredient images and their database records?`
+      t('ingredientLibrary.confirmDeleteAll', { count: ingredients.length })
     );
 
     if (!confirmed) return;
@@ -199,9 +200,11 @@ const IngredientLibraryPage: React.FC = () => {
         <div className="max-w-2xl">
           <h2 className="text-xl font-semibold text-text">{t('ingredientLibrary.heading')}</h2>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Pick a folder of ingredient images and we will upload every supported image inside it. Each ingredient
-            label is generated from the filename, so <span className="font-medium text-text">fresh-mint-leaves.png</span>{' '}
-            becomes <span className="font-medium text-text">fresh mint leaves</span>.
+            {t('ingredientLibrary.introLineOne')}{' '}
+            {t('ingredientLibrary.introLineTwo', {
+              fileName: 'fresh-mint-leaves.png',
+              ingredientName: translateIngredientLabel('fresh mint leaves', i18n.resolvedLanguage),
+            })}
           </p>
         </div>
 
@@ -276,7 +279,7 @@ const IngredientLibraryPage: React.FC = () => {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text">{item.derivedName}</p>
+                      <p className="text-sm font-semibold text-text">{translateIngredientLabel(item.derivedName, i18n.resolvedLanguage)}</p>
                       <p className="mt-1 break-all text-xs leading-5 text-muted">{item.relativePath}</p>
                     </div>
                     <span className="shrink-0 rounded-full border border-white/12 bg-white/10 px-3 py-1 text-xs font-medium text-muted2">
@@ -293,8 +296,7 @@ const IngredientLibraryPage: React.FC = () => {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold2/85">{t('ingredientLibrary.summaryEyebrow')}</p>
           <h3 className="mt-2 text-lg font-semibold text-text">{t('ingredientLibrary.summaryTitle')}</h3>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Ingredients are stored once per restaurant. Uploading a file with the same generated name replaces the old
-            image, so the library stays clean while you iterate.
+            {t('ingredientLibrary.storageRule')}
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -311,8 +313,7 @@ const IngredientLibraryPage: React.FC = () => {
           <div className="mt-5 rounded-[28px] border border-gold/18 bg-gold/8 p-4">
             <p className="text-sm font-medium text-text">{t('ingredientLibrary.nextStepTitle')}</p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Once you are happy with this library, we can connect dish records to selected ingredients and reuse the
-              same images in the dish detail page and animated ingredient story.
+              {t('ingredientLibrary.nextStepDescription')}
             </p>
           </div>
         </GlassCard>
@@ -358,7 +359,7 @@ const IngredientLibraryPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 p-4">
-                  <p className="text-base font-semibold text-text">{ingredient.name}</p>
+                  <p className="text-base font-semibold text-text">{translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)}</p>
                   <p className="break-all text-xs leading-5 text-muted">
                     {ingredient.source_file_name || t('ingredientLibrary.originalFilenameUnavailable')}
                   </p>

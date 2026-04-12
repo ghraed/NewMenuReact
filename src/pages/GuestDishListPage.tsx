@@ -10,6 +10,7 @@ import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
+import { translateIngredientLabel } from '../i18n/ingredients';
 import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { translateCategoryLabel } from '../i18n/dynamic';
 
@@ -161,20 +162,21 @@ const GuestDishListPage: React.FC = () => {
 
     dishes.forEach((dish) => {
       getDishIngredients(dish).forEach((ingredient) => {
-        const normalized = normalizeIngredientName(ingredient);
+        const translatedIngredient = translateIngredientLabel(ingredient, i18n.resolvedLanguage);
+        const normalized = normalizeIngredientName(translatedIngredient);
 
         if (!normalized || values.has(normalized)) {
           return;
         }
 
-        values.set(normalized, ingredient);
+        values.set(normalized, translatedIngredient);
       });
     });
 
     return Array.from(values.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [dishes]);
+  }, [dishes, i18n.resolvedLanguage]);
 
   const filteredIngredientOptions = useMemo(() => {
     const normalizedSearch = normalizeIngredientName(ingredientSearch);
@@ -204,7 +206,9 @@ const GuestDishListPage: React.FC = () => {
     }
 
     dishes.forEach((dish) => {
-      const dishIngredients = getDishIngredients(dish).map((ingredient) => normalizeIngredientName(ingredient));
+      const dishIngredients = getDishIngredients(dish)
+        .map((ingredient) => translateIngredientLabel(ingredient, i18n.resolvedLanguage))
+        .map((ingredient) => normalizeIngredientName(ingredient));
       const hasMatchingIngredient = selectedIngredients.some((ingredient) => dishIngredients.includes(ingredient));
 
       if (hasMatchingIngredient) {
@@ -213,7 +217,7 @@ const GuestDishListPage: React.FC = () => {
     });
 
     return ids;
-  }, [dishes, selectedIngredients]);
+  }, [dishes, selectedIngredients, i18n.resolvedLanguage]);
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {

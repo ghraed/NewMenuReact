@@ -5,6 +5,7 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import SectionHeading from '../components/Guest/SectionHeading';
 import DishIngredientStory, { type DishIngredientStoryItem } from '../components/Guest/DishIngredientStory';
+import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
@@ -26,7 +27,7 @@ const getIngredientQuantity = (metadata: Dish['assets'][number]['metadata']) => 
 
 const GuestDishIngredientsPage: React.FC = () => {
   const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [dish, setDish] = useState<Dish | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +68,11 @@ const GuestDishIngredientsPage: React.FC = () => {
       .sort((left, right) => getIngredientOrder(left.metadata) - getIngredientOrder(right.metadata))
       .map((asset) => ({
         id: asset.id,
-        name: getIngredientLabel(asset.metadata),
+        name: translateIngredientLabel(getIngredientLabel(asset.metadata), i18n.resolvedLanguage),
         quantity: getIngredientQuantity(asset.metadata),
         imageUrl: resolveAssetUrl(asset.file_url),
       }));
-  }, [dish]);
+  }, [dish, i18n.resolvedLanguage]);
 
   return (
     <GuestPageShell>
