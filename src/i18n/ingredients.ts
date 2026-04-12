@@ -71,6 +71,7 @@ const ingredientTranslations: Record<string, string> = {
   shrimp: 'روبيان',
   'chili flakes': 'رقائق فلفل حار',
   parsley: 'بقدونس',
+  'flat leaf parsley': 'بقدونس',
   'romaine lettuce': 'خس روماني',
   croutons: 'خبز محمص',
   'caesar dressing': 'صلصة سيزر',
