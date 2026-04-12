@@ -10,20 +10,20 @@ interface GlassToastProps {
 }
 
 const toneClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'border-[#8faa14] bg-[#b5d81a] text-[#233000] supports-[backdrop-filter]:bg-[#b5d81a]/92',
-  secondary: 'border-[#8faa14] bg-[#b5d81a] text-[#233000] supports-[backdrop-filter]:bg-[#b5d81a]/92',
+  primary: 'border-[#c89a15] bg-[#d4af37] text-[#2b1f00]',
+  secondary: 'border-[#c89a15] bg-[#d4af37] text-[#2b1f00]',
   tertiary: 'border-red-800 bg-red-700 text-white supports-[backdrop-filter]:bg-red-700/92',
 };
 
 const toneTextClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#233000]',
-  secondary: 'text-[#233000]',
+  primary: 'text-[#2b1f00]',
+  secondary: 'text-[#2b1f00]',
   tertiary: 'text-white',
 };
 
 const toneCloseClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#233000]/80 hover:text-[#233000]',
-  secondary: 'text-[#233000]/80 hover:text-[#233000]',
+  primary: 'text-[#2b1f00]/80 hover:text-[#2b1f00]',
+  secondary: 'text-[#2b1f00]/80 hover:text-[#2b1f00]',
   tertiary: 'text-white/90 hover:text-white',
 };
 
@@ -40,7 +40,7 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
     >
       <div
         className={cx(
-          'pointer-events-auto relative rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl ring-1 ring-white/20',
+          'pointer-events-auto relative rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)] ring-1 ring-white/20',
           toneClass[tone],
           className
         )}

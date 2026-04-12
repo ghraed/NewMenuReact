@@ -71,14 +71,14 @@
 
   .themed-native-select {
     color-scheme: inherit;
-    background-color: var(--guest-panel-strong, rgb(var(--color-bg1)));
-    color: var(--guest-text, rgb(var(--color-text) / 0.92));
+    background-color: var(--guest-panel, rgb(var(--color-bg1)));
+    color: var(--guest-text, rgb(var(--color-text)));
   }
 
   .themed-native-select option,
   .themed-native-select optgroup {
-    background-color: var(--guest-panel-strong, rgb(var(--color-bg1)));
-    color: var(--guest-text, rgb(var(--color-text) / 0.92));
+    background-color: var(--guest-panel, rgb(var(--color-bg1)));
+    color: var(--guest-text, rgb(var(--color-text)));
   }
 
   .themed-native-select option:disabled {

@@ -300,7 +300,7 @@ const GuestDishListPage: React.FC = () => {
                   onClick={() => setIngredientFilterOpen((current) => !current)}
                   className="mt-3 flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left transition"
                   style={{
-                    backgroundColor: 'var(--guest-panel-strong)',
+                    backgroundColor: 'var(--guest-panel)',
                     borderColor: 'var(--guest-border)',
                     color: 'var(--guest-text)',
                     boxShadow: 'var(--guest-shadow-soft)',
@@ -345,7 +345,7 @@ const GuestDishListPage: React.FC = () => {
                         placeholder={t('menuList.ingredientFilterPlaceholder')}
                         className="w-full rounded-full border py-3 pl-11 pr-4 text-sm outline-none transition"
                         style={{
-                          backgroundColor: 'var(--guest-panel-strong)',
+                          backgroundColor: 'var(--guest-panel)',
                           borderColor: 'var(--guest-border)',
                           color: 'var(--guest-text)',
                         }}
@@ -358,7 +358,7 @@ const GuestDishListPage: React.FC = () => {
                         onClick={() => setIngredientFilterMode('show')}
                         className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
                         style={{
-                          backgroundColor: ingredientFilterMode === 'show' ? 'var(--guest-accent-soft)' : 'var(--guest-panel-strong)',
+                          backgroundColor: ingredientFilterMode === 'show' ? 'var(--guest-accent-soft)' : 'var(--guest-panel)',
                           borderColor: 'var(--guest-border)',
                           color: ingredientFilterMode === 'show' ? 'var(--guest-accent)' : 'var(--guest-text)',
                         }}
@@ -370,7 +370,7 @@ const GuestDishListPage: React.FC = () => {
                         onClick={() => setIngredientFilterMode('hide')}
                         className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
                         style={{
-                          backgroundColor: ingredientFilterMode === 'hide' ? 'var(--guest-accent-soft)' : 'var(--guest-panel-strong)',
+                          backgroundColor: ingredientFilterMode === 'hide' ? 'var(--guest-accent-soft)' : 'var(--guest-panel)',
                           borderColor: 'var(--guest-border)',
                           color: ingredientFilterMode === 'hide' ? 'var(--guest-accent)' : 'var(--guest-text)',
                         }}
@@ -383,8 +383,8 @@ const GuestDishListPage: React.FC = () => {
                         className="rounded-full border px-4 py-2.5 text-sm font-semibold transition"
                         style={{
                           backgroundColor: ingredientFilterMode === 'highlight'
-                            ? 'color-mix(in srgb, rgb(var(--color-spicy)) 16%, var(--guest-panel-strong))'
-                            : 'var(--guest-panel-strong)',
+                            ? 'color-mix(in srgb, rgb(var(--color-spicy)) 16%, var(--guest-panel))'
+                            : 'var(--guest-panel)',
                           borderColor: ingredientFilterMode === 'highlight'
                             ? 'color-mix(in srgb, rgb(var(--color-spicy)) 48%, var(--guest-border))'
                             : 'var(--guest-border)',
@@ -420,7 +420,7 @@ const GuestDishListPage: React.FC = () => {
                         <div
                           className="rounded-[22px] border px-4 py-5 text-center text-sm"
                           style={{
-                            backgroundColor: 'var(--guest-panel-strong)',
+                            backgroundColor: 'var(--guest-panel)',
                             borderColor: 'var(--guest-border)',
                             color: 'var(--guest-muted)',
                           }}
@@ -438,7 +438,7 @@ const GuestDishListPage: React.FC = () => {
                               onClick={() => toggleIngredientFilter(ingredient.value)}
                               className="flex w-full items-center justify-between gap-3 rounded-[22px] border px-4 py-3 text-left transition"
                               style={{
-                                backgroundColor: isSelected ? 'var(--guest-accent-soft)' : 'var(--guest-panel-strong)',
+                                backgroundColor: isSelected ? 'var(--guest-accent-soft)' : 'var(--guest-panel)',
                                 borderColor: 'var(--guest-border)',
                                 color: isSelected ? 'var(--guest-accent)' : 'var(--guest-text)',
                               }}

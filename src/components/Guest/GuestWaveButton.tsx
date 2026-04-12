@@ -120,7 +120,7 @@ const GuestWaveButton: React.FC = () => {
             disabled={isSending}
             className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
             style={{
-              backgroundColor: 'var(--guest-accent-soft)',
+              backgroundColor: 'color-mix(in srgb, var(--guest-accent-soft) 80%, transparent)',
               borderColor: 'var(--guest-border)',
               color: 'var(--guest-text)',
               boxShadow: 'var(--guest-shadow-soft)',
@@ -175,7 +175,7 @@ const GuestWaveButton: React.FC = () => {
                   onChange={(event) => setPendingTableReference(event.target.value)}
                   className="themed-native-select w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
                   style={{
-                    backgroundColor: 'var(--guest-panel-strong)',
+                    backgroundColor: 'var(--guest-panel)',
                     borderColor: 'var(--guest-border)',
                     color: 'var(--guest-text)',
                   }}
