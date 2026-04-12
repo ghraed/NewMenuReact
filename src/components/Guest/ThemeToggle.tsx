@@ -31,7 +31,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
       type="button"
       onClick={onToggle}
       aria-label={isLight ? t('theme.switchToDark') : t('theme.switchToLight')}
-      className="fixed top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
+      className="fixed top-4 z-[80] isolate pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
       style={{
         insetInlineEnd: '1rem',
         backgroundColor: 'var(--guest-panel)',

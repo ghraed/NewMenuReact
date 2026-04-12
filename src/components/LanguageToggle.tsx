@@ -10,7 +10,7 @@ const LanguageToggle: React.FC = () => {
 
   return (
     <div
-      className="fixed top-4 z-50 inline-flex items-center gap-1 rounded-full border p-1 text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
+      className="fixed top-4 z-[80] isolate pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
       style={{
         insetInlineStart: '1rem',
         backgroundColor: 'var(--guest-panel)',
