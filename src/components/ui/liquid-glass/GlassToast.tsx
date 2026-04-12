@@ -34,13 +34,13 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
     <div
       aria-live="polite"
       className={cx(
-        'pointer-events-none fixed right-4 top-4 z-[2147483647] transition-all duration-300 ease-fluid motion-reduce:transition-none',
+        'fixed right-4 top-4 z-[2147483647] transition-all duration-300 ease-fluid motion-reduce:transition-none',
         toast.open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
       )}
     >
       <div
         className={cx(
-          'pointer-events-auto relative rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)] ring-1 ring-white/20',
+          'relative rounded-2xl border px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)] ring-1 ring-white/20',
           toneClass[tone],
           className
         )}
