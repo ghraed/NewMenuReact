@@ -7,6 +7,7 @@ import api from '../services/api';
 import { GlassCard, GlassInput, GlassPill, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
 import { useAuth } from '../contexts/useAuth';
+import { translateCategoryLabel } from '../i18n/dynamic';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -249,7 +250,7 @@ const AdminDashboard: React.FC = () => {
                     <div>
                       <h3 className="text-lg font-semibold text-text">{dish.name}</h3>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted">
-                        <span>{dish.category}</span>
+                        <span>{translateCategoryLabel(dish.category, dish.category_ar)}</span>
                         <span
                           className={
                             dish.status === 'published'

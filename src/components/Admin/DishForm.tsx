@@ -6,6 +6,8 @@ import {
   GlassToggle,
   LiquidButton,
 } from '../ui/liquid-glass';
+import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
+import { translateIngredientLabel } from '../../i18n/ingredients';
 import type { IngredientLibraryItem } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
@@ -152,7 +154,7 @@ const DishForm: React.FC<DishFormProps> = ({
   suggestedDishOptions = [],
   relatedDishOptions = [],
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
     name_ar: initialValues?.name_ar || '',
@@ -756,7 +758,7 @@ const DishForm: React.FC<DishFormProps> = ({
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-text">{dish.name}</p>
                             <p className="truncate text-xs text-muted">
-                              {dish.category} · {dish.status === 'published' ? 'Published' : 'Draft'}
+                              {translateCategoryLabel(dish.category)} · {translateStatusLabel(dish.status)}
                             </p>
                           </div>
                           <span className={cx('shrink-0 text-sm', isSelected ? 'text-gold2' : 'text-muted2')}>
@@ -855,7 +857,7 @@ const DishForm: React.FC<DishFormProps> = ({
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-text">{dish.name}</p>
                             <p className="truncate text-xs text-muted">
-                              {dish.category} · {dish.status === 'published' ? 'Published' : 'Draft'}
+                              {translateCategoryLabel(dish.category)} · {translateStatusLabel(dish.status)}
                             </p>
                           </div>
                           <span className={cx('shrink-0 text-sm', isSelected ? 'text-sky-200' : 'text-muted2')}>
@@ -992,7 +994,7 @@ const DishForm: React.FC<DishFormProps> = ({
                     return true;
                   }
 
-                  const searchableText = `${ingredient.name} ${ingredient.source_file_name || ''}`.toLowerCase();
+                  const searchableText = `${ingredient.name} ${ingredient.name_ar || ''} ${ingredient.source_file_name || ''}`.toLowerCase();
                   return searchableText.includes(normalizedSearchQuery);
                 });
                 const visibleIngredients = selectedLibraryIngredient
@@ -1180,7 +1182,7 @@ const DishForm: React.FC<DishFormProps> = ({
                                               {optionThumbnail ? (
                                                 <img
                                                   src={optionThumbnail}
-                                                  alt={ingredient.name}
+                                                  alt={translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
                                                   className="h-full w-full object-cover"
                                                 />
                                               ) : (
@@ -1190,7 +1192,9 @@ const DishForm: React.FC<DishFormProps> = ({
                                               )}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                              <p className="truncate text-sm font-medium text-text">{ingredient.name}</p>
+                                              <p className="truncate text-sm font-medium text-text">
+                                                {translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
+                                              </p>
                                               <p className="truncate text-xs text-muted">
                                                 {ingredient.source_file_name || 'Saved ingredient'}
                                               </p>

@@ -349,7 +349,7 @@ const IngredientLibraryPage: React.FC = () => {
                   {resolveAssetUrl(ingredient.file_url) ? (
                     <img
                       src={resolveAssetUrl(ingredient.file_url)}
-                      alt={ingredient.name}
+                      alt={translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
@@ -359,7 +359,7 @@ const IngredientLibraryPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 p-4">
-                  <p className="text-base font-semibold text-text">{translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)}</p>
+                  <p className="text-base font-semibold text-text">{translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}</p>
                   <p className="break-all text-xs leading-5 text-muted">
                     {ingredient.source_file_name || t('ingredientLibrary.originalFilenameUnavailable')}
                   </p>

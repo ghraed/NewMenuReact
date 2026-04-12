@@ -9,11 +9,16 @@ const normalizeKey = (value?: string | null): string => (
     .replace(/^_+|_+$/g, '')
 );
 
-export const translateCategoryLabel = (value?: string | null): string => {
+export const translateCategoryLabel = (value?: string | null, arabicValue?: string | null): string => {
   const fallback = value?.trim();
+  const directArabic = arabicValue?.trim();
 
   if (!fallback) {
     return i18n.t('menuList.menu');
+  }
+
+  if (i18n.resolvedLanguage === 'ar' && directArabic) {
+    return directArabic;
   }
 
   return i18n.t(`dynamic.categories.${normalizeKey(fallback)}`, {

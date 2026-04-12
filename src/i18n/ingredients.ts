@@ -1,4 +1,4 @@
-import { normalizeLanguage, type AppLanguage } from './language';
+import { normalizeLanguage } from './language';
 
 const normalizeIngredientKey = (value?: string | null): string => (
   (value || '')
@@ -37,6 +37,8 @@ const ingredientTranslations: Record<string, string> = {
   'beef bacon': 'بيف بيكون',
   'beef patty': 'قطعة لحم بقري',
   'burger bun': 'خبز برغر',
+  burger: 'برغر',
+  cheeseburger: 'تشيز برغر',
   lettuce: 'خس',
   tomato: 'طماطم',
   pickles: 'مخلل',
@@ -57,8 +59,11 @@ const ingredientTranslations: Record<string, string> = {
   'hoagie roll': 'خبز هوجي',
   onion: 'بصل',
   onions: 'بصل',
+  'green onion': 'بصل أخضر',
+  'green onions': 'بصل أخضر',
   provolone: 'بروفولون',
   tuna: 'تونة',
+  fish: 'سمك',
   fettuccine: 'فيتوتشيني',
   cream: 'كريمة',
   garlic: 'ثوم',
@@ -102,8 +107,6 @@ const ingredientTranslations: Record<string, string> = {
   lentils: 'عدس',
   ketchup: 'كاتشب',
   'cheese sauce': 'صلصة جبنة',
-  'green onion': 'بصل أخضر',
-  'green onions': 'بصل أخضر',
   coleslaw: 'كولسلو',
   cabbage: 'ملفوف',
   carrots: 'جزر',
@@ -136,22 +139,27 @@ const ingredientTranslations: Record<string, string> = {
   honey: 'عسل',
 };
 
-export const translateIngredientLabel = (value?: string | null, language?: string): string => {
+export const translateIngredientLabel = (
+  value?: string | null,
+  language?: string,
+  arabicValue?: string | null
+): string => {
   const fallback = (value || '').trim();
+  const directArabic = (arabicValue || '').trim();
 
-  if (!fallback) {
+  if (!fallback && !directArabic) {
     return '';
   }
 
   const normalizedLanguage = normalizeLanguage(language);
 
   if (normalizedLanguage !== 'ar') {
-    return fallback;
+    return fallback || directArabic;
+  }
+
+  if (directArabic) {
+    return directArabic;
   }
 
   return ingredientTranslations[normalizeIngredientKey(fallback)] || fallback;
 };
-
-export const translateIngredientLabelForAppLanguage = (value?: string | null, language?: AppLanguage): string => (
-  translateIngredientLabel(value, language)
-);

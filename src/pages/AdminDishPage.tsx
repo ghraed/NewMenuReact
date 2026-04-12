@@ -7,6 +7,7 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import type { Dish } from '../types';
 import api from '../services/api';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { translateCategoryLabel } from '../i18n/dynamic';
 
 const AdminDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
@@ -44,7 +45,7 @@ const AdminDishPage: React.FC = () => {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-3xl font-semibold text-text">{dish.name}</h2>
-              <p className="mt-2 text-lg text-muted">{dish.category}</p>
+              <p className="mt-2 text-lg text-muted">{translateCategoryLabel(dish.category, dish.category_ar)}</p>
             </div>
             <Link to="/admin/dashboard">
               <LiquidButton tone="tertiary">{t('adminDish.backToDashboard')}</LiquidButton>

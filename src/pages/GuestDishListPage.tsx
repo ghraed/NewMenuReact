@@ -153,7 +153,7 @@ const GuestDishListPage: React.FC = () => {
   }, []);
 
   const categories = useMemo(() => {
-    const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category)).filter(Boolean)));
+    const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category, dish.category_ar)).filter(Boolean)));
     return [t('menuList.allCategories'), ...values];
   }, [dishes, i18n.resolvedLanguage, t]);
 
@@ -221,7 +221,7 @@ const GuestDishListPage: React.FC = () => {
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
-      const categoryMatch = category === t('menuList.allCategories') || translateCategoryLabel(dish.category) === category;
+      const categoryMatch = category === t('menuList.allCategories') || translateCategoryLabel(dish.category, dish.category_ar) === category;
       const searchMatch =
         dish.name.toLowerCase().includes(search.toLowerCase()) ||
         dish.description.toLowerCase().includes(search.toLowerCase());

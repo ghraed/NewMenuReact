@@ -14,7 +14,7 @@ const pastryKeywords = ['dessert', 'chocolate', 'vanilla', 'caramel', 'cream', '
 const chefKeywords = ['chef', 'signature', 'special', 'truffle'];
 
 export const getDishEditorialLabel = (dish: Dish): string | null => {
-  const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
+  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.editorial.oceanNotes');
   if (hasKeyword(text, chefKeywords)) return i18n.t('dynamic.editorial.chefSelection');
@@ -25,8 +25,8 @@ export const getDishEditorialLabel = (dish: Dish): string | null => {
 };
 
 export const getDishTags = (dish: Dish): string[] => {
-  const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
-  const tags = [translateCategoryLabel(dish.category)];
+  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
+  const tags = [translateCategoryLabel(dish.category, dish.category_ar)];
 
   if (hasKeyword(text, chefKeywords)) tags.push(i18n.t('dynamic.tags.signature'));
   if (hasKeyword(text, gardenKeywords)) tags.push(i18n.t('dynamic.tags.vegetarian'));
@@ -39,7 +39,7 @@ export const getDishTags = (dish: Dish): string[] => {
 };
 
 export const getDishPairing = (dish: Dish): string => {
-  const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
+  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.pairing.ocean');
   if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.pairing.pastry');
@@ -77,10 +77,10 @@ export const getDishIngredientsText = (dish: Dish): string => {
     return unique(parts).slice(0, 3).join(', ');
   }
 
-  const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
+  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.ingredients.ocean');
   if (hasKeyword(text, gardenKeywords)) return i18n.t('dynamic.ingredients.garden');
   if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.ingredients.pastry');
-  return dish.description?.trim() || translateCategoryLabel(dish.category) || dish.name;
+  return dish.description?.trim() || translateCategoryLabel(dish.category, dish.category_ar) || dish.name;
 };

@@ -88,6 +88,7 @@ export interface IngredientLibraryItem {
   id: number;
   uuid: string;
   name: string;
+  name_ar?: string | null;
   file_url?: string | null;
   source_file_name?: string | null;
   file_size?: number | null;

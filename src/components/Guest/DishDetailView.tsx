@@ -11,6 +11,7 @@ import {
   getDishPairing,
   getDishTags,
 } from './guestPresentation';
+import { translateCategoryLabel } from '../../i18n/dynamic';
 
 interface DishDetailViewProps {
   dish: Dish;
@@ -94,7 +95,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
           }}
         >
           <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--guest-accent)]">
-            {editorialLabel || dish.category} {caloriesText ? `- ${caloriesText}` : ''}
+            {editorialLabel || translateCategoryLabel(dish.category, dish.category_ar)} {caloriesText ? `- ${caloriesText}` : ''}
           </p>
 
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
