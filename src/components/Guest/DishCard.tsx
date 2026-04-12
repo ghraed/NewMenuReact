@@ -4,7 +4,7 @@ import type { Dish } from '../../types';
 import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishTags from './DishTags';
-import { getDishIngredientsText, getDishTags } from './guestPresentation';
+import { getDishTags } from './guestPresentation';
 
 interface DishCardProps {
   dish: Dish;
@@ -25,27 +25,6 @@ const DishCard: React.FC<DishCardProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish]);
-  const ingredientsText = useMemo(() => {
-    const ingredientLabels = dish.assets
-      .filter((asset) => asset.asset_type === 'ingredient_image')
-      .sort((left, right) => {
-        const leftOrder = typeof left.metadata?.order_index === 'number' ? left.metadata.order_index : 0;
-        const rightOrder = typeof right.metadata?.order_index === 'number' ? right.metadata.order_index : 0;
-        return leftOrder - rightOrder;
-      })
-      .map((asset) => {
-        const label = asset.metadata?.label;
-        return typeof label === 'string' && label.trim() ? label.trim() : null;
-      })
-      .filter((label): label is string => Boolean(label));
-
-    if (ingredientLabels.length > 0) {
-      return ingredientLabels.join(', ');
-    }
-
-    return getDishIngredientsText(dish);
-  }, [dish]);
-
   const price = Number(dish.price).toFixed(2);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
 
@@ -149,11 +128,8 @@ const DishCard: React.FC<DishCardProps> = ({
 
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-h-5 text-sm sm:max-w-[65%]">
-              <span className="line-clamp-2 font-medium text-[var(--guest-accent)]">{ingredientsText}</span>
               {caloriesText ? (
-                <p className="mt-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--guest-muted)]">
-                  {caloriesText}
-                </p>
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--guest-muted)]">{caloriesText}</p>
               ) : null}
             </div>
 
