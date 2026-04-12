@@ -126,14 +126,14 @@ const DishCard: React.FC<DishCardProps> = ({
 
           <DishTags tags={tags} className="mt-4" />
 
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-h-5 text-sm sm:max-w-[65%]">
+          <div className="mt-5 space-y-4">
+            <div className="min-h-5 text-sm">
               {caloriesText ? (
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--guest-muted)]">{caloriesText}</p>
               ) : null}
             </div>
 
-            <div className="flex w-full gap-2 sm:w-auto">
+            <div className="flex w-full gap-2 sm:justify-end">
               {onAddToCart ? (
                 <button
                   type="button"
