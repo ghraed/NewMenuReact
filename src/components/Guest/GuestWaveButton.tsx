@@ -120,7 +120,7 @@ const GuestWaveButton: React.FC = () => {
             disabled={isSending}
             className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
             style={{
-              backgroundColor: 'color-mix(in srgb, var(--guest-accent-soft) 80%, transparent)',
+              backgroundColor: 'rgb(212 175 55 / 80%)',
               borderColor: 'var(--guest-border)',
               color: 'var(--guest-text)',
               boxShadow: 'var(--guest-shadow-soft)',

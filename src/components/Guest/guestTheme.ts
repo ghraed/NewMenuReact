@@ -4,6 +4,7 @@ import type { GuestThemeMode } from '../../hooks/useGuestTheme';
 const lightThemeVars = {
   '--guest-bg': '#F6F2EB',
   '--guest-panel': '#FFFFFF',
+  '--guest-panel-solid': '#FFFFFF',
   '--guest-panel-strong': '#FCFAF5',
   '--guest-text': '#1A1A1A',
   '--guest-muted': '#6E6255',
@@ -19,6 +20,7 @@ const lightThemeVars = {
 const darkThemeVars = {
   '--guest-bg': '#0B0B0C',
   '--guest-panel': 'rgba(255,255,255,0.045)',
+  '--guest-panel-solid': '#121214',
   '--guest-panel-strong': 'rgba(255,255,255,0.07)',
   '--guest-text': '#F8F5EF',
   '--guest-muted': '#B8AC96',
