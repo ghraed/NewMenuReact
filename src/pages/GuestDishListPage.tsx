@@ -11,6 +11,7 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
+import { translateCategoryLabel } from '../i18n/dynamic';
 
 interface GuestListResponse {
   restaurant: {
@@ -147,7 +148,7 @@ const GuestDishListPage: React.FC = () => {
   }, []);
 
   const categories = useMemo(() => {
-    const values = Array.from(new Set(dishes.map((dish) => dish.category).filter(Boolean)));
+    const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category)).filter(Boolean)));
     return [t('menuList.allCategories'), ...values];
   }, [dishes, t]);
 
@@ -212,7 +213,7 @@ const GuestDishListPage: React.FC = () => {
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((dish) => {
-      const categoryMatch = category === t('menuList.allCategories') || dish.category === category;
+      const categoryMatch = category === t('menuList.allCategories') || translateCategoryLabel(dish.category) === category;
       const searchMatch =
         dish.name.toLowerCase().includes(search.toLowerCase()) ||
         dish.description.toLowerCase().includes(search.toLowerCase());
@@ -533,7 +534,7 @@ const GuestDishListPage: React.FC = () => {
                 color: 'var(--guest-muted)',
               }}
             >
-              No dishes found for your filter.
+              {t('menuList.noDishesForFilter')}
             </div>
           ) : null}
 

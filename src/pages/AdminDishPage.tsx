@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishViewer from '../components/Guest/DishViewer';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -9,6 +10,7 @@ import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 
 const AdminDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
+  const { t } = useTranslation();
   const [dish, setDish] = useState<Dish | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ const AdminDishPage: React.FC = () => {
         setDish(response.data);
       } catch (err) {
         console.error(err);
-        setError('Failed to load dish');
+        setError(t('dishPage.failedToLoad'));
       } finally {
         setLoading(false);
       }
@@ -30,13 +32,13 @@ const AdminDishPage: React.FC = () => {
   }, [dish_id]);
 
   return (
-    <DashboardLayout title="Dish Details">
+    <DashboardLayout title={t('adminDish.pageTitle')}>
       {loading ? (
-        <LoadingSpinner text="Loading dish..." />
+        <LoadingSpinner text={t('dishPage.loadingDish')} />
       ) : error ? (
         <div className="py-10 text-center text-spicy">{error}</div>
       ) : !dish ? (
-        <div className="py-10 text-center text-muted">Dish not found</div>
+        <div className="py-10 text-center text-muted">{t('dishPage.notFound')}</div>
       ) : (
         <GlassCard className="space-y-6">
           <div className="flex items-start justify-between gap-4">
@@ -45,7 +47,7 @@ const AdminDishPage: React.FC = () => {
               <p className="mt-2 text-lg text-muted">{dish.category}</p>
             </div>
             <Link to="/admin/dashboard">
-              <LiquidButton tone="tertiary">Back to Dashboard</LiquidButton>
+              <LiquidButton tone="tertiary">{t('adminDish.backToDashboard')}</LiquidButton>
             </Link>
           </div>
 

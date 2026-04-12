@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
 import api from '../services/api';
@@ -18,6 +19,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 type DishFilter = 'all' | 'active' | 'deleted';
 
 const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -74,7 +76,7 @@ const AdminDashboard: React.FC = () => {
       setDishes(items || []);
     } catch (err: unknown) {
       console.error(err);
-      setError(getErrorMessage(err, 'Failed to load dishes'));
+      setError(getErrorMessage(err, t('menuList.failedToLoad')));
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ const AdminDashboard: React.FC = () => {
       setDishes((prev) => prev.map((item) => (item.id === dish.id ? updated : item)));
       setOpenMenuDishId(null);
     } catch (err: unknown) {
-      alert(getErrorMessage(err, `Failed to ${action} dish`));
+      alert(getErrorMessage(err, t(`adminDashboard.failed${action === 'publish' ? 'Publish' : 'Unpublish'}`)));
     }
   };
 
@@ -108,7 +110,7 @@ const AdminDashboard: React.FC = () => {
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to delete dish'));
+      alert(getErrorMessage(err, t('adminDashboard.failedDelete')));
     }
   };
 
@@ -119,7 +121,7 @@ const AdminDashboard: React.FC = () => {
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to restore dish'));
+      alert(getErrorMessage(err, t('adminDashboard.failedRestore')));
     }
   };
 
@@ -135,7 +137,7 @@ const AdminDashboard: React.FC = () => {
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
-      alert(getErrorMessage(err, 'Failed to permanently delete dish'));
+      alert(getErrorMessage(err, t('adminDashboard.failedPermanentDelete')));
     }
   };
 
@@ -145,12 +147,12 @@ const AdminDashboard: React.FC = () => {
     const currentName = user?.restaurant?.name?.trim() ?? '';
 
     if (!nextName) {
-      setRestaurantError('Restaurant name is required.');
+      setRestaurantError(t('adminDashboard.restaurantNameRequired'));
       return;
     }
 
     if (nextName === currentName) {
-      setRestaurantError('No changes to save.');
+      setRestaurantError(t('adminDashboard.noRestaurantNameChanges'));
       return;
     }
 
@@ -161,45 +163,45 @@ const AdminDashboard: React.FC = () => {
     try {
       const response = await api.patch('/restaurant/name', { name: nextName });
       setRestaurantName(response.data?.restaurant?.name ?? nextName);
-      showToast(response.data?.message || 'Restaurant name updated.', 'secondary', 4200);
+      showToast(response.data?.message || t('adminDashboard.restaurantNameUpdated'), 'secondary', 4200);
       await refreshUser();
     } catch (err: unknown) {
-      setRestaurantError(getErrorMessage(err, 'Failed to update restaurant name'));
+      setRestaurantError(getErrorMessage(err, t('adminDashboard.failedRestaurantNameUpdate')));
     } finally {
       setSavingRestaurantName(false);
     }
   };
 
   return (
-    <DashboardLayout title="Dashboard">
+    <DashboardLayout title={t('admin.dashboard')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-text">Your Dishes 123</h2>
+        <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourDishes')}</h2>
         <div className="flex flex-wrap items-center gap-3">
           <Link to="/admin/accounting">
             <LiquidButton tone="tertiary">
-              <span>💳</span> Accounting
+              <span>💳</span> {t('admin.accounting')}
             </LiquidButton>
           </Link>
           <Link to="/admin/staff">
             <LiquidButton tone="secondary">
-              <span>👥</span> Manage Staff
+              <span>👥</span> {t('adminDashboard.manageStaff')}
             </LiquidButton>
           </Link>
           <Link to="/admin/dishes/create">
             <LiquidButton tone="primary">
-              <span>➕</span> Create New Dish
+              <span>➕</span> {t('createDish.pageTitle')}
             </LiquidButton>
           </Link>
         </div>
       </div>
 
       <GlassCard className="mb-6">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted2">Restaurant Name</h3>
+        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted2">{t('adminDashboard.restaurantName')}</h3>
         <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
           <GlassInput
             value={restaurantName}
             onChange={(event) => setRestaurantName(event.target.value)}
-            placeholder="Restaurant name"
+            placeholder={t('adminDashboard.restaurantNamePlaceholder')}
             disabled={savingRestaurantName}
           />
           <LiquidButton
@@ -208,29 +210,29 @@ const AdminDashboard: React.FC = () => {
             disabled={savingRestaurantName}
             className="w-full sm:w-auto"
           >
-            {savingRestaurantName ? 'Saving...' : 'Save Name'}
+            {savingRestaurantName ? t('adminDashboard.saving') : t('adminDashboard.saveName')}
           </LiquidButton>
         </div>
         {restaurantError && <p className="mt-2 text-sm text-spicy">{restaurantError}</p>}
       </GlassCard>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>All</GlassPill>
-        <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>Active</GlassPill>
-        <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>Deleted</GlassPill>
+        <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>{t('menuList.allCategories')}</GlassPill>
+        <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>{t('admin.active')}</GlassPill>
+        <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>{t('adminDashboard.deleted')}</GlassPill>
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading dishes...</div>
+        <div className="py-12 text-center text-muted">{t('adminDashboard.loadingDishes')}</div>
       ) : error ? (
         <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 py-12 text-center text-spicy">{error}</div>
       ) : dishes.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">📭</div>
-          <h3 className="mb-2 text-xl font-medium text-text">No dishes yet</h3>
-          <p className="mb-4 text-muted">Create your first dish to get started</p>
+          <h3 className="mb-2 text-xl font-medium text-text">{t('adminDashboard.noDishesYet')}</h3>
+          <p className="mb-4 text-muted">{t('adminDashboard.noDishesDescription')}</p>
           <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">Create Dish</LiquidButton>
+            <LiquidButton tone="primary">{t('createDish.submit')}</LiquidButton>
           </Link>
         </div>
       ) : (
@@ -259,17 +261,17 @@ const AdminDashboard: React.FC = () => {
                         </span>
                         {dish.model_state === 'processing' && (
                           <span className="inline-flex items-center rounded-full border border-sky-400/35 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-200">
-                            Model Processing
+                            {t('adminDashboard.modelProcessing')}
                           </span>
                         )}
                         {dish.model_state === 'error' && (
                           <span className="inline-flex items-center rounded-full border border-spicy/35 bg-spicy/10 px-2 py-0.5 text-xs font-medium text-spicy">
-                            Model Error
+                            {t('adminDashboard.modelError')}
                           </span>
                         )}
                         {dish.deleted_at && (
                           <span className="inline-flex items-center rounded-full border border-gold/35 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
-                            Deleted
+                            {t('adminDashboard.deleted')}
                           </span>
                         )}
                       </div>
@@ -281,10 +283,10 @@ const AdminDashboard: React.FC = () => {
                     {dish.deleted_at ? (
                       <div className="grid grid-cols-2 gap-2">
                         <LiquidButton tone="tertiary" onClick={() => handleRestore(dish)} className="w-full px-3 py-1.5 text-xs">
-                          Restore
+                          {t('adminDashboard.restore')}
                         </LiquidButton>
                         <LiquidButton tone="secondary" onClick={() => handlePermanentDelete(dish)} className="w-full px-3 py-1.5 text-xs">
-                          Delete Permanently
+                          {t('adminDashboard.deletePermanently')}
                         </LiquidButton>
                       </div>
                     ) : (
@@ -295,7 +297,7 @@ const AdminDashboard: React.FC = () => {
                             onClick={() => handlePublishToggle(dish)}
                             className="flex-1 px-3 py-1.5 text-xs"
                           >
-                            Publish
+                            {t('adminDashboard.publish')}
                           </LiquidButton>
                         )}
                         <div className="relative" ref={openMenuDishId === dish.id ? actionMenuRef : null}>
@@ -319,7 +321,7 @@ const AdminDashboard: React.FC = () => {
                                   onClick={() => handlePublishToggle(dish)}
                                   className="w-full rounded-xl px-3 py-2 text-left text-sm text-text transition hover:bg-white/10"
                                 >
-                                  Unpublish
+                                  {t('adminDashboard.unpublish')}
                                 </button>
                               )}
                               <Link
@@ -327,14 +329,14 @@ const AdminDashboard: React.FC = () => {
                                 className="block rounded-xl px-3 py-2 text-sm text-text transition hover:bg-white/10"
                                 onClick={() => setOpenMenuDishId(null)}
                               >
-                                Edit
+                                {t('adminDashboard.edit')}
                               </Link>
                               <button
                                 type="button"
                                 onClick={() => handleDelete(dish)}
                                 className="w-full rounded-xl px-3 py-2 text-left text-sm text-spicy transition hover:bg-spicy/10"
                               >
-                                Delete
+                                {t('adminDashboard.delete')}
                               </button>
                             </div>
                           )}

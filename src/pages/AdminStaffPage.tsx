@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { useAuth } from '../contexts/useAuth';
 import { fetchGuestTables } from '../services/orderService';
@@ -46,6 +47,7 @@ const mapAssignments = (staffMembers: StaffMember[]): AssignmentState => (
 );
 
 const AdminStaffPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
@@ -85,7 +87,7 @@ const AdminStaffPage: React.FC = () => {
       const response = await fetchGuestTables(user.restaurant.slug);
       setTables(response.tables);
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, 'Failed to load restaurant tables.'));
+      setPageError(getErrorMessage(error, t('wave.failedTables')));
     } finally {
       setTablesLoading(false);
     }
@@ -98,7 +100,7 @@ const AdminStaffPage: React.FC = () => {
       const nextStaffMembers = await fetchStaffMembers();
       syncStaffMembers(nextStaffMembers);
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, 'Failed to load staff members.'));
+      setPageError(getErrorMessage(error, t('adminStaff.failedLoadStaff')));
     } finally {
       setStaffLoading(false);
     }
@@ -119,12 +121,12 @@ const AdminStaffPage: React.FC = () => {
     const normalizedPhone = phone.trim();
 
     if (!normalizedName) {
-      setPageError('Staff name is required.');
+      setPageError(t('adminStaff.nameRequired'));
       return;
     }
 
     if (!normalizedEmail && !normalizedPhone) {
-      setPageError('Add either an email address or a phone number.');
+      setPageError(t('adminStaff.contactRequired'));
       return;
     }
 
@@ -145,9 +147,9 @@ const AdminStaffPage: React.FC = () => {
       setPhone('');
       setSelectedTableIds([]);
       await loadStaffMembers();
-      showToast(response.message || 'Staff member created.', 'primary');
+      showToast(response.message || t('adminStaff.created'), 'primary');
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, 'Failed to create staff member.'));
+      setPageError(getErrorMessage(error, t('adminStaff.failedCreate')));
     } finally {
       setCreating(false);
     }
@@ -168,21 +170,21 @@ const AdminStaffPage: React.FC = () => {
         ...current,
         [staff.id]: (response.staff.assigned_tables ?? []).map((table) => table.id),
       }));
-      showToast(response.message || `Updated tables for ${staff.name}.`, 'primary');
+      showToast(response.message || t('adminStaff.updatedTables', { name: staff.name }), 'primary');
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, `Failed to update tables for ${staff.name}.`));
+      setPageError(getErrorMessage(error, t('adminStaff.failedUpdateTables', { name: staff.name })));
     } finally {
       setSavingStaffId(null);
     }
   };
 
   return (
-    <DashboardLayout title="Staff Management">
+    <DashboardLayout title={t('adminStaff.pageTitle')}>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
         <GlassCard noise={false}>
           <div className="mb-6">
-            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">Restaurant Team</p>
-            <h2 className="mt-2 text-2xl font-semibold text-text">Create a staff account</h2>
+            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">{t('adminStaff.teamEyebrow')}</p>
+            <h2 className="mt-2 text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
               Add a team member for
               {' '}
@@ -195,7 +197,7 @@ const AdminStaffPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label htmlFor="staff-name" className="mb-1 block text-sm font-medium text-text">
-                Staff name
+                {t('adminStaff.staffName')}
               </label>
               <GlassInput
                 id="staff-name"
@@ -211,7 +213,7 @@ const AdminStaffPage: React.FC = () => {
             <div className="grid gap-5 md:grid-cols-2">
               <div>
                 <label htmlFor="staff-email" className="mb-1 block text-sm font-medium text-text">
-                  Email
+                  {t('adminStaff.email')}
                 </label>
                 <GlassInput
                   id="staff-email"
@@ -226,7 +228,7 @@ const AdminStaffPage: React.FC = () => {
 
               <div>
                 <label htmlFor="staff-phone" className="mb-1 block text-sm font-medium text-text">
-                  Phone number
+                  {t('adminStaff.phone')}
                 </label>
                 <GlassInput
                   id="staff-phone"
@@ -242,14 +244,14 @@ const AdminStaffPage: React.FC = () => {
 
             <div>
               <div className="mb-2 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-text">Assigned tables</label>
+                <label className="block text-sm font-medium text-text">{t('adminStaff.assignedTables')}</label>
                 <span className="text-xs uppercase tracking-[0.18em] text-muted2">
-                  {selectedTableIds.length} selected
+                  {t('adminStaff.selectedCount', { count: selectedTableIds.length })}
                 </span>
               </div>
               <div className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
                 {tablesLoading ? (
-                  <p className="text-sm text-muted">Loading restaurant tables...</p>
+                  <p className="text-sm text-muted">{t('wave.loadingTables')}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {tables.map((table) => (
@@ -276,9 +278,9 @@ const AdminStaffPage: React.FC = () => {
             ) : null}
 
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl2 border border-stroke/70 bg-panel2/40 p-4 text-sm text-muted">
-              <p>At least one contact method is required. Table assignments control which guest orders the staff member can review.</p>
+              <p>{t('adminStaff.contactHint')}</p>
               <LiquidButton type="submit" tone="primary" disabled={creating}>
-                {creating ? 'Creating...' : 'Create Staff'}
+                {creating ? t('adminStaff.creating') : t('adminStaff.createStaff')}
               </LiquidButton>
             </div>
           </form>
@@ -286,7 +288,7 @@ const AdminStaffPage: React.FC = () => {
 
         <div className="space-y-6">
           <GlassCard noise={false}>
-            <h3 className="text-lg font-semibold text-text">Access summary</h3>
+            <h3 className="text-lg font-semibold text-text">{t('adminStaff.accessSummary')}</h3>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
               <li>Admins can assign each staff member to one or many tables.</li>
               <li>Staff only see pending confirmations for their assigned tables.</li>
@@ -295,7 +297,7 @@ const AdminStaffPage: React.FC = () => {
           </GlassCard>
 
           <GlassCard interactive={false} noise={false}>
-            <h3 className="text-lg font-semibold text-text">Latest created staff</h3>
+            <h3 className="text-lg font-semibold text-text">{t('adminStaff.latestCreated')}</h3>
             {createdStaff ? (
               <div className="mt-4 space-y-3 text-sm text-muted">
                 <div className="relative isolate overflow-hidden rounded-xl2 border border-sage/35 bg-sage/10 p-4">
@@ -315,9 +317,7 @@ const AdminStaffPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm leading-6 text-muted">
-                The newly created staff member will appear here after a successful submission.
-              </p>
+              <p className="mt-4 text-sm leading-6 text-muted">{t('adminStaff.latestCreatedEmpty')}</p>
             )}
           </GlassCard>
         </div>
@@ -326,18 +326,18 @@ const AdminStaffPage: React.FC = () => {
       <GlassCard className="mt-6" noise={false}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">Assignments</p>
-            <h3 className="mt-2 text-xl font-semibold text-text">Current staff table coverage</h3>
+            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">{t('adminStaff.assignmentsEyebrow')}</p>
+            <h3 className="mt-2 text-xl font-semibold text-text">{t('adminStaff.assignmentsTitle')}</h3>
           </div>
           <LiquidButton type="button" tone="tertiary" onClick={loadStaffMembers} disabled={staffLoading}>
-            {staffLoading ? 'Refreshing...' : 'Refresh Staff'}
+            {staffLoading ? t('common.loading') : t('adminStaff.refresh')}
           </LiquidButton>
         </div>
 
         {staffLoading ? (
-          <p className="text-sm text-muted">Loading staff assignments...</p>
+          <p className="text-sm text-muted">{t('adminStaff.loadingAssignments')}</p>
         ) : staffMembers.length === 0 ? (
-          <p className="text-sm text-muted">No staff members yet. Create one above to start assigning tables.</p>
+          <p className="text-sm text-muted">{t('adminStaff.noStaffYet')}</p>
         ) : (
           <div className="space-y-4">
             {staffMembers.map((staff) => {
@@ -355,10 +355,10 @@ const AdminStaffPage: React.FC = () => {
                     <div>
                       <p className="text-lg font-semibold text-text">{staff.name}</p>
                       <p className="mt-1 text-sm text-muted">
-                        {staff.email || staff.phone || 'No login contact saved'}
+                        {staff.email || staff.phone || t('adminStaff.noLoginContact')}
                       </p>
                       <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted2">
-                        Assigned now: {assignedNames.join(', ') || 'No tables assigned'}
+                        {t('adminStaff.assignedNow', { tables: assignedNames.join(', ') || t('adminStaff.noTablesAssigned') })}
                       </p>
                     </div>
 
@@ -368,7 +368,7 @@ const AdminStaffPage: React.FC = () => {
                       onClick={() => handleSaveAssignments(staff)}
                       disabled={savingStaffId === staff.id}
                     >
-                      {savingStaffId === staff.id ? 'Saving...' : 'Save Tables'}
+                      {savingStaffId === staff.id ? t('adminDashboard.saving') : t('adminStaff.saveTables')}
                     </LiquidButton>
                   </div>
 

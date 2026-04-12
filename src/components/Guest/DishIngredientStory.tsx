@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export interface DishIngredientStoryItem {
   id: string | number;
@@ -43,6 +44,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   dishImageUrl,
   ingredients,
 }) => {
+  const { t } = useTranslation();
   const [stage, setStage] = useState<AnimationStage>('idle');
   const timeoutsRef = useRef<number[]>([]);
 
@@ -101,10 +103,10 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
         <div className="relative mx-auto max-w-4xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div className="max-w-2xl">
-              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">Ingredient Story</p>
+              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('ingredientStory.eyebrow')}</p>
               <h2 className="mt-2 font-serif text-3xl text-[var(--guest-text)] sm:text-4xl">{dishName}</h2>
               <p className="mt-2 text-sm leading-7 text-[var(--guest-muted)]">
-                Start the animation to expand the plated dish into a clean vertical ingredient story inspired by editorial menu photography.
+                {t('ingredientStory.animationHint')}
               </p>
             </div>
 
@@ -121,7 +123,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                 
               }}
             >
-              {stage === 'idle' ? 'Show Animation' : 'Replay Animation'}
+              {stage === 'idle' ? t('ingredientStory.showAnimation') : t('ingredientStory.replayAnimation')}
             </button>
           </div>
 
@@ -146,7 +148,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                   <img src={dishImageUrl} alt={dishName} className="h-[220px] w-full object-cover sm:h-[260px]" />
                 ) : (
                   <div className="flex h-[220px] items-center justify-center px-6 text-center text-sm font-semibold uppercase tracking-[0.24em] text-[var(--guest-muted)] sm:h-[260px]">
-                    Dish Preview
+                    {t('ingredientStory.dishPreview')}
                   </div>
                 )}
               </motion.div>
@@ -254,7 +256,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                               backgroundColor: 'rgba(255,255,255,0.45)',
                             }}
                           >
-                            Ingredient
+                            {t('ingredientStory.ingredient')}
                           </div>
                         )}
                       </motion.div>
@@ -273,7 +275,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                   color: 'var(--guest-muted)',
                 }}
               >
-                No ingredient images are available for this dish yet. Add them from the admin dish editor to unlock the story page.
+                {t('ingredientStory.empty')}
               </div>
             ) : null}
           </div>

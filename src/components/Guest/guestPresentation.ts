@@ -1,4 +1,6 @@
 import type { Dish } from '../../types';
+import i18n from '../../i18n';
+import { translateCategoryLabel } from '../../i18n/dynamic';
 
 const hasKeyword = (text: string, keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
 
@@ -13,24 +15,24 @@ const chefKeywords = ['chef', 'signature', 'special', 'truffle'];
 export const getDishEditorialLabel = (dish: Dish): string | null => {
   const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
 
-  if (hasKeyword(text, oceanKeywords)) return 'Ocean notes';
-  if (hasKeyword(text, chefKeywords)) return 'Chef selection';
-  if (hasKeyword(text, gardenKeywords)) return 'Garden selection';
-  if (hasKeyword(text, fireKeywords)) return 'Fire notes';
-  if (hasKeyword(text, pastryKeywords)) return 'Pastry notes';
+  if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.editorial.oceanNotes');
+  if (hasKeyword(text, chefKeywords)) return i18n.t('dynamic.editorial.chefSelection');
+  if (hasKeyword(text, gardenKeywords)) return i18n.t('dynamic.editorial.gardenSelection');
+  if (hasKeyword(text, fireKeywords)) return i18n.t('dynamic.editorial.fireNotes');
+  if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.editorial.pastryNotes');
   return null;
 };
 
 export const getDishTags = (dish: Dish): string[] => {
   const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
-  const tags = [dish.category];
+  const tags = [translateCategoryLabel(dish.category)];
 
-  if (hasKeyword(text, chefKeywords)) tags.push('Signature');
-  if (hasKeyword(text, gardenKeywords)) tags.push('Vegetarian');
-  if (hasKeyword(text, fireKeywords)) tags.push('Spicy');
-  if (hasKeyword(text, oceanKeywords)) tags.push('Seafood');
-  if (!hasKeyword(text, pastryKeywords) && /main|entree|course|steak|lamb|pasta/.test(text)) tags.push('Main Course');
-  if (/starter|amuse|small plate|appetizer/.test(text)) tags.push('Luxury Starter');
+  if (hasKeyword(text, chefKeywords)) tags.push(i18n.t('dynamic.tags.signature'));
+  if (hasKeyword(text, gardenKeywords)) tags.push(i18n.t('dynamic.tags.vegetarian'));
+  if (hasKeyword(text, fireKeywords)) tags.push(i18n.t('dynamic.tags.spicy'));
+  if (hasKeyword(text, oceanKeywords)) tags.push(i18n.t('dynamic.tags.seafood'));
+  if (!hasKeyword(text, pastryKeywords) && /main|entree|course|steak|lamb|pasta/.test(text)) tags.push(i18n.t('dynamic.tags.mainCourse'));
+  if (/starter|amuse|small plate|appetizer/.test(text)) tags.push(i18n.t('dynamic.tags.luxuryStarter'));
 
   return unique(tags).slice(0, 5);
 };
@@ -38,11 +40,11 @@ export const getDishTags = (dish: Dish): string[] => {
 export const getDishPairing = (dish: Dish): string => {
   const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
 
-  if (hasKeyword(text, oceanKeywords)) return 'A mineral white wine or a brisk citrus-forward spritz complements the saline, coastal profile.';
-  if (hasKeyword(text, pastryKeywords)) return 'Pair with espresso, late-harvest pours, or a restrained dessert wine to keep the finish elegant.';
-  if (hasKeyword(text, fireKeywords)) return 'A chilled rose or a light red softens heat while keeping the plate lively and precise.';
-  if (hasKeyword(text, gardenKeywords)) return 'Fresh herbal infusions and crisp whites keep the dish lifted and clean.';
-  return 'A balanced house pairing with bright acidity and gentle structure keeps the experience polished from first bite to finish.';
+  if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.pairing.ocean');
+  if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.pairing.pastry');
+  if (hasKeyword(text, fireKeywords)) return i18n.t('dynamic.pairing.fire');
+  if (hasKeyword(text, gardenKeywords)) return i18n.t('dynamic.pairing.garden');
+  return i18n.t('dynamic.pairing.default');
 };
 
 export const getDishIngredientsText = (dish: Dish): string => {
@@ -74,8 +76,8 @@ export const getDishIngredientsText = (dish: Dish): string => {
 
   const text = `${dish.name} ${dish.description} ${dish.category}`.toLowerCase();
 
-  if (hasKeyword(text, oceanKeywords)) return 'Sea-led ingredients, aromatic herbs, restrained citrus, and a refined finishing sauce.';
-  if (hasKeyword(text, gardenKeywords)) return 'Seasonal produce, herbaceous accents, gentle textures, and a bright final seasoning.';
-  if (hasKeyword(text, pastryKeywords)) return 'Layered sweetness, soft cream notes, and a composed finish built for a delicate close.';
-  return dish.description?.trim() || dish.category || dish.name;
+  if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.ingredients.ocean');
+  if (hasKeyword(text, gardenKeywords)) return i18n.t('dynamic.ingredients.garden');
+  if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.ingredients.pastry');
+  return dish.description?.trim() || translateCategoryLabel(dish.category) || dish.name;
 };

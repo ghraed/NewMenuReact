@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import SectionHeading from '../components/Guest/SectionHeading';
 import DishIngredientStory, { type DishIngredientStoryItem } from '../components/Guest/DishIngredientStory';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish } from '../types';
-
-const formatRestaurantLabel = (value?: string) =>
-  value?.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ') || 'Menu';
+import { formatRestaurantLabel } from '../utils/guestRestaurant';
 
 const getIngredientOrder = (metadata: Dish['assets'][number]['metadata']) => {
   const order = metadata?.order_index;
@@ -17,7 +16,7 @@ const getIngredientOrder = (metadata: Dish['assets'][number]['metadata']) => {
 
 const getIngredientLabel = (metadata: Dish['assets'][number]['metadata']) => {
   const label = metadata?.label;
-  return typeof label === 'string' && label.trim() ? label : 'Ingredient';
+  return typeof label === 'string' && label.trim() ? label : '';
 };
 
 const getIngredientQuantity = (metadata: Dish['assets'][number]['metadata']) => {
@@ -27,6 +26,7 @@ const getIngredientQuantity = (metadata: Dish['assets'][number]['metadata']) => 
 
 const GuestDishIngredientsPage: React.FC = () => {
   const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
+  const { t } = useTranslation();
   const [dish, setDish] = useState<Dish | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ const GuestDishIngredientsPage: React.FC = () => {
         setDish(response.data);
       } catch (err) {
         console.error(err);
-        setError('Failed to load ingredient story');
+        setError(t('ingredientStory.failedToLoad'));
       } finally {
         setLoading(false);
       }
@@ -82,7 +82,7 @@ const GuestDishIngredientsPage: React.FC = () => {
             className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
           >
             <span aria-hidden="true">←</span>
-            Back to dish
+            {t('ingredientStory.backToDish')}
           </Link>
         </div>
 
@@ -95,7 +95,7 @@ const GuestDishIngredientsPage: React.FC = () => {
               boxShadow: 'var(--guest-shadow)',
             }}
           >
-            <LoadingSpinner inline text="Loading ingredient story..." />
+            <LoadingSpinner inline text={t('ingredientStory.loading')} />
           </div>
         ) : null}
 
@@ -121,7 +121,7 @@ const GuestDishIngredientsPage: React.FC = () => {
               color: 'var(--guest-muted)',
             }}
           >
-            Ingredient story not found
+            {t('ingredientStory.notFound')}
           </div>
         ) : null}
 
@@ -129,8 +129,8 @@ const GuestDishIngredientsPage: React.FC = () => {
           <div className="space-y-8">
             <SectionHeading
               eyebrow={formatRestaurantLabel(restaurant_slug)}
-              title={`${dish.name} Ingredient Story`}
-              description="A guided ingredient breakdown that starts with the finished dish, then opens into a more editorial stacked composition."
+              title={t('ingredientStory.title', { dishName: dish.name })}
+              description={t('ingredientStory.description')}
             />
 
             <DishIngredientStory

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
@@ -48,6 +49,7 @@ const extractDishOptions = (payload: unknown): Dish[] => {
 
 const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
@@ -112,15 +114,15 @@ const CreateDishPage: React.FC = () => {
 
       navigate('/admin/dashboard');
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to create dish'));
+      setError(getErrorMessage(err, t('createDish.failed')));
     }
   };
 
   return (
-    <DashboardLayout title="Create New Dish">
+    <DashboardLayout title={t('createDish.pageTitle')}>
       <div className="mb-6">
-        <h2 className="mb-2 text-xl font-semibold text-text">Add a new menu item</h2>
-        <p className="text-muted">Create a dish with 3D assets. Upload both .glb and .usdz if you want AR on Android and iPhone/iPad.</p>
+        <h2 className="mb-2 text-xl font-semibold text-text">{t('createDish.heading')}</h2>
+        <p className="text-muted">{t('createDish.description')}</p>
       </div>
 
       {error && <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>}
@@ -130,8 +132,8 @@ const CreateDishPage: React.FC = () => {
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}
         requireModelUpload
-        submitLabel="Create Dish"
-        submittingLabel="Creating..."
+        submitLabel={t('createDish.submit')}
+        submittingLabel={t('createDish.submitting')}
       />
     </DashboardLayout>
   );

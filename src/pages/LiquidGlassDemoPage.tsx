@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   GlassBoard,
   GlassCard,
@@ -10,24 +11,26 @@ import {
 } from '../components/ui/liquid-glass';
 
 const LiquidGlassDemoPage: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <LiquidBackground>
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="grid gap-6 xl:grid-cols-2">
           <GlassBoard>
-            <h2 className="text-2xl font-semibold text-text">Luxury Dark + Gold</h2>
-            <p className="mt-1 text-sm text-muted">Shared component preview for the full app theme.</p>
+            <h2 className="text-2xl font-semibold text-text">{t('demo.luxuryTitle')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('demo.luxuryDescription')}</p>
 
             <div className="mt-5 space-y-4">
               <div className="flex flex-wrap gap-2">
                 <GlassPill active>Active</GlassPill>
-                <GlassPill>Default</GlassPill>
+                <GlassPill>{t('demo.default')}</GlassPill>
               </div>
-              <GlassInput leftSlot={<span>🔎</span>} placeholder="Search projects..." />
+              <GlassInput leftSlot={<span>🔎</span>} placeholder={t('demo.searchProjects')} />
               <div className="flex flex-wrap gap-2">
-                <LiquidButton tone="primary">Primary</LiquidButton>
-                <LiquidButton tone="secondary">Secondary</LiquidButton>
-                <LiquidButton tone="tertiary">Tertiary</LiquidButton>
+                <LiquidButton tone="primary">{t('demo.primary')}</LiquidButton>
+                <LiquidButton tone="secondary">{t('demo.secondary')}</LiquidButton>
+                <LiquidButton tone="tertiary">{t('demo.tertiary')}</LiquidButton>
               </div>
               <div className="flex gap-2">
                 <GlassIconButton>+</GlassIconButton>
@@ -35,26 +38,26 @@ const LiquidGlassDemoPage: React.FC = () => {
                 <GlassIconButton>›</GlassIconButton>
               </div>
               <GlassCard>
-                <p className="text-lg font-semibold text-text">Sample Card</p>
-                <p className="text-sm text-muted">Premium glass card with dark luxury treatment.</p>
+                <p className="text-lg font-semibold text-text">{t('demo.sampleCard')}</p>
+                <p className="text-sm text-muted">{t('demo.sampleCardDescription')}</p>
               </GlassCard>
             </div>
           </GlassBoard>
 
           <GlassBoard>
-            <h2 className="text-2xl font-semibold text-text">Spacing + Typography</h2>
-            <p className="mt-1 text-sm text-muted">Mobile-first rhythm and readable contrast.</p>
+            <h2 className="text-2xl font-semibold text-text">{t('demo.spacingTitle')}</h2>
+            <p className="mt-1 text-sm text-muted">{t('demo.spacingDescription')}</p>
 
             <div className="mt-5 space-y-4">
               <GlassCard className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-gold2">Starter</p>
-                <p className="text-xl font-semibold text-text">Truffle Mushroom Pizza</p>
-                <p className="text-sm text-muted">Balanced hierarchy and restrained accent usage.</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-gold2">{t('demo.starter')}</p>
+                <p className="text-xl font-semibold text-text">{t('demo.exampleDishOne')}</p>
+                <p className="text-sm text-muted">{t('demo.exampleDescriptionOne')}</p>
               </GlassCard>
               <GlassCard className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-sage">Chef pick</p>
-                <p className="text-xl font-semibold text-text">Dragon Roll</p>
-                <p className="text-sm text-muted">Only highlights use gold/sage solid accents.</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-sage">{t('demo.chefPick')}</p>
+                <p className="text-xl font-semibold text-text">{t('demo.exampleDishTwo')}</p>
+                <p className="text-sm text-muted">{t('demo.exampleDescriptionTwo')}</p>
               </GlassCard>
             </div>
           </GlassBoard>
