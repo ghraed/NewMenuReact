@@ -44,10 +44,13 @@ export interface Dish {
   id: number;
   uuid: string;
   name: string;
+  name_ar?: string | null;
   description: string;
+  description_ar?: string | null;
   price: number;
   calories?: number | null;
   category: string;
+  category_ar?: string | null;
   status: 'draft' | 'published';
   image_url?: string;
   assets: DishAsset[];

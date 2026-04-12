@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   GlassInput,
   GlassSurface,
@@ -94,10 +95,13 @@ const findMatchingLibraryIngredient = (
 
 export interface DishFormData {
   name: string;
+  name_ar: string;
   description: string;
+  description_ar: string;
   price: string;
   calories: string;
   category: string;
+  category_ar: string;
   status: 'draft' | 'published';
   image_url: string;
   preview_file: File | null;
@@ -148,12 +152,16 @@ const DishForm: React.FC<DishFormProps> = ({
   suggestedDishOptions = [],
   relatedDishOptions = [],
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
+    name_ar: initialValues?.name_ar || '',
     description: initialValues?.description || '',
+    description_ar: initialValues?.description_ar || '',
     price: initialValues?.price || '',
     calories: initialValues?.calories || '',
     category: initialValues?.category || '',
+    category_ar: initialValues?.category_ar || '',
     status: initialValues?.status || 'published',
     image_url: initialValues?.image_url || '',
     preview_file: null,
@@ -540,7 +548,7 @@ const DishForm: React.FC<DishFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label htmlFor="name" className="mb-1 block text-sm font-medium text-text">
-          Dish Name *
+          {t('dishForm.nameEn')}
         </label>
         <GlassInput
           type="text"
@@ -549,13 +557,13 @@ const DishForm: React.FC<DishFormProps> = ({
           value={formData.name}
           onChange={handleChange}
           required
-          placeholder="Margherita Pizza"
+          placeholder={t('dishForm.nameEnPlaceholder')}
         />
       </div>
 
       <div>
         <label htmlFor="description" className="mb-1 block text-sm font-medium text-text">
-          Description
+          {t('dishForm.descriptionEn')}
         </label>
         <div className={cx('rounded-[26px] border px-4 py-3', glassControl, focusRing)}>
           <textarea
@@ -565,7 +573,57 @@ const DishForm: React.FC<DishFormProps> = ({
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl bg-transparent text-text placeholder:text-muted2 focus:outline-none"
-            placeholder="Classic pizza with tomato sauce, fresh mozzarella, and basil"
+            placeholder={t('dishForm.descriptionEnPlaceholder')}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <label htmlFor="name_ar" className="mb-1 block text-sm font-medium text-text">
+            {t('dishForm.nameAr')}
+          </label>
+          <GlassInput
+            type="text"
+            id="name_ar"
+            name="name_ar"
+            value={formData.name_ar}
+            onChange={handleChange}
+            dir="rtl"
+            placeholder={t('dishForm.nameArPlaceholder')}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="category_ar" className="mb-1 block text-sm font-medium text-text">
+            {t('dishForm.categoryAr')}
+          </label>
+          <GlassInput
+            type="text"
+            id="category_ar"
+            name="category_ar"
+            value={formData.category_ar}
+            onChange={handleChange}
+            dir="rtl"
+            placeholder={t('dishForm.categoryArPlaceholder')}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="description_ar" className="mb-1 block text-sm font-medium text-text">
+          {t('dishForm.descriptionAr')}
+        </label>
+        <div className={cx('rounded-[26px] border px-4 py-3', glassControl, focusRing)}>
+          <textarea
+            id="description_ar"
+            name="description_ar"
+            value={formData.description_ar}
+            onChange={handleChange}
+            rows={3}
+            dir="rtl"
+            className="w-full rounded-xl bg-transparent text-text placeholder:text-muted2 focus:outline-none"
+            placeholder={t('dishForm.descriptionArPlaceholder')}
           />
         </div>
       </div>
@@ -606,7 +664,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-text">
-            Category *
+            {t('dishForm.categoryEn')}
           </label>
           <GlassInput
             type="text"
@@ -615,7 +673,7 @@ const DishForm: React.FC<DishFormProps> = ({
             value={formData.category}
             onChange={handleChange}
             required
-            placeholder="Pizza, Appetizers, Desserts"
+            placeholder={t('dishForm.categoryEnPlaceholder')}
           />
         </div>
       </div>

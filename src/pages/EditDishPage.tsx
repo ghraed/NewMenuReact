@@ -169,10 +169,13 @@ const EditDishPage: React.FC = () => {
     try {
       await api.patch(`/dishes/${dish_id}`, {
         name: data.name,
+        name_ar: data.name_ar || null,
         description: data.description,
+        description_ar: data.description_ar || null,
         price: parseFloat(data.price),
         calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
+        category_ar: data.category_ar || null,
         status: data.status,
         image_url: data.image_url || null,
         suggested_dish_ids: data.suggested_dish_ids,
@@ -436,8 +439,11 @@ const EditDishPage: React.FC = () => {
           onSubmit={handleUpdate}
           initialValues={{
             name: dish.name,
+            name_ar: dish.name_ar || '',
             description: dish.description,
+            description_ar: dish.description_ar || '',
             category: dish.category,
+            category_ar: dish.category_ar || '',
             status: dish.status,
             image_url: dish.image_url || '',
             price: String(dish.price),
