@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
-import type { Dish } from '../types';
+import type { Dish, IngredientLibraryItem } from '../types';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -16,16 +16,21 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const uploadIngredientLayers = async (dishId: number, ingredientLayers: DishFormData['ingredient_layers']) => {
   for (const [index, ingredient] of ingredientLayers.entries()) {
-    if (!ingredient.image_file) continue;
-
     const payload = new FormData();
     payload.append('type', 'ingredient_image');
-    payload.append('file', ingredient.image_file);
     payload.append('label', ingredient.name);
     payload.append('order_index', String(index));
 
     if (ingredient.quantity) {
       payload.append('quantity', ingredient.quantity);
+    }
+
+    if (ingredient.library_ingredient_id) {
+      payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
+    } else if (ingredient.image_file) {
+      payload.append('file', ingredient.image_file);
+    } else {
+      continue;
     }
 
     await api.post(`/dishes/${dishId}/assets`, payload, {
@@ -51,28 +56,45 @@ const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
+  const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
 
   useEffect(() => {
-    const fetchSuggestedDishOptions = async () => {
+    const fetchFormOptions = async () => {
       try {
-        const response = await api.get('/dishes', {
-          params: {
-            include_deleted: '0',
-            per_page: '200',
-          },
-        });
+        const [ingredientLibraryResult, dishOptionsResult] = await Promise.allSettled([
+          api.get('/ingredients'),
+          api.get('/dishes', {
+            params: {
+              include_deleted: '0',
+              per_page: '200',
+            },
+          }),
+        ]);
 
-        const options = extractDishOptions(response.data);
-        setSuggestedDishOptions(options);
-        setRelatedDishOptions(options);
+        if (ingredientLibraryResult.status === 'fulfilled') {
+          setIngredientLibrary(Array.isArray(ingredientLibraryResult.value.data) ? ingredientLibraryResult.value.data : []);
+        } else {
+          console.error(ingredientLibraryResult.reason);
+          setIngredientLibrary([]);
+        }
+
+        if (dishOptionsResult.status === 'fulfilled') {
+          const options = extractDishOptions(dishOptionsResult.value.data);
+          setSuggestedDishOptions(options);
+          setRelatedDishOptions(options);
+        } else {
+          console.error(dishOptionsResult.reason);
+          setSuggestedDishOptions([]);
+          setRelatedDishOptions([]);
+        }
       } catch (err) {
         console.error(err);
       }
     };
 
-    fetchSuggestedDishOptions();
+    fetchFormOptions();
   }, []);
 
   const handleSubmit = async (dishData: DishFormData) => {
@@ -132,6 +154,7 @@ const CreateDishPage: React.FC = () => {
 
       <DishForm
         onSubmit={handleSubmit}
+        ingredientLibrary={ingredientLibrary}
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}
         requireModelUpload

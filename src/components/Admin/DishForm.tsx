@@ -1209,7 +1209,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
                               <p className="mt-2 text-xs text-muted">
                                 {layer.library_ingredient_id
-                                  ? 'This layer is using a saved ingredient. The label and image come from the library entry.'
+                                  ? 'This layer is using a saved ingredient. The image comes from the library entry, and you can still adjust the label.'
                                   : 'Choose ingredient from the library to replace this layer image and label.'}
                               </p>
                               <p className="mt-1 text-xs text-muted2">
@@ -1226,7 +1226,6 @@ const DishForm: React.FC<DishFormProps> = ({
                               onChange={(event) =>
                                 handleIngredientChange(layer.client_id, 'name', event.target.value)
                               }
-                              disabled={layer.library_ingredient_id !== null}
                               placeholder="Fresh Basil"
                             />
                           </div>
