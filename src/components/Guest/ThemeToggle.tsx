@@ -33,7 +33,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
       aria-label={isLight ? t('theme.switchToDark') : t('theme.switchToLight')}
       className="fixed top-4 z-[80] isolate pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
       style={{
-        insetInlineEnd: '1rem',
+        right: '1rem',
         backgroundColor: 'var(--guest-panel)',
         borderColor: 'var(--guest-border)',
         boxShadow: 'var(--guest-shadow-soft)',
