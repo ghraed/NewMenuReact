@@ -30,12 +30,16 @@ const toneCloseClass: Record<NonNullable<ToastState['tone']>, string> = {
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
   const tone = toast.tone || 'primary';
 
+  if (!toast.open) {
+    return null;
+  }
+
   const content = (
     <div
       aria-live="polite"
       className={cx(
         'fixed right-4 top-4 z-[2147483647] transition-all duration-300 ease-fluid motion-reduce:transition-none',
-        toast.open ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
+        'translate-y-0 opacity-100'
       )}
     >
       <div
