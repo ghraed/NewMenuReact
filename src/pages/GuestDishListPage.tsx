@@ -63,7 +63,7 @@ const getDishIngredients = (dish: Dish) => {
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug } = useParams<{ restaurant_slug?: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addDish, getDishQuantity } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
@@ -108,7 +108,7 @@ const GuestDishListPage: React.FC = () => {
         }
 
         if (!data) {
-          throw new Error(t('menuList.noRestaurantData'));
+          throw new Error(i18n.t('menuList.noRestaurantData'));
         }
 
         setRestaurantName(data.restaurant.name);
@@ -116,14 +116,18 @@ const GuestDishListPage: React.FC = () => {
         setDishes(data.dishes);
       } catch (err) {
         console.error(err);
-        setError(t('menuList.failedToLoad'));
+        setError(i18n.t('menuList.failedToLoad'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchDishes();
-  }, [restaurant_slug]);
+  }, [restaurant_slug, i18n]);
+
+  useEffect(() => {
+    setCategory(t('menuList.allCategories'));
+  }, [i18n.resolvedLanguage, t]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -150,7 +154,7 @@ const GuestDishListPage: React.FC = () => {
   const categories = useMemo(() => {
     const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category)).filter(Boolean)));
     return [t('menuList.allCategories'), ...values];
-  }, [dishes, t]);
+  }, [dishes, i18n.resolvedLanguage, t]);
 
   const allIngredients = useMemo(() => {
     const values = new Map<string, string>();
@@ -228,7 +232,7 @@ const GuestDishListPage: React.FC = () => {
 
       return categoryMatch && searchMatch && ingredientMatch;
     });
-  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds]);
+  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, i18n.resolvedLanguage, t]);
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>

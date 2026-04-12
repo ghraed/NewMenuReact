@@ -21,10 +21,10 @@ const DishCard: React.FC<DishCardProps> = ({
   cartQuantity = 0,
   isIngredientAlert = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
-  const tags = useMemo(() => getDishTags(dish), [dish]);
+  const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
   const price = Number(dish.price).toFixed(2);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
 

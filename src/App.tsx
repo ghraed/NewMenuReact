@@ -32,11 +32,11 @@ const RoleHomeRedirect: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <AppThemeShell>
-      <Routes>
+      <Routes key={i18n.resolvedLanguage}>
         <Route path="/" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
