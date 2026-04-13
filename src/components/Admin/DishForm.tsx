@@ -10,7 +10,7 @@ import {
 } from '../ui/liquid-glass';
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
-import { translateIngredientLabel } from '../../i18n/ingredients';
+import { ingredientDictionaryOptions, translateIngredientLabel } from '../../i18n/ingredients';
 import type { IngredientLibraryItem } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
@@ -26,6 +26,7 @@ export interface DishIngredientLayerData {
   client_id: string;
   asset_id?: number;
   name: string;
+  custom_name: string;
   image_url: string | null;
   existing_image_url: string | null;
   existing_file_name?: string | null;
@@ -51,6 +52,7 @@ const createIngredientLayer = (
   client_id: createClientId(),
   asset_id: initial?.asset_id,
   name: initial?.name || '',
+  custom_name: initial?.custom_name || '',
   image_url: initial?.image_url || initial?.existing_image_url || null,
   existing_image_url: initial?.existing_image_url || initial?.image_url || null,
   existing_file_name: initial?.existing_file_name || initial?.file_name || null,
@@ -186,6 +188,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
   const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
+  const [openIngredientDictionaryId, setOpenIngredientDictionaryId] = useState<string | null>(null);
+  const [ingredientDictionarySearch, setIngredientDictionarySearch] = useState('');
   const [suggestedDishesPickerOpen, setSuggestedDishesPickerOpen] = useState(false);
   const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
   const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
@@ -194,6 +198,10 @@ const DishForm: React.FC<DishFormProps> = ({
   useEffect(() => {
     setIngredientSearchQuery('');
   }, [openIngredientPickerId]);
+
+  useEffect(() => {
+    setIngredientDictionarySearch('');
+  }, [openIngredientDictionaryId]);
 
   useEffect(() => {
     setSuggestedDishesSearch('');
@@ -216,6 +224,7 @@ const DishForm: React.FC<DishFormProps> = ({
       }
 
       setOpenIngredientPickerId(null);
+      setOpenIngredientDictionaryId(null);
       setSuggestedDishesPickerOpen(false);
       setRelatedDishesPickerOpen(false);
     };
@@ -284,9 +293,19 @@ const DishForm: React.FC<DishFormProps> = ({
     setFormData((prev) => ({
       ...prev,
       ingredient_layers: prev.ingredient_layers.map((layer) =>
-        layer.client_id === clientId ? { ...layer, name: value } : layer
+        layer.client_id === clientId ? { ...layer, name: value, custom_name: value } : layer
       ),
     }));
+  };
+
+  const handleIngredientDictionarySelect = (clientId: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      ingredient_layers: prev.ingredient_layers.map((layer) =>
+        layer.client_id === clientId ? { ...layer, name: value, custom_name: '' } : layer
+      ),
+    }));
+    setOpenIngredientDictionaryId(null);
   };
 
   const toggleSuggestedDish = (dishId: number) => {
@@ -378,6 +397,7 @@ const DishForm: React.FC<DishFormProps> = ({
   const removeIngredientLayer = (clientId: string) => {
     setFormData((prev) => {
       setOpenIngredientPickerId((current) => (current === clientId ? null : current));
+      setOpenIngredientDictionaryId((current) => (current === clientId ? null : current));
 
       return {
         ...prev,
@@ -845,7 +865,9 @@ const DishForm: React.FC<DishFormProps> = ({
                   ? resolveAssetUrl(selectedLibraryIngredient.file_url)
                   : null;
                 const ingredientPickerOpen = openIngredientPickerId === layer.client_id;
+                const ingredientDictionaryOpen = openIngredientDictionaryId === layer.client_id;
                 const normalizedSearchQuery = ingredientSearchQuery.trim().toLowerCase();
+                const normalizedDictionarySearch = ingredientDictionarySearch.trim().toLowerCase();
                 const filteredIngredientLibrary = ingredientLibrary.filter((ingredient) => {
                   if (!normalizedSearchQuery) {
                     return true;
@@ -860,6 +882,15 @@ const DishForm: React.FC<DishFormProps> = ({
                     ...filteredIngredientLibrary.filter((ingredient) => ingredient.id !== selectedLibraryIngredient.id),
                   ]
                   : filteredIngredientLibrary;
+                const visibleDictionaryIngredients = ingredientDictionaryOptions.filter((ingredient) => {
+                  if (!normalizedDictionarySearch) {
+                    return true;
+                  }
+
+                  const searchableText = `${ingredient.value} ${ingredient.arabic}`.toLowerCase();
+                  return searchableText.includes(normalizedDictionarySearch);
+                });
+                const activeIngredientLabel = layer.custom_name || layer.name;
 
                 return (
                   <div
@@ -1075,14 +1106,108 @@ const DishForm: React.FC<DishFormProps> = ({
                             </div>
                           )}
 
+                          <div className="relative min-w-0" data-admin-overlay-root="true">
+                            <label className="mb-1 block text-sm font-medium text-text">Ingredient Dictionary</label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenIngredientDictionaryId((current) =>
+                                  current === layer.client_id ? null : layer.client_id
+                                )
+                              }
+                              className={cx(
+                                'flex w-full min-w-0 items-center justify-between gap-3 rounded-[24px] border px-4 py-3 text-left',
+                                glassControl,
+                                focusRing
+                              )}
+                              aria-expanded={ingredientDictionaryOpen}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-text">
+                                  {layer.custom_name
+                                    ? 'Custom ingredient active'
+                                    : activeIngredientLabel || 'Choose from global dictionary'}
+                                </p>
+                                <p className="truncate text-xs text-muted">
+                                  {layer.custom_name
+                                    ? 'Custom input overrides dictionary choice'
+                                    : activeIngredientLabel
+                                      ? translateIngredientLabel(activeIngredientLabel, 'ar')
+                                      : 'Search the shared ingredient dictionary'}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-muted2">{ingredientDictionaryOpen ? '▴' : '▾'}</span>
+                            </button>
+
+                            {ingredientDictionaryOpen && (
+                              <div
+                                className={cx(
+                                  'absolute left-0 right-0 top-full z-40 mt-3 w-full overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl',
+                                  'supports-[backdrop-filter]:bg-bg1/95'
+                                )}
+                              >
+                                <div className="p-3">
+                                  <GlassInput
+                                    type="text"
+                                    value={ingredientDictionarySearch}
+                                    onChange={(event) => setIngredientDictionarySearch(event.target.value)}
+                                    placeholder="Search dictionary ingredients"
+                                    leftSlot={<span>🔎</span>}
+                                    className="min-w-0"
+                                  />
+                                </div>
+                                <div className="max-h-72 space-y-2 overflow-y-auto px-3 pb-3">
+                                  {visibleDictionaryIngredients.length === 0 ? (
+                                    <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                                      No dictionary ingredients match your search.
+                                    </div>
+                                  ) : (
+                                    visibleDictionaryIngredients.map((ingredient) => {
+                                      const isActive = !layer.custom_name && layer.name === ingredient.value;
+
+                                      return (
+                                        <button
+                                          key={ingredient.value}
+                                          type="button"
+                                          onClick={() => handleIngredientDictionarySelect(layer.client_id, ingredient.value)}
+                                          className={cx(
+                                            'flex w-full min-w-0 items-center justify-between gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
+                                            isActive
+                                              ? 'border-gold/35 bg-gold/12'
+                                              : 'border-white/10 bg-white/[0.03]'
+                                          )}
+                                        >
+                                          <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-medium text-text">{ingredient.value}</p>
+                                            <p className="truncate text-xs text-muted">{ingredient.arabic}</p>
+                                          </div>
+                                          <span className={cx('shrink-0 text-sm', isActive ? 'text-gold2' : 'text-muted2')}>
+                                            {isActive ? '✓' : '+'}
+                                          </span>
+                                        </button>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <p className="mt-2 text-xs text-muted">
+                              Picking from the dictionary clears any custom input to avoid conflicts.
+                            </p>
+                          </div>
+
                           <div>
-                            <label className="mb-1 block text-sm font-medium text-text">Ingredient Label *</label>
+                            <label className="mb-1 block text-sm font-medium text-text">Custom Ingredient Label</label>
                             <GlassInput
                               type="text"
-                              value={layer.name}
+                              value={layer.custom_name}
                               onChange={(event) => handleIngredientChange(layer.client_id, event.target.value)}
-                              placeholder="Fresh Basil"
+                              placeholder="Restaurant special ingredient"
                             />
+                            <p className="mt-2 text-xs text-muted">
+                              Leave this empty to use the shared dictionary label.
+                            </p>
                           </div>
                         </div>
                       </div>
