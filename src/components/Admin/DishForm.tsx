@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   GlassInput,
+  GlassSelect,
   GlassSurface,
   GlassToggle,
   LiquidButton,
 } from '../ui/liquid-glass';
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
+import { MENU_CATEGORIES } from '../../i18n/categories';
 import { translateIngredientLabel } from '../../i18n/ingredients';
 import type { IngredientLibraryItem } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
@@ -94,7 +96,6 @@ const findMatchingLibraryIngredient = (
 
 export interface DishFormData {
   name: string;
-  description: string;
   price: string;
   calories: string;
   category: string;
@@ -150,7 +151,6 @@ const DishForm: React.FC<DishFormProps> = ({
   const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
-    description: initialValues?.description || '',
     price: initialValues?.price || '',
     calories: initialValues?.calories || '',
     category: initialValues?.category || '',
@@ -263,7 +263,7 @@ const DishForm: React.FC<DishFormProps> = ({
     });
   }, [ingredientLibrary]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -410,6 +410,10 @@ const DishForm: React.FC<DishFormProps> = ({
   const selectedRelatedDishOptions = formData.related_dish_ids
     .map((dishId) => relatedDishOptions.find((dish) => dish.id === dishId))
     .filter((dish): dish is NonNullable<typeof dish> => Boolean(dish));
+  const categoryOptions = MENU_CATEGORIES.map((category) => ({
+    value: category.value,
+    label: translateCategoryLabel(category.value, category.arabic),
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -486,26 +490,6 @@ const DishForm: React.FC<DishFormProps> = ({
         />
       </div>
 
-      <div>
-        <label htmlFor="description" className="mb-1 block text-sm font-medium text-text">
-          {t('dishForm.descriptionEn')}
-        </label>
-        <div className={cx('rounded-[26px] border px-4 py-3', glassControl, focusRing)}>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            rows={3}
-            className="w-full rounded-xl bg-transparent text-text placeholder:text-muted2 focus:outline-none"
-            placeholder={t('dishForm.descriptionEnPlaceholder')}
-          />
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          Arabic guest text now uses dictionary-based fallback when available, otherwise English is shown.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div>
           <label htmlFor="price" className="mb-1 block text-sm font-medium text-text">
@@ -542,17 +526,20 @@ const DishForm: React.FC<DishFormProps> = ({
 
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-text">
-            {t('dishForm.categoryEn')}
+            Category *
           </label>
-          <GlassInput
-            type="text"
+          <GlassSelect
             id="category"
             name="category"
             value={formData.category}
             onChange={handleChange}
             required
-            placeholder={t('dishForm.categoryEnPlaceholder')}
+            options={categoryOptions}
+            placeholder="Choose a category"
           />
+          <p className="mt-2 text-xs text-muted">
+            Category labels use the shared global dictionary across the app.
+          </p>
         </div>
       </div>
 

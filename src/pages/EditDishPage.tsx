@@ -163,7 +163,6 @@ const EditDishPage: React.FC = () => {
     try {
       await api.patch(`/dishes/${dish_id}`, {
         name: data.name,
-        description: data.description,
         price: parseFloat(data.price),
         calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
@@ -428,7 +427,6 @@ const EditDishPage: React.FC = () => {
           onSubmit={handleUpdate}
           initialValues={{
             name: dish.name,
-            description: dish.description,
             category: dish.category,
             status: dish.status,
             price: String(dish.price),

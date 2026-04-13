@@ -1,4 +1,5 @@
 import i18n from './index';
+import { findMenuCategory } from './categories';
 
 const normalizeKey = (value?: string | null): string => (
   (value || '')
@@ -19,6 +20,11 @@ export const translateCategoryLabel = (value?: string | null, arabicValue?: stri
 
   if (i18n.resolvedLanguage === 'ar' && directArabic) {
     return directArabic;
+  }
+
+  const globalCategory = findMenuCategory(fallback);
+  if (globalCategory) {
+    return i18n.resolvedLanguage === 'ar' ? globalCategory.arabic : globalCategory.value;
   }
 
   return i18n.t(`dynamic.categories.${normalizeKey(fallback)}`, {
