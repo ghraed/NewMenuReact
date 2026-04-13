@@ -12,8 +12,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'Guest wave';
   const options = {
     body: payload.body || 'A guest is requesting staff assistance.',
-    icon: payload.icon || '/vite.svg',
-    badge: payload.badge || '/vite.svg',
+    icon: payload.icon || '/pwa-192.png',
+    badge: payload.badge || '/pwa-192.png',
     tag: payload.tag || 'guest-wave',
     data: {
       url: payload.url || '/staff/orders',
