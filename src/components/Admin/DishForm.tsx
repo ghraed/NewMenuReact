@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   GlassInput,
@@ -23,8 +24,6 @@ export interface DishIngredientLayerData {
   client_id: string;
   asset_id?: number;
   name: string;
-  quantity: string;
-  image_file: File | null;
   image_url: string | null;
   existing_image_url: string | null;
   existing_file_name?: string | null;
@@ -50,8 +49,6 @@ const createIngredientLayer = (
   client_id: createClientId(),
   asset_id: initial?.asset_id,
   name: initial?.name || '',
-  quantity: initial?.quantity || '',
-  image_file: null,
   image_url: initial?.image_url || initial?.existing_image_url || null,
   existing_image_url: initial?.existing_image_url || initial?.image_url || null,
   existing_file_name: initial?.existing_file_name || initial?.file_name || null,
@@ -97,15 +94,11 @@ const findMatchingLibraryIngredient = (
 
 export interface DishFormData {
   name: string;
-  name_ar: string;
   description: string;
-  description_ar: string;
   price: string;
   calories: string;
   category: string;
-  category_ar: string;
   status: 'draft' | 'published';
-  image_url: string;
   preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
@@ -157,15 +150,11 @@ const DishForm: React.FC<DishFormProps> = ({
   const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<DishFormData>(() => ({
     name: initialValues?.name || '',
-    name_ar: initialValues?.name_ar || '',
     description: initialValues?.description || '',
-    description_ar: initialValues?.description_ar || '',
     price: initialValues?.price || '',
     calories: initialValues?.calories || '',
     category: initialValues?.category || '',
-    category_ar: initialValues?.category_ar || '',
     status: initialValues?.status || 'published',
-    image_url: initialValues?.image_url || '',
     preview_file: null,
     glb_file: null,
     usdz_file: null,
@@ -184,7 +173,6 @@ const DishForm: React.FC<DishFormProps> = ({
         return createIngredientLayer({
           asset_id: ingredient.asset_id,
           name: ingredient.name,
-          quantity: ingredient.quantity || '',
           image_url: ingredient.image_url,
           existing_image_url: ingredient.image_url,
           existing_file_name: ingredient.file_name,
@@ -202,15 +190,6 @@ const DishForm: React.FC<DishFormProps> = ({
   const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
   const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
   const [relatedDishesSearch, setRelatedDishesSearch] = useState('');
-  const ingredientBlobUrlsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    return () => {
-      ingredientBlobUrlsRef.current.forEach((blobUrl) => {
-        URL.revokeObjectURL(blobUrl);
-      });
-    };
-  }, []);
 
   useEffect(() => {
     setIngredientSearchQuery('');
@@ -301,15 +280,11 @@ const DishForm: React.FC<DishFormProps> = ({
     return file.name.toLowerCase().endsWith(ext);
   };
 
-  const handleIngredientChange = (
-    clientId: string,
-    field: 'name' | 'quantity',
-    value: string
-  ) => {
+  const handleIngredientChange = (clientId: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       ingredient_layers: prev.ingredient_layers.map((layer) =>
-        layer.client_id === clientId ? { ...layer, [field]: value } : layer
+        layer.client_id === clientId ? { ...layer, name: value } : layer
       ),
     }));
   };
@@ -332,41 +307,6 @@ const DishForm: React.FC<DishFormProps> = ({
     }));
   };
 
-  const handleIngredientFileChange = (
-    clientId: string,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files && event.target.files.length > 0 ? event.target.files[0] : null;
-
-    setFormData((prev) => ({
-      ...prev,
-      ingredient_layers: prev.ingredient_layers.map((layer) => {
-        if (layer.client_id !== clientId) {
-          return layer;
-        }
-
-        if (layer.image_url?.startsWith('blob:')) {
-          URL.revokeObjectURL(layer.image_url);
-          ingredientBlobUrlsRef.current.delete(layer.image_url);
-        }
-
-        const nextBlobUrl = file ? URL.createObjectURL(file) : null;
-        if (nextBlobUrl) {
-          ingredientBlobUrlsRef.current.add(nextBlobUrl);
-        }
-
-        return {
-          ...layer,
-          image_file: file,
-          image_url: nextBlobUrl ?? layer.existing_image_url,
-          library_image_url: null,
-          library_ingredient_id: file ? null : layer.library_ingredient_id,
-          file_name: file?.name ?? layer.existing_file_name,
-        };
-      }),
-    }));
-  };
-
   const handleIngredientLibraryChange = (
     clientId: string,
     ingredientIdValue: string
@@ -381,15 +321,9 @@ const DishForm: React.FC<DishFormProps> = ({
           return layer;
         }
 
-        if (layer.image_url?.startsWith('blob:')) {
-          URL.revokeObjectURL(layer.image_url);
-          ingredientBlobUrlsRef.current.delete(layer.image_url);
-        }
-
         if (!selectedIngredient) {
           return {
             ...layer,
-            image_file: null,
             image_url: layer.existing_image_url,
             library_image_url: null,
             library_ingredient_id: null,
@@ -400,7 +334,6 @@ const DishForm: React.FC<DishFormProps> = ({
         return {
           ...layer,
           name: selectedIngredient.name,
-          image_file: null,
           image_url: resolveAssetUrl(selectedIngredient.file_url) || layer.image_url,
           library_image_url: resolveAssetUrl(selectedIngredient.file_url) || null,
           library_ingredient_id: selectedIngredient.id,
@@ -444,12 +377,6 @@ const DishForm: React.FC<DishFormProps> = ({
 
   const removeIngredientLayer = (clientId: string) => {
     setFormData((prev) => {
-      const target = prev.ingredient_layers.find((layer) => layer.client_id === clientId);
-      if (target?.image_url?.startsWith('blob:')) {
-        URL.revokeObjectURL(target.image_url);
-        ingredientBlobUrlsRef.current.delete(target.image_url);
-      }
-
       setOpenIngredientPickerId((current) => (current === clientId ? null : current));
 
       return {
@@ -459,7 +386,6 @@ const DishForm: React.FC<DishFormProps> = ({
     });
   };
 
-  const imageUrlLooksSet = formData.image_url.trim().length > 0;
   const normalizedSuggestedDishesSearch = suggestedDishesSearch.trim().toLowerCase();
   const filteredSuggestedDishOptions = suggestedDishOptions.filter((dish) => {
     if (!normalizedSuggestedDishesSearch) {
@@ -511,13 +437,10 @@ const DishForm: React.FC<DishFormProps> = ({
       .map((layer) => ({
         ...layer,
         name: layer.name.trim(),
-        quantity: layer.quantity.trim(),
       }))
       .filter(
         (layer) =>
           layer.name.length > 0 ||
-          layer.quantity.length > 0 ||
-          !!layer.image_file ||
           !!layer.existing_image_url ||
           !!layer.library_ingredient_id
       );
@@ -528,8 +451,8 @@ const DishForm: React.FC<DishFormProps> = ({
         return;
       }
 
-      if (!layer.image_file && !layer.existing_image_url && !layer.library_ingredient_id) {
-        setFormError(`Ingredient ${index + 1} needs an image.`);
+      if (!layer.library_ingredient_id) {
+        setFormError(`Ingredient ${index + 1} must be selected from the ingredient library.`);
         return;
       }
     }
@@ -578,56 +501,9 @@ const DishForm: React.FC<DishFormProps> = ({
             placeholder={t('dishForm.descriptionEnPlaceholder')}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div>
-          <label htmlFor="name_ar" className="mb-1 block text-sm font-medium text-text">
-            {t('dishForm.nameAr')}
-          </label>
-          <GlassInput
-            type="text"
-            id="name_ar"
-            name="name_ar"
-            value={formData.name_ar}
-            onChange={handleChange}
-            dir="rtl"
-            placeholder={t('dishForm.nameArPlaceholder')}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="category_ar" className="mb-1 block text-sm font-medium text-text">
-            {t('dishForm.categoryAr')}
-          </label>
-          <GlassInput
-            type="text"
-            id="category_ar"
-            name="category_ar"
-            value={formData.category_ar}
-            onChange={handleChange}
-            dir="rtl"
-            placeholder={t('dishForm.categoryArPlaceholder')}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="description_ar" className="mb-1 block text-sm font-medium text-text">
-          {t('dishForm.descriptionAr')}
-        </label>
-        <div className={cx('rounded-[26px] border px-4 py-3', glassControl, focusRing)}>
-          <textarea
-            id="description_ar"
-            name="description_ar"
-            value={formData.description_ar}
-            onChange={handleChange}
-            rows={3}
-            dir="rtl"
-            className="w-full rounded-xl bg-transparent text-text placeholder:text-muted2 focus:outline-none"
-            placeholder={t('dishForm.descriptionArPlaceholder')}
-          />
-        </div>
+        <p className="mt-2 text-xs text-muted">
+          Arabic guest text now uses dictionary-based fallback when available, otherwise English is shown.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -936,46 +812,40 @@ const DishForm: React.FC<DishFormProps> = ({
         </p>
       </div>
 
-      <div>
-        <label htmlFor="image_url" className="mb-1 block text-sm font-medium text-text">
-          Preview Image URL (Optional)
-        </label>
-        <GlassInput
-          type="url"
-          id="image_url"
-          name="image_url"
-          value={formData.image_url}
-          onChange={handleChange}
-          placeholder="https://example.com/pizza.jpg"
-        />
-        {imageUrlLooksSet && (
-          <p className="mt-2 text-xs text-muted">
-            Image found: {formData.image_url}
-          </p>
-        )}
-      </div>
-
       <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-medium text-text">Ingredient Layers for Menu Animation</h3>
             <p className="mt-1 text-sm text-muted">
-              Upload dish-related ingredient images, then add the label and optional quantity shown on the public ingredient story page.
+              Select ingredients from your saved library, then adjust the label if you want different guest-facing wording.
             </p>
             {ingredientLibrary.length > 0 && (
               <p className="mt-2 text-xs text-gold2/85">
-                Saved ingredient selections replace the layer label and preview with the ingredient library version.
+                Saved ingredient selections drive the image preview, Arabic fallback, and story ordering for this dish.
               </p>
             )}
           </div>
-          <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
-            Add Ingredient
-          </LiquidButton>
+          {ingredientLibrary.length > 0 ? (
+            <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
+              Add Ingredient
+            </LiquidButton>
+          ) : null}
         </div>
 
-        {formData.ingredient_layers.length === 0 ? (
+        {ingredientLibrary.length === 0 ? (
+          <div className="rounded-2xl border border-gold/25 bg-gold/10 px-4 py-5 text-sm text-gold2">
+            Build your ingredient library first, then come back to select dish ingredients here.
+            <div className="mt-3">
+              <Link to="/admin/ingredients/library">
+                <LiquidButton type="button" tone="tertiary" className="px-4 py-2 text-sm">
+                  Open Ingredient Library
+                </LiquidButton>
+              </Link>
+            </div>
+          </div>
+        ) : formData.ingredient_layers.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
-            No ingredient layers yet. Add one or more images to power the ingredient story page.
+            No ingredient layers yet. Add one or more saved ingredients to power the ingredient story page.
           </div>
         ) : (
           <div className="space-y-4">
@@ -1013,7 +883,7 @@ const DishForm: React.FC<DishFormProps> = ({
                       <div>
                         <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
                         <p className="mt-1 text-xs text-muted">
-                          The image should visually match the dish so the public ingredient story feels cohesive.
+                          Pick a saved ingredient and keep the order aligned with the story you want guests to see.
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -1055,7 +925,7 @@ const DishForm: React.FC<DishFormProps> = ({
                           />
                         ) : (
                           <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                            Upload Image
+                            Pick Ingredient
                           </div>
                         )}
                       </div>
@@ -1209,8 +1079,8 @@ const DishForm: React.FC<DishFormProps> = ({
 
                               <p className="mt-2 text-xs text-muted">
                                 {layer.library_ingredient_id
-                                  ? 'This layer is using a saved ingredient. The image comes from the library entry, and you can still adjust the label.'
-                                  : 'Choose ingredient from the library to replace this layer image and label.'}
+                                  ? 'This layer uses the saved ingredient image and Arabic fallback from your library entry.'
+                                  : 'Choose a saved ingredient to populate this layer.'}
                               </p>
                               <p className="mt-1 text-xs text-muted2">
                                 Order here controls the animation stack from top to bottom.
@@ -1223,41 +1093,10 @@ const DishForm: React.FC<DishFormProps> = ({
                             <GlassInput
                               type="text"
                               value={layer.name}
-                              onChange={(event) =>
-                                handleIngredientChange(layer.client_id, 'name', event.target.value)
-                              }
+                              onChange={(event) => handleIngredientChange(layer.client_id, event.target.value)}
                               placeholder="Fresh Basil"
                             />
                           </div>
-                          <div>
-                            <label className="mb-1 block text-sm font-medium text-text">Quantity (Optional)</label>
-                            <GlassInput
-                              type="text"
-                              value={layer.quantity}
-                              onChange={(event) =>
-                                handleIngredientChange(layer.client_id, 'quantity', event.target.value)
-                              }
-                              placeholder="6 leaves"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="mb-1 block text-sm font-medium text-text">Ingredient Image *</label>
-                          <GlassInput
-                            type="file"
-                            accept="image/*"
-                            onChange={(event) => handleIngredientFileChange(layer.client_id, event)}
-                          />
-                          <p className="mt-2 text-xs text-muted">
-                            {layer.image_file
-                              ? `Selected image: ${layer.image_file.name}`
-                              : layer.library_ingredient_id
-                                ? 'Uploading a custom image will clear the saved ingredient selection for this layer.'
-                                : layer.file_name
-                                  ? `Current image: ${layer.file_name}`
-                                  : 'Use a transparent PNG or a tightly cropped ingredient photo for the cleanest result.'}
-                          </p>
                         </div>
                       </div>
                     </div>

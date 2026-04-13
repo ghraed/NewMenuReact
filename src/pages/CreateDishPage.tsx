@@ -21,14 +21,8 @@ const uploadIngredientLayers = async (dishId: number, ingredientLayers: DishForm
     payload.append('label', ingredient.name);
     payload.append('order_index', String(index));
 
-    if (ingredient.quantity) {
-      payload.append('quantity', ingredient.quantity);
-    }
-
     if (ingredient.library_ingredient_id) {
       payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
-    } else if (ingredient.image_file) {
-      payload.append('file', ingredient.image_file);
     } else {
       continue;
     }
@@ -102,13 +96,10 @@ const CreateDishPage: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append('name', dishData.name);
-      formData.append('name_ar', dishData.name_ar);
       formData.append('description', dishData.description);
-      formData.append('description_ar', dishData.description_ar);
       formData.append('price', dishData.price);
       if (dishData.calories.trim()) formData.append('calories', dishData.calories.trim());
       formData.append('category', dishData.category);
-      formData.append('category_ar', dishData.category_ar);
       formData.append('status', dishData.status);
       dishData.suggested_dish_ids.forEach((dishId) => {
         formData.append('suggested_dish_ids[]', String(dishId));
@@ -117,7 +108,6 @@ const CreateDishPage: React.FC = () => {
         formData.append('related_dish_ids[]', String(dishId));
       });
 
-      if (dishData.image_url) formData.append('image_url', dishData.image_url);
       if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
       if (dishData.usdz_file) formData.append('usdz_file', dishData.usdz_file);
 

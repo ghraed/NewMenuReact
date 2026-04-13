@@ -68,14 +68,8 @@ const uploadIngredientAsset = async (
   payload.append('type', 'ingredient_image');
   payload.append('order_index', String(orderIndex));
 
-  if (ingredient.quantity) {
-    payload.append('quantity', ingredient.quantity);
-  }
-
   if (ingredient.library_ingredient_id) {
     payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
-  } else if (ingredient.image_file) {
-    payload.append('file', ingredient.image_file);
   } else {
     return;
   }
@@ -169,15 +163,11 @@ const EditDishPage: React.FC = () => {
     try {
       await api.patch(`/dishes/${dish_id}`, {
         name: data.name,
-        name_ar: data.name_ar || null,
         description: data.description,
-        description_ar: data.description_ar || null,
         price: parseFloat(data.price),
         calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
-        category_ar: data.category_ar || null,
         status: data.status,
-        image_url: data.image_url || null,
         suggested_dish_ids: data.suggested_dish_ids,
         related_dish_ids: data.related_dish_ids,
       });
@@ -227,7 +217,7 @@ const EditDishPage: React.FC = () => {
           ingredient.library_ingredient_id !== null &&
           ingredient.library_ingredient_id !== ingredient.initial_library_ingredient_id;
 
-        if (ingredient.asset_id && (ingredient.image_file || shouldReplaceWithLibrary)) {
+        if (ingredient.asset_id && shouldReplaceWithLibrary) {
           await api.delete(`/assets/${ingredient.asset_id}`);
           await uploadIngredientAsset(dish_id, ingredient, index);
           continue;
@@ -236,7 +226,6 @@ const EditDishPage: React.FC = () => {
         if (ingredient.asset_id) {
           await api.patch(`/assets/${ingredient.asset_id}`, {
             label: ingredient.name,
-            quantity: ingredient.quantity || null,
             order_index: index,
             ingredient_library_id: ingredient.library_ingredient_id ?? null,
           });
@@ -439,13 +428,9 @@ const EditDishPage: React.FC = () => {
           onSubmit={handleUpdate}
           initialValues={{
             name: dish.name,
-            name_ar: dish.name_ar || '',
             description: dish.description,
-            description_ar: dish.description_ar || '',
             category: dish.category,
-            category_ar: dish.category_ar || '',
             status: dish.status,
-            image_url: dish.image_url || '',
             price: String(dish.price),
             calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
@@ -460,7 +445,6 @@ const EditDishPage: React.FC = () => {
             ingredients: ingredientAssets.map((asset) => ({
               asset_id: asset.id,
               name: getAssetMetadataString(asset, 'label'),
-              quantity: getAssetMetadataString(asset, 'quantity'),
               image_url: resolveAssetUrl(asset.file_url) || null,
               library_ingredient_id: getAssetMetadataLibraryId(asset),
               file_name: getAssetFileName(asset),
