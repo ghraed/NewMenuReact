@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import '@google/model-viewer';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
@@ -104,6 +105,7 @@ const extractDishOptions = (payload: unknown): Dish[] => {
 const EditDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [dish, setDish] = useState<Dish | null>(null);
   const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
@@ -306,7 +308,7 @@ const EditDishPage: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title="Edit Dish">
+      <DashboardLayout title={t('adminDish.editDish')}>
         <LoadingSpinner text="Loading dish..." />
       </DashboardLayout>
     );
@@ -314,7 +316,7 @@ const EditDishPage: React.FC = () => {
 
   if (!dish) {
     return (
-      <DashboardLayout title="Edit Dish">
+      <DashboardLayout title={t('adminDish.editDish')}>
         <div className="py-10 text-center text-spicy">Dish not found</div>
       </DashboardLayout>
     );
@@ -335,19 +337,19 @@ const EditDishPage: React.FC = () => {
   const ModelViewer = 'model-viewer' as React.ElementType;
 
   return (
-    <DashboardLayout title="Edit Dish">
+    <DashboardLayout title={t('adminDish.editDish')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-text">{dish.name}</h2>
           <p className="mt-1 text-sm text-muted">
             {dish.deleted_at
               ? 'This dish is deleted. Restore it before editing.'
-              : 'Update details and optionally upload new model files.'}
+              : t('adminDish.updateDetailsOptionalModels')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={`/menu/${guestRestaurantSlug}/dish/${dish.id}`} target="_blank">
-            <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">Open Guest View</LiquidButton>
+            <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">{t('adminDish.openGuestView')}</LiquidButton>
           </Link>
           {dish.deleted_at ? (
             <>
@@ -360,7 +362,7 @@ const EditDishPage: React.FC = () => {
             </>
           ) : (
             <LiquidButton onClick={handleDelete} disabled={deleting} tone="secondary">
-              {deleting ? 'Deleting...' : 'Delete Dish'}
+              {deleting ? 'Deleting...' : t('adminDish.deleteDish')}
             </LiquidButton>
           )}
         </div>
@@ -385,7 +387,7 @@ const EditDishPage: React.FC = () => {
       )}
 
       <GlassCard className="mb-6 p-4">
-        <h3 className="mb-3 text-lg font-semibold text-text">Current Model Preview</h3>
+        <h3 className="mb-3 text-lg font-semibold text-text">{t('adminDish.currentModelPreview')}</h3>
         {glbUrl ? (
           <ModelViewer
             src={glbUrl}
@@ -462,7 +464,7 @@ const EditDishPage: React.FC = () => {
           suggestedDishOptions={suggestedDishOptions}
           relatedDishOptions={relatedDishOptions}
           requireModelUpload={false}
-          submitLabel="Update Dish"
+          submitLabel={t('adminDish.updateDish')}
           submittingLabel="Updating..."
         />
       )}

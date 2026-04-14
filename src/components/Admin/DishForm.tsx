@@ -459,6 +459,7 @@ const DishForm: React.FC<DishFormProps> = ({
     value: category.value,
     label: translateCategoryLabel(category.value, category.arabic),
   }));
+  const hasDishName = formData.name.trim().length > 0 || selectedDishDictionaryName.trim().length > 0;
   const normalizedDishNameSearch = dishNameSearch.trim().toLowerCase();
   const filteredDishNameDictionaryOptions = dishDictionaryOptions.filter((dish) => {
     if (!normalizedDishNameSearch) {
@@ -553,7 +554,7 @@ const DishForm: React.FC<DishFormProps> = ({
         {allowDishNameSelection ? (
           <>
             <label htmlFor="dish-name-dictionary" className="mb-1 mt-3 block text-sm font-medium text-text">
-              Choose from dish dictionary
+              {t('dishForm.chooseFromDishDictionary')}
             </label>
             <button
               type="button"
@@ -569,10 +570,10 @@ const DishForm: React.FC<DishFormProps> = ({
                 <p className="truncate text-sm font-medium text-text">
                   {selectedDishDictionaryName
                     ? translateDishLabel(selectedDishDictionaryName, i18n.language)
-                    : 'Choose a dish from dictionary'}
+                    : t('dishForm.chooseDishFromDictionary')}
                 </p>
                 <p className="truncate text-xs text-muted">
-                  {selectedDishDictionaryName ? 'Dictionary selection active' : 'Search and choose a shared dish label'}
+                  {selectedDishDictionaryName ? t('dishForm.dictionarySelectionActive') : t('dishForm.searchChooseSharedDishLabel')}
                 </p>
               </div>
               <span className="shrink-0 text-muted2">{dishNamePickerOpen ? '▴' : '▾'}</span>
@@ -585,14 +586,14 @@ const DishForm: React.FC<DishFormProps> = ({
                     type="text"
                     value={dishNameSearch}
                     onChange={(event) => setDishNameSearch(event.target.value)}
-                    placeholder="Search dishes..."
+                    placeholder={t('dishForm.searchDishesPlaceholder')}
                     leftSlot={<span>⌕</span>}
                   />
 
                   <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                     {filteredDishNameDictionaryOptions.length === 0 ? (
                       <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
-                        No dishes match your search.
+                        {t('dishForm.noDishesMatchSearch')}
                       </div>
                     ) : (
                       filteredDishNameDictionaryOptions.map((dish) => {
@@ -626,7 +627,7 @@ const DishForm: React.FC<DishFormProps> = ({
               </div>
             ) : null}
             <p className="mt-2 text-xs text-muted">
-              Selecting from dropdown clears typed name so you create using one option only.
+              {t('dishForm.dropdownClearsTypedNameHint')}
             </p>
           </>
         ) : null}
@@ -635,7 +636,7 @@ const DishForm: React.FC<DishFormProps> = ({
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div>
           <label htmlFor="price" className="mb-1 block text-sm font-medium text-text">
-            Price ($) *
+            {t('dishForm.priceLabel')}
           </label>
           <GlassInput
             type="number"
@@ -646,13 +647,13 @@ const DishForm: React.FC<DishFormProps> = ({
             required
             step="0.01"
             min="0"
-            placeholder="12.99"
+            placeholder={t('dishForm.pricePlaceholder')}
           />
         </div>
 
         <div>
           <label htmlFor="calories" className="mb-1 block text-sm font-medium text-text">
-            Calories
+            {t('dishForm.caloriesLabel')}
           </label>
           <GlassInput
             type="number"
@@ -662,13 +663,13 @@ const DishForm: React.FC<DishFormProps> = ({
             onChange={handleChange}
             min="0"
             step="1"
-            placeholder="420"
+            placeholder={t('dishForm.caloriesPlaceholder')}
           />
         </div>
 
         <div>
           <label htmlFor="category" className="mb-1 block text-sm font-medium text-text">
-            Category *
+            {t('dishForm.categoryLabel')}
           </label>
           <GlassSelect
             id="category"
@@ -677,17 +678,17 @@ const DishForm: React.FC<DishFormProps> = ({
             onChange={handleChange}
             required
             options={categoryOptions}
-            placeholder="Choose a category"
+            placeholder={t('dishForm.chooseCategoryPlaceholder')}
           />
           <p className="mt-2 text-xs text-muted">
-            Category labels use the shared global dictionary across the app.
+            {t('dishForm.categoryDictionaryHint')}
           </p>
         </div>
       </div>
 
       {suggestedDishOptions.length > 0 ? (
         <div className="relative" data-admin-overlay-root="true">
-          <label className="mb-1 block text-sm font-medium text-text">Restaurant Suggests With This Dish</label>
+          <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.restaurantSuggests')}</label>
           <button
             type="button"
             onClick={() => {
@@ -710,12 +711,12 @@ const DishForm: React.FC<DishFormProps> = ({
               <p className="truncate text-sm font-medium text-text">
                 {selectedSuggestedDishOptions.length > 0
                   ? `${selectedSuggestedDishOptions.length} suggested dish${selectedSuggestedDishOptions.length > 1 ? 'es' : ''}`
-                  : 'Choose suggested dishes'}
+                  : t('dishForm.chooseSuggestedDishes')}
               </p>
               <p className="truncate text-xs text-muted">
                 {selectedSuggestedDishOptions.length > 0
                   ? selectedSuggestedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
-                  : 'Pick dishes the restaurant recommends alongside this one'}
+                  : t('dishForm.pickSuggestedDishesHint')}
               </p>
             </div>
             <span className="shrink-0 text-muted2">{suggestedDishesPickerOpen ? '▴' : '▾'}</span>
@@ -743,14 +744,14 @@ const DishForm: React.FC<DishFormProps> = ({
                   type="text"
                   value={suggestedDishesSearch}
                   onChange={(event) => setSuggestedDishesSearch(event.target.value)}
-                  placeholder="Search dishes..."
+                  placeholder={t('dishForm.searchDishesPlaceholder')}
                   leftSlot={<span>⌕</span>}
                 />
 
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {filteredSuggestedDishOptions.length === 0 ? (
                     <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
-                      No dishes match your search.
+                      {t('dishForm.noDishesMatchSearch')}
                     </div>
                   ) : (
                     filteredSuggestedDishOptions.map((dish) => {
@@ -789,14 +790,14 @@ const DishForm: React.FC<DishFormProps> = ({
           ) : null}
 
           <p className="mt-2 text-xs text-muted">
-            These dishes will appear on the public dish detail page as restaurant suggestions.
+            {t('dishForm.suggestedDishesFootnote')}
           </p>
         </div>
       ) : null}
 
       {relatedDishOptions.length > 0 ? (
         <div className="relative" data-admin-overlay-root="true">
-          <label className="mb-1 block text-sm font-medium text-text">Related Dishes</label>
+          <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.relatedDishes')}</label>
           <button
             type="button"
             onClick={() => {
@@ -819,12 +820,12 @@ const DishForm: React.FC<DishFormProps> = ({
               <p className="truncate text-sm font-medium text-text">
                 {selectedRelatedDishOptions.length > 0
                   ? `${selectedRelatedDishOptions.length} related dish${selectedRelatedDishOptions.length > 1 ? 'es' : ''}`
-                  : 'Choose related dishes'}
+                  : t('dishForm.chooseRelatedDishes')}
               </p>
               <p className="truncate text-xs text-muted">
                 {selectedRelatedDishOptions.length > 0
                   ? selectedRelatedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
-                  : 'Pick dishes that should appear as related on this dish page'}
+                  : t('dishForm.pickRelatedDishesHint')}
               </p>
             </div>
             <span className="shrink-0 text-muted2">{relatedDishesPickerOpen ? '▴' : '▾'}</span>
@@ -852,14 +853,14 @@ const DishForm: React.FC<DishFormProps> = ({
                   type="text"
                   value={relatedDishesSearch}
                   onChange={(event) => setRelatedDishesSearch(event.target.value)}
-                  placeholder="Search dishes..."
+                  placeholder={t('dishForm.searchDishesPlaceholder')}
                   leftSlot={<span>⌕</span>}
                 />
 
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {filteredRelatedDishOptions.length === 0 ? (
                     <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
-                      No dishes match your search.
+                      {t('dishForm.noDishesMatchSearch')}
                     </div>
                   ) : (
                     filteredRelatedDishOptions.map((dish) => {
@@ -898,7 +899,7 @@ const DishForm: React.FC<DishFormProps> = ({
           ) : null}
 
           <p className="mt-2 text-xs text-muted">
-            These dishes will appear on the public dish detail page as related dishes.
+            {t('dishForm.relatedDishesFootnote')}
           </p>
         </div>
       ) : null}
@@ -907,7 +908,7 @@ const DishForm: React.FC<DishFormProps> = ({
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <p className="text-sm font-semibold text-text">Dish Status</p>
+              <p className="text-sm font-semibold text-text">{t('dishForm.dishStatus')}</p>
               <span
                 className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
                   formData.status === 'published'
@@ -915,12 +916,12 @@ const DishForm: React.FC<DishFormProps> = ({
                     : 'border-gold/35 bg-gold/10 text-gold2'
                 }`}
               >
-                {formData.status === 'published' ? 'Published' : 'Draft'}
+                {translateStatusLabel(formData.status)}
               </span>
             </div>
             <p className="text-xs text-muted">
               {formData.status === 'published'
-                ? 'Published: visible to guests'
+                ? t('dishForm.publishedVisibleToGuests')
                 : 'Draft: hidden from guest pages'}
             </p>
           </div>
@@ -940,7 +941,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
       <div>
         <label htmlFor="preview_file" className="mb-1 block text-sm font-medium text-text">
-          Preview Image Upload (Optional)
+          {t('dishForm.previewImageUploadOptional')}
         </label>
         <GlassInput
           type="file"
@@ -957,26 +958,26 @@ const DishForm: React.FC<DishFormProps> = ({
           )
         )}
         <p className="mt-2 text-xs text-muted">
-          Uploading a new preview image replaces the current dish preview.
+          {t('dishForm.previewUploadHint')}
         </p>
       </div>
 
       <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-medium text-text">Ingredient Layers for Menu Animation</h3>
+            <h3 className="text-lg font-medium text-text">{t('dishForm.ingredientLayersTitle')}</h3>
             <p className="mt-1 text-sm text-muted">
-              Select ingredients from your saved library, then adjust the label if you want different guest-facing wording.
+              {t('dishForm.ingredientLayersDescription')}
             </p>
             {ingredientLibrary.length > 0 && (
               <p className="mt-2 text-xs text-gold2/85">
-                Saved ingredient selections drive the image preview, Arabic fallback, and story ordering for this dish.
+                {t('dishForm.savedIngredientsHint')}
               </p>
             )}
           </div>
           {ingredientLibrary.length > 0 ? (
             <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
-              Add Ingredient
+              {t('dishForm.addIngredient')}
             </LiquidButton>
           ) : null}
         </div>
@@ -987,14 +988,14 @@ const DishForm: React.FC<DishFormProps> = ({
             <div className="mt-3">
               <Link to="/admin/ingredients/library">
                 <LiquidButton type="button" tone="tertiary" className="px-4 py-2 text-sm">
-                  Open Ingredient Library
+                  {t('dishForm.openIngredientLibrary')}
                 </LiquidButton>
               </Link>
             </div>
           </div>
         ) : formData.ingredient_layers.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
-            No ingredient layers yet. Add one or more saved ingredients to power the ingredient story page.
+            {t('dishForm.noIngredientLayers')}
           </div>
         ) : (
           <div className="space-y-4">
@@ -1363,11 +1364,11 @@ const DishForm: React.FC<DishFormProps> = ({
       </GlassSurface>
 
       <div className="border-t border-stroke pt-6">
-        <h3 className="mb-2 text-lg font-medium text-text">3D Assets</h3>
+        <h3 className="mb-2 text-lg font-medium text-text">{t('dishForm.assets3dTitle')}</h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="glb_file" className="mb-1 block text-sm font-medium text-text">
-              GLB File (Android/WebXR)
+              {t('dishForm.glbFileLabel')}
             </label>
             <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} />
             {formData.glb_file ? (
@@ -1378,7 +1379,7 @@ const DishForm: React.FC<DishFormProps> = ({
           </div>
           <div>
             <label htmlFor="usdz_file" className="mb-1 block text-sm font-medium text-text">
-              USDZ File (iOS AR)
+              {t('dishForm.usdzFileLabel')}
             </label>
             <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} />
             {formData.usdz_file ? (
@@ -1389,11 +1390,11 @@ const DishForm: React.FC<DishFormProps> = ({
           </div>
           <p className="text-xs text-muted">
             {requireModelUpload
-              ? 'Upload at least one file. GLB powers Android/WebXR, and USDZ powers iPhone/iPad AR.'
-              : 'Optional on update. Upload new model files only when needed. GLB powers Android/WebXR, and USDZ powers iPhone/iPad AR.'}
+              ? t('dishForm.uploadAtLeastOneHint')
+              : t('dishForm.optionalUpdateUploadHint')}
           </p>
           <p className="text-xs text-muted">
-            Upload both files if you want the dish to support AR on both platforms.
+            {t('dishForm.uploadBothFilesHint')}
           </p>
         </div>
       </div>
@@ -1406,12 +1407,12 @@ const DishForm: React.FC<DishFormProps> = ({
 
       <div className="flex gap-3 pt-2">
         <LiquidButton type="button" tone="tertiary" className="flex-1" onClick={() => window.history.back()}>
-          Cancel
+          {t('dishForm.cancel')}
         </LiquidButton>
         <LiquidButton
           type="submit"
           className="flex-1"
-          disabled={isSubmitting || !formData.name || !formData.price || !formData.category}
+          disabled={isSubmitting || !hasDishName || !formData.price || !formData.category}
         >
           {isSubmitting ? submittingLabel : submitLabel}
         </LiquidButton>

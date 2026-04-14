@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
@@ -32,12 +33,6 @@ const emptyAccountingDraft = {
   discountValue: string;
 };
 
-const discountOptions = [
-  { value: '', label: 'No discount' },
-  { value: 'fixed', label: 'Fixed amount' },
-  { value: 'percentage', label: 'Percentage' },
-] satisfies Array<{ value: '' | DiscountType; label: string }>;
-
 type InvoicePreview = {
   subtotal: number;
   discountType: '' | DiscountType;
@@ -58,8 +53,6 @@ const parseDraftNumber = (value: string): number => {
 const toCents = (value: number | string): number => Math.round(Number(value || 0) * 100);
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
-
-const getOrderLabel = (order: OrderRecord): string => order.order_number || `order #${order.id}`;
 
 const calculateInvoicePreview = (
   subtotalSource: number | string,
@@ -112,6 +105,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const AccountingOrdersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -132,6 +126,16 @@ const AccountingOrdersPage: React.FC = () => {
   const hasLoadedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const refreshInFlightRef = useRef(false);
+
+  const discountOptions = useMemo(() => ([
+    { value: '', label: t('accountingPage.noDiscount') },
+    { value: 'fixed', label: t('accountingPage.fixedAmount') },
+    { value: 'percentage', label: t('accountingPage.percentage') },
+  ] satisfies Array<{ value: '' | DiscountType; label: string }>), [t]);
+
+  const getOrderLabel = useCallback((order: OrderRecord): string => (
+    order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })
+  ), [t]);
 
   const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -162,15 +166,15 @@ const AccountingOrdersPage: React.FC = () => {
       if (newOrders.length === 1) {
         const nextOrder = newOrders[0];
         showToast(
-          `New order ${getOrderLabel(nextOrder)} arrived from ${nextOrder.table_reference}.`,
+          t('accountingPage.newOrderArrived', { order: getOrderLabel(nextOrder), table: nextOrder.table_reference }),
           'secondary'
         );
       } else if (newOrders.length > 1) {
-        showToast(`${newOrders.length} new orders arrived for accounting.`, 'secondary', 4200);
+        showToast(t('accountingPage.newOrdersArrived', { count: newOrders.length }), 'secondary', 4200);
       }
     } catch (err: unknown) {
       if (!silent) {
-        setError(getErrorMessage(err, 'Failed to load accounting orders.'));
+        setError(getErrorMessage(err, t('accountingPage.failedLoadOrders')));
       }
     } finally {
       refreshInFlightRef.current = false;
@@ -227,7 +231,7 @@ const AccountingOrdersPage: React.FC = () => {
         const response = await fetchGuestTables(user.restaurant!.slug);
         setTables(response.tables);
       } catch (err: unknown) {
-        setTablesError(getErrorMessage(err, 'Failed to load restaurant tables.'));
+        setTablesError(getErrorMessage(err, t('accountingPage.failedLoadTables')));
       } finally {
         setTablesLoading(false);
       }
@@ -305,8 +309,8 @@ const AccountingOrdersPage: React.FC = () => {
   }, [filteredOrders, selectedTable]);
 
   const orderCountLabel = useMemo(() => (
-    `${filteredOrders.length} staff-confirmed order${filteredOrders.length === 1 ? '' : 's'} waiting for accounting`
-  ), [filteredOrders.length]);
+    t('accountingPage.orderCountLabel', { count: filteredOrders.length })
+  ), [filteredOrders.length, t]);
 
   const updateTableDraft = (tableName: string, nextValue: Partial<TableDraftState[string]>) => {
     setTableDrafts((current) => ({
@@ -416,14 +420,14 @@ const AccountingOrdersPage: React.FC = () => {
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
       showToast(
-        `Finalized ${selectedTableOrders.length} accounting order${selectedTableOrders.length === 1 ? '' : 's'} for ${selectedTable}.`,
+        t('accountingPage.finalizedOrders', { count: selectedTableOrders.length, table: selectedTable }),
         'secondary',
         4200
       );
       setInvoiceTable('');
       setVisibleInvoiceTable('');
     } catch (err: unknown) {
-      setError(getErrorMessage(err, `Failed to finalize accounting for ${selectedTable}.`));
+      setError(getErrorMessage(err, t('accountingPage.failedFinalize', { table: selectedTable })));
     } finally {
       setProcessingTarget(null);
     }
@@ -435,7 +439,7 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     savePrintableInvoice({
-      restaurantName: user?.restaurant?.name || 'Restaurant',
+      restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
       tableName: selectedTable,
       generatedAt: new Date().toLocaleString(),
       notes: selectedTableNotes,
@@ -446,15 +450,15 @@ const AccountingOrdersPage: React.FC = () => {
         unitPrice: `$${item.unit_price}`,
         lineSubtotal: formatMoney(Number(item.line_subtotal)),
       })),
-      includedOrders: selectedTableOrders.map((order) => order.order_number || `Order #${order.id}`),
+      includedOrders: selectedTableOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })),
       summary: {
         subtotal: formatMoney(selectedTablePreview.subtotal),
         discountLabel: selectedTablePreview.discountType === 'percentage'
-          ? `Discount (${selectedTablePreview.discountValue.toFixed(2)}%)`
-          : 'Discount',
+          ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
+          : t('accountingPage.discount'),
         discountAmount: formatMoney(selectedTablePreview.discountAmount),
         taxableSubtotal: formatMoney(selectedTablePreview.taxableSubtotal),
-        vatLabel: `VAT (${selectedTablePreview.vatRate.toFixed(2)}%)`,
+        vatLabel: t('accountingPage.vatWithValue', { value: selectedTablePreview.vatRate.toFixed(2) }),
         vatAmount: formatMoney(selectedTablePreview.vatAmount),
         total: formatMoney(selectedTablePreview.total),
       },
@@ -469,10 +473,10 @@ const AccountingOrdersPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Accounting">
+    <DashboardLayout title={t('accountingPage.title')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold text-text">Confirmed orders waiting for accounting</h2>
+          <h2 className="text-xl font-semibold text-text">{t('accountingPage.heading')}</h2>
           <p className="mt-1 text-sm text-muted">{orderCountLabel}</p>
         </div>
 
@@ -492,7 +496,7 @@ const AccountingOrdersPage: React.FC = () => {
                 tablesLoading && 'cursor-not-allowed opacity-60'
               )}
             >
-              <span className="truncate">{tablesLoading ? 'Loading tables...' : selectedTable || 'All tables'}</span>
+              <span className="truncate">{tablesLoading ? t('accountingPage.loadingTables') : selectedTable || t('accountingPage.allTables')}</span>
               <span className={cx('text-xs text-muted2 transition-transform', isTableMenuOpen && 'rotate-180')}>▾</span>
             </button>
 
@@ -507,7 +511,7 @@ const AccountingOrdersPage: React.FC = () => {
                     type="search"
                     value={tableSearchQuery}
                     onChange={(event) => setTableSearchQuery(event.target.value)}
-                    placeholder="Search tables..."
+                    placeholder={t('accountingPage.searchTablesPlaceholder')}
                     leftSlot={<span>⌕</span>}
                   />
                 </div>
@@ -526,8 +530,8 @@ const AccountingOrdersPage: React.FC = () => {
                     !selectedTable ? 'bg-gold/15 text-text' : 'text-muted hover:bg-white/5 hover:text-text'
                   )}
                 >
-                  <span>All tables</span>
-                  {!selectedTable ? <span className="text-gold2">Selected</span> : null}
+                  <span>{t('accountingPage.allTables')}</span>
+                  {!selectedTable ? <span className="text-gold2">{t('accountingPage.selected')}</span> : null}
                 </button>
 
                 <div className="my-2 h-px bg-white/10" />
@@ -535,7 +539,7 @@ const AccountingOrdersPage: React.FC = () => {
                 <div className="max-h-72 overflow-y-auto">
                   {filteredTableOptions.length === 0 ? (
                     <div className="px-4 py-6 text-center text-sm text-muted">
-                      No tables match "{tableSearchQuery.trim()}".
+                      {t('accountingPage.noTablesMatch', { query: tableSearchQuery.trim() })}
                     </div>
                   ) : filteredTableOptions.map((table) => {
                     const isActive = selectedTable === table.name;
@@ -561,7 +565,7 @@ const AccountingOrdersPage: React.FC = () => {
                         )}
                       >
                         <span>{table.name}</span>
-                        {isActive ? <span className="text-gold2">Selected</span> : null}
+                        {isActive ? <span className="text-gold2">{t('accountingPage.selected')}</span> : null}
                       </button>
                     );
                   })}
@@ -571,7 +575,7 @@ const AccountingOrdersPage: React.FC = () => {
           </div>
 
           <LiquidButton tone="tertiary" onClick={() => void loadOrders()} disabled={loading}>
-            {loading ? 'Refreshing...' : 'Refresh'}
+            {loading ? t('accountingPage.refreshing') : t('accountingPage.refresh')}
           </LiquidButton>
         </div>
       </div>
@@ -592,12 +596,12 @@ const AccountingOrdersPage: React.FC = () => {
         <GlassCard className="mb-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Selected Table</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('accountingPage.selectedTable')}</p>
               <h3 className="mt-2 text-2xl font-semibold text-text">{selectedTable}</h3>
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <div className="text-right">
-                <p className="text-sm text-muted">{selectedTableStats.orderCount} order{selectedTableStats.orderCount === 1 ? '' : 's'} in queue</p>
+                <p className="text-sm text-muted">{t('accountingPage.ordersInQueue', { count: selectedTableStats.orderCount })}</p>
                 <p className="mt-1 text-lg font-semibold text-text">${selectedTableStats.subtotal.toFixed(2)}</p>
               </div>
               <LiquidButton
@@ -610,7 +614,7 @@ const AccountingOrdersPage: React.FC = () => {
                 }}
                 disabled={selectedTableStats.orderCount === 0}
               >
-                {isViewingSelectedInvoice ? 'Invoice Ready' : 'Create Invoice'}
+                {isViewingSelectedInvoice ? t('accountingPage.invoiceReady') : t('accountingPage.createInvoice')}
               </LiquidButton>
             </div>
           </div>
@@ -618,15 +622,15 @@ const AccountingOrdersPage: React.FC = () => {
       ) : null}
 
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading accounting queue...</div>
+        <div className="py-12 text-center text-muted">{t('accountingPage.loadingQueue')}</div>
       ) : null}
 
       {!loading && !selectedTable ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">🧾</div>
-          <h3 className="mb-2 text-xl font-medium text-text">Select a table to create its invoice</h3>
+          <h3 className="mb-2 text-xl font-medium text-text">{t('accountingPage.selectTableToCreateInvoice')}</h3>
           <p className="text-muted">
-            Choose a table from the dropdown above, then click `Create Invoice`.
+            {t('accountingPage.selectTableHint')}
           </p>
         </div>
       ) : null}
@@ -635,10 +639,10 @@ const AccountingOrdersPage: React.FC = () => {
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">💳</div>
           <h3 className="mb-2 text-xl font-medium text-text">
-            {`No accounting orders for ${selectedTable}`}
+            {t('accountingPage.noOrdersForTable', { table: selectedTable })}
           </h3>
           <p className="text-muted">
-            Try another table from the dropdown, or wait for staff-confirmed orders to reach accounting.
+            {t('accountingPage.noOrdersHint')}
           </p>
         </div>
       ) : null}
@@ -646,9 +650,9 @@ const AccountingOrdersPage: React.FC = () => {
       {!loading && selectedTable && filteredOrders.length > 0 && !isViewingSelectedInvoice ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">🧾</div>
-          <h3 className="mb-2 text-xl font-medium text-text">Ready to create an invoice for {selectedTable}</h3>
+          <h3 className="mb-2 text-xl font-medium text-text">{t('accountingPage.readyToCreateInvoice', { table: selectedTable })}</h3>
           <p className="text-muted">
-            Click `Create Invoice` above to open the combined accounting view for this table.
+            {t('accountingPage.readyToCreateInvoiceHint')}
           </p>
         </div>
       ) : null}
@@ -657,11 +661,11 @@ const AccountingOrdersPage: React.FC = () => {
         <GlassCard className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Table Invoice</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('accountingPage.tableInvoice')}</p>
               <h3 className="mt-2 text-2xl font-semibold text-text">{selectedTable}</h3>
               <p className="mt-2 text-sm text-muted">
-                {selectedTableOrders.length} confirmed order{selectedTableOrders.length === 1 ? '' : 's'} included
-                {selectedTableActors.length > 0 ? ` • Confirmed by ${selectedTableActors.join(', ')}` : ''}
+                {t('accountingPage.confirmedOrdersIncluded', { count: selectedTableOrders.length })}
+                {selectedTableActors.length > 0 ? ` • ${t('accountingPage.confirmedBy', { names: selectedTableActors.join(', ') })}` : ''}
               </p>
               {selectedTableNotes.length > 0 ? (
                 <div className="mt-3 space-y-2">
@@ -678,14 +682,14 @@ const AccountingOrdersPage: React.FC = () => {
             </div>
 
             <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
-              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Combined Subtotal</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('accountingPage.combinedSubtotal')}</p>
               <p className="mt-2 text-2xl font-semibold text-text">{formatMoney(selectedTablePreview.subtotal)}</p>
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-text">Items Across This Table</p>
+              <p className="text-sm font-semibold text-text">{t('accountingPage.itemsAcrossTable')}</p>
               <div className="mt-3 space-y-3">
                 {selectedTableLineItems.map((item) => (
                   <div key={item.key} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
@@ -701,14 +705,14 @@ const AccountingOrdersPage: React.FC = () => {
               </div>
 
               <div className="mt-4 rounded-[22px] border border-white/10 bg-black/10 p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted2">Included Orders</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted2">{t('accountingPage.includedOrders')}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {selectedTableOrders.map((order) => (
                     <span
                       key={order.id}
                       className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-muted"
                     >
-                      {order.order_number || `Order #${order.id}`}
+                      {order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })}
                     </span>
                   ))}
                 </div>
@@ -716,10 +720,10 @@ const AccountingOrdersPage: React.FC = () => {
             </div>
 
             <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-text">Invoice Settings</p>
+              <p className="text-sm font-semibold text-text">{t('accountingPage.invoiceSettings')}</p>
               <div className="mt-4 grid gap-3">
                 <div>
-                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">VAT %</label>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">{t('accountingPage.vatPercent')}</label>
                   <GlassInput
                     type="number"
                     min="0"
@@ -732,7 +736,7 @@ const AccountingOrdersPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">Discount Type</label>
+                  <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">{t('accountingPage.discountType')}</label>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {discountOptions.map((option) => (
                       <GlassChip
@@ -753,7 +757,7 @@ const AccountingOrdersPage: React.FC = () => {
 
                 <div>
                   <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
-                    {selectedTableDraft.discountType === 'percentage' ? 'Discount %' : 'Discount Value'}
+                    {selectedTableDraft.discountType === 'percentage' ? t('accountingPage.discountPercent') : t('accountingPage.discountValue')}
                   </label>
                   <GlassInput
                     type="number"
@@ -768,34 +772,35 @@ const AccountingOrdersPage: React.FC = () => {
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted2">Live Table Invoice Preview</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted2">{t('accountingPage.liveTableInvoicePreview')}</p>
                   <div className="mt-3 space-y-2 text-sm text-muted">
                     <div className="flex items-center justify-between gap-3">
-                      <span>Subtotal</span>
+                      <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>
-                        Discount
-                        {selectedTablePreview.discountType === 'percentage' ? ` (${selectedTablePreview.discountValue.toFixed(2)}%)` : ''}
+                        {selectedTablePreview.discountType === 'percentage'
+                          ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
+                          : t('accountingPage.discount')}
                       </span>
                       <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span>Taxable subtotal</span>
+                      <span>{t('accountingPage.taxableSubtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.taxableSubtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span>VAT ({selectedTablePreview.vatRate.toFixed(2)}%)</span>
+                      <span>{t('accountingPage.vatWithValue', { value: selectedTablePreview.vatRate.toFixed(2) })}</span>
                       <span className="font-medium text-text">+ {formatMoney(selectedTablePreview.vatAmount)}</span>
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/10 pt-3 text-base">
-                      <span className="font-semibold text-text">Final total</span>
+                      <span className="font-semibold text-text">{t('accountingPage.finalTotal')}</span>
                       <span className="text-lg font-semibold text-gold2">{formatMoney(selectedTablePreview.total)}</span>
                     </div>
                   </div>
                   <p className="mt-3 text-xs text-muted2">
-                    Finalizing from this view applies the same VAT and discount settings to every confirmed order on {selectedTable}.
+                    {t('accountingPage.finalizeHint', { table: selectedTable })}
                   </p>
                 </div>
 
@@ -806,7 +811,7 @@ const AccountingOrdersPage: React.FC = () => {
                   )}
                   disabled={processingTarget === `table:${selectedTable}`}
                 >
-                  {isShowingSelectedInvoicePreview ? 'Hide Invoice Preview' : 'Show Invoice In Page'}
+                  {isShowingSelectedInvoicePreview ? t('accountingPage.hideInvoicePreview') : t('accountingPage.showInvoiceInPage')}
                 </LiquidButton>
 
                 <LiquidButton
@@ -814,7 +819,7 @@ const AccountingOrdersPage: React.FC = () => {
                   onClick={handlePrintInvoice}
                   disabled={!isShowingSelectedInvoicePreview || processingTarget === `table:${selectedTable}`}
                 >
-                  Print Invoice
+                  {t('accountingPage.printInvoice')}
                 </LiquidButton>
 
                 <LiquidButton
@@ -822,7 +827,7 @@ const AccountingOrdersPage: React.FC = () => {
                   onClick={handleFinalizeSelectedTable}
                   disabled={processingTarget === `table:${selectedTable}`}
                 >
-                  {processingTarget === `table:${selectedTable}` ? 'Finalizing...' : `Finalize ${selectedTable} Invoice`}
+                  {processingTarget === `table:${selectedTable}` ? t('accountingPage.finalizing') : t('accountingPage.finalizeTableInvoice', { table: selectedTable })}
                 </LiquidButton>
               </div>
             </div>
@@ -835,29 +840,29 @@ const AccountingOrdersPage: React.FC = () => {
           <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-6 border-b border-white/10 pb-6">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Invoice Preview</p>
-                <h3 className="mt-3 text-3xl font-semibold text-text">Table {selectedTable}</h3>
+                <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">{t('invoice.preview')}</p>
+                <h3 className="mt-3 text-3xl font-semibold text-text">{t('invoice.tableTitle', { table: selectedTable })}</h3>
                 <p className="mt-2 text-sm text-muted">
-                  {user?.restaurant?.name || 'Restaurant'}
+                  {user?.restaurant?.name || t('accountingPage.restaurantFallback')}
                   {' • '}
                   {new Date().toLocaleString()}
                 </p>
               </div>
 
               <div className="rounded-[22px] border border-gold/20 bg-gold/10 px-5 py-4 text-right">
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Amount Due</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('invoice.amountDue')}</p>
                 <p className="mt-2 text-3xl font-semibold text-text">{formatMoney(selectedTablePreview.total)}</p>
               </div>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
               <div>
-                <p className="text-sm font-semibold text-text">Invoice Items</p>
+                <p className="text-sm font-semibold text-text">{t('accountingPage.invoiceItems')}</p>
                 <div className="mt-4 overflow-hidden rounded-[24px] border border-white/10">
                   <div className="grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.18em] text-muted2">
-                    <span>Item</span>
-                    <span className="text-right">Qty</span>
-                    <span className="text-right">Total</span>
+                    <span>{t('accountingPage.item')}</span>
+                    <span className="text-right">{t('accountingPage.qty')}</span>
+                    <span className="text-right">{t('accountingPage.total')}</span>
                   </div>
                   <div className="divide-y divide-white/10">
                     {selectedTableLineItems.map((item) => (
@@ -867,7 +872,7 @@ const AccountingOrdersPage: React.FC = () => {
                       >
                         <div className="min-w-0">
                           <p className="truncate font-medium">{item.dish_name}</p>
-                          <p className="mt-1 text-xs text-muted">${item.unit_price} each</p>
+                          <p className="mt-1 text-xs text-muted">{t('common.eachPrice', { price: item.unit_price })}</p>
                         </div>
                         <span className="text-right text-muted">{item.quantity}</span>
                         <span className="text-right font-medium">{formatMoney(Number(item.line_subtotal))}</span>
@@ -878,7 +883,7 @@ const AccountingOrdersPage: React.FC = () => {
 
                 {selectedTableNotes.length > 0 ? (
                   <div className="mt-5 rounded-[22px] border border-white/10 bg-black/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-muted2">Notes</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted2">{t('common.notesForTeam')}</p>
                     <div className="mt-3 space-y-2 text-sm text-muted">
                       {selectedTableNotes.map((note, index) => (
                         <p key={`invoice-note-${index + 1}`}>{note}</p>
@@ -889,39 +894,40 @@ const AccountingOrdersPage: React.FC = () => {
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-text">Invoice Summary</p>
+                <p className="text-sm font-semibold text-text">{t('accountingPage.invoiceSummary')}</p>
                 <div className="mt-4 rounded-[24px] border border-white/10 bg-black/10 p-5">
                   <div className="space-y-3 text-sm text-muted">
                     <div className="flex items-center justify-between gap-3">
-                      <span>Subtotal</span>
+                      <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>
-                        Discount
-                        {selectedTablePreview.discountType === 'percentage' ? ` (${selectedTablePreview.discountValue.toFixed(2)}%)` : ''}
+                        {selectedTablePreview.discountType === 'percentage'
+                          ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
+                          : t('accountingPage.discount')}
                       </span>
                       <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span>Taxable subtotal</span>
+                      <span>{t('accountingPage.taxableSubtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.taxableSubtotal)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span>VAT ({selectedTablePreview.vatRate.toFixed(2)}%)</span>
+                      <span>{t('accountingPage.vatWithValue', { value: selectedTablePreview.vatRate.toFixed(2) })}</span>
                       <span className="font-medium text-text">+ {formatMoney(selectedTablePreview.vatAmount)}</span>
                     </div>
                   </div>
 
                   <div className="mt-5 border-t border-white/10 pt-4">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-base font-semibold text-text">Grand Total</span>
+                      <span className="text-base font-semibold text-text">{t('accountingPage.grandTotal')}</span>
                       <span className="text-2xl font-semibold text-gold2">{formatMoney(selectedTablePreview.total)}</span>
                     </div>
                   </div>
 
                   <p className="mt-4 text-xs text-muted2">
-                    This is the in-page invoice layout that can be used for printing later.
+                    {t('accountingPage.inPageInvoiceHint')}
                   </p>
                 </div>
               </div>
