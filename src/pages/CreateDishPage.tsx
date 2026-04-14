@@ -40,7 +40,16 @@ const extractDishOptions = (payload: unknown): Dish[] => {
 
   if (typeof payload === 'object' && payload !== null && 'data' in payload) {
     const items = (payload as { data?: unknown }).data;
-    return Array.isArray(items) ? (items as Dish[]) : [];
+    if (Array.isArray(items)) {
+      return items as Dish[];
+    }
+
+    if (typeof items === 'object' && items !== null && 'data' in items) {
+      const nestedItems = (items as { data?: unknown }).data;
+      return Array.isArray(nestedItems) ? (nestedItems as Dish[]) : [];
+    }
+
+    return [];
   }
 
   return [];
@@ -61,7 +70,7 @@ const CreateDishPage: React.FC = () => {
           api.get('/ingredients'),
           api.get('/dishes', {
             params: {
-              include_deleted: '0',
+              include_deleted: '1',
               per_page: '200',
             },
           }),

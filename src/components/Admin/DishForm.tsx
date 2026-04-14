@@ -11,6 +11,7 @@ import {
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { ingredientDictionaryOptions, translateIngredientLabel } from '../../i18n/ingredients';
+import { translateDishLabel } from '../../i18n/dishes';
 import type { IngredientLibraryItem } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
@@ -412,7 +413,8 @@ const DishForm: React.FC<DishFormProps> = ({
       return true;
     }
 
-    const searchableText = `${dish.name} ${dish.category} ${dish.status}`.toLowerCase();
+    const translatedDishName = translateDishLabel(dish.name, i18n.language);
+    const searchableText = `${dish.name} ${translatedDishName} ${dish.category} ${dish.status}`.toLowerCase();
     return searchableText.includes(normalizedSuggestedDishesSearch);
   });
   const selectedSuggestedDishOptions = formData.suggested_dish_ids
@@ -424,7 +426,8 @@ const DishForm: React.FC<DishFormProps> = ({
       return true;
     }
 
-    const searchableText = `${dish.name} ${dish.category} ${dish.status}`.toLowerCase();
+    const translatedDishName = translateDishLabel(dish.name, i18n.language);
+    const searchableText = `${dish.name} ${translatedDishName} ${dish.category} ${dish.status}`.toLowerCase();
     return searchableText.includes(normalizedRelatedDishesSearch);
   });
   const selectedRelatedDishOptions = formData.related_dish_ids
@@ -584,7 +587,7 @@ const DishForm: React.FC<DishFormProps> = ({
               </p>
               <p className="truncate text-xs text-muted">
                 {selectedSuggestedDishOptions.length > 0
-                  ? selectedSuggestedDishOptions.map((dish) => dish.name).join(', ')
+                  ? selectedSuggestedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
                   : 'Pick dishes the restaurant recommends alongside this one'}
               </p>
             </div>
@@ -600,7 +603,7 @@ const DishForm: React.FC<DishFormProps> = ({
                   onClick={() => toggleSuggestedDish(dish.id)}
                   className="rounded-full border border-gold/20 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold2 transition"
                 >
-                  {dish.name} ×
+                  {translateDishLabel(dish.name, i18n.language)} ×
                 </button>
               ))}
             </div>
@@ -639,7 +642,9 @@ const DishForm: React.FC<DishFormProps> = ({
                           )}
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-text">{dish.name}</p>
+                            <p className="truncate text-sm font-medium text-text">
+                              {translateDishLabel(dish.name, i18n.language)}
+                            </p>
                             <p className="truncate text-xs text-muted">
                               {translateCategoryLabel(dish.category)} · {translateStatusLabel(dish.status)}
                             </p>
@@ -683,7 +688,7 @@ const DishForm: React.FC<DishFormProps> = ({
               </p>
               <p className="truncate text-xs text-muted">
                 {selectedRelatedDishOptions.length > 0
-                  ? selectedRelatedDishOptions.map((dish) => dish.name).join(', ')
+                  ? selectedRelatedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
                   : 'Pick dishes that should appear as related on this dish page'}
               </p>
             </div>
@@ -699,7 +704,7 @@ const DishForm: React.FC<DishFormProps> = ({
                   onClick={() => toggleRelatedDish(dish.id)}
                   className="rounded-full border border-sky-400/25 bg-sky-400/10 px-3 py-1.5 text-xs font-medium text-sky-200 transition"
                 >
-                  {dish.name} ×
+                  {translateDishLabel(dish.name, i18n.language)} ×
                 </button>
               ))}
             </div>
@@ -738,7 +743,9 @@ const DishForm: React.FC<DishFormProps> = ({
                           )}
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-text">{dish.name}</p>
+                            <p className="truncate text-sm font-medium text-text">
+                              {translateDishLabel(dish.name, i18n.language)}
+                            </p>
                             <p className="truncate text-xs text-muted">
                               {translateCategoryLabel(dish.category)} · {translateStatusLabel(dish.status)}
                             </p>
