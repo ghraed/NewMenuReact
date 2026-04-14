@@ -183,7 +183,7 @@ const AccountingOrdersPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [showToast]);
+  }, [getOrderLabel, showToast, t]);
 
   useEffect(() => {
     void loadOrders();
