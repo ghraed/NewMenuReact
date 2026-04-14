@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
@@ -44,7 +45,7 @@ const getNotificationStatus = (): BrowserNotificationStatus => {
   return window.Notification.permission;
 };
 
-const showWaveNotification = (wave: TableWaveRecord): boolean => {
+const showWaveNotification = (wave: TableWaveRecord, title: string, body: string): boolean => {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
@@ -54,8 +55,8 @@ const showWaveNotification = (wave: TableWaveRecord): boolean => {
   }
 
   try {
-    const notification = new window.Notification(`Guest wave from ${wave.table_reference}`, {
-      body: 'A guest is calling for staff assistance right now.',
+    const notification = new window.Notification(title, {
+      body,
       icon: '/vite.svg',
       badge: '/vite.svg',
       tag: `table-wave-${wave.id}`,
@@ -85,32 +86,8 @@ const isLikelyMobileDevice = (): boolean => {
   return coarsePointer || mobileUserAgent;
 };
 
-const getPushSetupMessage = (error: unknown): string | null => {
-  if (error instanceof PushSetupError) {
-    switch (error.code) {
-      case 'iphone_home_screen_required':
-        return 'On iPhone, add this app to your Home Screen first. Then open the installed app and enable push notifications there.';
-      case 'insecure_context':
-        return 'Push notifications only work from a secure HTTPS page or installed app. Open the staff page from the live HTTPS site and try again.';
-      case 'server_not_configured':
-        return 'Web push is not configured on the server yet. Add the VAPID keys on the API server, rebuild the container, then try again.';
-      case 'service_worker_script_unavailable':
-        return 'The site is not serving /sw.js correctly yet. Redeploy the frontend build and confirm https://your-domain/sw.js opens directly in the browser.';
-      case 'service_worker_registration_failed':
-        return 'The browser could not register the background notification service. Reload the page and try again.';
-      case 'subscription_create_failed':
-        return 'The browser allowed notifications, but could not create a push subscription for this device.';
-      case 'subscription_sync_failed':
-        return 'The phone created a subscription, but the server rejected or could not save it.';
-      default:
-        return error.message;
-    }
-  }
-
-  return null;
-};
-
 const StaffOrdersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -136,6 +113,35 @@ const StaffOrdersPage: React.FC = () => {
   const [requiresHomeScreenInstall, setRequiresHomeScreenInstall] = useState(false);
   const refreshInFlightRef = useRef(false);
   const hasLoadedPublishedDishesRef = useRef(false);
+
+  const getOrderLabel = useCallback((order: OrderRecord): string => (
+    order.order_number || t('staffOrdersPage.orderNumberLabel', { id: order.id })
+  ), [t]);
+
+  const getPushSetupMessage = useCallback((error: unknown): string | null => {
+    if (error instanceof PushSetupError) {
+      switch (error.code) {
+        case 'iphone_home_screen_required':
+          return t('staffOrdersPage.push.iphoneHomeScreenRequired');
+        case 'insecure_context':
+          return t('staffOrdersPage.push.insecureContext');
+        case 'server_not_configured':
+          return t('staffOrdersPage.push.serverNotConfigured');
+        case 'service_worker_script_unavailable':
+          return t('staffOrdersPage.push.serviceWorkerScriptUnavailable');
+        case 'service_worker_registration_failed':
+          return t('staffOrdersPage.push.serviceWorkerRegistrationFailed');
+        case 'subscription_create_failed':
+          return t('staffOrdersPage.push.subscriptionCreateFailed');
+        case 'subscription_sync_failed':
+          return t('staffOrdersPage.push.subscriptionSyncFailed');
+        default:
+          return error.message;
+      }
+    }
+
+    return null;
+  }, [t]);
 
   const applyPushState = useCallback((nextState: Awaited<ReturnType<typeof getStaffPushState>>) => {
     setNotificationStatus(nextState.permission);
@@ -168,7 +174,7 @@ const StaffOrdersPage: React.FC = () => {
       setWaves(nextWaves);
     } catch (err: unknown) {
       if (!silent) {
-        setError(getErrorMessage(err, 'Failed to load pending staff activity.'));
+        setError(getErrorMessage(err, t('staffOrdersPage.failedLoadActivity')));
       } else {
         console.warn('[Staff Polling] Silent refresh failed.', err);
       }
@@ -198,7 +204,7 @@ const StaffOrdersPage: React.FC = () => {
       setPublishedDishes(nextDishes);
       hasLoadedPublishedDishesRef.current = true;
     } catch (err: unknown) {
-      setPublishedDishesError(getErrorMessage(err, 'Failed to load published dishes.'));
+      setPublishedDishesError(getErrorMessage(err, t('staffOrdersPage.failedLoadPublishedDishes')));
     } finally {
       setPublishedDishesLoading(false);
     }
@@ -434,11 +440,15 @@ const StaffOrdersPage: React.FC = () => {
           return [nextWave, ...current];
         });
 
-        const notificationShown = showWaveNotification(nextWave);
+        const notificationShown = showWaveNotification(
+          nextWave,
+          t('staffOrdersPage.notificationTitle', { table: nextWave.table_reference }),
+          t('staffOrdersPage.notificationBody')
+        );
         showToast(
           notificationShown
-            ? `New wave from ${nextWave.table_reference}. A browser notification was sent.`
-            : `New wave from ${nextWave.table_reference}.`,
+            ? t('staffOrdersPage.newWaveWithBrowserNotification', { table: nextWave.table_reference })
+            : t('staffOrdersPage.newWave', { table: nextWave.table_reference }),
           'secondary',
           4200
         );
@@ -474,12 +484,12 @@ const StaffOrdersPage: React.FC = () => {
   }, [adminRealtimeTableIds, user?.assigned_tables, user?.restaurant?.id, user?.role]);
 
   const orderCountLabel = useMemo(() => (
-    `${orders.length} request${orders.length === 1 ? '' : 's'} waiting for staff action`
-  ), [orders.length]);
+    t('staffOrdersPage.requestsWaiting', { count: orders.length })
+  ), [orders.length, t]);
 
   const waveCountLabel = useMemo(() => (
-    `${waves.length} wave${waves.length === 1 ? '' : 's'} waiting for service`
-  ), [waves.length]);
+    t('staffOrdersPage.wavesWaiting', { count: waves.length })
+  ), [waves.length, t]);
 
   const handleEnableNotifications = async () => {
     setError(null);
@@ -491,7 +501,7 @@ const StaffOrdersPage: React.FC = () => {
 
       if (nextState.permission === 'granted' && nextState.subscribed) {
         showToast(
-          'Push notifications are active for this staff browser. Guest waves can alert this device even when the page is backgrounded.',
+          t('staffOrdersPage.push.active'),
           'secondary',
           4200
         );
@@ -499,13 +509,13 @@ const StaffOrdersPage: React.FC = () => {
       }
 
       if (nextState.permission === 'denied') {
-        setError('Browser notifications are blocked. Enable them in your browser settings to receive guest wave popups.');
+        setError(t('staffOrdersPage.push.blocked'));
         return;
       }
 
-      showToast('Notification permission was not granted yet.', 'tertiary', 3600);
+      showToast(t('staffOrdersPage.push.permissionNotGranted'), 'tertiary', 3600);
     } catch (err: unknown) {
-      setError(getPushSetupMessage(err) ?? getErrorMessage(err, 'Failed to enable push notifications.'));
+      setError(getPushSetupMessage(err) ?? getErrorMessage(err, t('staffOrdersPage.push.failedEnable')));
     } finally {
       setPushBusy(false);
     }
@@ -519,12 +529,12 @@ const StaffOrdersPage: React.FC = () => {
       const response = await confirmPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
       showToast(
-        `Confirmed ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`,
+        t('staffOrdersPage.confirmedOrder', { order: getOrderLabel(response.order), table: response.order.table_reference }),
         'secondary',
         4200
       );
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to confirm order.'));
+      setError(getErrorMessage(err, t('staffOrdersPage.failedConfirmOrder')));
     } finally {
       setProcessingOrderId(null);
     }
@@ -538,12 +548,12 @@ const StaffOrdersPage: React.FC = () => {
       const response = await cancelPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
       showToast(
-        `Cancelled ${response.order.order_number || `order #${response.order.id}`} for ${response.order.table_reference}.`,
+        t('staffOrdersPage.cancelledOrder', { order: getOrderLabel(response.order), table: response.order.table_reference }),
         'secondary',
         4200
       );
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to cancel order.'));
+      setError(getErrorMessage(err, t('staffOrdersPage.failedCancelOrder')));
     } finally {
       setProcessingOrderId(null);
     }
@@ -556,9 +566,9 @@ const StaffOrdersPage: React.FC = () => {
     try {
       const response = await resolvePendingWave(wave.id);
       setWaves((current) => current.filter((item) => item.id !== wave.id));
-      showToast(`Marked the wave from ${response.wave.table_reference} as handled.`, 'secondary', 4200);
+      showToast(t('staffOrdersPage.waveHandled', { table: response.wave.table_reference }), 'secondary', 4200);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to resolve wave.'));
+      setError(getErrorMessage(err, t('staffOrdersPage.failedResolveWave')));
     } finally {
       setProcessingWaveId(null);
     }
@@ -566,7 +576,7 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleOpenEditor = (order: OrderRecord) => {
     if (order.items.some((item) => item.dish_id === null)) {
-      showToast('This order contains legacy items and can only be confirmed or cancelled.', 'tertiary', 4200);
+      showToast(t('staffOrdersPage.legacyItemsOnly'), 'tertiary', 4200);
       return;
     }
 
@@ -586,9 +596,9 @@ const StaffOrdersPage: React.FC = () => {
       const response = await updatePendingOrder(editingOrder.id, payload);
       replaceOrder(response.order);
       setEditingOrder(null);
-      showToast(response.message || `Updated ${response.order.order_number || `order #${response.order.id}`}.`, 'secondary', 4200);
+      showToast(response.message || t('staffOrdersPage.updatedOrder', { order: getOrderLabel(response.order) }), 'secondary', 4200);
     } catch (err: unknown) {
-      showToast(getErrorMessage(err, 'Failed to save order changes.'), 'tertiary', 4800);
+      showToast(getErrorMessage(err, t('staffOrdersPage.failedSaveChanges')), 'tertiary', 4800);
     } finally {
       setEditorBusyAction(null);
     }
@@ -611,31 +621,31 @@ const StaffOrdersPage: React.FC = () => {
         const confirmResponse = await confirmPendingOrder(updateResponse.order.id);
         setOrders((current) => current.filter((item) => item.id !== updateResponse.order.id));
         showToast(
-          `Saved changes and confirmed ${confirmResponse.order.order_number || `order #${confirmResponse.order.id}`} for ${confirmResponse.order.table_reference}.`,
+          t('staffOrdersPage.savedAndConfirmed', { order: getOrderLabel(confirmResponse.order), table: confirmResponse.order.table_reference }),
           'secondary',
           4200
         );
       } catch (confirmError: unknown) {
-        setError(getErrorMessage(confirmError, 'Failed to confirm order after saving changes.'));
+        setError(getErrorMessage(confirmError, t('staffOrdersPage.failedConfirmAfterSave')));
         showToast(
-          `Changes saved, but confirming ${updateResponse.order.order_number || `order #${updateResponse.order.id}`} failed.`,
+          t('staffOrdersPage.savedButConfirmFailed', { order: getOrderLabel(updateResponse.order) }),
           'tertiary',
           5200
         );
       }
     } catch (err: unknown) {
-      showToast(getErrorMessage(err, 'Failed to save order changes.'), 'tertiary', 4800);
+      showToast(getErrorMessage(err, t('staffOrdersPage.failedSaveChanges')), 'tertiary', 4800);
     } finally {
       setEditorBusyAction(null);
     }
   };
 
   return (
-    <DashboardLayout title="Staff Service Requests">
+    <DashboardLayout title={t('staffOrdersPage.title')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-text">
-            {user?.role === 'staff' ? 'Orders waiting for your decision' : 'Staff order confirmations'}
+            {user?.role === 'staff' ? t('staffOrdersPage.headingStaff') : t('staffOrdersPage.headingAdmin')}
           </h2>
           <p className="mt-1 text-sm text-muted">{waveCountLabel} • {orderCountLabel}</p>
         </div>
@@ -644,52 +654,52 @@ const StaffOrdersPage: React.FC = () => {
           {notificationStatus !== 'unsupported' ? (
             <LiquidButton tone="secondary" onClick={handleEnableNotifications} disabled={pushBusy}>
               {pushBusy
-                ? 'Connecting Push...'
+                ? t('staffOrdersPage.push.connecting')
                 : pushSubscribed
-                  ? 'Reconnect Push'
-                  : 'Enable Push Notifications'}
+                  ? t('staffOrdersPage.push.reconnect')
+                  : t('staffOrdersPage.push.enable')}
             </LiquidButton>
           ) : null}
 
           <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
-            {loading ? 'Refreshing...' : 'Refresh'}
+            {loading ? t('staffOrdersPage.refreshing') : t('staffOrdersPage.refresh')}
           </LiquidButton>
         </div>
       </div>
 
       {notificationStatus === 'default' ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
-          Enable push notifications to receive a popup on mobile and desktop as soon as a guest waves for staff.
+          {t('staffOrdersPage.push.enableHint')}
         </div>
       ) : null}
 
       {mobilePollingEnabled ? (
         <div className="mb-4 rounded-xl2 border border-white/10 bg-white/[0.03] p-3 text-sm text-muted">
-          Mobile live fallback is active. If a phone websocket stalls, this page refreshes staff activity automatically every 10 seconds while it is open and visible.
+          {t('staffOrdersPage.mobileFallbackActive')}
         </div>
       ) : null}
 
       {requiresHomeScreenInstall ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
-          Add this app to your Home Screen to enable push notifications on iPhone. In a normal iPhone browser tab, realtime fallback polling will still keep the visible page updated.
+          {t('staffOrdersPage.push.homeScreenInstallHint')}
         </div>
       ) : null}
 
       {isIosLike && isStandalone && notificationStatus === 'granted' && !pushSubscribed ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
-          Notifications are allowed, but this iPhone app is not subscribed to web push yet. Tap the push button again to finish device registration.
+          {t('staffOrdersPage.push.iosNotSubscribed')}
         </div>
       ) : null}
 
       {notificationStatus === 'denied' ? (
         <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
-          Browser notifications are blocked for this site. Allow them in your browser settings to get realtime guest wave popups.
+          {t('staffOrdersPage.push.blockedSite')}
         </div>
       ) : null}
 
       {notificationStatus === 'unsupported' ? (
         <div className="mb-4 rounded-xl2 border border-white/10 bg-white/[0.03] p-3 text-sm text-muted">
-          This browser does not support desktop notifications, so guest waves will only appear inside the staff page.
+          {t('staffOrdersPage.push.unsupported')}
         </div>
       ) : null}
 
@@ -700,14 +710,14 @@ const StaffOrdersPage: React.FC = () => {
       ) : null}
 
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading pending staff activity...</div>
+        <div className="py-12 text-center text-muted">{t('staffOrdersPage.loadingActivity')}</div>
       ) : null}
 
       {!loading && waves.length === 0 && orders.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">👋</div>
-          <h3 className="mb-2 text-xl font-medium text-text">No pending staff activity</h3>
-          <p className="text-muted">New guest waves and table orders will appear here for staff review.</p>
+          <h3 className="mb-2 text-xl font-medium text-text">{t('staffOrdersPage.noPendingActivity')}</h3>
+          <p className="text-muted">{t('staffOrdersPage.noPendingActivityHint')}</p>
         </div>
       ) : null}
 
@@ -717,19 +727,19 @@ const StaffOrdersPage: React.FC = () => {
             <GlassCard key={`wave-${wave.id}`} className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Guest Wave</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.guestWave')}</p>
                   <h3 className="mt-2 flex items-center gap-2 text-2xl font-semibold text-text">
                     <span aria-hidden="true">👋</span>
-                    <span>Table {wave.table_reference}</span>
+                    <span>{t('invoice.tableTitle', { table: wave.table_reference })}</span>
                   </h3>
                   <p className="mt-2 text-sm text-muted">
-                    Guest is calling for staff assistance.
+                    {t('staffOrdersPage.guestCallingForAssistance')}
                     {wave.created_at ? ` • ${new Date(wave.created_at).toLocaleString()}` : ''}
                   </p>
                 </div>
 
                 <div className="w-full rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-left">
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Service Call</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.serviceCall')}</p>
                   <p className="mt-2 text-lg font-semibold text-text">{wave.table_reference}</p>
                 </div>
               </div>
@@ -741,7 +751,7 @@ const StaffOrdersPage: React.FC = () => {
                   onClick={() => handleResolveWave(wave)}
                   disabled={processingWaveId === wave.id}
                 >
-                  {processingWaveId === wave.id ? 'Processing...' : 'Mark Handled'}
+                  {processingWaveId === wave.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.markHandled')}
                 </LiquidButton>
               </div>
             </GlassCard>
@@ -751,12 +761,12 @@ const StaffOrdersPage: React.FC = () => {
             <GlassCard key={order.id} className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Pending Staff Review</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.pendingStaffReview')}</p>
                   <h3 className="mt-2 text-2xl font-semibold text-text">
-                    {order.order_number || `Order #${order.id}`}
+                    {getOrderLabel(order)}
                   </h3>
                   <p className="mt-2 text-sm text-muted">
-                    Table {order.table_reference}
+                    {t('invoice.tableTitle', { table: order.table_reference })}
                     {order.created_at ? ` • ${new Date(order.created_at).toLocaleString()}` : ''}
                   </p>
                   {order.notes ? (
@@ -767,13 +777,13 @@ const StaffOrdersPage: React.FC = () => {
                 </div>
 
                 <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Current Subtotal</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('common.currentSubtotal')}</p>
                   <p className="mt-2 text-2xl font-semibold text-text">${order.invoice.subtotal}</p>
                 </div>
               </div>
 
               <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm font-semibold text-text">Items</p>
+                <p className="text-sm font-semibold text-text">{t('staffOrdersPage.items')}</p>
                 <div className="mt-3 space-y-3">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
@@ -796,7 +806,7 @@ const StaffOrdersPage: React.FC = () => {
                   disabled={processingOrderId === order.id || order.items.some((item) => item.dish_id === null)}
                   className="w-full"
                 >
-                  Edit Order
+                  {t('staffOrdersPage.editOrder')}
                 </LiquidButton>
                 <LiquidButton
                   tone="tertiary"
@@ -804,7 +814,7 @@ const StaffOrdersPage: React.FC = () => {
                   disabled={processingOrderId === order.id}
                   className="w-full"
                 >
-                  {processingOrderId === order.id ? 'Processing...' : 'Cancel Request'}
+                  {processingOrderId === order.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.cancelRequest')}
                 </LiquidButton>
                 <LiquidButton
                   tone="primary"
@@ -812,13 +822,13 @@ const StaffOrdersPage: React.FC = () => {
                   disabled={processingOrderId === order.id}
                   className="w-full"
                 >
-                  {processingOrderId === order.id ? 'Processing...' : 'Confirm Request'}
+                  {processingOrderId === order.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.confirmRequest')}
                 </LiquidButton>
               </div>
 
               {order.items.some((item) => item.dish_id === null) ? (
                 <p className="text-sm text-muted">
-                  This order contains legacy items and can only be confirmed or cancelled.
+                  {t('staffOrdersPage.legacyItemsOnly')}
                 </p>
               ) : null}
             </GlassCard>
