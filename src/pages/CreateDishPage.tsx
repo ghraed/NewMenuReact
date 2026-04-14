@@ -152,6 +152,7 @@ const CreateDishPage: React.FC = () => {
 
       <DishForm
         onSubmit={handleSubmit}
+        allowDishNameSelection
         ingredientLibrary={ingredientLibrary}
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}

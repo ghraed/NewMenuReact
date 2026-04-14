@@ -11,7 +11,7 @@ import {
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { ingredientDictionaryOptions, translateIngredientLabel } from '../../i18n/ingredients';
-import { translateDishLabel } from '../../i18n/dishes';
+import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
 import type { IngredientLibraryItem } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
@@ -117,6 +117,7 @@ interface DishFormProps {
   requireModelUpload?: boolean;
   submitLabel?: string;
   submittingLabel?: string;
+  allowDishNameSelection?: boolean;
   existingFiles?: {
     glb?: string | null;
     usdz?: string | null;
@@ -146,6 +147,7 @@ const DishForm: React.FC<DishFormProps> = ({
   requireModelUpload = true,
   submitLabel = 'Save Dish',
   submittingLabel = 'Saving...',
+  allowDishNameSelection = false,
   existingFiles,
   ingredientLibrary = [],
   suggestedDishOptions = [],
@@ -187,6 +189,9 @@ const DishForm: React.FC<DishFormProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [selectedDishDictionaryName, setSelectedDishDictionaryName] = useState('');
+  const [dishNamePickerOpen, setDishNamePickerOpen] = useState(false);
+  const [dishNameSearch, setDishNameSearch] = useState('');
   const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
   const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
   const [openIngredientDictionaryId, setOpenIngredientDictionaryId] = useState<string | null>(null);
@@ -213,6 +218,10 @@ const DishForm: React.FC<DishFormProps> = ({
   }, [relatedDishesPickerOpen]);
 
   useEffect(() => {
+    setDishNameSearch('');
+  }, [dishNamePickerOpen]);
+
+  useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target;
 
@@ -228,6 +237,7 @@ const DishForm: React.FC<DishFormProps> = ({
       setOpenIngredientDictionaryId(null);
       setSuggestedDishesPickerOpen(false);
       setRelatedDishesPickerOpen(false);
+      setDishNamePickerOpen(false);
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -275,7 +285,19 @@ const DishForm: React.FC<DishFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    if (name === 'name' && value.trim().length > 0) {
+      setSelectedDishDictionaryName('');
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDishDictionarySelect = (dishName: string) => {
+    setSelectedDishDictionaryName(dishName);
+    setFormData((prev) => ({
+      ...prev,
+      name: '',
+    }));
+    setDishNamePickerOpen(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -437,10 +459,26 @@ const DishForm: React.FC<DishFormProps> = ({
     value: category.value,
     label: translateCategoryLabel(category.value, category.arabic),
   }));
+  const normalizedDishNameSearch = dishNameSearch.trim().toLowerCase();
+  const filteredDishNameDictionaryOptions = dishDictionaryOptions.filter((dish) => {
+    if (!normalizedDishNameSearch) {
+      return true;
+    }
+
+    const translated = translateDishLabel(dish.value, i18n.language, dish.arabic);
+    const searchableText = `${dish.value} ${translated}`.toLowerCase();
+    return searchableText.includes(normalizedDishNameSearch);
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    const dishName = formData.name.trim() || selectedDishDictionaryName.trim();
+
+    if (!dishName) {
+      setFormError('Please enter a dish name or choose one from the dropdown.');
+      return;
+    }
 
     const hasGlb = !!formData.glb_file;
     const hasUsdz = !!formData.usdz_file;
@@ -489,6 +527,7 @@ const DishForm: React.FC<DishFormProps> = ({
     try {
       await onSubmit({
         ...formData,
+        name: dishName,
         ingredient_layers: normalizedIngredientLayers,
       });
     } finally {
@@ -498,7 +537,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
+      <div className={allowDishNameSelection ? 'relative' : undefined} data-admin-overlay-root={allowDishNameSelection ? 'true' : undefined}>
         <label htmlFor="name" className="mb-1 block text-sm font-medium text-text">
           {t('dishForm.nameEn')}
         </label>
@@ -508,9 +547,89 @@ const DishForm: React.FC<DishFormProps> = ({
           name="name"
           value={formData.name}
           onChange={handleChange}
-          required
+          required={!allowDishNameSelection || !selectedDishDictionaryName}
           placeholder={t('dishForm.nameEnPlaceholder')}
         />
+        {allowDishNameSelection ? (
+          <>
+            <label htmlFor="dish-name-dictionary" className="mb-1 mt-3 block text-sm font-medium text-text">
+              Choose from dish dictionary
+            </label>
+            <button
+              type="button"
+              onClick={() => setDishNamePickerOpen((current) => !current)}
+              className={cx(
+                'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
+                glassControl,
+                focusRing
+              )}
+              aria-expanded={dishNamePickerOpen}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-text">
+                  {selectedDishDictionaryName
+                    ? translateDishLabel(selectedDishDictionaryName, i18n.language)
+                    : 'Choose a dish from dictionary'}
+                </p>
+                <p className="truncate text-xs text-muted">
+                  {selectedDishDictionaryName ? 'Dictionary selection active' : 'Search and choose a shared dish label'}
+                </p>
+              </div>
+              <span className="shrink-0 text-muted2">{dishNamePickerOpen ? '▴' : '▾'}</span>
+            </button>
+
+            {dishNamePickerOpen ? (
+              <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl supports-[backdrop-filter]:bg-bg1/95">
+                <div className="space-y-3 p-3">
+                  <GlassInput
+                    type="text"
+                    value={dishNameSearch}
+                    onChange={(event) => setDishNameSearch(event.target.value)}
+                    placeholder="Search dishes..."
+                    leftSlot={<span>⌕</span>}
+                  />
+
+                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                    {filteredDishNameDictionaryOptions.length === 0 ? (
+                      <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                        No dishes match your search.
+                      </div>
+                    ) : (
+                      filteredDishNameDictionaryOptions.map((dish) => {
+                        const isSelected = selectedDishDictionaryName === dish.value;
+
+                        return (
+                          <button
+                            key={dish.value}
+                            type="button"
+                            onClick={() => handleDishDictionarySelect(dish.value)}
+                            className={cx(
+                              'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
+                              isSelected ? 'border-gold/25 bg-gold/10' : 'border-white/10 bg-white/[0.03]'
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-text">
+                                {translateDishLabel(dish.value, i18n.language, dish.arabic)}
+                              </p>
+                              <p className="truncate text-xs text-muted">{dish.value}</p>
+                            </div>
+                            <span className={cx('shrink-0 text-sm', isSelected ? 'text-gold2' : 'text-muted2')}>
+                              {isSelected ? '✓' : '+'}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <p className="mt-2 text-xs text-muted">
+              Selecting from dropdown clears typed name so you create using one option only.
+            </p>
+          </>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -571,7 +690,15 @@ const DishForm: React.FC<DishFormProps> = ({
           <label className="mb-1 block text-sm font-medium text-text">Restaurant Suggests With This Dish</label>
           <button
             type="button"
-            onClick={() => setSuggestedDishesPickerOpen((current) => !current)}
+            onClick={() => {
+              setSuggestedDishesPickerOpen((current) => {
+                const next = !current;
+                if (next) {
+                  setRelatedDishesPickerOpen(false);
+                }
+                return next;
+              });
+            }}
             className={cx(
               'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
               glassControl,
@@ -672,7 +799,15 @@ const DishForm: React.FC<DishFormProps> = ({
           <label className="mb-1 block text-sm font-medium text-text">Related Dishes</label>
           <button
             type="button"
-            onClick={() => setRelatedDishesPickerOpen((current) => !current)}
+            onClick={() => {
+              setRelatedDishesPickerOpen((current) => {
+                const next = !current;
+                if (next) {
+                  setSuggestedDishesPickerOpen(false);
+                }
+                return next;
+              });
+            }}
             className={cx(
               'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
               glassControl,
