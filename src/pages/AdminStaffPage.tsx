@@ -186,11 +186,7 @@ const AdminStaffPage: React.FC = () => {
             <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">{t('adminStaff.teamEyebrow')}</p>
             <h2 className="mt-2 text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              Add a team member for
-              {' '}
-              <span className="font-medium text-text">{user?.restaurant?.name ?? 'your restaurant'}</span>
-              {' '}
-              and assign the tables they are responsible for.
+              {t('adminStaff.addTeamMemberForRestaurant', { restaurant: user?.restaurant?.name ?? t('adminStaff.yourRestaurant') })}
             </p>
           </div>
 
@@ -290,9 +286,9 @@ const AdminStaffPage: React.FC = () => {
           <GlassCard noise={false}>
             <h3 className="text-lg font-semibold text-text">{t('adminStaff.accessSummary')}</h3>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
-              <li>Admins can assign each staff member to one or many tables.</li>
-              <li>Staff only see pending confirmations for their assigned tables.</li>
-              <li>Admins still keep full access to dishes, ingredients, staff setup, and accounting.</li>
+              <li>{t('adminStaff.accessSummaryLineOne')}</li>
+              <li>{t('adminStaff.accessSummaryLineTwo')}</li>
+              <li>{t('adminStaff.accessSummaryLineThree')}</li>
             </ul>
           </GlassCard>
 
