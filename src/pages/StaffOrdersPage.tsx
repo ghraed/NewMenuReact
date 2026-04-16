@@ -839,21 +839,23 @@ const StaffOrdersPage: React.FC = () => {
           <p className="mt-1 text-sm text-muted">{waveCountLabel} • {orderCountLabel}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {notificationStatus !== 'unsupported' ? (
-            <LiquidButton tone="secondary" onClick={handleEnableNotifications} disabled={pushBusy}>
-              {pushBusy
-                ? t('staffOrdersPage.push.connecting')
-                : pushSubscribed
-                  ? t('staffOrdersPage.push.reconnect')
-                  : t('staffOrdersPage.push.enable')}
-            </LiquidButton>
-          ) : null}
+        {!pushSubscribed ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {notificationStatus !== 'unsupported' ? (
+              <LiquidButton tone="secondary" onClick={handleEnableNotifications} disabled={pushBusy}>
+                {pushBusy
+                  ? t('staffOrdersPage.push.connecting')
+                  : pushSubscribed
+                    ? t('staffOrdersPage.push.reconnect')
+                    : t('staffOrdersPage.push.enable')}
+              </LiquidButton>
+            ) : null}
 
-          <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
-            {loading ? t('staffOrdersPage.refreshing') : t('staffOrdersPage.refresh')}
-          </LiquidButton>
-        </div>
+            <LiquidButton tone="tertiary" onClick={loadOrders} disabled={loading}>
+              {loading ? t('staffOrdersPage.refreshing') : t('staffOrdersPage.refresh')}
+            </LiquidButton>
+          </div>
+        ) : null}
       </div>
 
       {notificationStatus === 'default' ? (
