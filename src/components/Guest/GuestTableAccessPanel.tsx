@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { verifyGuestTablePin } from '../../services/orderService';
@@ -36,17 +36,6 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
 
   const label = tableLabel || (tableId ? t('guestAccess.tableLabel', { table: tableId }) : null);
   const isUnlocked = draft.guestAccessVerified && Boolean(draft.guestAccessToken);
-  const expiresAtLabel = useMemo(() => {
-    if (!draft.guestAccessExpiresAt) {
-      return null;
-    }
-
-    try {
-      return new Date(draft.guestAccessExpiresAt).toLocaleTimeString();
-    } catch {
-      return null;
-    }
-  }, [draft.guestAccessExpiresAt]);
 
   const handleUnlock = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,9 +114,7 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
         }}>
           <p className="font-semibold">{success || t('guestAccess.unlocked')}</p>
           <p className="mt-2 text-[var(--guest-text)]">
-            {expiresAtLabel
-              ? t('guestAccess.expiresAt', { time: expiresAtLabel })
-              : t('guestAccess.actionsReady')}
+            {t('guestAccess.actionsReady')}
           </p>
           <div className="mt-4">
             <Link
