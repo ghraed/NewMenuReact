@@ -7,7 +7,9 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DishDetailView from '../components/Guest/DishDetailView';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
+import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import { useOrderCart } from '../contexts/useOrderCart';
+import { fetchGuestTableDish } from '../services/orderService';
 import {
   formatRestaurantLabel,
   getGuestRestaurantCandidateSlugs,
@@ -15,20 +17,44 @@ import {
 } from '../utils/guestRestaurant';
 
 const GuestDishPage: React.FC = () => {
-  const { restaurant_slug, dish_id } = useParams<{ restaurant_slug?: string; dish_id: string }>();
+  const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
   const { t } = useTranslation();
-  const { addDish, getDishQuantity } = useOrderCart();
+  const { addDish, draft, getDishQuantity, setGuestContext } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
   const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
+  const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
+    table_id ? Number(table_id) : undefined
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDish = async () => {
+      if (!dish_id) {
+        setError(t('dishPage.notFound'));
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
+        if (table_id) {
+          const response = await fetchGuestTableDish(table_id, dish_id, draft.guestAccessToken);
+          setDish(response.dish);
+          setResolvedRestaurantSlug(response.restaurant.slug);
+          setResolvedTableId(response.table.number);
+          setGuestContext({
+            restaurant: response.restaurant,
+            tableId: response.table.number,
+            tableReference: response.table.name,
+            tableSessionId: response.table_session.id,
+            guestAccess: response.guest_access,
+          });
+          return;
+        }
+
         const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
         let loaded = false;
 
@@ -63,11 +89,21 @@ const GuestDishPage: React.FC = () => {
     };
 
     fetchDish();
-  }, [restaurant_slug, dish_id]);
+  }, [draft.guestAccessToken, restaurant_slug, table_id, dish_id, t, setGuestContext]);
 
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        {table_id ? (
+          <div className="mb-6">
+            <GuestTableAccessPanel
+              tableId={draft.tableId ?? (table_id ? Number(table_id) : null)}
+              tableLabel={draft.tableReference || undefined}
+              compact
+            />
+          </div>
+        ) : null}
+
         {loading ? (
           <div
             className="rounded-[32px] border px-6 py-12 text-center"
@@ -111,13 +147,14 @@ const GuestDishPage: React.FC = () => {
           <>
             <DishDetailView
               dish={dish}
+              tableId={resolvedTableId}
               restaurantSlug={resolvedRestaurantSlug}
-              onAddToCart={() => addDish(dish, {
+              onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
                 restaurant: {
                   name: formatRestaurantLabel(resolvedRestaurantSlug || getPreferredGuestRestaurantSlug()),
                   slug: resolvedRestaurantSlug || getPreferredGuestRestaurantSlug(),
                 },
-              })}
+              }) : undefined}
               cartQuantity={getDishQuantity(dish.id)}
             />
             <GuestInfoSection restaurantName={formatRestaurantLabel(resolvedRestaurantSlug)} />

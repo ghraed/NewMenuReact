@@ -1,14 +1,19 @@
 import api from './api';
 import type {
+  ActiveTableSessionRecord,
   AccountOrderRequest,
   CreateGuestOrderRequest,
+  GuestTableDishResponse,
+  GuestTableMenuResponse,
   OrderRecord,
   PublishedDishSummary,
   RestaurantSummary,
   RestaurantTableSummary,
+  TableSessionSummary,
   TableWaveRecord,
   UpdatePendingOrderRequest,
 } from '../types';
+import { buildGuestAccessHeaders } from '../utils/guestAccess';
 
 interface OrderResponse {
   message: string;
@@ -33,8 +38,32 @@ interface WaveResponse {
   wave: TableWaveRecord;
 }
 
+interface TableSessionActionResponse {
+  message: string;
+  table_session?: TableSessionSummary;
+}
+
 interface PendingWavesResponse {
   waves: TableWaveRecord[];
+}
+
+interface VerifyGuestTablePinResponse {
+  message: string;
+  restaurant: RestaurantSummary;
+  table: GuestTableMenuResponse['table'];
+  table_session: TableSessionSummary;
+  guest_access: {
+    token: string;
+    verified: boolean;
+    joined_at: string | null;
+    last_seen_at: string | null;
+    expires_at: string | null;
+  };
+  protected_actions: GuestTableMenuResponse['protected_actions'];
+}
+
+interface ActiveTableSessionsResponse {
+  table_sessions: ActiveTableSessionRecord[];
 }
 
 const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRequest => {
@@ -60,6 +89,44 @@ export const fetchGuestTables = async (restaurantSlug: string): Promise<GuestTab
   return response.data;
 };
 
+export const fetchGuestTableMenu = async (
+  tableId: number | string,
+  guestAccessToken?: string | null
+): Promise<GuestTableMenuResponse> => {
+  const response = await api.get<GuestTableMenuResponse>(`/menu/table/${tableId}`, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+  return response.data;
+};
+
+export const fetchGuestTableDish = async (
+  tableId: number | string,
+  dishId: number | string,
+  guestAccessToken?: string | null
+): Promise<GuestTableDishResponse> => {
+  const response = await api.get<GuestTableDishResponse>(`/menu/table/${tableId}/dish/${dishId}`, {
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      ...buildGuestAccessHeaders(guestAccessToken),
+    },
+  });
+
+  return response.data;
+};
+
+export const verifyGuestTablePin = async (
+  tableId: number | string,
+  pin: string
+): Promise<VerifyGuestTablePinResponse> => {
+  const response = await api.post<VerifyGuestTablePinResponse>(`/menu/table/${tableId}/verify-pin`, {
+    pin,
+  }, {
+    headers: buildGuestAccessHeaders(),
+  });
+
+  return response.data;
+};
+
 export const createGuestOrder = async (
   restaurantSlug: string,
   payload: CreateGuestOrderRequest
@@ -68,11 +135,76 @@ export const createGuestOrder = async (
   return response.data;
 };
 
+export const createGuestTableSessionOrder = async (
+  sessionId: number | string,
+  payload: CreateGuestOrderRequest,
+  guestAccessToken?: string | null
+): Promise<OrderResponse> => {
+  const response = await api.post<OrderResponse>(`/table-session/${sessionId}/order`, payload, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+  return response.data;
+};
+
+export const fetchGuestTableSessionOrders = async (
+  sessionId: number | string,
+  guestAccessToken?: string | null
+): Promise<OrderRecord[]> => {
+  const response = await api.get<PendingOrdersResponse>(`/table-session/${sessionId}/orders`, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+
+  return response.data.orders;
+};
+
 export const sendGuestWave = async (
   restaurantSlug: string,
   payload: { table_reference: string }
 ): Promise<WaveResponse> => {
   const response = await api.post<WaveResponse>(`/menu/${restaurantSlug}/waves`, payload);
+  return response.data;
+};
+
+export const callGuestTableWaiter = async (
+  sessionId: number | string,
+  guestAccessToken?: string | null
+): Promise<WaveResponse> => {
+  const response = await api.post<WaveResponse>(`/table-session/${sessionId}/call-waiter`, undefined, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+  return response.data;
+};
+
+export const requestGuestTableBill = async (
+  sessionId: number | string,
+  guestAccessToken?: string | null
+): Promise<TableSessionActionResponse> => {
+  const response = await api.post<TableSessionActionResponse>(`/table-session/${sessionId}/request-bill`, undefined, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+  return response.data;
+};
+
+export const fetchActiveTableSessions = async (): Promise<ActiveTableSessionRecord[]> => {
+  const response = await api.get<ActiveTableSessionsResponse>('/table-sessions/active');
+  return response.data.table_sessions;
+};
+
+export const resetActiveTableSessionPin = async (sessionId: number | string): Promise<{
+  message: string;
+  table_session: TableSessionSummary;
+  current_pin: string | null;
+}> => {
+  const response = await api.post<{
+    message: string;
+    table_session: TableSessionSummary;
+    current_pin: string | null;
+  }>(`/table-sessions/${sessionId}/reset-pin`);
+  return response.data;
+};
+
+export const finalizeGuestTableSession = async (sessionId: number | string): Promise<TableSessionActionResponse> => {
+  const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`);
   return response.data;
 };
 

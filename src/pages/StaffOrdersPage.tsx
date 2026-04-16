@@ -14,14 +14,23 @@ import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
+  fetchActiveTableSessions,
   fetchPublishedDishes,
   fetchGuestTables,
   fetchPendingOrders,
   fetchPendingWaves,
+  finalizeGuestTableSession,
+  resetActiveTableSessionPin,
   resolvePendingWave,
   updatePendingOrder,
 } from '../services/orderService';
-import type { OrderRecord, PublishedDishSummary, TableWaveRecord, UpdatePendingOrderRequest } from '../types';
+import type {
+  ActiveTableSessionRecord,
+  OrderRecord,
+  PublishedDishSummary,
+  TableWaveRecord,
+  UpdatePendingOrderRequest,
+} from '../types';
 
 type BrowserNotificationStatus = NotificationPermission | 'unsupported';
 const MOBILE_POLL_INTERVAL_MS = 10000;
@@ -92,10 +101,12 @@ const StaffOrdersPage: React.FC = () => {
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [waves, setWaves] = useState<TableWaveRecord[]>([]);
+  const [tableSessions, setTableSessions] = useState<ActiveTableSessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
+  const [processingSessionId, setProcessingSessionId] = useState<number | null>(null);
   const [editorBusyAction, setEditorBusyAction] = useState<'save' | 'saveConfirm' | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
@@ -172,6 +183,13 @@ const StaffOrdersPage: React.FC = () => {
       ]);
       setOrders(nextOrders);
       setWaves(nextWaves);
+
+      try {
+        const nextSessions = await fetchActiveTableSessions();
+        setTableSessions(nextSessions);
+      } catch (sessionError) {
+        console.warn('[Staff] Failed to load active table sessions.', sessionError);
+      }
     } catch (err: unknown) {
       if (!silent) {
         setError(getErrorMessage(err, t('staffOrdersPage.failedLoadActivity')));
@@ -491,6 +509,10 @@ const StaffOrdersPage: React.FC = () => {
     t('staffOrdersPage.wavesWaiting', { count: waves.length })
   ), [waves.length, t]);
 
+  const activeTableSessionCountLabel = useMemo(() => (
+    t('staffOrdersPage.activeTableSessions', { count: tableSessions.length })
+  ), [tableSessions.length, t]);
+
   const handleEnableNotifications = async () => {
     setError(null);
     setPushBusy(true);
@@ -571,6 +593,40 @@ const StaffOrdersPage: React.FC = () => {
       setError(getErrorMessage(err, t('staffOrdersPage.failedResolveWave')));
     } finally {
       setProcessingWaveId(null);
+    }
+  };
+
+  const handleResetSessionPin = async (session: ActiveTableSessionRecord) => {
+    setProcessingSessionId(session.id);
+    setError(null);
+
+    try {
+      const response = await resetActiveTableSessionPin(session.id);
+      setTableSessions((current) => current.map((item) => (
+        item.id === session.id
+          ? { ...item, ...response.table_session, current_pin: response.current_pin, table: item.table }
+          : item
+      )));
+      showToast(response.message, 'secondary', 4200);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('staffOrdersPage.failedResetSessionPin')));
+    } finally {
+      setProcessingSessionId(null);
+    }
+  };
+
+  const handleFinalizeSession = async (session: ActiveTableSessionRecord) => {
+    setProcessingSessionId(session.id);
+    setError(null);
+
+    try {
+      const response = await finalizeGuestTableSession(session.id);
+      setTableSessions((current) => current.filter((item) => item.id !== session.id));
+      showToast(response.message || t('staffOrdersPage.finalizedSession', { table: session.table_reference }), 'secondary', 4200);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('staffOrdersPage.failedFinalizeSession')));
+    } finally {
+      setProcessingSessionId(null);
     }
   };
 
@@ -706,6 +762,64 @@ const StaffOrdersPage: React.FC = () => {
       {error ? (
         <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
           {error}
+        </div>
+      ) : null}
+
+      {!loading && tableSessions.length > 0 ? (
+        <div className="mb-6">
+          <GlassCard className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.tablePins')}</p>
+                <h3 className="mt-2 text-2xl font-semibold text-text">{activeTableSessionCountLabel}</h3>
+                <p className="mt-2 text-sm text-muted">{t('staffOrdersPage.tablePinsHint')}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {tableSessions.map((session) => (
+                <div key={session.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.tableSessionCard')}</p>
+                      <h4 className="mt-2 text-xl font-semibold text-text">{session.table_reference}</h4>
+                      <p className="mt-2 text-sm text-muted">
+                        {session.last_activity_at
+                          ? t('staffOrdersPage.lastActivityAt', { time: new Date(session.last_activity_at).toLocaleString() })
+                          : t('staffOrdersPage.waitingForGuests')}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
+                      <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.currentPin')}</p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[0.26em] text-text">
+                        {session.current_pin || t('staffOrdersPage.pinUnavailable')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <LiquidButton
+                      tone="secondary"
+                      onClick={() => handleResetSessionPin(session)}
+                      disabled={processingSessionId === session.id}
+                      className="w-full"
+                    >
+                      {processingSessionId === session.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.resetPin')}
+                    </LiquidButton>
+                    <LiquidButton
+                      tone="tertiary"
+                      onClick={() => handleFinalizeSession(session)}
+                      disabled={processingSessionId === session.id}
+                      className="w-full"
+                    >
+                      {processingSessionId === session.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.finalizeSession')}
+                    </LiquidButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
         </div>
       ) : null}
 

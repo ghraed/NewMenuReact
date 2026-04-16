@@ -7,8 +7,10 @@ import SectionHeading from '../components/Guest/SectionHeading';
 import DishIngredientStory, { type DishIngredientStoryItem } from '../components/Guest/DishIngredientStory';
 import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
+import { fetchGuestTableDish } from '../services/orderService';
 import type { Dish } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
+import { buildGuestDishPath } from '../utils/guestTableRoutes';
 
 const getIngredientOrder = (metadata: Dish['assets'][number]['metadata']) => {
   const order = metadata?.order_index;
@@ -26,15 +28,33 @@ const getIngredientQuantity = (metadata: Dish['assets'][number]['metadata']) => 
 };
 
 const GuestDishIngredientsPage: React.FC = () => {
-  const { restaurant_slug, dish_id } = useParams<{ restaurant_slug: string; dish_id: string }>();
+  const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
   const { t, i18n } = useTranslation();
   const [dish, setDish] = useState<Dish | null>(null);
+  const [restaurantSlug, setRestaurantSlug] = useState<string | undefined>(restaurant_slug);
+  const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
+    table_id ? Number(table_id) : undefined
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDish = async () => {
+      if (!dish_id) {
+        setError(t('ingredientStory.notFound'));
+        setLoading(false);
+        return;
+      }
+
       try {
+        if (table_id) {
+          const response = await fetchGuestTableDish(table_id, dish_id);
+          setDish(response.dish);
+          setRestaurantSlug(response.restaurant.slug);
+          setResolvedTableId(response.table.number);
+          return;
+        }
+
         const response = await api.get(`/menu/${restaurant_slug}/dish/${dish_id}`, {
           headers: {
             'ngrok-skip-browser-warning': 'true',
@@ -50,7 +70,7 @@ const GuestDishIngredientsPage: React.FC = () => {
     };
 
     fetchDish();
-  }, [restaurant_slug, dish_id]);
+  }, [restaurant_slug, table_id, dish_id, t]);
 
   const previewImageUrl = useMemo(() => {
     if (!dish) return undefined;
@@ -79,7 +99,11 @@ const GuestDishIngredientsPage: React.FC = () => {
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-18 sm:px-6 sm:pb-14 sm:pt-22 lg:px-8">
         <div className="mb-8">
           <Link
-            to={restaurant_slug && dish_id ? `/menu/${restaurant_slug}/dish/${dish_id}` : '/'}
+            to={resolvedTableId
+              ? buildGuestDishPath(resolvedTableId, dish_id ?? '')
+              : restaurantSlug && dish_id
+                ? `/menu/${restaurantSlug}/dish/${dish_id}`
+                : '/'}
             className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
           >
             <span aria-hidden="true">←</span>
@@ -129,7 +153,7 @@ const GuestDishIngredientsPage: React.FC = () => {
         {!loading && !error && dish ? (
           <div className="space-y-8">
             <SectionHeading
-              eyebrow={formatRestaurantLabel(restaurant_slug)}
+              eyebrow={formatRestaurantLabel(restaurantSlug)}
               title={t('ingredientStory.title', { dishName: dish.name })}
               description={t('ingredientStory.description')}
             />

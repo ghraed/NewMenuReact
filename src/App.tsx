@@ -10,6 +10,7 @@ import EditDishPage from './pages/EditDishPage';
 import IngredientLibraryPage from './pages/IngredientLibraryPage';
 import AdminDishPage from './pages/AdminDishPage';
 import OrderReviewPage from './pages/OrderReviewPage';
+import GuestOrdersPage from './pages/GuestOrdersPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
@@ -38,6 +39,11 @@ const AppRoutes: React.FC = () => {
     <AppThemeShell>
       <Routes key={i18n.resolvedLanguage}>
         <Route path="/" element={<GuestDishListPage />} />
+        <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
+        <Route path="/menu/table/:table_id/dish/:dish_id" element={<GuestDishPage />} />
+        <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
+        <Route path="/menu/table/:table_id/review" element={<OrderReviewPage />} />
+        <Route path="/menu/table/:table_id/orders" element={<GuestOrdersPage />} />
         <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
         <Route path="/dish/:dish_id" element={<GuestDishPage />} />
@@ -144,8 +150,9 @@ const AppRoutes: React.FC = () => {
                 <h1 className="text-2xl font-bold text-text">{t('app.brand')}</h1>
                 <p className="mt-2 text-muted">{t('app.visit')}</p>
                 <ul className="mt-3 space-y-1 text-sm text-muted">
-                  <li>• <a href="/" className="underline underline-offset-4">/</a> - {t('app.guestDishList')}</li>
-                  <li>• <a href="/order/review" className="underline underline-offset-4">/order/review</a> - {t('app.guestOrderReview')}</li>
+                  <li>• <a href="/menu/table/1" className="underline underline-offset-4">/menu/table/1</a> - {t('app.guestDishList')}</li>
+                  <li>• <a href="/menu/table/1/review" className="underline underline-offset-4">/menu/table/1/review</a> - {t('app.guestOrderReview')}</li>
+                  <li>• <a href="/menu/table/1/orders" className="underline underline-offset-4">/menu/table/1/orders</a> - {t('app.guestOrders')}</li>
                   <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - {t('app.adminLogin')}</li>
                   <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - {t('app.adminStaff')}</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>

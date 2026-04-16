@@ -2,6 +2,7 @@
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 import type {
   Dish,
+  GuestAccessSummary,
   GuestOrderDraft,
   OrderCartItem,
   OrderCartRestaurant,
@@ -25,6 +26,18 @@ interface OrderCartContextValue {
   draft: GuestOrderDraft;
   totalItems: number;
   subtotal: number;
+  setGuestContext: (context: {
+    restaurant: OrderCartRestaurant;
+    tableId: number;
+    tableReference: string;
+    tableSessionId: number;
+    guestAccess?: GuestAccessSummary;
+  }) => void;
+  setGuestAccess: (access: {
+    token: string;
+    expiresAt: string | null;
+  }) => void;
+  clearGuestAccess: () => void;
   addDish: (dish: Dish, options: AddDishOptions) => void;
   removeDish: (dishId: number) => void;
   updateQuantity: (dishId: number, quantity: number) => void;
@@ -36,7 +49,12 @@ interface OrderCartContextValue {
 const ORDER_CART_STORAGE_KEY = 'guest_order_cart_state';
 
 const defaultDraft: GuestOrderDraft = {
+  tableId: null,
+  tableSessionId: null,
   tableReference: '',
+  guestAccessToken: null,
+  guestAccessVerified: false,
+  guestAccessExpiresAt: null,
   notes: '',
 };
 
@@ -74,7 +92,12 @@ const normalizeState = (value: unknown): OrderCartState => {
           }))
       : [],
     draft: {
+      tableId: typeof candidate.draft?.tableId === 'number' ? candidate.draft.tableId : null,
+      tableSessionId: typeof candidate.draft?.tableSessionId === 'number' ? candidate.draft.tableSessionId : null,
       tableReference: typeof candidate.draft?.tableReference === 'string' ? candidate.draft.tableReference : '',
+      guestAccessToken: typeof candidate.draft?.guestAccessToken === 'string' ? candidate.draft.guestAccessToken : null,
+      guestAccessVerified: candidate.draft?.guestAccessVerified === true,
+      guestAccessExpiresAt: typeof candidate.draft?.guestAccessExpiresAt === 'string' ? candidate.draft.guestAccessExpiresAt : null,
       notes: typeof candidate.draft?.notes === 'string' ? candidate.draft.notes : '',
     },
   };
@@ -107,6 +130,69 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(state));
   }, [state]);
+
+  const setGuestContext = (context: {
+    restaurant: OrderCartRestaurant;
+    tableId: number;
+    tableReference: string;
+    tableSessionId: number;
+    guestAccess?: GuestAccessSummary;
+  }) => {
+    setState((current) => {
+      const sessionChanged = current.draft.tableSessionId !== context.tableSessionId;
+      const shouldResetItems = (
+        current.restaurant?.slug !== context.restaurant.slug
+        || (current.draft.tableSessionId !== null && sessionChanged)
+      );
+
+      const nextGuestAccessToken = sessionChanged
+        ? null
+        : context.guestAccess?.verified
+          ? current.draft.guestAccessToken
+          : null;
+
+      return {
+        restaurant: context.restaurant,
+        items: shouldResetItems ? [] : current.items,
+        draft: {
+          ...current.draft,
+          tableId: context.tableId,
+          tableReference: context.tableReference,
+          tableSessionId: context.tableSessionId,
+          guestAccessToken: nextGuestAccessToken,
+          guestAccessVerified: context.guestAccess?.verified === true && Boolean(nextGuestAccessToken),
+          guestAccessExpiresAt: context.guestAccess?.verified === true ? context.guestAccess.expires_at : null,
+        },
+      };
+    });
+  };
+
+  const setGuestAccess = (access: {
+    token: string;
+    expiresAt: string | null;
+  }) => {
+    setState((current) => ({
+      ...current,
+      draft: {
+        ...current.draft,
+        guestAccessToken: access.token,
+        guestAccessVerified: true,
+        guestAccessExpiresAt: access.expiresAt,
+      },
+    }));
+  };
+
+  const clearGuestAccess = () => {
+    setState((current) => ({
+      ...current,
+      draft: {
+        ...current.draft,
+        guestAccessToken: null,
+        guestAccessVerified: false,
+        guestAccessExpiresAt: null,
+      },
+    }));
+  };
 
   const addDish = (dish: Dish, options: AddDishOptions) => {
     const quantityToAdd = Math.max(1, Math.floor(options.quantity ?? 1));
@@ -143,7 +229,6 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       return {
         ...current,
-        restaurant: nextItems.length > 0 ? current.restaurant : null,
         items: nextItems,
       };
     });
@@ -167,7 +252,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const clearCart = () => {
     setState((current) => ({
-      restaurant: null,
+      restaurant: current.restaurant,
       items: [],
       draft: current.draft,
     }));
@@ -193,6 +278,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       draft: state.draft,
       totalItems,
       subtotal,
+      setGuestContext,
+      setGuestAccess,
+      clearGuestAccess,
       addDish,
       removeDish,
       updateQuantity,

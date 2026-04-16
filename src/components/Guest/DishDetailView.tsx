@@ -12,9 +12,11 @@ import {
   getDishTags,
 } from './guestPresentation';
 import { translateCategoryLabel } from '../../i18n/dynamic';
+import { buildGuestDishIngredientsPath, buildGuestDishPath } from '../../utils/guestTableRoutes';
 
 interface DishDetailViewProps {
   dish: Dish;
+  tableId?: number;
   restaurantSlug?: string;
   onAddToCart?: () => void;
   cartQuantity?: number;
@@ -22,6 +24,7 @@ interface DishDetailViewProps {
 
 const DishDetailView: React.FC<DishDetailViewProps> = ({
   dish,
+  tableId,
   restaurantSlug,
   onAddToCart,
   cartQuantity = 0,
@@ -65,7 +68,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
           <div className="mt-5">
             {hasIngredientStory ? (
               <Link
-                to={restaurantSlug ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients` : '/'}
+                to={tableId
+                  ? buildGuestDishIngredientsPath(tableId, dish.id)
+                  : restaurantSlug
+                    ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients`
+                    : '/'}
                 className="inline-flex w-full items-center justify-center rounded-full border px-6 py-4 text-center text-sm font-semibold transition hover:shadow-[0_14px_30px_rgba(0,0,0,0.16)]"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
@@ -198,10 +205,12 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                     </div>
                   );
 
-                  return restaurantSlug ? (
+                  return tableId || restaurantSlug ? (
                     <Link
                       key={suggestedDish.id}
-                      to={`/menu/${restaurantSlug}/dish/${suggestedDish.id}`}
+                      to={tableId
+                        ? buildGuestDishPath(tableId, suggestedDish.id)
+                        : `/menu/${restaurantSlug}/dish/${suggestedDish.id}`}
                       className="block shrink-0"
                     >
                       {content}
@@ -249,10 +258,12 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                     </div>
                   );
 
-                  return restaurantSlug ? (
+                  return tableId || restaurantSlug ? (
                     <Link
                       key={relatedDish.id}
-                      to={`/menu/${restaurantSlug}/dish/${relatedDish.id}`}
+                      to={tableId
+                        ? buildGuestDishPath(tableId, relatedDish.id)
+                        : `/menu/${restaurantSlug}/dish/${relatedDish.id}`}
                       className="block shrink-0"
                     >
                       {content}

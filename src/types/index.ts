@@ -4,6 +4,7 @@ export type UserRole = 'admin' | 'staff';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
+export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
 
 export interface StaffMember {
   id: number;
@@ -67,6 +68,7 @@ export interface RestaurantSummary {
   id: number;
   name: string;
   slug: string;
+  max_tables?: number;
 }
 
 export interface RestaurantTableSummary {
@@ -132,17 +134,80 @@ export interface OrderCartItem {
 }
 
 export interface GuestOrderDraft {
+  tableId: number | null;
+  tableSessionId: number | null;
   tableReference: string;
+  guestAccessToken: string | null;
+  guestAccessVerified: boolean;
+  guestAccessExpiresAt: string | null;
   notes: string;
 }
 
 export interface CreateGuestOrderRequest {
-  table_reference: string;
+  table_reference?: string;
   notes?: string;
   items: Array<{
     dish_id: number;
     quantity: number;
   }>;
+}
+
+export interface GuestTableSummary {
+  id: number;
+  number: number;
+  name: string;
+}
+
+export interface TableSessionSummary {
+  id: number;
+  uuid: string;
+  status: TableSessionStatus;
+  table_id: number;
+  table_reference: string;
+  opened_at: string | null;
+  last_activity_at: string | null;
+  expires_at: string | null;
+  closed_at?: string | null;
+  close_reason?: string | null;
+  pin_locked_until?: string | null;
+}
+
+export interface GuestAccessSummary {
+  verified: boolean;
+  token?: string;
+  joined_at: string | null;
+  last_seen_at: string | null;
+  expires_at: string | null;
+}
+
+export interface GuestProtectedActions {
+  ordering_unlocked: boolean;
+  can_place_order: boolean;
+  can_call_waiter: boolean;
+  can_request_bill: boolean;
+}
+
+export interface GuestTableMenuResponse {
+  restaurant: RestaurantSummary;
+  table: GuestTableSummary;
+  table_session: TableSessionSummary;
+  guest_access: GuestAccessSummary;
+  protected_actions: GuestProtectedActions;
+  dishes: Dish[];
+}
+
+export interface GuestTableDishResponse {
+  restaurant: RestaurantSummary;
+  table: GuestTableSummary;
+  table_session: TableSessionSummary;
+  guest_access: GuestAccessSummary;
+  protected_actions: GuestProtectedActions;
+  dish: Dish;
+}
+
+export interface ActiveTableSessionRecord extends TableSessionSummary {
+  current_pin: string | null;
+  table: RestaurantTableSummary | null;
 }
 
 export interface UpdatePendingOrderRequest {
@@ -192,6 +257,7 @@ export interface OrderRecord {
   order_number: string | null;
   invoice_number: string | null;
   status: OrderStatus;
+  table_session_id?: number | null;
   table_reference: string;
   table: RestaurantTableSummary | null;
   notes?: string | null;
@@ -211,6 +277,7 @@ export interface TableWaveRecord {
   id: number;
   uuid: string;
   status: TableWaveStatus;
+  table_session_id?: number | null;
   table_reference: string;
   table: RestaurantTableSummary | null;
   restaurant: RestaurantSummary;

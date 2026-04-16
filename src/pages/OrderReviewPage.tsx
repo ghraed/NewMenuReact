@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
+import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { createGuestOrder, fetchGuestTables } from '../services/orderService';
-import type { OrderRecord, RestaurantTableSummary } from '../types';
+import { createGuestTableSessionOrder, fetchGuestTableMenu } from '../services/orderService';
+import type { OrderRecord } from '../types';
 import { formatRestaurantLabel, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
+import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -21,12 +23,15 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const OrderReviewPage: React.FC = () => {
+  const { table_id } = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
   const {
     restaurant,
     items,
     draft,
     subtotal,
+    clearGuestAccess,
+    setGuestContext,
     updateDraft,
     updateQuantity,
     removeDish,
@@ -34,49 +39,58 @@ const OrderReviewPage: React.FC = () => {
   } = useOrderCart();
 
   const [submitting, setSubmitting] = useState(false);
-  const [tablesLoading, setTablesLoading] = useState(false);
-  const [tablesError, setTablesError] = useState<string | null>(null);
-  const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
 
+  const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug || getPreferredGuestRestaurantSlug();
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
-  const canSubmit = items.length > 0 && draft.tableReference.trim().length > 0 && !submitting;
+  const canSubmit = items.length > 0
+    && draft.tableSessionId !== null
+    && draft.guestAccessVerified
+    && !submitting
+    && !sessionLoading;
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
 
   useEffect(() => {
-    if (!restaurantSlug || submittedOrder) {
+    if (!activeTableId || submittedOrder) {
       return;
     }
 
-    const loadTables = async () => {
-      setTablesLoading(true);
-      setTablesError(null);
+    const loadSession = async () => {
+      setSessionLoading(true);
+      setError(null);
 
       try {
-        const response = await fetchGuestTables(restaurantSlug);
-        setTables(response.tables);
+        const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+        setGuestContext({
+          restaurant: response.restaurant,
+          tableId: response.table.number,
+          tableReference: response.table.name,
+          tableSessionId: response.table_session.id,
+          guestAccess: response.guest_access,
+        });
       } catch (err: unknown) {
-        setTablesError(getErrorMessage(err, t('wave.failedTables')));
+        setError(getErrorMessage(err, t('orderReview.validationMissingSession')));
       } finally {
-        setTablesLoading(false);
+        setSessionLoading(false);
       }
     };
 
-    loadTables();
-  }, [restaurantSlug, submittedOrder]);
+    loadSession();
+  }, [activeTableId, draft.guestAccessToken, submittedOrder, setGuestContext, t]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (items.length === 0 || !restaurantSlug) {
+    if (items.length === 0) {
       setError(t('orderReview.validationEmptyCart'));
       return;
     }
 
-    if (!draft.tableReference.trim()) {
-      setError(t('orderReview.validationMissingTable'));
+    if (!draft.tableSessionId || !draft.guestAccessToken) {
+      setError(t('orderReview.validationMissingSession'));
       return;
     }
 
@@ -84,18 +98,25 @@ const OrderReviewPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await createGuestOrder(restaurantSlug, {
-        table_reference: draft.tableReference.trim(),
+      const response = await createGuestTableSessionOrder(draft.tableSessionId, {
         notes: draft.notes.trim() || undefined,
         items: items.map((item) => ({
           dish_id: item.dishId,
           quantity: item.quantity,
         })),
-      });
+      }, draft.guestAccessToken);
 
       setSubmittedOrder(response.order);
       clearCart();
     } catch (err: unknown) {
+      const status = typeof err === 'object' && err !== null && 'response' in err
+        ? (err as { response?: { status?: number } }).response?.status
+        : undefined;
+
+      if (status && [401, 403, 404, 409, 423].includes(status)) {
+        clearGuestAccess();
+      }
+
       setError(getErrorMessage(err, t('orderReview.failedToSend')));
     } finally {
       setSubmitting(false);
@@ -105,13 +126,23 @@ const OrderReviewPage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-5xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        {activeTableId ? (
+          <div className="mb-6">
+            <GuestTableAccessPanel
+              tableId={activeTableId}
+              tableLabel={draft.tableReference || undefined}
+              compact
+            />
+          </div>
+        ) : null}
+
         <SectionHeading
           title={t('orderReview.title')}
           eyebrow={restaurantName}
           titleId="order-review-heading"
           aside={(
             <Link
-              to={restaurantSlug ? `/menu/${restaurantSlug}` : '/'}
+              to={activeTableId ? buildGuestMenuPath(activeTableId) : restaurantSlug ? `/menu/${restaurantSlug}` : '/'}
               className="inline-flex rounded-full border px-4 py-2 text-sm font-medium"
               style={{
                 backgroundColor: 'var(--guest-panel)',
@@ -193,6 +224,22 @@ const OrderReviewPage: React.FC = () => {
                 {t('orderReview.subtotalNote')}
               </p>
             </div>
+
+            {activeTableId ? (
+              <div className="mt-6">
+                <Link
+                  to={buildGuestOrdersPath(activeTableId)}
+                  className="inline-flex rounded-full border px-5 py-3 text-sm font-semibold"
+                  style={{
+                    backgroundColor: 'var(--guest-text)',
+                    borderColor: 'var(--guest-text)',
+                    color: 'var(--guest-bg)',
+                  }}
+                >
+                  {t('orderReview.viewOrders')}
+                </Link>
+              </div>
+            ) : null}
           </section>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -319,29 +366,20 @@ const OrderReviewPage: React.FC = () => {
               </p>
 
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-[var(--guest-text)]">{t('common.tableReference')}</span>
-                  <select
-                    value={draft.tableReference}
-                    onChange={(event) => updateDraft({ tableReference: event.target.value })}
-                    className="themed-native-select w-full rounded-[22px] border px-4 py-3 text-sm outline-none transition"
-                    style={{
-                      backgroundColor: 'var(--guest-panel-strong)',
-                      borderColor: 'var(--guest-border)',
-                      color: 'var(--guest-text)',
-                    }}
-                    required
-                  >
-                    <option value="">{t('common.selectTable')}</option>
-                    {tables.map((table) => (
-                      <option key={table.id} value={table.name}>
-                        {table.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div
+                  className="rounded-[22px] border px-4 py-3"
+                  style={{
+                    backgroundColor: 'var(--guest-panel-strong)',
+                    borderColor: 'var(--guest-border)',
+                  }}
+                >
+                  <p className="text-xs uppercase tracking-[0.24em] text-[var(--guest-accent)]">{t('common.tableReference')}</p>
+                  <p className="mt-2 text-lg font-semibold text-[var(--guest-text)]">
+                    {draft.tableReference || (activeTableId ? `Table ${activeTableId}` : t('orderReview.tablePending'))}
+                  </p>
+                </div>
 
-                {tablesLoading ? (
+                {sessionLoading ? (
                   <div
                     className="rounded-[22px] border p-4 text-sm"
                     style={{
@@ -350,20 +388,7 @@ const OrderReviewPage: React.FC = () => {
                       color: 'var(--guest-muted)',
                     }}
                   >
-                    {t('orderReview.loadingTables')}
-                  </div>
-                ) : null}
-
-                {tablesError ? (
-                  <div
-                    className="rounded-[22px] border p-4 text-sm"
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 12%, var(--guest-panel))',
-                      borderColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 38%, var(--guest-border))',
-                      color: 'rgb(var(--color-spicy))',
-                    }}
-                  >
-                    {tablesError}
+                    {t('orderReview.loadingSession')}
                   </div>
                 ) : null}
 

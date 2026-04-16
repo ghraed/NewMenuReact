@@ -10,7 +10,7 @@ import {
   useGlassToast,
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables } from '../services/orderService';
+import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables, finalizeGuestTableSession } from '../services/orderService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
@@ -417,6 +417,12 @@ const AccountingOrdersPage: React.FC = () => {
 
     try {
       await Promise.all(selectedTableOrders.map((order) => accountConfirmedOrder(order.id, payload)));
+      const uniqueSessionIds = Array.from(new Set(
+        selectedTableOrders
+          .map((order) => order.table_session_id)
+          .filter((sessionId): sessionId is number => typeof sessionId === 'number')
+      ));
+      await Promise.all(uniqueSessionIds.map((sessionId) => finalizeGuestTableSession(sessionId)));
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
       showToast(

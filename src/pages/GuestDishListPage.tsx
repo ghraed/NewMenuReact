@@ -8,10 +8,13 @@ import DishCard from '../components/Guest/DishCard';
 import DishTags from '../components/Guest/DishTags';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
+import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { translateIngredientLabel } from '../i18n/ingredients';
+import { fetchGuestTableMenu } from '../services/orderService';
 import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
+import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 
 interface GuestListResponse {
@@ -62,10 +65,10 @@ const getDishIngredients = (dish: Dish) => {
 };
 
 const GuestDishListPage: React.FC = () => {
-  const { restaurant_slug } = useParams<{ restaurant_slug?: string }>();
+  const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { addDish, getDishQuantity } = useOrderCart();
+  const { addDish, draft, getDishQuantity, setGuestContext } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || getPreferredGuestRestaurantSlug());
@@ -90,6 +93,22 @@ const GuestDishListPage: React.FC = () => {
       setError(null);
 
       try {
+        if (table_id) {
+          const response = await fetchGuestTableMenu(table_id, draft.guestAccessToken);
+
+          setGuestContext({
+            restaurant: response.restaurant,
+            tableId: response.table.number,
+            tableReference: response.table.name,
+            tableSessionId: response.table_session.id,
+            guestAccess: response.guest_access,
+          });
+          setRestaurantName(response.restaurant.name);
+          setRestaurantSlug(response.restaurant.slug);
+          setDishes(response.dishes);
+          return;
+        }
+
         const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
         let data: GuestListResponse | null = null;
 
@@ -124,7 +143,7 @@ const GuestDishListPage: React.FC = () => {
     };
 
     fetchDishes();
-  }, [restaurant_slug, i18n]);
+  }, [draft.guestAccessToken, restaurant_slug, table_id, i18n, setGuestContext]);
 
   useEffect(() => {
     setCategory(t('menuList.allCategories'));
@@ -249,6 +268,15 @@ const GuestDishListPage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        {table_id ? (
+          <div className="mb-6">
+            <GuestTableAccessPanel
+              tableId={draft.tableId ?? Number(table_id)}
+              tableLabel={draft.tableReference || undefined}
+            />
+          </div>
+        ) : null}
+
         <section aria-labelledby="dish-gallery-heading">
           <SectionHeading
             titleId="dish-gallery-heading"
@@ -552,14 +580,18 @@ const GuestDishListPage: React.FC = () => {
                 <DishCard
                   key={dish.id}
                   dish={dish}
-                  onAddToCart={() => addDish(dish, {
+                  onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
                     restaurant: {
                       name: restaurantName,
                       slug: restaurantSlug,
                     },
-                  })}
+                  }) : undefined}
                   cartQuantity={getDishQuantity(dish.id)}
-                  onOpen={() => navigate(`/menu/${restaurantSlug}/dish/${dish.id}`)}
+                  onOpen={() => navigate(
+                    table_id
+                      ? buildGuestDishPath(table_id, dish.id)
+                      : `/menu/${restaurantSlug}/dish/${dish.id}`
+                  )}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
               ))}
