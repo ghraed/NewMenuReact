@@ -97,6 +97,10 @@ const isLikelyMobileDevice = (): boolean => {
   return coarsePointer || mobileUserAgent;
 };
 
+const isBillRequest = (wave: TableWaveRecord): boolean => (
+  wave.request_type === 'request_bill'
+);
+
 const StaffOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -130,6 +134,46 @@ const StaffOrdersPage: React.FC = () => {
 
   const getOrderLabel = useCallback((order: OrderRecord): string => (
     order.order_number || t('staffOrdersPage.orderNumberLabel', { id: order.id })
+  ), [t]);
+
+  const getWaveTitle = useCallback((wave: TableWaveRecord): string => (
+    isBillRequest(wave)
+      ? t('staffOrdersPage.billRequest')
+      : t('staffOrdersPage.guestWave')
+  ), [t]);
+
+  const getWaveDescription = useCallback((wave: TableWaveRecord): string => (
+    isBillRequest(wave)
+      ? t('staffOrdersPage.guestRequestingBill')
+      : t('staffOrdersPage.guestCallingForAssistance')
+  ), [t]);
+
+  const getWaveBadgeLabel = useCallback((wave: TableWaveRecord): string => (
+    isBillRequest(wave)
+      ? t('staffOrdersPage.billRequestBadge')
+      : t('staffOrdersPage.serviceCall')
+  ), [t]);
+
+  const getWaveNotificationTitle = useCallback((wave: TableWaveRecord): string => (
+    isBillRequest(wave)
+      ? t('staffOrdersPage.billNotificationTitle', { table: wave.table_reference })
+      : t('staffOrdersPage.notificationTitle', { table: wave.table_reference })
+  ), [t]);
+
+  const getWaveNotificationBody = useCallback((wave: TableWaveRecord): string => (
+    isBillRequest(wave)
+      ? t('staffOrdersPage.billNotificationBody')
+      : t('staffOrdersPage.notificationBody')
+  ), [t]);
+
+  const getWaveToastMessage = useCallback((wave: TableWaveRecord, withBrowserNotification: boolean): string => (
+    isBillRequest(wave)
+      ? withBrowserNotification
+        ? t('staffOrdersPage.newBillRequestWithBrowserNotification', { table: wave.table_reference })
+        : t('staffOrdersPage.newBillRequest', { table: wave.table_reference })
+      : withBrowserNotification
+        ? t('staffOrdersPage.newWaveWithBrowserNotification', { table: wave.table_reference })
+        : t('staffOrdersPage.newWave', { table: wave.table_reference })
   ), [t]);
 
   const getPushSetupMessage = useCallback((error: unknown): string | null => {
@@ -499,13 +543,11 @@ const StaffOrdersPage: React.FC = () => {
 
         const notificationShown = showWaveNotification(
           nextWave,
-          t('staffOrdersPage.notificationTitle', { table: nextWave.table_reference }),
-          t('staffOrdersPage.notificationBody')
+          getWaveNotificationTitle(nextWave),
+          getWaveNotificationBody(nextWave)
         );
         showToast(
-          notificationShown
-            ? t('staffOrdersPage.newWaveWithBrowserNotification', { table: nextWave.table_reference })
-            : t('staffOrdersPage.newWave', { table: nextWave.table_reference }),
+          getWaveToastMessage(nextWave, notificationShown),
           'secondary',
           4200
         );
@@ -538,7 +580,15 @@ const StaffOrdersPage: React.FC = () => {
         echo.leave(channelName);
       });
     };
-  }, [adminRealtimeTableIds, user?.assigned_tables, user?.restaurant?.id, user?.role]);
+  }, [
+    adminRealtimeTableIds,
+    getWaveNotificationBody,
+    getWaveNotificationTitle,
+    getWaveToastMessage,
+    user?.assigned_tables,
+    user?.restaurant?.id,
+    user?.role,
+  ]);
 
   const orderCountLabel = useMemo(() => (
     t('staffOrdersPage.requestsWaiting', { count: orders.length })
@@ -957,19 +1007,19 @@ const StaffOrdersPage: React.FC = () => {
             <GlassCard key={`wave-${wave.id}`} className="space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.guestWave')}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{getWaveTitle(wave)}</p>
                   <h3 className="mt-2 flex items-center gap-2 text-2xl font-semibold text-text">
-                    <span aria-hidden="true">👋</span>
+                    <span aria-hidden="true">{isBillRequest(wave) ? '🧾' : '👋'}</span>
                     <span>{t('invoice.tableTitle', { table: wave.table_reference })}</span>
                   </h3>
                   <p className="mt-2 text-sm text-muted">
-                    {t('staffOrdersPage.guestCallingForAssistance')}
+                    {getWaveDescription(wave)}
                     {wave.created_at ? ` • ${new Date(wave.created_at).toLocaleString()}` : ''}
                   </p>
                 </div>
 
                 <div className="w-full rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-left">
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.serviceCall')}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{getWaveBadgeLabel(wave)}</p>
                   <p className="mt-2 text-lg font-semibold text-text">{wave.table_reference}</p>
                 </div>
               </div>

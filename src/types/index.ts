@@ -4,6 +4,7 @@ export type UserRole = 'admin' | 'staff';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
+export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
 
 export interface StaffMember {
@@ -277,6 +278,7 @@ export interface TableWaveRecord {
   id: number;
   uuid: string;
   status: TableWaveStatus;
+  request_type: TableWaveRequestType;
   table_session_id?: number | null;
   table_reference: string;
   table: RestaurantTableSummary | null;
