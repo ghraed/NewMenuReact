@@ -12,6 +12,7 @@ import {
 } from '../services/pushNotifications';
 import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
+  activateGuestTableSession,
   cancelPendingOrder,
   confirmPendingOrder,
   fetchActiveTableSessions,
@@ -28,6 +29,7 @@ import type {
   ActiveTableSessionRecord,
   OrderRecord,
   PublishedDishSummary,
+  RestaurantTableSummary,
   TableWaveRecord,
   UpdatePendingOrderRequest,
 } from '../types';
@@ -102,6 +104,7 @@ const StaffOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [waves, setWaves] = useState<TableWaveRecord[]>([]);
   const [tableSessions, setTableSessions] = useState<ActiveTableSessionRecord[]>([]);
+  const [accessibleTables, setAccessibleTables] = useState<RestaurantTableSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
@@ -363,6 +366,42 @@ const StaffOrdersPage: React.FC = () => {
   }, [editingOrder, mobilePollingEnabled, refreshStaffActivity, user?.restaurant?.id]);
 
   useEffect(() => {
+    if (!user?.restaurant?.slug) {
+      setAccessibleTables([]);
+      return;
+    }
+
+    if (user.role === 'staff') {
+      setAccessibleTables(user.assigned_tables ?? []);
+      return;
+    }
+
+    let isActive = true;
+
+    const loadAccessibleTables = async () => {
+      try {
+        const response = await fetchGuestTables(user.restaurant!.slug);
+
+        if (!isActive) {
+          return;
+        }
+
+        setAccessibleTables(response.tables);
+      } catch {
+        if (isActive) {
+          setAccessibleTables([]);
+        }
+      }
+    };
+
+    loadAccessibleTables();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.assigned_tables, user?.restaurant?.slug, user?.role]);
+
+  useEffect(() => {
     if (user?.role !== 'admin' || !user.restaurant?.slug) {
       setAdminRealtimeTableIds([]);
       return;
@@ -513,6 +552,16 @@ const StaffOrdersPage: React.FC = () => {
     t('staffOrdersPage.activeTableSessions', { count: tableSessions.length })
   ), [tableSessions.length, t]);
 
+  const inactiveTables = useMemo(() => {
+    const activeTableIds = new Set(
+      tableSessions
+        .map((session) => session.table?.id)
+        .filter((tableId): tableId is number => typeof tableId === 'number')
+    );
+
+    return accessibleTables.filter((table) => !activeTableIds.has(table.id));
+  }, [accessibleTables, tableSessions]);
+
   const handleEnableNotifications = async () => {
     setError(null);
     setPushBusy(true);
@@ -610,6 +659,40 @@ const StaffOrdersPage: React.FC = () => {
       showToast(response.message, 'secondary', 4200);
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('staffOrdersPage.failedResetSessionPin')));
+    } finally {
+      setProcessingSessionId(null);
+    }
+  };
+
+  const handleActivateTable = async (table: RestaurantTableSummary) => {
+    setProcessingSessionId(table.id);
+    setError(null);
+
+    try {
+      const response = await activateGuestTableSession(table.id);
+      const nextSession: ActiveTableSessionRecord = {
+        ...response.table_session,
+        current_pin: response.current_pin,
+        table: response.table ?? table,
+      };
+
+      setTableSessions((current) => {
+        const existingIndex = current.findIndex((item) => item.id === nextSession.id);
+
+        if (existingIndex >= 0) {
+          return current.map((item) => (item.id === nextSession.id ? nextSession : item));
+        }
+
+        return [...current, nextSession].sort((left, right) => left.table_id - right.table_id);
+      });
+
+      showToast(
+        response.message || t('staffOrdersPage.activatedTable', { table: table.name }),
+        'secondary',
+        4200
+      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('staffOrdersPage.failedActivateTable')));
     } finally {
       setProcessingSessionId(null);
     }
@@ -762,6 +845,39 @@ const StaffOrdersPage: React.FC = () => {
       {error ? (
         <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
           {error}
+        </div>
+      ) : null}
+
+      {!loading && inactiveTables.length > 0 ? (
+        <div className="mb-6">
+          <GlassCard className="space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.activateTables')}</p>
+                <h3 className="mt-2 text-2xl font-semibold text-text">{t('staffOrdersPage.readyToActivate', { count: inactiveTables.length })}</h3>
+                <p className="mt-2 text-sm text-muted">{t('staffOrdersPage.activateTablesHint')}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              {inactiveTables.map((table) => (
+                <div key={table.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.tableReady')}</p>
+                    <h4 className="mt-2 text-xl font-semibold text-text">{table.name}</h4>
+                  </div>
+
+                  <LiquidButton
+                    tone="secondary"
+                    onClick={() => handleActivateTable(table)}
+                    disabled={processingSessionId === table.id}
+                  >
+                    {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateTable')}
+                  </LiquidButton>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
         </div>
       ) : null}
 

@@ -190,6 +190,23 @@ export const fetchActiveTableSessions = async (): Promise<ActiveTableSessionReco
   return response.data.table_sessions;
 };
 
+export const activateGuestTableSession = async (tableId: number | string): Promise<{
+  message: string;
+  table_session: TableSessionSummary;
+  current_pin: string | null;
+  table: RestaurantTableSummary | null;
+}> => {
+  const response = await api.post<{
+    message: string;
+    table_session: TableSessionSummary;
+    current_pin: string | null;
+    table: RestaurantTableSummary | null;
+  }>('/table-sessions/activate', {
+    table_id: tableId,
+  });
+  return response.data;
+};
+
 export const resetActiveTableSessionPin = async (sessionId: number | string): Promise<{
   message: string;
   table_session: TableSessionSummary;
