@@ -453,6 +453,9 @@ export const resources = {
         pendingNumber: 'Pending order number',
         justNow: 'Just now',
       },
+      guestInvoice: {
+        unavailable: 'Invoice preview is unavailable right now.',
+      },
       orderReview: {
         title: 'Review Your Order',
         requestReceived: 'Request Received',
@@ -504,6 +507,8 @@ export const resources = {
       },
       invoice: {
         printEyebrow: 'Invoice Print',
+        notes: 'Notes',
+        includedOrders: 'Included Orders',
         noInvoice: 'No invoice loaded',
         noInvoiceDescription: 'Open the invoice from the accounting page first, then print it from this page.',
         backToAccounting: 'Back to Accounting',
@@ -521,6 +526,8 @@ export const resources = {
         orderNumberLabel: 'Order #{{id}}',
         newOrderArrived: 'New order {{order}} arrived from {{table}}.',
         newOrdersArrived: '{{count}} new orders arrived for accounting.',
+        billRequested: 'Invoice requested for {{table}}.',
+        billRequestsArrived: '{{count}} invoice requests arrived for accounting.',
         failedLoadOrders: 'Failed to load accounting orders.',
         failedLoadTables: 'Failed to load restaurant tables.',
         orderCountLabel_one: '{{count}} staff-confirmed order waiting for accounting',
@@ -1131,6 +1138,9 @@ export const resources = {
         pendingNumber: 'رقم الطلب قيد التعيين',
         justNow: 'الآن',
       },
+      guestInvoice: {
+        unavailable: 'معاينة الفاتورة غير متاحة الآن.',
+      },
       orderReview: {
         title: 'راجع طلبك',
         requestReceived: 'تم استلام الطلب',
@@ -1182,6 +1192,8 @@ export const resources = {
       },
       invoice: {
         printEyebrow: 'طباعة الفاتورة',
+        notes: 'ملاحظات',
+        includedOrders: 'الطلبات المتضمنة',
         noInvoice: 'لا توجد فاتورة محملة',
         noInvoiceDescription: 'افتح الفاتورة من صفحة المحاسبة أولًا، ثم اطبعها من هذه الصفحة.',
         backToAccounting: 'العودة إلى المحاسبة',
@@ -1199,6 +1211,8 @@ export const resources = {
         orderNumberLabel: 'طلب #{{id}}',
         newOrderArrived: 'وصل طلب جديد {{order}} من {{table}}.',
         newOrdersArrived: 'وصل {{count}} طلب جديد إلى المحاسبة.',
+        billRequested: 'تم طلب فاتورة للطاولة {{table}}.',
+        billRequestsArrived: 'وصل {{count}} طلب فاتورة إلى المحاسبة.',
         failedLoadOrders: 'فشل تحميل طلبات المحاسبة.',
         failedLoadTables: 'فشل تحميل طاولات المطعم.',
         orderCountLabel_one: '{{count}} طلب مؤكد من الطاقم بانتظار المحاسبة',

@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { callGuestTableWaiter, fetchGuestTableMenu, requestGuestTableBill } from '../../services/orderService';
+import { savePrintableInvoice } from '../../utils/printableInvoice';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -18,6 +19,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const GuestWaveButton: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const params = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
   const { totalItems, draft, clearGuestAccess, setGuestContext } = useOrderCart();
@@ -65,9 +67,42 @@ const GuestWaveButton: React.FC = () => {
         throw new Error(t('wave.validationMissingSession'));
       }
 
-      const response = action === 'waiter'
-        ? await callGuestTableWaiter(sessionId, draft.guestAccessToken)
-        : await requestGuestTableBill(sessionId, draft.guestAccessToken);
+      if (action === 'waiter') {
+        const response = await callGuestTableWaiter(sessionId, draft.guestAccessToken);
+        showToast(response.message || t('wave.success'), 'primary', 3200);
+        return;
+      }
+
+      const response = await requestGuestTableBill(sessionId, draft.guestAccessToken);
+
+      if (response.invoice_preview && activeTableId) {
+        savePrintableInvoice({
+          restaurantName: response.invoice_preview.restaurant_name,
+          tableName: response.invoice_preview.table_name,
+          generatedAt: new Date(response.invoice_preview.generated_at).toLocaleString(),
+          notes: response.invoice_preview.notes,
+          items: response.invoice_preview.items.map((item) => ({
+            key: item.key,
+            dishName: item.dish_name,
+            quantity: item.quantity,
+            unitPrice: `$${item.unit_price}`,
+            lineSubtotal: `$${item.line_subtotal}`,
+          })),
+          includedOrders: response.invoice_preview.included_orders,
+          summary: {
+            subtotal: `$${response.invoice_preview.summary.subtotal}`,
+            discountLabel: t('accountingPage.discount'),
+            discountAmount: `$${response.invoice_preview.summary.discount_amount}`,
+            taxableSubtotal: `$${response.invoice_preview.summary.taxable_subtotal}`,
+            vatLabel: t('accountingPage.vatWithValue', { value: response.invoice_preview.summary.vat_rate }),
+            vatAmount: `$${response.invoice_preview.summary.vat_amount}`,
+            total: `$${response.invoice_preview.summary.total}`,
+          },
+        });
+
+        navigate(`/menu/table/${activeTableId}/invoice`);
+      }
+
       showToast(response.message || t('wave.success'), 'primary', 3200);
     } catch (error: unknown) {
       const status = typeof error === 'object' && error !== null && 'response' in error

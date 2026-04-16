@@ -10,7 +10,7 @@ import {
   useGlassToast,
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables, finalizeGuestTableSession } from '../services/orderService';
+import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables, fetchPendingWaves, finalizeGuestTableSession } from '../services/orderService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
@@ -125,6 +125,7 @@ const AccountingOrdersPage: React.FC = () => {
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasLoadedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
+  const knownBillRequestIdsRef = useRef<Set<number>>(new Set());
   const refreshInFlightRef = useRef(false);
 
   const discountOptions = useMemo(() => ([
@@ -152,15 +153,24 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     try {
-      const nextOrders = await fetchAccountingOrders();
+      const [nextOrders, pendingWaves] = await Promise.all([
+        fetchAccountingOrders(),
+        fetchPendingWaves(),
+      ]);
       const previousKnownOrderIds = knownOrderIdsRef.current;
       const newOrders = hasLoadedOrdersRef.current
         ? nextOrders.filter((order) => !previousKnownOrderIds.has(order.id))
+        : [];
+      const nextBillRequests = pendingWaves.filter((wave) => wave.request_type === 'request_bill');
+      const previousKnownBillRequestIds = knownBillRequestIdsRef.current;
+      const newBillRequests = hasLoadedOrdersRef.current
+        ? nextBillRequests.filter((wave) => !previousKnownBillRequestIds.has(wave.id))
         : [];
 
       setOrders(nextOrders);
       setError(null);
       knownOrderIdsRef.current = new Set(nextOrders.map((order) => order.id));
+      knownBillRequestIdsRef.current = new Set(nextBillRequests.map((wave) => wave.id));
       hasLoadedOrdersRef.current = true;
 
       if (newOrders.length === 1) {
@@ -171,6 +181,20 @@ const AccountingOrdersPage: React.FC = () => {
         );
       } else if (newOrders.length > 1) {
         showToast(t('accountingPage.newOrdersArrived', { count: newOrders.length }), 'secondary', 4200);
+      }
+
+      if (newBillRequests.length === 1) {
+        showToast(
+          t('accountingPage.billRequested', { table: newBillRequests[0].table_reference }),
+          'secondary',
+          4200
+        );
+      } else if (newBillRequests.length > 1) {
+        showToast(
+          t('accountingPage.billRequestsArrived', { count: newBillRequests.length }),
+          'secondary',
+          4200
+        );
       }
     } catch (err: unknown) {
       if (!silent) {

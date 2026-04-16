@@ -11,6 +11,7 @@ import IngredientLibraryPage from './pages/IngredientLibraryPage';
 import AdminDishPage from './pages/AdminDishPage';
 import OrderReviewPage from './pages/OrderReviewPage';
 import GuestOrdersPage from './pages/GuestOrdersPage';
+import GuestInvoicePage from './pages/GuestInvoicePage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
@@ -44,6 +45,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
         <Route path="/menu/table/:table_id/review" element={<OrderReviewPage />} />
         <Route path="/menu/table/:table_id/orders" element={<GuestOrdersPage />} />
+        <Route path="/menu/table/:table_id/invoice" element={<GuestInvoicePage />} />
         <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
         <Route path="/dish/:dish_id" element={<GuestDishPage />} />

@@ -41,6 +41,30 @@ interface WaveResponse {
 interface TableSessionActionResponse {
   message: string;
   table_session?: TableSessionSummary;
+  invoice_preview?: {
+    restaurant_name: string;
+    table_name: string;
+    generated_at: string;
+    notes: string[];
+    items: Array<{
+      key: string;
+      dish_name: string;
+      quantity: number;
+      unit_price: string;
+      line_subtotal: string;
+    }>;
+    included_orders: string[];
+    summary: {
+      subtotal: string;
+      discount_type: string | null;
+      discount_value: string;
+      discount_amount: string;
+      taxable_subtotal: string;
+      vat_rate: string;
+      vat_amount: string;
+      total: string;
+    };
+  };
 }
 
 interface PendingWavesResponse {
