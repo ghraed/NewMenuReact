@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   Dish,
   GuestAccessSummary,
@@ -131,7 +131,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const setGuestContext = (context: {
+  const setGuestContext = useCallback((context: {
     restaurant: OrderCartRestaurant;
     tableId: number;
     tableReference: string;
@@ -165,9 +165,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         },
       };
     });
-  };
+  }, []);
 
-  const setGuestAccess = (access: {
+  const setGuestAccess = useCallback((access: {
     token: string;
     expiresAt: string | null;
   }) => {
@@ -180,9 +180,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         guestAccessExpiresAt: access.expiresAt,
       },
     }));
-  };
+  }, []);
 
-  const clearGuestAccess = () => {
+  const clearGuestAccess = useCallback(() => {
     setState((current) => ({
       ...current,
       draft: {
@@ -192,9 +192,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         guestAccessExpiresAt: null,
       },
     }));
-  };
+  }, []);
 
-  const addDish = (dish: Dish, options: AddDishOptions) => {
+  const addDish = useCallback((dish: Dish, options: AddDishOptions) => {
     const quantityToAdd = Math.max(1, Math.floor(options.quantity ?? 1));
 
     setState((current) => {
@@ -221,9 +221,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           : [...baseState.items, dishToCartItem(dish, quantityToAdd)],
       };
     });
-  };
+  }, []);
 
-  const removeDish = (dishId: number) => {
+  const removeDish = useCallback((dishId: number) => {
     setState((current) => {
       const nextItems = current.items.filter((item) => item.dishId !== dishId);
 
@@ -232,9 +232,9 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         items: nextItems,
       };
     });
-  };
+  }, []);
 
-  const updateQuantity = (dishId: number, quantity: number) => {
+  const updateQuantity = useCallback((dishId: number, quantity: number) => {
     if (quantity <= 0) {
       removeDish(dishId);
       return;
@@ -248,17 +248,17 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           : item
       )),
     }));
-  };
+  }, [removeDish]);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setState((current) => ({
       restaurant: current.restaurant,
       items: [],
       draft: current.draft,
     }));
-  };
+  }, []);
 
-  const updateDraft = (nextDraft: Partial<GuestOrderDraft>) => {
+  const updateDraft = useCallback((nextDraft: Partial<GuestOrderDraft>) => {
     setState((current) => ({
       ...current,
       draft: {
@@ -266,7 +266,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ...nextDraft,
       },
     }));
-  };
+  }, []);
 
   const value = useMemo<OrderCartContextValue>(() => {
     const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -288,7 +288,17 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updateDraft,
       getDishQuantity: (dishId: number) => state.items.find((item) => item.dishId === dishId)?.quantity ?? 0,
     };
-  }, [state]);
+  }, [
+    state,
+    setGuestContext,
+    setGuestAccess,
+    clearGuestAccess,
+    addDish,
+    removeDish,
+    updateQuantity,
+    clearCart,
+    updateDraft,
+  ]);
 
   return <OrderCartContext.Provider value={value}>{children}</OrderCartContext.Provider>;
 };
