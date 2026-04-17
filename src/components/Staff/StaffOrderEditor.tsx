@@ -438,6 +438,11 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                               <p className="text-sm font-semibold text-gold2">
                                 {isOutOfStock ? 'Out of stock' : (existingItem ? `In order: ${existingItem.quantity}` : 'Add')}
                               </p>
+                              {isOutOfStock && (dish.alternative_dishes?.length ?? 0) > 0 ? (
+                                <p className="mt-1 max-w-[220px] text-xs text-muted2">
+                                  Try: {dish.alternative_dishes?.map((alternative) => alternative.name).join(', ')}
+                                </p>
+                              ) : null}
                             </div>
                           </button>
                         );

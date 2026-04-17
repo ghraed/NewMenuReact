@@ -59,6 +59,7 @@ export interface Dish {
   dish_ingredients?: DishRecipeIngredient[];
   suggested_dishes?: Dish[];
   related_dishes?: Dish[];
+  alternative_dishes?: Dish[];
   model_state?: 'none' | 'processing' | 'ready' | 'error';
   is_model_ready?: boolean;
   is_orderable?: boolean;
@@ -345,6 +346,12 @@ export interface PublishedDishSummary {
   category: string;
   is_orderable?: boolean;
   is_out_of_stock?: boolean;
+  alternative_dishes?: Array<{
+    id: number;
+    name: string;
+    price: number;
+    category: string;
+  }>;
 }
 
 export const trackEvent: (

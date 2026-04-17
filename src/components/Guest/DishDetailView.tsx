@@ -36,6 +36,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const metadataTags = getDishTags(dish);
   const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
+  const alternativeDishes = dish.alternative_dishes || [];
   const suggestedDishes = dish.suggested_dishes || [];
   const relatedDishes = dish.related_dishes || [];
   const sections = [
@@ -233,6 +234,59 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                     </Link>
                   ) : (
                     <div key={suggestedDish.id} className="shrink-0">{content}</div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {isOutOfStock && alternativeDishes.length > 0 ? (
+          <section
+            className="min-w-0 max-w-full rounded-[28px] border p-5 sm:p-6"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border-soft)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+              {t('dishDetail.availableAlternatives')}
+            </p>
+
+            <div className="mt-4 max-w-full overflow-x-auto overflow-y-hidden pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [touch-action:pan-x] overscroll-x-contain">
+              <div className="inline-flex min-w-max gap-3 no-scrollbar">
+                {alternativeDishes.map((alternativeDish) => {
+                  const content = (
+                    <div
+                      className="w-[260px] shrink-0 rounded-[24px] border p-3 transition hover:ring-1 hover:ring-white/10 hover:shadow-[0_16px_34px_rgba(0,0,0,0.14)] sm:w-[280px]"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                      }}
+                    >
+                      <DishAssetThumbnail dish={alternativeDish} fit="cover" className="aspect-[4/3] w-full" />
+                      <div className="mt-3">
+                        <p className="font-serif text-xl text-[var(--guest-text)]">{alternativeDish.name}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--guest-muted)]">
+                          {alternativeDish.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+
+                  return tableId || restaurantSlug ? (
+                    <Link
+                      key={alternativeDish.id}
+                      to={tableId
+                        ? buildGuestDishPath(tableId, alternativeDish.id)
+                        : `/menu/${restaurantSlug}/dish/${alternativeDish.id}`}
+                      className="block shrink-0"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={alternativeDish.id} className="shrink-0">{content}</div>
                   );
                 })}
               </div>
