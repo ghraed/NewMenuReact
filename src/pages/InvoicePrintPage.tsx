@@ -79,7 +79,7 @@ const InvoicePrintPage: React.FC = () => {
         </div>
       </div>
 
-      <InvoiceTemplate invoice={invoice} />
+      <InvoiceTemplate invoice={invoice} variant="print" />
     </main>
   );
 };

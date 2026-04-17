@@ -28,7 +28,7 @@ const GuestInvoicePage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
-        <InvoiceTemplate invoice={invoice} />
+        <InvoiceTemplate invoice={invoice} variant="guest" />
       </main>
     </GuestPageShell>
   );
