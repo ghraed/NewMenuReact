@@ -201,6 +201,11 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   };
 
   const addDish = (dish: PublishedDishSummary) => {
+    const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
+    if (isOutOfStock) {
+      return;
+    }
+
     setDraftItems((current) => {
       const existingItem = current.find((item) => item.dish_id === dish.id);
 
@@ -408,13 +413,18 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                         </div>
                       ) : filteredDishes.map((dish) => {
                         const existingItem = draftItems.find((item) => item.dish_id === dish.id);
+                        const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
 
                         return (
                           <button
                             key={dish.id}
                             type="button"
                             onClick={() => addDish(dish)}
-                            className="flex w-full items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/10 px-4 py-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]"
+                            disabled={isOutOfStock}
+                            className={cx(
+                              'flex w-full items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/10 px-4 py-4 text-left transition',
+                              isOutOfStock ? 'cursor-not-allowed opacity-65' : 'hover:border-white/20 hover:bg-white/[0.06]'
+                            )}
                           >
                             <div className="min-w-0">
                               <p className="truncate font-medium text-text">{dish.name}</p>
@@ -426,7 +436,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="text-sm font-semibold text-gold2">
-                                {existingItem ? `In order: ${existingItem.quantity}` : 'Add'}
+                                {isOutOfStock ? 'Out of stock' : (existingItem ? `In order: ${existingItem.quantity}` : 'Add')}
                               </p>
                             </div>
                           </button>

@@ -61,6 +61,8 @@ export interface Dish {
   related_dishes?: Dish[];
   model_state?: 'none' | 'processing' | 'ready' | 'error';
   is_model_ready?: boolean;
+  is_orderable?: boolean;
+  is_out_of_stock?: boolean;
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
@@ -341,6 +343,8 @@ export interface PublishedDishSummary {
   name: string;
   price: number;
   category: string;
+  is_orderable?: boolean;
+  is_out_of_stock?: boolean;
 }
 
 export const trackEvent: (

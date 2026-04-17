@@ -195,6 +195,10 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const addDish = useCallback((dish: Dish, options: AddDishOptions) => {
+    if (dish.is_orderable === false || dish.is_out_of_stock === true) {
+      return;
+    }
+
     const quantityToAdd = Math.max(1, Math.floor(options.quantity ?? 1));
 
     setState((current) => {

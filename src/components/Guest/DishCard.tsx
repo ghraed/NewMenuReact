@@ -27,6 +27,7 @@ const DishCard: React.FC<DishCardProps> = ({
   const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
   const price = Number(dish.price).toFixed(2);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
+  const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
 
   useEffect(() => {
     const node = articleRef.current;
@@ -108,6 +109,19 @@ const DishCard: React.FC<DishCardProps> = ({
             </div>
           ) : null}
 
+          {isOutOfStock ? (
+            <div
+              className="mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
+              style={{
+                backgroundColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 16%, transparent)',
+                borderColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 44%, var(--guest-border))',
+                color: 'rgb(var(--color-spicy))',
+              }}
+            >
+              {t('dishCard.outOfStock')}
+            </div>
+          ) : null}
+
           <div className="flex items-start justify-between gap-3">
             <h3 className="min-w-0 font-serif text-2xl leading-tight text-[var(--guest-text)] sm:text-[1.75rem]">{dish.name}</h3>
             <span
@@ -141,10 +155,11 @@ const DishCard: React.FC<DishCardProps> = ({
                     event.stopPropagation();
                     onAddToCart();
                   }}
+                  disabled={isOutOfStock}
                   className={cx(
                     'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[140px]',
                     'transition duration-300 ease-fluid motion-reduce:transition-none',
-                    'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                    isOutOfStock ? 'cursor-not-allowed opacity-70' : 'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
                     focusRing
                   )}
                   style={{
@@ -153,7 +168,9 @@ const DishCard: React.FC<DishCardProps> = ({
                     color: 'var(--guest-accent)',
                   }}
                 >
-                  {cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart')}
+                  {isOutOfStock
+                    ? t('dishCard.outOfStock')
+                    : (cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart'))}
                 </button>
               ) : null}
 

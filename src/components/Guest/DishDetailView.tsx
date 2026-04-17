@@ -35,6 +35,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
   const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
+  const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
   const suggestedDishes = dish.suggested_dishes || [];
   const relatedDishes = dish.related_dishes || [];
   const sections = [
@@ -104,6 +105,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
           <p className="text-xs font-medium uppercase tracking-[0.3em] text-[var(--guest-accent)]">
             {editorialLabel || translateCategoryLabel(dish.category, dish.category_ar)} {caloriesText ? `- ${caloriesText}` : ''}
           </p>
+          {isOutOfStock ? (
+            <p className="mt-3 inline-flex rounded-full border border-spicy/40 bg-spicy/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-spicy">
+              {t('dishCard.outOfStock')}
+            </p>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
@@ -135,17 +141,27 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
               <button
                 type="button"
                 onClick={onAddToCart}
+                disabled={isOutOfStock}
                 className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition hover:shadow-[0_14px_30px_rgba(0,0,0,0.16)]"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
                   borderColor: 'var(--guest-accent)',
                   color: 'var(--guest-accent-button-text)',
                   boxShadow: 'var(--guest-shadow-soft)',
+                  opacity: isOutOfStock ? 0.7 : 1,
+                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                 }}
               >
-                {cartQuantity > 0 ? t('dishDetail.addAnother', { count: cartQuantity }) : t('dishCard.addToCart')}
+                {isOutOfStock
+                  ? t('dishCard.outOfStock')
+                  : (cartQuantity > 0 ? t('dishDetail.addAnother', { count: cartQuantity }) : t('dishCard.addToCart'))}
               </button>
-              {cartQuantity > 0 ? (
+              {isOutOfStock ? (
+                <p className="text-sm text-spicy">
+                  {t('dishDetail.outOfStockNote')}
+                </p>
+              ) : null}
+              {cartQuantity > 0 && !isOutOfStock ? (
                 <p className="text-sm text-[var(--guest-muted)]">
                   {t('dishDetail.reviewCartHint')}
                 </p>
