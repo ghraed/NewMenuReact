@@ -9,6 +9,7 @@ import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
 import IngredientLibraryPage from './pages/IngredientLibraryPage';
 import AdminIngredientsPage from './pages/AdminIngredientsPage';
+import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
 import AdminDishPage from './pages/AdminDishPage';
 import OrderReviewPage from './pages/OrderReviewPage';
 import GuestOrdersPage from './pages/GuestOrdersPage';
@@ -107,6 +108,15 @@ const AppRoutes: React.FC = () => {
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminIngredientsPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/inventory/stock-history"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminStockHistoryPage />
             </ProtectedRoute>
           )}
         />

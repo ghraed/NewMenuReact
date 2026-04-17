@@ -116,6 +116,28 @@ export interface InventoryIngredient {
   updated_at: string | null;
 }
 
+export interface InventoryStockMovementRecord {
+  id: number;
+  ingredient_name: string;
+  movement_type: string;
+  quantity: string;
+  quantity_before: string | null;
+  quantity_after: string | null;
+  reference_type: string;
+  reference_id: string | null;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface InventoryPagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+}
+
 export interface QRCodeData {
   url: string;
   qr_image: string;
