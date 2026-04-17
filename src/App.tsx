@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
 import IngredientLibraryPage from './pages/IngredientLibraryPage';
+import AdminIngredientsPage from './pages/AdminIngredientsPage';
 import AdminDishPage from './pages/AdminDishPage';
 import OrderReviewPage from './pages/OrderReviewPage';
 import GuestOrdersPage from './pages/GuestOrdersPage';
@@ -102,6 +103,15 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route
+          path="/admin/inventory/ingredients"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminIngredientsPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/staff/orders"
           element={(
             <ProtectedRoute allowedRoles={['staff', 'admin']}>
@@ -157,6 +167,7 @@ const AppRoutes: React.FC = () => {
                   <li>• <a href="/menu/table/1/orders" className="underline underline-offset-4">/menu/table/1/orders</a> - {t('app.guestOrders')}</li>
                   <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - {t('app.adminLogin')}</li>
                   <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - {t('app.adminStaff')}</li>
+                  <li>• <a href="/admin/inventory/ingredients" className="underline underline-offset-4">/admin/inventory/ingredients</a> - {t('app.adminIngredients')}</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
                   <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>

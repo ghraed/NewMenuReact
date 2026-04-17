@@ -100,6 +100,22 @@ export interface IngredientLibraryItem {
   updated_at: string;
 }
 
+export type IngredientStockUnit = 'g' | 'ml' | 'piece';
+
+export interface InventoryIngredient {
+  id: number;
+  uuid: string;
+  name: string;
+  name_ar?: string | null;
+  unit: IngredientStockUnit;
+  current_quantity: string;
+  low_stock_threshold: string;
+  is_active: boolean;
+  is_low_stock: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
 export interface QRCodeData {
   url: string;
   qr_image: string;
