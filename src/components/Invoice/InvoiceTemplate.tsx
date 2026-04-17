@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { translateDishLabel } from '../../i18n/dishes';
 import type { PrintableInvoicePayload } from '../../utils/printableInvoice';
 
 interface InvoiceTemplateProps {
@@ -8,7 +9,7 @@ interface InvoiceTemplateProps {
 }
 
 const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'guest' }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isGuest = variant === 'guest';
 
   return (
@@ -125,7 +126,9 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                     } : undefined}
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{item.dishName}</p>
+                      <p className="truncate font-medium">
+                        {translateDishLabel(item.dishName, i18n.resolvedLanguage, item.dishNameArabic)}
+                      </p>
                       <p
                         className={`mt-1 text-xs ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/65'}`}
                         style={isGuest ? { color: 'var(--guest-muted)' } : undefined}

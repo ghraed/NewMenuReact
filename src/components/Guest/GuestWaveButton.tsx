@@ -85,6 +85,7 @@ const GuestWaveButton: React.FC = () => {
           items: response.invoice_preview.items.map((item) => ({
             key: item.key,
             dishName: item.dish_name,
+            dishNameArabic: item.dish_name_ar || undefined,
             quantity: item.quantity,
             unitPrice: `$${item.unit_price}`,
             lineSubtotal: `$${item.line_subtotal}`,

@@ -49,6 +49,7 @@ interface TableSessionActionResponse {
     items: Array<{
       key: string;
       dish_name: string;
+      dish_name_ar?: string | null;
       quantity: number;
       unit_price: string;
       line_subtotal: string;

@@ -1,6 +1,7 @@
 export interface PrintableInvoiceItem {
   key: string;
   dishName: string;
+  dishNameArabic?: string;
   quantity: number;
   unitPrice: string;
   lineSubtotal: string;

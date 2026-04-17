@@ -2,6 +2,8 @@ import { normalizeLanguage } from './language';
 
 const normalizeDishKey = (value?: string | null): string => (
   (value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
     .replace(/&/g, 'and')
@@ -14,19 +16,25 @@ export const dishTranslations: Record<string, string> = {
   burger: 'برغر',
   hamburger: 'همبرغر',
   cheeseburger: 'تشيز برغر',
+  'classic beef burger': 'برغر لحم كلاسيكي',
   'double cheeseburger': 'دبل تشيز برغر',
   'chicken burger': 'برغر دجاج',
   'crispy chicken burger': 'برغر دجاج مقرمش',
   'grilled chicken burger': 'برغر دجاج مشوي',
   'beef burger': 'برغر لحم',
+  'mushroom swiss burger': 'برغر مشروم وسويس',
+  'spicy jalapeno burger': 'برغر هالبينو حار',
   'veggie burger': 'برغر نباتي',
   'fish burger': 'برغر سمك',
   slider: 'ميني برغر',
   sandwich: 'ساندويتش',
   'club sandwich': 'كلوب ساندويتش',
   'chicken sandwich': 'ساندويتش دجاج',
+  'grilled chicken sandwich': 'ساندويتش دجاج مشوي',
   'steak sandwich': 'ساندويتش ستيك',
   'tuna sandwich': 'ساندويتش تونة',
+  'tuna melt sandwich': 'ساندويتش تونا ميلت',
+  'turkey club sandwich': 'ساندويتش كلوب ديك رومي',
   'egg sandwich': 'ساندويتش بيض',
   panini: 'بانيني',
   wrap: 'راب',
@@ -43,6 +51,8 @@ export const dishTranslations: Record<string, string> = {
   'margherita pizza': 'بيتزا مارغريتا',
   'pepperoni pizza': 'بيتزا بيبروني',
   'bbq chicken pizza': 'بيتزا دجاج باربكيو',
+  'buffalo chicken pizza': 'بيتزا دجاج بافلو',
+  'truffle mushroom pizza': 'بيتزا الفطر بالكمأة',
   'vegetarian pizza': 'بيتزا نباتية',
   'four cheese pizza': 'بيتزا أربع أجبان',
   'meat lovers pizza': 'بيتزا اللحوم',
@@ -52,7 +62,10 @@ export const dishTranslations: Record<string, string> = {
   // Pasta
   pasta: 'باستا',
   spaghetti: 'سباغيتي',
+  'chicken alfredo pasta': 'باستا ألفريدو بالدجاج',
   'spaghetti bolognese': 'سباغيتي بولونيز',
+  'pesto penne pasta': 'باستا بيني بالبيستو',
+  'shrimp arrabbiata': 'أرابياتا بالروبيان',
   'spaghetti carbonara': 'سباغيتي كاربونارا',
   'spaghetti marinara': 'سباغيتي مارينارا',
   penne: 'بيني',
@@ -69,6 +82,7 @@ export const dishTranslations: Record<string, string> = {
   // Appetizers
   fries: 'بطاطا مقلية',
   'french fries': 'بطاطا مقلية',
+  'cheesy fries': 'بطاطا بالجبنة',
   'curly fries': 'بطاطا مقلية ملتفة',
   'potato wedges': 'بطاطا ودجز',
   'mozzarella sticks': 'أصابع موزاريلا',
@@ -90,10 +104,13 @@ export const dishTranslations: Record<string, string> = {
   'greek salad': 'سلطة يونانية',
   'garden salad': 'سلطة خضراء',
   'chicken salad': 'سلطة دجاج',
+  'grilled chicken salad': 'سلطة دجاج مشوي',
   'tuna salad': 'سلطة تونة',
+  'avocado quinoa salad': 'سلطة كينوا بالأفوكادو',
   'pasta salad': 'سلطة باستا',
   'potato salad': 'سلطة بطاطا',
   'coleslaw salad': 'سلطة كولسلو',
+  coleslaw: 'كولسلو',
 
   // Soups
   soup: 'شوربة',
@@ -146,6 +163,7 @@ export const dishTranslations: Record<string, string> = {
   // Desserts
   cake: 'كيك',
   'chocolate cake': 'كيك شوكولاتة',
+  'chocolate lava cake': 'كيكة لافا بالشوكولاتة',
   cheesecake: 'تشيزكيك',
   brownie: 'براوني',
   icecream: 'آيس كريم',
@@ -569,9 +587,11 @@ export const dishTranslations: Record<string, string> = {
   lemonade: 'ليموناضة',
   'orange juice': 'عصير برتقال',
   'apple juice': 'عصير تفاح',
+  'fresh lemon mint': 'ليمون نعناع طازج',
   'mango juice': 'عصير مانجو',
   'carrot juice': 'عصير جزر',
   smoothie: 'سموذي',
+  'mango smoothie': 'سموثي المانجو',
   milkshake: 'ميلك شيك',
   'chocolate milkshake': 'ميلك شيك شوكولاتة',
   'vanilla milkshake': 'ميلك شيك فانيلا',
