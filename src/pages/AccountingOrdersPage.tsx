@@ -469,6 +469,7 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     savePrintableInvoice({
+      sourceTableId: selectedTable,
       restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
       tableName: selectedTable,
       generatedAt: new Date().toLocaleString(),

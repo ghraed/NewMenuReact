@@ -17,6 +17,7 @@ export interface PrintableInvoiceSummary {
 }
 
 export interface PrintableInvoicePayload {
+  sourceTableId?: number | string;
   restaurantName: string;
   tableName: string;
   generatedAt: string;

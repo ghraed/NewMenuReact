@@ -77,6 +77,7 @@ const GuestWaveButton: React.FC = () => {
 
       if (response.invoice_preview && activeTableId) {
         savePrintableInvoice({
+          sourceTableId: activeTableId,
           restaurantName: response.invoice_preview.restaurant_name,
           tableName: response.invoice_preview.table_name,
           generatedAt: new Date(response.invoice_preview.generated_at).toLocaleString(),

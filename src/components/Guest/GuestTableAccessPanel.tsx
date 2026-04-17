@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { verifyGuestTablePin } from '../../services/orderService';
 import { useOrderCart } from '../../contexts/useOrderCart';
-import { buildGuestOrdersPath } from '../../utils/guestTableRoutes';
+import { buildGuestInvoicePath, buildGuestOrdersPath } from '../../utils/guestTableRoutes';
+import { loadPrintableInvoice } from '../../utils/printableInvoice';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -36,6 +37,9 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
 
   const label = tableLabel || (tableId ? t('guestAccess.tableLabel', { table: tableId }) : null);
   const isUnlocked = draft.guestAccessVerified && Boolean(draft.guestAccessToken);
+  const hasInvoicePreview = tableId
+    ? loadPrintableInvoice()?.sourceTableId === tableId
+    : false;
 
   const handleUnlock = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -116,7 +120,7 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
           <p className="mt-2 text-[var(--guest-text)]">
             {t('guestAccess.actionsReady')}
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-3">
             <Link
               to={buildGuestOrdersPath(tableId)}
               className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
@@ -128,6 +132,19 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
             >
               {t('guestAccess.viewOrders')}
             </Link>
+            {hasInvoicePreview ? (
+              <Link
+                to={buildGuestInvoicePath(tableId)}
+                className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-text)',
+                  color: 'var(--guest-text)',
+                }}
+              >
+                {t('guestAccess.viewInvoice')}
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : (

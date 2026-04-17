@@ -11,3 +11,5 @@ export const buildGuestDishIngredientsPath = (tableId: number | string, dishId: 
 export const buildGuestOrderReviewPath = (tableId: number | string): string => `/menu/table/${tableId}/review`;
 
 export const buildGuestOrdersPath = (tableId: number | string): string => `/menu/table/${tableId}/orders`;
+
+export const buildGuestInvoicePath = (tableId: number | string): string => `/menu/table/${tableId}/invoice`;
