@@ -12,7 +12,7 @@ import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { ingredientDictionaryOptions, translateIngredientLabel } from '../../i18n/ingredients';
 import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
-import type { IngredientLibraryItem } from '../../types';
+import type { IngredientLibraryItem, InventoryIngredient } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 
@@ -109,7 +109,31 @@ export interface DishFormData {
   suggested_dish_ids: number[];
   related_dish_ids: number[];
   ingredient_layers: DishIngredientLayerData[];
+  recipe_ingredients: DishRecipeIngredientInput[];
 }
+
+export interface DishRecipeIngredientInput {
+  ingredient_id: number;
+  quantity_required: string;
+}
+
+interface DishRecipeIngredientRow {
+  client_id: string;
+  ingredient_id: number | null;
+  quantity_required: string;
+}
+
+interface DishFormState extends Omit<DishFormData, 'recipe_ingredients'> {
+  recipe_ingredients: DishRecipeIngredientRow[];
+}
+
+const createRecipeIngredientRow = (
+  initial?: Partial<DishRecipeIngredientInput>
+): DishRecipeIngredientRow => ({
+  client_id: createClientId(),
+  ingredient_id: initial?.ingredient_id ?? null,
+  quantity_required: initial?.quantity_required ?? '',
+});
 
 interface DishFormProps {
   onSubmit: (data: DishFormData) => Promise<void> | void;
@@ -127,6 +151,7 @@ interface DishFormProps {
     ingredients?: ExistingDishIngredientLayer[];
   };
   ingredientLibrary?: IngredientLibraryItem[];
+  recipeIngredientOptions?: InventoryIngredient[];
   suggestedDishOptions?: Array<{
     id: number;
     name: string;
@@ -150,11 +175,12 @@ const DishForm: React.FC<DishFormProps> = ({
   allowDishNameSelection = false,
   existingFiles,
   ingredientLibrary = [],
+  recipeIngredientOptions = [],
   suggestedDishOptions = [],
   relatedDishOptions = [],
 }) => {
   const { t, i18n } = useTranslation();
-  const [formData, setFormData] = useState<DishFormData>(() => ({
+  const [formData, setFormData] = useState<DishFormState>(() => ({
     name: initialValues?.name || '',
     price: initialValues?.price || '',
     calories: initialValues?.calories || '',
@@ -185,6 +211,12 @@ const DishForm: React.FC<DishFormProps> = ({
           file_name: ingredient.file_name,
         });
       }),
+    recipe_ingredients: (initialValues?.recipe_ingredients ?? []).map((recipeItem) =>
+      createRecipeIngredientRow({
+        ingredient_id: recipeItem.ingredient_id,
+        quantity_required: recipeItem.quantity_required,
+      })
+    ),
   }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -429,6 +461,51 @@ const DishForm: React.FC<DishFormProps> = ({
     });
   };
 
+  const addRecipeIngredient = () => {
+    setFormData((prev) => ({
+      ...prev,
+      recipe_ingredients: [...prev.recipe_ingredients, createRecipeIngredientRow()],
+    }));
+  };
+
+  const removeRecipeIngredient = (clientId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      recipe_ingredients: prev.recipe_ingredients.filter((recipeItem) => recipeItem.client_id !== clientId),
+    }));
+  };
+
+  const handleRecipeIngredientChange = (clientId: string, ingredientIdValue: string) => {
+    const ingredientId = ingredientIdValue ? Number(ingredientIdValue) : null;
+
+    setFormData((prev) => ({
+      ...prev,
+      recipe_ingredients: prev.recipe_ingredients.map((recipeItem) => (
+        recipeItem.client_id === clientId
+          ? { ...recipeItem, ingredient_id: ingredientId }
+          : recipeItem
+      )),
+    }));
+  };
+
+  const handleRecipeQuantityChange = (clientId: string, quantity: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      recipe_ingredients: prev.recipe_ingredients.map((recipeItem) => (
+        recipeItem.client_id === clientId
+          ? { ...recipeItem, quantity_required: quantity }
+          : recipeItem
+      )),
+    }));
+  };
+
+  const recipeIngredientSelectOptions = recipeIngredientOptions.map((ingredient) => ({
+    value: String(ingredient.id),
+    label: ingredient.is_active
+      ? `${ingredient.name} (${ingredient.unit})`
+      : `${ingredient.name} (${ingredient.unit}) • inactive`,
+  }));
+
   const normalizedSuggestedDishesSearch = suggestedDishesSearch.trim().toLowerCase();
   const filteredSuggestedDishOptions = suggestedDishOptions.filter((dish) => {
     if (!normalizedSuggestedDishesSearch) {
@@ -523,14 +600,58 @@ const DishForm: React.FC<DishFormProps> = ({
       }
     }
 
+    const normalizedRecipeIngredients = formData.recipe_ingredients
+      .map((recipeItem) => ({
+        ...recipeItem,
+        quantity_required: recipeItem.quantity_required.trim(),
+      }))
+      .filter((recipeItem) => recipeItem.ingredient_id !== null || recipeItem.quantity_required.length > 0);
+    const selectedRecipeIngredientIds = new Set<number>();
+
+    for (const [index, recipeItem] of normalizedRecipeIngredients.entries()) {
+      const row = index + 1;
+
+      if (recipeItem.ingredient_id === null) {
+        setFormError(t('dishForm.recipeMissingIngredient', { row }));
+        return;
+      }
+
+      const quantityValue = Number(recipeItem.quantity_required);
+      if (!recipeItem.quantity_required || Number.isNaN(quantityValue) || quantityValue <= 0) {
+        setFormError(t('dishForm.recipeInvalidQuantity', { row }));
+        return;
+      }
+
+      if (selectedRecipeIngredientIds.has(recipeItem.ingredient_id)) {
+        setFormError(t('dishForm.recipeDuplicateIngredient'));
+        return;
+      }
+
+      selectedRecipeIngredientIds.add(recipeItem.ingredient_id);
+    }
+
     setIsSubmitting(true);
 
     try {
-      await onSubmit({
-        ...formData,
+      const submitPayload: DishFormData = {
         name: dishName,
+        price: formData.price,
+        calories: formData.calories,
+        category: formData.category,
+        status: formData.status,
+        preview_file: formData.preview_file,
+        glb_file: formData.glb_file,
+        usdz_file: formData.usdz_file,
+        suggested_dish_ids: formData.suggested_dish_ids,
+        related_dish_ids: formData.related_dish_ids,
         ingredient_layers: normalizedIngredientLayers,
-      });
+        recipe_ingredients: normalizedRecipeIngredients.map((recipeItem) => ({
+          ingredient_id: recipeItem.ingredient_id as number,
+          quantity_required: recipeItem.quantity_required,
+        })),
+      };
+
+      await onSubmit(submitPayload);
     } finally {
       setIsSubmitting(false);
     }
@@ -961,6 +1082,111 @@ const DishForm: React.FC<DishFormProps> = ({
           {t('dishForm.previewUploadHint')}
         </p>
       </div>
+
+      <GlassSurface className="space-y-5 p-5" sheen={false}>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-medium text-text">{t('dishForm.recipeIngredientsTitle')}</h3>
+            <p className="mt-1 text-sm text-muted">
+              {t('dishForm.recipeIngredientsDescription')}
+            </p>
+          </div>
+          {recipeIngredientOptions.length > 0 ? (
+            <LiquidButton type="button" tone="tertiary" onClick={addRecipeIngredient}>
+              {t('dishForm.addRecipeIngredient')}
+            </LiquidButton>
+          ) : null}
+        </div>
+
+        {recipeIngredientOptions.length === 0 ? (
+          <div className="rounded-2xl border border-gold/25 bg-gold/10 px-4 py-5 text-sm text-gold2">
+            {t('dishForm.recipeIngredientsMissingInventory')}
+            <div className="mt-3">
+              <Link to="/admin/inventory/ingredients">
+                <LiquidButton type="button" tone="tertiary" className="px-4 py-2 text-sm">
+                  {t('dishForm.openInventoryIngredients')}
+                </LiquidButton>
+              </Link>
+            </div>
+          </div>
+        ) : formData.recipe_ingredients.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
+            {t('dishForm.noRecipeIngredients')}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {formData.recipe_ingredients.map((recipeItem, index) => {
+              const selectedIngredient = recipeIngredientOptions.find(
+                (ingredient) => ingredient.id === recipeItem.ingredient_id
+              ) || null;
+
+              return (
+                <div
+                  key={recipeItem.client_id}
+                  className="min-w-0 rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
+                >
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-text">
+                        {t('dishForm.recipeIngredientRow', { index: index + 1 })}
+                      </p>
+                    </div>
+                    <LiquidButton
+                      type="button"
+                      tone="secondary"
+                      onClick={() => removeRecipeIngredient(recipeItem.client_id)}
+                    >
+                      {t('dishForm.removeRecipeIngredient')}
+                    </LiquidButton>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text">
+                        {t('dishForm.recipeIngredientLabel')}
+                      </label>
+                      <GlassSelect
+                        value={recipeItem.ingredient_id !== null ? String(recipeItem.ingredient_id) : ''}
+                        onChange={(event) => handleRecipeIngredientChange(recipeItem.client_id, event.target.value)}
+                        options={recipeIngredientSelectOptions}
+                        placeholder={t('dishForm.chooseRecipeIngredient')}
+                      />
+                      {selectedIngredient ? (
+                        <p className="mt-2 text-xs text-muted">
+                          {t('dishForm.recipeSelectedUnit', { unit: selectedIngredient.unit })}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-xs text-muted">
+                          {t('dishForm.recipeSelectIngredientHint')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text">
+                        {t('dishForm.quantityRequiredLabel')}
+                      </label>
+                      <GlassInput
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={recipeItem.quantity_required}
+                        onChange={(event) => handleRecipeQuantityChange(recipeItem.client_id, event.target.value)}
+                        placeholder={t('dishForm.quantityRequiredPlaceholder')}
+                      />
+                      <p className="mt-2 text-xs text-muted">
+                        {selectedIngredient
+                          ? t('dishForm.quantityRequiredHintWithUnit', { unit: selectedIngredient.unit })
+                          : t('dishForm.quantityRequiredHint')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </GlassSurface>
 
       <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

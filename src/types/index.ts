@@ -56,6 +56,7 @@ export interface Dish {
   status: 'draft' | 'published';
   image_url?: string;
   assets: DishAsset[];
+  dish_ingredients?: DishRecipeIngredient[];
   suggested_dishes?: Dish[];
   related_dishes?: Dish[];
   model_state?: 'none' | 'processing' | 'ready' | 'error';
@@ -85,6 +86,15 @@ export interface DishAsset {
   file_size: number;
   mime_type: string;
   metadata: DishAssetMetadata;
+}
+
+export interface DishRecipeIngredient {
+  id: number;
+  dish_id: number;
+  ingredient_id: number;
+  quantity: string;
+  unit: IngredientStockUnit;
+  ingredient?: InventoryIngredient | null;
 }
 
 export interface IngredientLibraryItem {

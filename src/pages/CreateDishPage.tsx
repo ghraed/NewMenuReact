@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
-import type { Dish, IngredientLibraryItem } from '../types';
+import type { Dish, IngredientLibraryItem, InventoryIngredient } from '../types';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -60,14 +60,16 @@ const CreateDishPage: React.FC = () => {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
+  const [recipeIngredientOptions, setRecipeIngredientOptions] = useState<InventoryIngredient[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
 
   useEffect(() => {
     const fetchFormOptions = async () => {
       try {
-        const [ingredientLibraryResult, dishOptionsResult] = await Promise.allSettled([
+        const [ingredientLibraryResult, inventoryIngredientsResult, dishOptionsResult] = await Promise.allSettled([
           api.get('/ingredients'),
+          api.get('/inventory/ingredients'),
           api.get('/dishes', {
             params: {
               include_deleted: '1',
@@ -81,6 +83,14 @@ const CreateDishPage: React.FC = () => {
         } else {
           console.error(ingredientLibraryResult.reason);
           setIngredientLibrary([]);
+        }
+
+        if (inventoryIngredientsResult.status === 'fulfilled') {
+          const payload = inventoryIngredientsResult.value.data;
+          setRecipeIngredientOptions(Array.isArray(payload?.ingredients) ? payload.ingredients : []);
+        } else {
+          console.error(inventoryIngredientsResult.reason);
+          setRecipeIngredientOptions([]);
         }
 
         if (dishOptionsResult.status === 'fulfilled') {
@@ -114,6 +124,10 @@ const CreateDishPage: React.FC = () => {
       });
       dishData.related_dish_ids.forEach((dishId) => {
         formData.append('related_dish_ids[]', String(dishId));
+      });
+      dishData.recipe_ingredients.forEach((recipeItem, index) => {
+        formData.append(`recipe_ingredients[${index}][ingredient_id]`, String(recipeItem.ingredient_id));
+        formData.append(`recipe_ingredients[${index}][quantity_required]`, recipeItem.quantity_required);
       });
 
       if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
@@ -154,6 +168,7 @@ const CreateDishPage: React.FC = () => {
         onSubmit={handleSubmit}
         allowDishNameSelection
         ingredientLibrary={ingredientLibrary}
+        recipeIngredientOptions={recipeIngredientOptions}
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}
         requireModelUpload

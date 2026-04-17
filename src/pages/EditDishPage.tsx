@@ -6,7 +6,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
-import type { Dish, IngredientLibraryItem } from '../types';
+import type { Dish, IngredientLibraryItem, InventoryIngredient } from '../types';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 
 const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
@@ -109,6 +109,7 @@ const EditDishPage: React.FC = () => {
 
   const [dish, setDish] = useState<Dish | null>(null);
   const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
+  const [recipeIngredientOptions, setRecipeIngredientOptions] = useState<InventoryIngredient[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,9 +123,10 @@ const EditDishPage: React.FC = () => {
       if (!dish_id) return;
 
       try {
-        const [dishResult, ingredientLibraryResult, suggestedOptionsResult] = await Promise.allSettled([
+        const [dishResult, ingredientLibraryResult, inventoryIngredientsResult, suggestedOptionsResult] = await Promise.allSettled([
           api.get(`/dishes/${dish_id}`),
           api.get('/ingredients'),
+          api.get('/inventory/ingredients'),
           api.get('/dishes', {
             params: {
               include_deleted: '1',
@@ -144,6 +146,14 @@ const EditDishPage: React.FC = () => {
         } else {
           console.error(ingredientLibraryResult.reason);
           setIngredientLibrary([]);
+        }
+
+        if (inventoryIngredientsResult.status === 'fulfilled') {
+          const payload = inventoryIngredientsResult.value.data;
+          setRecipeIngredientOptions(Array.isArray(payload?.ingredients) ? payload.ingredients : []);
+        } else {
+          console.error(inventoryIngredientsResult.reason);
+          setRecipeIngredientOptions([]);
         }
 
         if (suggestedOptionsResult.status === 'fulfilled') {
@@ -180,6 +190,10 @@ const EditDishPage: React.FC = () => {
         status: data.status,
         suggested_dish_ids: data.suggested_dish_ids,
         related_dish_ids: data.related_dish_ids,
+        recipe_ingredients: data.recipe_ingredients.map((recipeItem) => ({
+          ingredient_id: recipeItem.ingredient_id,
+          quantity_required: Number(recipeItem.quantity_required),
+        })),
       });
 
       if (data.glb_file) {
@@ -444,6 +458,10 @@ const EditDishPage: React.FC = () => {
             calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
             related_dish_ids: (dish.related_dishes || []).map((relatedDish) => relatedDish.id),
+            recipe_ingredients: (dish.dish_ingredients || []).map((dishIngredient) => ({
+              ingredient_id: dishIngredient.ingredient_id,
+              quantity_required: String(dishIngredient.quantity),
+            })),
           }}
           existingFiles={{
             glb: glbFileName,
@@ -461,6 +479,7 @@ const EditDishPage: React.FC = () => {
             })),
           }}
           ingredientLibrary={ingredientLibrary}
+          recipeIngredientOptions={recipeIngredientOptions}
           suggestedDishOptions={suggestedDishOptions}
           relatedDishOptions={relatedDishOptions}
           requireModelUpload={false}
