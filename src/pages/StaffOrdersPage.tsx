@@ -25,8 +25,10 @@ import {
   resolvePendingWave,
   updatePendingOrder,
 } from '../services/orderService';
+import api from '../services/api';
 import type {
   ActiveTableSessionRecord,
+  InventoryIngredient,
   OrderRecord,
   PublishedDishSummary,
   RestaurantTableSummary,
@@ -119,6 +121,7 @@ const StaffOrdersPage: React.FC = () => {
   const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
   const [publishedDishesLoading, setPublishedDishesLoading] = useState(false);
   const [publishedDishesError, setPublishedDishesError] = useState<string | null>(null);
+  const [lowStockIngredients, setLowStockIngredients] = useState<InventoryIngredient[]>([]);
   const [adminRealtimeTableIds, setAdminRealtimeTableIds] = useState<number[]>([]);
   const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationStatus>(() => (
     getNotificationStatus()
@@ -282,6 +285,40 @@ const StaffOrdersPage: React.FC = () => {
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadLowStock = async () => {
+      if (user?.role !== 'admin') {
+        setLowStockIngredients([]);
+        return;
+      }
+
+      try {
+        const response = await api.get('/inventory/ingredients');
+        const nextIngredients = Array.isArray(response.data?.ingredients)
+          ? (response.data.ingredients as InventoryIngredient[])
+          : [];
+
+        if (!isActive) {
+          return;
+        }
+
+        setLowStockIngredients(nextIngredients.filter((ingredient) => ingredient.is_low_stock));
+      } catch {
+        if (isActive) {
+          setLowStockIngredients([]);
+        }
+      }
+    };
+
+    loadLowStock();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.role, user?.restaurant?.id]);
 
   useEffect(() => {
     setEditingOrder(null);
@@ -897,6 +934,23 @@ const StaffOrdersPage: React.FC = () => {
       {error ? (
         <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
           {error}
+        </div>
+      ) : null}
+
+      {user?.role === 'admin' && lowStockIngredients.length > 0 ? (
+        <div className="mb-4 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3">
+          <p className="text-sm font-semibold text-spicy">
+            {t('staffOrdersPage.lowStockAlertTitle', { count: lowStockIngredients.length })}
+          </p>
+          <p className="mt-1 text-sm text-spicy/90">
+            {t('staffOrdersPage.lowStockAlertHint')}
+          </p>
+          <p className="mt-2 text-sm text-spicy/90">
+            {lowStockIngredients
+              .slice(0, 5)
+              .map((ingredient) => `${ingredient.name} (${ingredient.current_quantity} ${ingredient.unit})`)
+              .join(' • ')}
+          </p>
         </div>
       ) : null}
 

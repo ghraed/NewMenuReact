@@ -123,6 +123,11 @@ const AdminIngredientsPage: React.FC = () => {
     };
   }, [ingredients]);
 
+  const lowStockIngredients = useMemo(
+    () => ingredients.filter((ingredient) => ingredient.is_low_stock),
+    [ingredients]
+  );
+
   const resetForm = () => {
     setEditingIngredientId(null);
     setFormPayload(defaultIngredientPayload);
@@ -298,6 +303,23 @@ const AdminIngredientsPage: React.FC = () => {
           {error}
         </div>
       )}
+
+      {lowStockIngredients.length > 0 ? (
+        <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4">
+          <p className="text-sm font-semibold text-spicy">
+            {t('inventoryIngredients.lowStockWarningTitle', { count: lowStockIngredients.length })}
+          </p>
+          <p className="mt-1 text-sm text-spicy/90">
+            {t('inventoryIngredients.lowStockWarningDescription')}
+          </p>
+          <p className="mt-2 text-sm text-spicy/90">
+            {lowStockIngredients
+              .slice(0, 6)
+              .map((ingredient) => `${ingredient.name} (${ingredient.current_quantity} ${ingredient.unit})`)
+              .join(' • ')}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <GlassCard className="p-5 sm:p-6">
