@@ -302,12 +302,10 @@ const GuestDishListPage: React.FC = () => {
         return true;
       });
 
-    const alternativeMatches = takeOrderable(detailDish?.alternative_dishes || sourceDish.alternative_dishes || []);
     const relatedMatches = takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || []);
-    const directMatches = [...alternativeMatches, ...relatedMatches];
 
-    if (directMatches.length > 0) {
-      return directMatches;
+    if (relatedMatches.length > 0) {
+      return relatedMatches;
     }
 
     const sameCategoryFallback = dishes.filter((candidate) => {
