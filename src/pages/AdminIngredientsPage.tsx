@@ -9,10 +9,9 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
-import { cx, focusRing, glassControl } from '../theme/liquidGlass';
 import api from '../services/api';
 import type { InventoryIngredient, IngredientStockUnit } from '../types';
-import { ingredientDictionaryOptions, translateIngredientLabel } from '../i18n/ingredients';
+import { translateIngredientLabel } from '../i18n/ingredients';
 
 interface IngredientPayload {
   name: string;
@@ -90,8 +89,6 @@ const AdminIngredientsPage: React.FC = () => {
   const [editingIngredientId, setEditingIngredientId] = useState<number | null>(null);
   const [formPayload, setFormPayload] = useState<IngredientPayload>(defaultIngredientPayload);
   const [savingIngredient, setSavingIngredient] = useState(false);
-  const [ingredientNamePickerOpen, setIngredientNamePickerOpen] = useState(false);
-  const [ingredientNameSearch, setIngredientNameSearch] = useState('');
 
   const [actionState, setActionState] = useState<InventoryActionState>(defaultActionState('restock'));
   const [submittingAction, setSubmittingAction] = useState(false);
@@ -140,24 +137,9 @@ const AdminIngredientsPage: React.FC = () => {
     [i18n.resolvedLanguage]
   );
 
-  const normalizedIngredientNameSearch = ingredientNameSearch.trim().toLowerCase();
-  const filteredIngredientNameOptions = useMemo(() => (
-    ingredientDictionaryOptions.filter((option) => {
-      if (!normalizedIngredientNameSearch) {
-        return true;
-      }
-
-      const translated = translateIngredientLabel(option.value, i18n.resolvedLanguage, option.arabic);
-      const searchableText = `${option.value} ${translated}`.toLowerCase();
-      return searchableText.includes(normalizedIngredientNameSearch);
-    })
-  ), [i18n.resolvedLanguage, normalizedIngredientNameSearch]);
-
   const resetForm = () => {
     setEditingIngredientId(null);
     setFormPayload(defaultIngredientPayload);
-    setIngredientNamePickerOpen(false);
-    setIngredientNameSearch('');
   };
 
   const handleStartCreate = () => {
@@ -410,84 +392,13 @@ const AdminIngredientsPage: React.FC = () => {
 
           <div className="mt-5 grid gap-3">
             <label className="text-sm font-medium text-text">{t('inventoryIngredients.fields.name')}</label>
-            <div className="relative" data-admin-overlay-root="true">
-              <button
-                type="button"
-                onClick={() => setIngredientNamePickerOpen((current) => !current)}
-                className={cx(
-                  'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
-                  glassControl,
-                  focusRing
-                )}
-                aria-expanded={ingredientNamePickerOpen}
-                disabled={savingIngredient}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text">
-                    {formPayload.name
-                      ? formatIngredientName(formPayload.name)
-                      : t('inventoryIngredients.chooseIngredientName')}
-                  </p>
-                  <p className="truncate text-xs text-muted">
-                    {formPayload.name
-                      ? t('inventoryIngredients.nameSelectionActive')
-                      : t('inventoryIngredients.chooseNameFromDictionary')}
-                  </p>
-                </div>
-                <span className="shrink-0 text-muted2">{ingredientNamePickerOpen ? '▴' : '▾'}</span>
-              </button>
-
-              {ingredientNamePickerOpen ? (
-                <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl supports-[backdrop-filter]:bg-bg1/95">
-                  <div className="space-y-3 p-3">
-                    <GlassInput
-                      type="text"
-                      value={ingredientNameSearch}
-                      onChange={(event) => setIngredientNameSearch(event.target.value)}
-                      placeholder={t('inventoryIngredients.searchNamesPlaceholder')}
-                      leftSlot={<span>⌕</span>}
-                    />
-
-                    <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                      {filteredIngredientNameOptions.length === 0 ? (
-                        <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
-                          {t('inventoryIngredients.noNameMatches')}
-                        </div>
-                      ) : (
-                        filteredIngredientNameOptions.map((option) => {
-                          const isSelected = formPayload.name === option.value;
-
-                          return (
-                            <button
-                              key={option.value}
-                              type="button"
-                              onClick={() => {
-                                setFormPayload((current) => ({ ...current, name: option.value }));
-                                setIngredientNamePickerOpen(false);
-                              }}
-                              className={cx(
-                                'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
-                                isSelected ? 'border-gold/25 bg-gold/10' : 'border-white/10 bg-white/[0.03]'
-                              )}
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-text">
-                                  {formatIngredientName(option.value, option.arabic)}
-                                </p>
-                                <p className="truncate text-xs text-muted">{option.value}</p>
-                              </div>
-                              <span className={cx('shrink-0 text-sm', isSelected ? 'text-gold2' : 'text-muted2')}>
-                                {isSelected ? '✓' : '+'}
-                              </span>
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            <GlassInput
+              type="text"
+              value={formPayload.name}
+              onChange={(event) => setFormPayload((current) => ({ ...current, name: event.target.value }))}
+              placeholder={t('inventoryIngredients.chooseIngredientName')}
+              disabled={savingIngredient}
+            />
 
             <label className="mt-2 text-sm font-medium text-text">{t('inventoryIngredients.fields.unit')}</label>
             <GlassSelect

@@ -105,10 +105,21 @@ export interface IngredientLibraryItem {
   uuid: string;
   name: string;
   name_ar?: string | null;
+  global_ingredient_id?: number | null;
   file_url?: string | null;
   source_file_name?: string | null;
   file_size?: number | null;
   mime_type?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GlobalIngredient {
+  id: number;
+  uuid: string;
+  name: string;
+  name_ar?: string | null;
+  normalized_name: string;
   created_at: string;
   updated_at: string;
 }

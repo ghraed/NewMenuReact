@@ -9,7 +9,7 @@ import {
 } from '../components/ui/liquid-glass';
 import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
-import type { IngredientLibraryItem } from '../types';
+import type { GlobalIngredient, IngredientLibraryItem } from '../types';
 
 type DirectoryFile = File & {
   webkitRelativePath?: string;
@@ -33,6 +33,15 @@ const deriveIngredientName = (fileName: string, fallbackLabel: string): string =
   return withSpaces.replace(/\s+/g, ' ').trim() || fallbackLabel;
 };
 
+const normalizeIngredientName = (value?: string | null): string => (
+  (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+);
+
 const isSupportedImage = (file: File): boolean => (
   file.type.startsWith('image/') || IMAGE_EXTENSION_PATTERN.test(file.name)
 );
@@ -48,6 +57,7 @@ const IngredientLibraryPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [ingredients, setIngredients] = useState<IngredientLibraryItem[]>([]);
+  const [globalIngredients, setGlobalIngredients] = useState<GlobalIngredient[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<DirectoryFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -60,8 +70,13 @@ const IngredientLibraryPage: React.FC = () => {
     setError(null);
 
     try {
-      const response = await api.get('/ingredients');
-      setIngredients(Array.isArray(response.data) ? response.data : []);
+      const [localResponse, globalResponse] = await Promise.all([
+        api.get('/ingredients'),
+        api.get('/global-ingredients'),
+      ]);
+
+      setIngredients(Array.isArray(localResponse.data) ? localResponse.data : []);
+      setGlobalIngredients(Array.isArray(globalResponse.data) ? globalResponse.data : []);
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('ingredientLibrary.failedLoad')));
     } finally {
@@ -89,12 +104,21 @@ const IngredientLibraryPage: React.FC = () => {
   }, []);
 
   const pendingIngredients = useMemo(
-    () => selectedFiles.map((file) => ({
-      file,
-      derivedName: deriveIngredientName(file.name, t('ingredientLibrary.unnamedIngredient')),
-      relativePath: file.webkitRelativePath || file.name,
-    })),
-    [selectedFiles, t]
+    () => selectedFiles.map((file) => {
+      const derivedName = deriveIngredientName(file.name, t('ingredientLibrary.unnamedIngredient'));
+      const normalizedDerivedName = normalizeIngredientName(derivedName);
+      const matchedGlobalIngredient = globalIngredients.find(
+        (ingredient) => ingredient.normalized_name === normalizedDerivedName
+      ) ?? null;
+
+      return {
+        file,
+        derivedName,
+        relativePath: file.webkitRelativePath || file.name,
+        matchedGlobalIngredient,
+      };
+    }),
+    [globalIngredients, selectedFiles, t]
   );
 
   const handleChooseFolder = () => {
@@ -136,8 +160,14 @@ const IngredientLibraryPage: React.FC = () => {
 
     try {
       const formData = new FormData();
-      selectedFiles.forEach((file) => {
+      pendingIngredients.forEach((item) => {
+        const file = item.file;
         formData.append('images[]', file);
+        if (item.matchedGlobalIngredient) {
+          formData.append('global_ingredient_ids[]', String(item.matchedGlobalIngredient.id));
+        } else {
+          formData.append('global_ingredient_ids[]', '');
+        }
       });
 
       const response = await api.post('/ingredients/bulk-upload', formData, {
@@ -278,9 +308,14 @@ const IngredientLibraryPage: React.FC = () => {
                   className="rounded-[28px] border border-white/12 bg-white/6 p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 space-y-1">
                       <p className="text-sm font-semibold text-text">{translateIngredientLabel(item.derivedName, i18n.resolvedLanguage)}</p>
                       <p className="mt-1 break-all text-xs leading-5 text-muted">{item.relativePath}</p>
+                      <p className="text-xs text-muted2">
+                        {item.matchedGlobalIngredient
+                          ? `Global match: ${translateIngredientLabel(item.matchedGlobalIngredient.name, i18n.resolvedLanguage, item.matchedGlobalIngredient.name_ar)}`
+                          : 'No global catalog match found. This will stay restaurant-specific only.'}
+                      </p>
                     </div>
                     <span className="shrink-0 rounded-full border border-white/12 bg-white/10 px-3 py-1 text-xs font-medium text-muted2">
                       {formatBytes(item.file.size, t('ingredientLibrary.unknownSize'))}
@@ -303,6 +338,10 @@ const IngredientLibraryPage: React.FC = () => {
             <div className="rounded-[28px] border border-white/12 bg-white/6 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted2">{t('ingredientLibrary.savedIngredients')}</p>
               <p className="mt-2 text-3xl font-semibold text-text">{ingredients.length}</p>
+            </div>
+            <div className="rounded-[28px] border border-white/12 bg-white/6 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted2">Global Catalog</p>
+              <p className="mt-2 text-3xl font-semibold text-text">{globalIngredients.length}</p>
             </div>
             <div className="rounded-[28px] border border-white/12 bg-white/6 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted2">{t('ingredientLibrary.importRule')}</p>
