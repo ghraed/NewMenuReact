@@ -282,16 +282,26 @@ const GuestDishListPage: React.FC = () => {
 
   const getOrderableRelatedDishes = (sourceDish: Dish) => {
     const seen = new Set<number>();
-    const directMatches = [...(sourceDish.alternative_dishes || []), ...(sourceDish.related_dishes || [])]
+    const isOrderableCandidate = (candidate: Dish) => (
+      candidate.id !== sourceDish.id
+      && !seen.has(candidate.id)
+      && candidate.is_orderable !== false
+      && candidate.is_out_of_stock !== true
+    );
+    const takeOrderable = (candidates: Dish[]) => candidates
       .map((candidate) => dishLookup.get(candidate.id) || candidate)
       .filter((candidate) => {
-        if (candidate.id === sourceDish.id || seen.has(candidate.id)) {
+        if (!isOrderableCandidate(candidate)) {
           return false;
         }
 
         seen.add(candidate.id);
-        return candidate.is_orderable !== false && candidate.is_out_of_stock !== true;
+        return true;
       });
+
+    const alternativeMatches = takeOrderable(sourceDish.alternative_dishes || []);
+    const relatedMatches = takeOrderable(sourceDish.related_dishes || []);
+    const directMatches = [...alternativeMatches, ...relatedMatches];
 
     if (directMatches.length > 0) {
       return directMatches;
@@ -677,11 +687,11 @@ const GuestDishListPage: React.FC = () => {
 
       {relatedPopupSourceDish ? (
         <div
-          className="fixed inset-0 z-[130] flex items-end justify-center bg-black/55 p-3 sm:items-center sm:p-6"
+          className="fixed inset-0 z-[260] flex items-start justify-center bg-black/55 px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:items-center sm:p-6"
           onClick={() => setRelatedPopupDishId(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-[28px] border p-4 sm:p-6"
+            className="flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border p-4 sm:max-h-[82vh] sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel-solid)',
               borderColor: 'var(--guest-border)',
@@ -727,7 +737,7 @@ const GuestDishListPage: React.FC = () => {
                 {t('dishCard.noRelatedAvailable', { defaultValue: 'No related dishes are currently available.' })}
               </div>
             ) : (
-              <div className="max-h-[62vh] space-y-3 overflow-y-auto pr-1">
+              <div className="mt-1 flex-1 space-y-3 overflow-y-auto pr-1">
                 {relatedPopupDishes.map((candidate) => (
                   <div
                     key={candidate.id}
