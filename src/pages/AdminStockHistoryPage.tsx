@@ -11,6 +11,7 @@ import {
 } from '../components/ui/liquid-glass';
 import api from '../services/api';
 import type { InventoryPagination, InventoryStockMovementRecord } from '../types';
+import { translateIngredientLabel } from '../i18n/ingredients';
 
 interface IngredientFilterItem {
   id: number;
@@ -54,7 +55,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const AdminStockHistoryPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
 
   const [records, setRecords] = useState<InventoryStockMovementRecord[]>([]);
@@ -121,9 +122,12 @@ const AdminStockHistoryPage: React.FC = () => {
   const ingredientOptions = useMemo(
     () => [
       { value: '', label: t('stockHistory.filters.allIngredients') },
-      ...ingredients.map((item) => ({ value: String(item.id), label: item.name })),
+      ...ingredients.map((item) => ({
+        value: String(item.id),
+        label: translateIngredientLabel(item.name, i18n.resolvedLanguage),
+      })),
     ],
-    [ingredients, t]
+    [i18n.resolvedLanguage, ingredients, t]
   );
 
   const movementTypeOptions = useMemo(
@@ -233,7 +237,7 @@ const AdminStockHistoryPage: React.FC = () => {
             {records.map((record) => (
               <div key={record.id} className="rounded-[24px] border border-white/12 bg-white/6 p-4">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.ingredientName')}: </span>{record.ingredient_name}</p>
+                  <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.ingredientName')}: </span>{translateIngredientLabel(record.ingredient_name, i18n.resolvedLanguage)}</p>
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.movementType')}: </span>{t(`stockHistory.movementTypes.${record.movement_type}`)}</p>
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.quantity')}: </span>{record.quantity}</p>
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.quantityBefore')}: </span>{record.quantity_before ?? '-'}</p>

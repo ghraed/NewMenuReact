@@ -502,8 +502,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const recipeIngredientSelectOptions = recipeIngredientOptions.map((ingredient) => ({
     value: String(ingredient.id),
     label: ingredient.is_active
-      ? `${ingredient.name} (${ingredient.unit})`
-      : `${ingredient.name} (${ingredient.unit}) • inactive`,
+      ? `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)} (${ingredient.unit})`
+      : `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)} (${ingredient.unit}) • inactive`,
   }));
 
   const normalizedSuggestedDishesSearch = suggestedDishesSearch.trim().toLowerCase();

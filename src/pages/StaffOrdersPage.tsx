@@ -26,6 +26,7 @@ import {
   updatePendingOrder,
 } from '../services/orderService';
 import api from '../services/api';
+import { translateIngredientLabel } from '../i18n/ingredients';
 import type {
   ActiveTableSessionRecord,
   InventoryIngredient,
@@ -104,7 +105,7 @@ const isBillRequest = (wave: TableWaveRecord): boolean => (
 );
 
 const StaffOrdersPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -948,7 +949,7 @@ const StaffOrdersPage: React.FC = () => {
           <p className="mt-2 text-sm text-spicy/90">
             {lowStockIngredients
               .slice(0, 5)
-              .map((ingredient) => `${ingredient.name} (${ingredient.current_quantity} ${ingredient.unit})`)
+              .map((ingredient) => `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)} (${ingredient.current_quantity} ${ingredient.unit})`)
               .join(' • ')}
           </p>
         </div>
