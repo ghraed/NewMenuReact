@@ -70,19 +70,19 @@
   }
 
   .themed-native-select {
-    color-scheme: inherit;
-    background-color: var(--guest-panel, rgb(var(--color-bg1)));
-    color: var(--guest-text, rgb(var(--color-text)));
+    color-scheme: dark;
+    background-color: transparent !important;
+    color: rgb(var(--color-text)) !important;
   }
 
   .themed-native-select option,
   .themed-native-select optgroup {
-    background-color: var(--guest-panel, rgb(var(--color-bg1)));
-    color: var(--guest-text, rgb(var(--color-text)));
+    background-color: rgb(var(--color-bg1)) !important;
+    color: rgb(var(--color-text)) !important;
   }
 
   .themed-native-select option:disabled {
-    color: var(--guest-muted, rgb(var(--color-text) / 0.55));
+    color: rgb(var(--color-text) / 0.55) !important;
   }
 
   ::selection {

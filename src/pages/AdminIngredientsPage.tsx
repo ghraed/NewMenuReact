@@ -512,6 +512,8 @@ const AdminIngredientsPage: React.FC = () => {
                   min="0"
                   value={formPayload.current_quantity}
                   onChange={(event) => setFormPayload((current) => ({ ...current, current_quantity: event.target.value }))}
+                  onFocus={(event) => event.currentTarget.select()}
+                  onClick={(event) => event.currentTarget.select()}
                   disabled={savingIngredient}
                 />
               </>
