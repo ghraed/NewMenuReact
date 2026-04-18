@@ -66,7 +66,7 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
   }, []);
 
   return (
-    <div className="relative" data-admin-overlay-root="true">
+    <div className="relative z-30" data-admin-overlay-root="true">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
@@ -85,7 +85,7 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-40 mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl supports-[backdrop-filter]:bg-bg1/95">
+        <div className="absolute left-0 right-0 top-full z-[1200] mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2">
           <div className="space-y-3 p-3">
             <GlassInput
               type="text"
