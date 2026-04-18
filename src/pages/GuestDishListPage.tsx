@@ -6,6 +6,7 @@ import type { Dish } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DishCard from '../components/Guest/DishCard';
 import DishTags from '../components/Guest/DishTags';
+import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
@@ -821,17 +822,26 @@ const GuestDishListPage: React.FC = () => {
                       borderColor: 'var(--guest-border)',
                     }}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[var(--guest-text)] sm:text-base">{candidate.name}</p>
-                      <p className="mt-1 text-xs text-[var(--guest-muted)]">${Number(candidate.price).toFixed(2)}</p>
-                      {getDishQuantity(candidate.id) > 0 ? (
-                        <p className="mt-1 text-xs font-medium text-[var(--guest-accent)]">
-                          {t('dishCard.inCartCount', {
-                            defaultValue: 'In cart: {{count}}',
-                            count: getDishQuantity(candidate.id),
-                          })}
-                        </p>
-                      ) : null}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <DishAssetThumbnail
+                        dish={candidate}
+                        fit="cover"
+                        className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border sm:h-14 sm:w-14"
+                        imageClassName="h-full w-full object-cover"
+                        overlayClassName="bg-black/5"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[var(--guest-text)] sm:text-base">{candidate.name}</p>
+                        <p className="mt-1 text-xs text-[var(--guest-muted)]">${Number(candidate.price).toFixed(2)}</p>
+                        {getDishQuantity(candidate.id) > 0 ? (
+                          <p className="mt-1 text-xs font-medium text-[var(--guest-accent)]">
+                            {t('dishCard.inCartCount', {
+                              defaultValue: 'In cart: {{count}}',
+                              count: getDishQuantity(candidate.id),
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
