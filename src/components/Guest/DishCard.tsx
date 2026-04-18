@@ -152,32 +152,6 @@ const DishCard: React.FC<DishCardProps> = ({
             </div>
 
             <div className="flex w-full gap-2 sm:justify-end">
-              {onAddToCart ? (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onAddToCart();
-                  }}
-                  disabled={isOutOfStock}
-                  className={cx(
-                    'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[140px]',
-                    'transition duration-300 ease-fluid motion-reduce:transition-none',
-                    isOutOfStock ? 'cursor-not-allowed opacity-70' : 'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
-                    focusRing
-                  )}
-                  style={{
-                    backgroundColor: 'var(--guest-accent-soft)',
-                    borderColor: 'var(--guest-border)',
-                    color: 'var(--guest-accent)',
-                  }}
-                >
-                  {isOutOfStock
-                    ? t('dishCard.outOfStock')
-                    : (cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart'))}
-                </button>
-              ) : null}
-
               {isOutOfStock && onShowRelatedOptions && hasRelatedOptions ? (
                 <button
                   type="button"
@@ -192,12 +166,33 @@ const DishCard: React.FC<DishCardProps> = ({
                     focusRing
                   )}
                   style={{
-                    backgroundColor: 'var(--guest-panel-solid)',
-                    borderColor: 'var(--guest-border)',
-                    color: 'var(--guest-text)',
+                    backgroundColor: 'var(--guest-accent-soft)',
+                    borderColor: 'var(--guest-accent)',
+                    color: 'var(--guest-accent)',
                   }}
                 >
-                  {t('dishCard.orderRelated', { defaultValue: 'Order related dishes' })}
+                  {t('dishCard.orderRelated', { defaultValue: 'Try Similar Favorites' })}
+                </button>
+              ) : onAddToCart ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAddToCart();
+                  }}
+                  className={cx(
+                    'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[140px]',
+                    'transition duration-300 ease-fluid motion-reduce:transition-none',
+                    'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                    focusRing
+                  )}
+                  style={{
+                    backgroundColor: 'var(--guest-accent-soft)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-accent)',
+                  }}
+                >
+                  {cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart')}
                 </button>
               ) : null}
 
