@@ -12,7 +12,7 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { translateIngredientLabel } from '../i18n/ingredients';
-import { fetchGuestTableMenu } from '../services/orderService';
+import { fetchGuestTableDish, fetchGuestTableMenu } from '../services/orderService';
 import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
@@ -82,6 +82,9 @@ const GuestDishListPage: React.FC = () => {
   const [ingredientFilterOpen, setIngredientFilterOpen] = useState(false);
   const [ingredientFilterMode, setIngredientFilterMode] = useState<IngredientFilterMode>('show');
   const [relatedPopupDishId, setRelatedPopupDishId] = useState<number | null>(null);
+  const [relatedPopupLoading, setRelatedPopupLoading] = useState(false);
+  const [relatedPopupError, setRelatedPopupError] = useState<string | null>(null);
+  const [relatedPopupDishes, setRelatedPopupDishes] = useState<Dish[]>([]);
 
   useEffect(() => {
     const fetchList = async (slug: string): Promise<GuestListResponse> => {
@@ -280,7 +283,7 @@ const GuestDishListPage: React.FC = () => {
     return map;
   }, [dishes]);
 
-  const getOrderableRelatedDishes = (sourceDish: Dish) => {
+  const getOrderableRelatedDishes = (sourceDish: Dish, detailDish?: Dish | null) => {
     const seen = new Set<number>();
     const isOrderableCandidate = (candidate: Dish) => (
       candidate.id !== sourceDish.id
@@ -299,8 +302,8 @@ const GuestDishListPage: React.FC = () => {
         return true;
       });
 
-    const alternativeMatches = takeOrderable(sourceDish.alternative_dishes || []);
-    const relatedMatches = takeOrderable(sourceDish.related_dishes || []);
+    const alternativeMatches = takeOrderable(detailDish?.alternative_dishes || sourceDish.alternative_dishes || []);
+    const relatedMatches = takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || []);
     const directMatches = [...alternativeMatches, ...relatedMatches];
 
     if (directMatches.length > 0) {
@@ -337,7 +340,58 @@ const GuestDishListPage: React.FC = () => {
   };
 
   const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
-  const relatedPopupDishes = relatedPopupSourceDish ? getOrderableRelatedDishes(relatedPopupSourceDish) : [];
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadPopupCandidates = async () => {
+      if (!relatedPopupSourceDish || !relatedPopupDishId) {
+        setRelatedPopupDishes([]);
+        setRelatedPopupError(null);
+        setRelatedPopupLoading(false);
+        return;
+      }
+
+      setRelatedPopupLoading(true);
+      setRelatedPopupError(null);
+
+      try {
+        let detailDish: Dish | null = null;
+
+        if (table_id) {
+          const response = await fetchGuestTableDish(table_id, relatedPopupDishId, draft.guestAccessToken);
+          detailDish = response.dish;
+        } else {
+          const response = await api.get<Dish>(`/menu/${restaurantSlug}/dish/${relatedPopupDishId}`);
+          detailDish = response.data;
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        setRelatedPopupDishes(getOrderableRelatedDishes(relatedPopupSourceDish, detailDish));
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error(error);
+        setRelatedPopupError(t('menuList.failedToLoad'));
+        setRelatedPopupDishes(getOrderableRelatedDishes(relatedPopupSourceDish));
+      } finally {
+        if (!isCancelled) {
+          setRelatedPopupLoading(false);
+        }
+      }
+    };
+
+    loadPopupCandidates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [relatedPopupSourceDish, relatedPopupDishId, table_id, draft.guestAccessToken, restaurantSlug, t]);
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>
@@ -687,7 +741,7 @@ const GuestDishListPage: React.FC = () => {
 
       {relatedPopupSourceDish ? (
         <div
-          className="fixed inset-0 z-[260] flex items-start justify-center bg-black/55 px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:items-center sm:p-6"
+          className="fixed inset-0 z-[2147483647] flex items-start justify-center bg-black/55 px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:items-center sm:p-6"
           onClick={() => setRelatedPopupDishId(null)}
         >
           <div
@@ -725,7 +779,29 @@ const GuestDishListPage: React.FC = () => {
               </button>
             </div>
 
-            {relatedPopupDishes.length === 0 ? (
+            {relatedPopupLoading ? (
+              <div
+                className="rounded-[22px] border p-4 text-sm"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-muted)',
+                }}
+              >
+                {t('menuList.loadingMenu')}
+              </div>
+            ) : relatedPopupError && relatedPopupDishes.length === 0 ? (
+              <div
+                className="rounded-[22px] border p-4 text-sm"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-muted)',
+                }}
+              >
+                {relatedPopupError}
+              </div>
+            ) : relatedPopupDishes.length === 0 ? (
               <div
                 className="rounded-[22px] border p-4 text-sm"
                 style={{
