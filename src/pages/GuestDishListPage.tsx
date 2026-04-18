@@ -282,9 +282,7 @@ const GuestDishListPage: React.FC = () => {
 
   const getOrderableRelatedDishes = (sourceDish: Dish) => {
     const seen = new Set<number>();
-    const candidates = [...(sourceDish.alternative_dishes || []), ...(sourceDish.related_dishes || [])];
-
-    return candidates
+    const directMatches = [...(sourceDish.alternative_dishes || []), ...(sourceDish.related_dishes || [])]
       .map((candidate) => dishLookup.get(candidate.id) || candidate)
       .filter((candidate) => {
         if (candidate.id === sourceDish.id || seen.has(candidate.id)) {
@@ -294,6 +292,38 @@ const GuestDishListPage: React.FC = () => {
         seen.add(candidate.id);
         return candidate.is_orderable !== false && candidate.is_out_of_stock !== true;
       });
+
+    if (directMatches.length > 0) {
+      return directMatches;
+    }
+
+    const sameCategoryFallback = dishes.filter((candidate) => {
+      if (candidate.id === sourceDish.id || seen.has(candidate.id)) {
+        return false;
+      }
+
+      const sameCategory = (
+        candidate.category === sourceDish.category
+        || (
+          Boolean(sourceDish.category_ar)
+          && Boolean(candidate.category_ar)
+          && candidate.category_ar === sourceDish.category_ar
+        )
+      );
+
+      if (!sameCategory) {
+        return false;
+      }
+
+      if (candidate.is_orderable === false || candidate.is_out_of_stock === true) {
+        return false;
+      }
+
+      seen.add(candidate.id);
+      return true;
+    });
+
+    return sameCategoryFallback;
   };
 
   const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
@@ -619,10 +649,6 @@ const GuestDishListPage: React.FC = () => {
           {!loading && !error ? (
             <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {filteredDishes.map((dish) => (
-                (() => {
-                  const relatedOrderableDishes = getOrderableRelatedDishes(dish);
-
-                  return (
                 <DishCard
                   key={dish.id}
                   dish={dish}
@@ -633,7 +659,6 @@ const GuestDishListPage: React.FC = () => {
                     },
                   }) : undefined}
                   cartQuantity={getDishQuantity(dish.id)}
-                  hasRelatedOptions={relatedOrderableDishes.length > 0}
                   onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                   onOpen={() => navigate(
                     table_id
@@ -642,8 +667,6 @@ const GuestDishListPage: React.FC = () => {
                   )}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
-                  );
-                })()
               ))}
             </div>
           ) : null}

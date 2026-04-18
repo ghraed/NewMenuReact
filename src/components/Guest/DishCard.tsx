@@ -11,7 +11,6 @@ interface DishCardProps {
   onOpen: () => void;
   onAddToCart?: () => void;
   onShowRelatedOptions?: () => void;
-  hasRelatedOptions?: boolean;
   cartQuantity?: number;
   isIngredientAlert?: boolean;
 }
@@ -21,7 +20,6 @@ const DishCard: React.FC<DishCardProps> = ({
   onOpen,
   onAddToCart,
   onShowRelatedOptions,
-  hasRelatedOptions = false,
   cartQuantity = 0,
   isIngredientAlert = false,
 }) => {
@@ -152,7 +150,7 @@ const DishCard: React.FC<DishCardProps> = ({
             </div>
 
             <div className="flex w-full gap-2 sm:justify-end">
-              {isOutOfStock && onShowRelatedOptions && hasRelatedOptions ? (
+              {isOutOfStock && onShowRelatedOptions ? (
                 <button
                   type="button"
                   onClick={(event) => {
