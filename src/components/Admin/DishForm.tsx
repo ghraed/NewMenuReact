@@ -1066,7 +1066,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </p>
       </div>
 
-      <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
+      <GlassSurface className="relative z-40 overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-medium text-text">{t('dishForm.recipeIngredientsTitle')}</h3>
@@ -1173,7 +1173,7 @@ const DishForm: React.FC<DishFormProps> = ({
         )}
       </GlassSurface>
 
-      <GlassSurface className="overflow-visible space-y-5 p-5" sheen={false}>
+      <GlassSurface className="relative z-20 overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-medium text-text">{t('dishForm.ingredientLayersTitle')}</h3>
