@@ -95,6 +95,9 @@ const AdminIngredientsPage: React.FC = () => {
 
   const [actionState, setActionState] = useState<InventoryActionState>(defaultActionState('restock'));
   const [submittingAction, setSubmittingAction] = useState(false);
+  const [listSearch, setListSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'low_stock'>('all');
+  const [unitFilter, setUnitFilter] = useState<'all' | IngredientStockUnit>('all');
 
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
@@ -308,6 +311,53 @@ const AdminIngredientsPage: React.FC = () => {
     [t]
   );
 
+  const listStatusOptions = useMemo(
+    () => [
+      { value: 'all', label: t('inventoryIngredients.listFilters.allStatuses') },
+      { value: 'active', label: t('inventoryIngredients.listFilters.activeOnly') },
+      { value: 'inactive', label: t('inventoryIngredients.listFilters.inactiveOnly') },
+      { value: 'low_stock', label: t('inventoryIngredients.listFilters.lowStockOnly') },
+    ],
+    [t]
+  );
+
+  const listUnitOptions = useMemo(
+    () => [
+      { value: 'all', label: t('inventoryIngredients.listFilters.allUnits') },
+      ...unitOptions,
+    ],
+    [t, unitOptions]
+  );
+
+  const normalizedListSearch = listSearch.trim().toLowerCase();
+  const filteredIngredients = useMemo(() => (
+    ingredients.filter((ingredient) => {
+      if (statusFilter === 'active' && !ingredient.is_active) {
+        return false;
+      }
+
+      if (statusFilter === 'inactive' && ingredient.is_active) {
+        return false;
+      }
+
+      if (statusFilter === 'low_stock' && !ingredient.is_low_stock) {
+        return false;
+      }
+
+      if (unitFilter !== 'all' && ingredient.unit !== unitFilter) {
+        return false;
+      }
+
+      if (!normalizedListSearch) {
+        return true;
+      }
+
+      const translatedName = formatIngredientName(ingredient.name, ingredient.name_ar);
+      const searchableText = `${ingredient.name} ${translatedName} ${ingredient.unit}`.toLowerCase();
+      return searchableText.includes(normalizedListSearch);
+    })
+  ), [formatIngredientName, ingredients, normalizedListSearch, statusFilter, unitFilter]);
+
   return (
     <DashboardLayout title={t('inventoryIngredients.pageTitle')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -452,8 +502,11 @@ const AdminIngredientsPage: React.FC = () => {
 
             {!editingIngredientId ? (
               <>
-                <label className="mt-2 text-sm font-medium text-text">{t('inventoryIngredients.fields.currentQuantity')}</label>
+                <label htmlFor="inventory-current-quantity" className="mt-2 text-sm font-medium text-text">
+                  {t('inventoryIngredients.fields.currentQuantity')}
+                </label>
                 <GlassInput
+                  id="inventory-current-quantity"
                   type="number"
                   step="0.001"
                   min="0"
@@ -464,8 +517,11 @@ const AdminIngredientsPage: React.FC = () => {
               </>
             ) : null}
 
-            <label className="mt-2 text-sm font-medium text-text">{t('inventoryIngredients.fields.lowStockThreshold')}</label>
+            <label htmlFor="inventory-low-stock-threshold" className="mt-2 text-sm font-medium text-text">
+              {t('inventoryIngredients.fields.lowStockThreshold')}
+            </label>
             <GlassInput
+              id="inventory-low-stock-threshold"
               type="number"
               step="0.001"
               min="0"
@@ -523,17 +579,45 @@ const AdminIngredientsPage: React.FC = () => {
       </div>
 
       <GlassCard className="mt-6 p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-text">{t('inventoryIngredients.listTitle')}</h3>
+          <p className="text-sm text-muted">
+            {t('inventoryIngredients.listFilters.resultsCount', {
+              filtered: filteredIngredients.length,
+              total: ingredients.length,
+            })}
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <GlassInput
+            value={listSearch}
+            onChange={(event) => setListSearch(event.target.value)}
+            placeholder={t('inventoryIngredients.listFilters.searchPlaceholder')}
+            leftSlot={<span>⌕</span>}
+            disabled={loading}
+          />
+          <GlassSelect
+            value={statusFilter}
+            options={listStatusOptions}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | 'active' | 'inactive' | 'low_stock')}
+            disabled={loading}
+          />
+          <GlassSelect
+            value={unitFilter}
+            options={listUnitOptions}
+            onChange={(event) => setUnitFilter(event.target.value as 'all' | IngredientStockUnit)}
+            disabled={loading}
+          />
         </div>
 
         {loading ? (
           <div className="py-12 text-center text-muted">{t('inventoryIngredients.loading')}</div>
-        ) : ingredients.length === 0 ? (
+        ) : filteredIngredients.length === 0 ? (
           <div className="py-12 text-center text-muted">{t('inventoryIngredients.empty')}</div>
         ) : (
           <div className="mt-5 space-y-3">
-            {ingredients.map((ingredient) => {
+            {filteredIngredients.map((ingredient) => {
               const isActionOpen = actionState.ingredientId === ingredient.id;
 
               return (
