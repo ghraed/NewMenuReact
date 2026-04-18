@@ -81,6 +81,7 @@ const GuestDishListPage: React.FC = () => {
   const [ingredientSearch, setIngredientSearch] = useState('');
   const [ingredientFilterOpen, setIngredientFilterOpen] = useState(false);
   const [ingredientFilterMode, setIngredientFilterMode] = useState<IngredientFilterMode>('show');
+  const [relatedPopupDishId, setRelatedPopupDishId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchList = async (slug: string): Promise<GuestListResponse> => {
@@ -256,6 +257,47 @@ const GuestDishListPage: React.FC = () => {
       return categoryMatch && searchMatch && ingredientMatch;
     });
   }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, i18n.resolvedLanguage, t]);
+
+  const dishLookup = useMemo(() => {
+    const map = new Map<number, Dish>();
+
+    dishes.forEach((dish) => {
+      map.set(dish.id, dish);
+
+      (dish.related_dishes || []).forEach((candidate) => {
+        if (!map.has(candidate.id)) {
+          map.set(candidate.id, candidate);
+        }
+      });
+
+      (dish.alternative_dishes || []).forEach((candidate) => {
+        if (!map.has(candidate.id)) {
+          map.set(candidate.id, candidate);
+        }
+      });
+    });
+
+    return map;
+  }, [dishes]);
+
+  const getOrderableRelatedDishes = (sourceDish: Dish) => {
+    const seen = new Set<number>();
+    const candidates = [...(sourceDish.alternative_dishes || []), ...(sourceDish.related_dishes || [])];
+
+    return candidates
+      .map((candidate) => dishLookup.get(candidate.id) || candidate)
+      .filter((candidate) => {
+        if (candidate.id === sourceDish.id || seen.has(candidate.id)) {
+          return false;
+        }
+
+        seen.add(candidate.id);
+        return candidate.is_orderable !== false && candidate.is_out_of_stock !== true;
+      });
+  };
+
+  const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
+  const relatedPopupDishes = relatedPopupSourceDish ? getOrderableRelatedDishes(relatedPopupSourceDish) : [];
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>
@@ -577,6 +619,10 @@ const GuestDishListPage: React.FC = () => {
           {!loading && !error ? (
             <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {filteredDishes.map((dish) => (
+                (() => {
+                  const relatedOrderableDishes = getOrderableRelatedDishes(dish);
+
+                  return (
                 <DishCard
                   key={dish.id}
                   dish={dish}
@@ -587,6 +633,8 @@ const GuestDishListPage: React.FC = () => {
                     },
                   }) : undefined}
                   cartQuantity={getDishQuantity(dish.id)}
+                  hasRelatedOptions={relatedOrderableDishes.length > 0}
+                  onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                   onOpen={() => navigate(
                     table_id
                       ? buildGuestDishPath(table_id, dish.id)
@@ -594,6 +642,8 @@ const GuestDishListPage: React.FC = () => {
                   )}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
+                  );
+                })()
               ))}
             </div>
           ) : null}
@@ -601,6 +651,126 @@ const GuestDishListPage: React.FC = () => {
 
         {!loading ? <GuestInfoSection restaurantName={restaurantName} /> : null}
       </main>
+
+      {relatedPopupSourceDish ? (
+        <div
+          className="fixed inset-0 z-[130] flex items-end justify-center bg-black/55 p-3 sm:items-center sm:p-6"
+          onClick={() => setRelatedPopupDishId(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-[28px] border p-4 sm:p-6"
+            style={{
+              backgroundColor: 'var(--guest-panel-solid)',
+              borderColor: 'var(--guest-border)',
+              boxShadow: 'var(--guest-shadow)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--guest-accent)]">
+                  {t('dishCard.outOfStock')}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-[var(--guest-text)] sm:text-xl">
+                  {t('dishCard.orderRelatedTitle', {
+                    defaultValue: 'Order related dishes for {{name}}',
+                    name: relatedPopupSourceDish.name,
+                  })}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRelatedPopupDishId(null)}
+                className="rounded-full border px-3 py-1.5 text-sm font-semibold"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-text)',
+                }}
+              >
+                {t('common.close', { defaultValue: 'Close' })}
+              </button>
+            </div>
+
+            {relatedPopupDishes.length === 0 ? (
+              <div
+                className="rounded-[22px] border p-4 text-sm"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-muted)',
+                }}
+              >
+                {t('dishCard.noRelatedAvailable', { defaultValue: 'No related dishes are currently available.' })}
+              </div>
+            ) : (
+              <div className="max-h-[62vh] space-y-3 overflow-y-auto pr-1">
+                {relatedPopupDishes.map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    className="flex items-center justify-between gap-3 rounded-[20px] border p-3"
+                    style={{
+                      backgroundColor: 'var(--guest-panel)',
+                      borderColor: 'var(--guest-border)',
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--guest-text)] sm:text-base">{candidate.name}</p>
+                      <p className="mt-1 text-xs text-[var(--guest-muted)]">${Number(candidate.price).toFixed(2)}</p>
+                      {getDishQuantity(candidate.id) > 0 ? (
+                        <p className="mt-1 text-xs font-medium text-[var(--guest-accent)]">
+                          {t('dishCard.inCartCount', {
+                            defaultValue: 'In cart: {{count}}',
+                            count: getDishQuantity(candidate.id),
+                          })}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => navigate(
+                          table_id
+                            ? buildGuestDishPath(table_id, candidate.id)
+                            : `/menu/${restaurantSlug}/dish/${candidate.id}`
+                        )}
+                        className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
+                        style={{
+                          backgroundColor: 'var(--guest-panel-strong)',
+                          borderColor: 'var(--guest-border)',
+                          color: 'var(--guest-text)',
+                        }}
+                      >
+                        {t('dishCard.viewDetails')}
+                      </button>
+                      {draft.guestAccessVerified ? (
+                        <button
+                          type="button"
+                          onClick={() => addDish(candidate, {
+                            restaurant: {
+                              name: restaurantName,
+                              slug: restaurantSlug,
+                            },
+                          })}
+                          className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
+                          style={{
+                            backgroundColor: 'var(--guest-accent)',
+                            borderColor: 'var(--guest-accent)',
+                            color: 'var(--guest-accent-button-text)',
+                          }}
+                        >
+                          {t('dishCard.addToCart')}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </GuestPageShell>
   );
 };

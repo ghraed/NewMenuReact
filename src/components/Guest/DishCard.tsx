@@ -10,6 +10,8 @@ interface DishCardProps {
   dish: Dish;
   onOpen: () => void;
   onAddToCart?: () => void;
+  onShowRelatedOptions?: () => void;
+  hasRelatedOptions?: boolean;
   cartQuantity?: number;
   isIngredientAlert?: boolean;
 }
@@ -18,6 +20,8 @@ const DishCard: React.FC<DishCardProps> = ({
   dish,
   onOpen,
   onAddToCart,
+  onShowRelatedOptions,
+  hasRelatedOptions = false,
   cartQuantity = 0,
   isIngredientAlert = false,
 }) => {
@@ -171,6 +175,29 @@ const DishCard: React.FC<DishCardProps> = ({
                   {isOutOfStock
                     ? t('dishCard.outOfStock')
                     : (cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart'))}
+                </button>
+              ) : null}
+
+              {isOutOfStock && onShowRelatedOptions && hasRelatedOptions ? (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onShowRelatedOptions();
+                  }}
+                  className={cx(
+                    'w-full rounded-full border px-4 py-3 text-sm font-semibold sm:min-w-[180px]',
+                    'transition duration-300 ease-fluid motion-reduce:transition-none',
+                    'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                    focusRing
+                  )}
+                  style={{
+                    backgroundColor: 'var(--guest-panel-solid)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-text)',
+                  }}
+                >
+                  {t('dishCard.orderRelated', { defaultValue: 'Order related dishes' })}
                 </button>
               ) : null}
 
