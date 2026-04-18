@@ -4,6 +4,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
   GlassInput,
+  GlassSearchSelect,
   GlassSelect,
   GlassToast,
   LiquidButton,
@@ -177,10 +178,13 @@ const AdminStockHistoryPage: React.FC = () => {
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div>
             <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">{t('stockHistory.filters.ingredient')}</label>
-            <GlassSelect
+            <GlassSearchSelect
               value={ingredientFilter}
               options={ingredientOptions}
-              onChange={(event) => setIngredientFilter(event.target.value)}
+              onChange={(nextValue) => setIngredientFilter(nextValue)}
+              placeholder={t('stockHistory.filters.allIngredients')}
+              searchPlaceholder={t('inventoryIngredients.listFilters.searchPlaceholder')}
+              emptyText={t('inventoryIngredients.noNameMatches')}
               disabled={loading}
             />
           </div>

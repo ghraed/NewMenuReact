@@ -4,6 +4,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
   GlassInput,
+  GlassSearchSelect,
   GlassSelect,
   GlassToast,
   LiquidButton,
@@ -311,6 +312,16 @@ const AdminIngredientsPage: React.FC = () => {
     [t, unitOptions]
   );
 
+  const ingredientNameOptions = useMemo(
+    () => Array.from(new Set(ingredients.map((ingredient) => ingredient.name)))
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({
+        value: name,
+        label: translateIngredientLabel(name, i18n.resolvedLanguage),
+      })),
+    [i18n.resolvedLanguage, ingredients]
+  );
+
   const normalizedListSearch = listSearch.trim().toLowerCase();
   const filteredIngredients = useMemo(() => (
     ingredients.filter((ingredient) => {
@@ -392,11 +403,13 @@ const AdminIngredientsPage: React.FC = () => {
 
           <div className="mt-5 grid gap-3">
             <label className="text-sm font-medium text-text">{t('inventoryIngredients.fields.name')}</label>
-            <GlassInput
-              type="text"
+            <GlassSearchSelect
               value={formPayload.name}
-              onChange={(event) => setFormPayload((current) => ({ ...current, name: event.target.value }))}
+              options={ingredientNameOptions}
+              onChange={(nextValue) => setFormPayload((current) => ({ ...current, name: nextValue }))}
               placeholder={t('inventoryIngredients.chooseIngredientName')}
+              searchPlaceholder={t('inventoryIngredients.searchNamesPlaceholder')}
+              emptyText={t('inventoryIngredients.noNameMatches')}
               disabled={savingIngredient}
             />
 

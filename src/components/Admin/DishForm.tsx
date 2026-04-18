@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   GlassInput,
+  GlassSearchSelect,
   GlassSelect,
   GlassSurface,
   GlassToggle,
@@ -1127,11 +1128,13 @@ const DishForm: React.FC<DishFormProps> = ({
                       <label className="mb-1 block text-sm font-medium text-text">
                         {t('dishForm.recipeIngredientLabel')}
                       </label>
-                      <GlassSelect
+                      <GlassSearchSelect
                         value={recipeItem.ingredient_id !== null ? String(recipeItem.ingredient_id) : ''}
-                        onChange={(event) => handleRecipeIngredientChange(recipeItem.client_id, event.target.value)}
+                        onChange={(nextValue) => handleRecipeIngredientChange(recipeItem.client_id, nextValue)}
                         options={recipeIngredientSelectOptions}
                         placeholder={t('dishForm.chooseRecipeIngredient')}
+                        searchPlaceholder={t('inventoryIngredients.listFilters.searchPlaceholder')}
+                        emptyText={t('inventoryIngredients.noNameMatches')}
                       />
                       {selectedIngredient ? (
                         <p className="mt-2 text-xs text-muted">
