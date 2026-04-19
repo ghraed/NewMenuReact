@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 type Role = 'user' | 'assistant';
+type SupportedLanguage = 'ar' | 'fr' | 'en';
 
 interface ChatMessage {
   id: string;
@@ -35,16 +36,33 @@ const makeId = (): string => {
   return `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const isSameOriginApiBase = (baseUrl: string): boolean => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  try {
+    return new URL(baseUrl, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const resolveApiBase = (): string => {
   const fromEnv = import.meta.env.VITE_API_URL as string | undefined;
   if (fromEnv && fromEnv.trim() !== '') {
-    return fromEnv.replace(/\/+$/, '');
+    const normalized = fromEnv.replace(/\/+$/, '');
+
+    // Chat depends on session cookies; prefer same-origin to avoid CORS/session issues.
+    if (isSameOriginApiBase(normalized)) {
+      return normalized;
+    }
   }
 
   return '/api';
 };
 
-const detectLanguageFromText = (text: string): 'ar' | 'fr' | 'en' => {
+const detectLanguageFromText = (text: string): SupportedLanguage => {
   if (/[\u0600-\u06FF]/.test(text)) {
     return 'ar';
   }
@@ -58,6 +76,22 @@ const detectLanguageFromText = (text: string): 'ar' | 'fr' | 'en' => {
   }
 
   return 'en';
+};
+
+const getApiErrorMessage = async (
+  response: Response,
+  fallback: string
+): Promise<string> => {
+  try {
+    const payload = (await response.json()) as { message?: unknown };
+    if (typeof payload?.message === 'string' && payload.message.trim() !== '') {
+      return payload.message.trim();
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  return fallback;
 };
 
 const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderData | null => {
@@ -110,6 +144,9 @@ const ChatBot: React.FC = () => {
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const chatRequestAbortRef = useRef<AbortController | null>(null);
+  const orderRequestAbortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
 
   const apiBase = useMemo(() => resolveApiBase(), []);
 
@@ -117,6 +154,14 @@ const ChatBot: React.FC = () => {
     if (!isOpen) return;
     inputRef.current?.focus();
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      chatRequestAbortRef.current?.abort();
+      orderRequestAbortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!listRef.current) return;
@@ -152,6 +197,11 @@ const ChatBot: React.FC = () => {
     setIsLoading(true);
 
     try {
+      chatRequestAbortRef.current?.abort();
+      const controller = new AbortController();
+      chatRequestAbortRef.current = controller;
+      const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+
       const response = await fetch(`${apiBase}/chat`, {
         method: 'POST',
         headers: {
@@ -159,15 +209,22 @@ const ChatBot: React.FC = () => {
           Accept: 'application/json',
         },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           message: content,
           conversation_id: conversationId,
           language: detectLanguageFromText(content),
         }),
       });
+      window.clearTimeout(timeoutId);
+      chatRequestAbortRef.current = null;
 
       if (!response.ok) {
-        throw new Error(`Request failed (${response.status})`);
+        const message = await getApiErrorMessage(
+          response,
+          `Request failed (${response.status})`
+        );
+        throw new Error(message);
       }
 
       const data = (await response.json()) as ChatApiResponse;
@@ -183,9 +240,20 @@ const ChatBot: React.FC = () => {
       if (nextPendingOrder) {
         setPendingOrder(nextPendingOrder);
       }
-    } catch {
-      pushMessage('assistant', 'Sorry, something went wrong. Please try again.');
+    } catch (error) {
+      if (!isMountedRef.current) return;
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        pushMessage('assistant', 'Request timed out. Please try again.');
+      } else {
+        const fallbackMessage = error instanceof Error && error.message.trim() !== ''
+          ? error.message
+          : 'Sorry, something went wrong. Please try again.';
+        pushMessage('assistant', fallbackMessage);
+      }
     } finally {
+      chatRequestAbortRef.current = null;
+      if (!isMountedRef.current) return;
       setIsLoading(false);
     }
   };
@@ -197,6 +265,11 @@ const ChatBot: React.FC = () => {
     setIsConfirmingOrder(true);
 
     try {
+      orderRequestAbortRef.current?.abort();
+      const controller = new AbortController();
+      orderRequestAbortRef.current = controller;
+      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(`${apiBase}/chat/orders`, {
         method: 'POST',
         headers: {
@@ -204,21 +277,40 @@ const ChatBot: React.FC = () => {
           Accept: 'application/json',
         },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           items: pendingOrder.items,
         }),
       });
+      window.clearTimeout(timeoutId);
+      orderRequestAbortRef.current = null;
 
       if (!response.ok) {
-        throw new Error(`Order request failed (${response.status})`);
+        const message = await getApiErrorMessage(
+          response,
+          `Order request failed (${response.status})`
+        );
+        throw new Error(message);
       }
 
       setPendingOrder(null);
       setOrderNotice('Order sent to waiter successfully');
       pushMessage('assistant', 'Order sent to waiter successfully');
-    } catch {
-      setOrderNotice('Could not send the order. Please try again.');
+    } catch (error) {
+      if (!isMountedRef.current) return;
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setOrderNotice('Order request timed out. Please try again.');
+        return;
+      }
+
+      const message = error instanceof Error && error.message.trim() !== ''
+        ? error.message
+        : 'Could not send the order. Please try again.';
+      setOrderNotice(message);
     } finally {
+      orderRequestAbortRef.current = null;
+      if (!isMountedRef.current) return;
       setIsConfirmingOrder(false);
     }
   };
@@ -229,7 +321,10 @@ const ChatBot: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-[1000] sm:bottom-6 sm:right-6">
+    <div
+      className="fixed bottom-24 right-4 z-[1000] sm:bottom-6 sm:right-6"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       {isOpen ? (
         <div className="w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-2xl border border-white/20 bg-white/90 shadow-2xl backdrop-blur-xl sm:w-96">
           <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
