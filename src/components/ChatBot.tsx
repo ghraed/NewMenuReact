@@ -9,15 +9,29 @@ interface ChatMessage {
   createdAt: string;
 }
 
+interface ChatOrderItem {
+  name: string;
+  quantity: number;
+}
+
+interface PlaceOrderData {
+  action: 'place_order';
+  items: ChatOrderItem[];
+}
+
 interface ChatApiResponse {
   reply: string;
-  order_data?: Record<string, unknown>;
+  order_data?: {
+    action?: string;
+    items?: unknown;
+  };
 }
 
 const makeId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
+
   return `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
@@ -26,7 +40,46 @@ const resolveApiBase = (): string => {
   if (fromEnv && fromEnv.trim() !== '') {
     return fromEnv.replace(/\/+$/, '');
   }
+
   return '/api';
+};
+
+const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderData | null => {
+  if (!raw || raw.action !== 'place_order' || !Array.isArray(raw.items)) {
+    return null;
+  }
+
+  const items = raw.items
+    .map((item): ChatOrderItem | null => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const candidate = item as { name?: unknown; quantity?: unknown };
+      const name = typeof candidate.name === 'string' ? candidate.name.trim() : '';
+      const qtyRaw = candidate.quantity;
+      const quantity = typeof qtyRaw === 'number'
+        ? Math.floor(qtyRaw)
+        : typeof qtyRaw === 'string' && qtyRaw.trim() !== ''
+          ? Math.floor(Number(qtyRaw))
+          : 0;
+
+      if (!name || !Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      return { name, quantity };
+    })
+    .filter((item): item is ChatOrderItem => item !== null);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return {
+    action: 'place_order',
+    items,
+  };
 };
 
 const ChatBot: React.FC = () => {
@@ -34,7 +87,10 @@ const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
   const [conversationId, setConversationId] = useState<string>(() => makeId());
+  const [pendingOrder, setPendingOrder] = useState<PlaceOrderData | null>(null);
+  const [orderNotice, setOrderNotice] = useState<string | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -49,7 +105,7 @@ const ChatBot: React.FC = () => {
   useEffect(() => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
-  }, [messages, isLoading]);
+  }, [messages, isLoading, pendingOrder, isConfirmingOrder, orderNotice]);
 
   const pushMessage = (role: Role, content: string) => {
     setMessages((prev) => [
@@ -66,12 +122,15 @@ const ChatBot: React.FC = () => {
   const clearConversation = () => {
     setMessages([]);
     setConversationId(makeId());
+    setPendingOrder(null);
+    setOrderNotice(null);
   };
 
   const sendMessage = async () => {
     const content = input.trim();
-    if (!content || isLoading) return;
+    if (!content || isLoading || isConfirmingOrder) return;
 
+    setOrderNotice(null);
     pushMessage('user', content);
     setInput('');
     setIsLoading(true);
@@ -96,11 +155,55 @@ const ChatBot: React.FC = () => {
       }
 
       const data = (await response.json()) as ChatApiResponse;
-      pushMessage('assistant', data.reply || 'Sorry, I could not generate a response.');
+      const reply = (data.reply || '').trim();
+      const nextPendingOrder = normalizePlaceOrder(data.order_data);
+
+      if (reply) {
+        pushMessage('assistant', reply);
+      } else if (!nextPendingOrder) {
+        pushMessage('assistant', 'Sorry, I could not generate a response.');
+      }
+
+      if (nextPendingOrder) {
+        setPendingOrder(nextPendingOrder);
+      }
     } catch {
       pushMessage('assistant', 'Sorry, something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const confirmPendingOrder = async () => {
+    if (!pendingOrder || isConfirmingOrder || isLoading) return;
+
+    setOrderNotice(null);
+    setIsConfirmingOrder(true);
+
+    try {
+      const response = await fetch(`${apiBase}/chat/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          items: pendingOrder.items,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Order request failed (${response.status})`);
+      }
+
+      setPendingOrder(null);
+      setOrderNotice('Order sent to waiter successfully');
+      pushMessage('assistant', 'Order sent to waiter successfully');
+    } catch {
+      setOrderNotice('Could not send the order. Please try again.');
+    } finally {
+      setIsConfirmingOrder(false);
     }
   };
 
@@ -153,6 +256,43 @@ const ChatBot: React.FC = () => {
               </div>
             ))}
 
+            {pendingOrder ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                <p className="font-semibold">Confirm order</p>
+                <ul className="mt-2 space-y-1 text-emerald-800">
+                  {pendingOrder.items.map((item, index) => (
+                    <li key={`${item.name}-${index}`}>
+                      {item.quantity} x {item.name}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void confirmPendingOrder()}
+                    disabled={isConfirmingOrder || isLoading}
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isConfirmingOrder ? 'Sending...' : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingOrder(null)}
+                    disabled={isConfirmingOrder}
+                    className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {orderNotice ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+                {orderNotice}
+              </div>
+            ) : null}
+
             {isLoading ? (
               <div className="flex justify-start">
                 <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
@@ -181,11 +321,11 @@ const ChatBot: React.FC = () => {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-slate-500"
-                disabled={isLoading}
+                disabled={isLoading || isConfirmingOrder}
               />
               <button
                 type="submit"
-                disabled={isLoading || input.trim().length === 0}
+                disabled={isLoading || isConfirmingOrder || input.trim().length === 0}
                 className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Send
