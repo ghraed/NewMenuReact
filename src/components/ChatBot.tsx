@@ -44,6 +44,22 @@ const resolveApiBase = (): string => {
   return '/api';
 };
 
+const detectLanguageFromText = (text: string): 'ar' | 'fr' | 'en' => {
+  if (/[\u0600-\u06FF]/.test(text)) {
+    return 'ar';
+  }
+
+  if (/[àâçéèêëîïôûùüÿœæ]/i.test(text)) {
+    return 'fr';
+  }
+
+  if (/\b(bonjour|bonsoir|merci|s(?:'|’)il|je|voudrais|avec|sans|pour|menu|commande)\b/i.test(text)) {
+    return 'fr';
+  }
+
+  return 'en';
+};
+
 const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderData | null => {
   if (!raw || raw.action !== 'place_order' || !Array.isArray(raw.items)) {
     return null;
@@ -146,7 +162,7 @@ const ChatBot: React.FC = () => {
         body: JSON.stringify({
           message: content,
           conversation_id: conversationId,
-          language: document?.documentElement?.lang || 'en',
+          language: detectLanguageFromText(content),
         }),
       });
 
