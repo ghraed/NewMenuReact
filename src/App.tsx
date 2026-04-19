@@ -27,6 +27,7 @@ import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
+import ChatBot from './components/ChatBot';
 import { useTranslation } from 'react-i18next';
 
 const RoleHomeRedirect: React.FC = () => {
@@ -199,6 +200,7 @@ const App: React.FC = () => {
           <AppLocaleSync />
           <BrowserRouter>
             <AppRoutes />
+            <ChatBot />
           </BrowserRouter>
         </AppThemeProvider>
       </OrderCartProvider>
