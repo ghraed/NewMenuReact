@@ -547,8 +547,10 @@ const ChatBot: React.FC = () => {
   const chatRequestAbortRef = useRef<AbortController | null>(null);
   const orderRequestAbortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
-  const longPressTimerRef = useRef<number | null>(null);
-  const longPressActivatedRef = useRef(false);
+  const swipeStartXRef = useRef<number | null>(null);
+  const swipeStartYRef = useRef<number | null>(null);
+  const swipePreviewActivatedRef = useRef(false);
+  const swipeDishRef = useRef<ChatDishPreview | null>(null);
 
   const apiBase = useMemo(() => resolveApiBase(), []);
   const previousConversationScopeKeyRef = useRef(conversationScopeKey);
@@ -563,10 +565,6 @@ const ChatBot: React.FC = () => {
       isMountedRef.current = false;
       chatRequestAbortRef.current?.abort();
       orderRequestAbortRef.current?.abort();
-      if (longPressTimerRef.current !== null) {
-        window.clearTimeout(longPressTimerRef.current);
-        longPressTimerRef.current = null;
-      }
     };
   }, []);
 
@@ -680,11 +678,10 @@ const ChatBot: React.FC = () => {
 
   const closeDishPreview = () => setDishPreview(null);
 
-  const clearLongPressTimer = () => {
-    if (longPressTimerRef.current !== null) {
-      window.clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
+  const resetSwipeState = () => {
+    swipeStartXRef.current = null;
+    swipeStartYRef.current = null;
+    swipeDishRef.current = null;
   };
 
   const handleDishTouchStart = (
@@ -692,48 +689,64 @@ const ChatBot: React.FC = () => {
     href: string,
     event: React.TouchEvent<HTMLAnchorElement>
   ) => {
-    longPressActivatedRef.current = false;
-    clearLongPressTimer();
-
-    longPressTimerRef.current = window.setTimeout(() => {
-      longPressActivatedRef.current = true;
-      setDishPreview({
-        name: dish.name,
-        href,
-        imageUrl: dish.imageUrl,
-      });
-
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-        navigator.vibrate(20);
-      }
-    }, 450);
+    const touch = event.touches[0];
+    swipeStartXRef.current = touch?.clientX ?? null;
+    swipeStartYRef.current = touch?.clientY ?? null;
+    swipePreviewActivatedRef.current = false;
+    swipeDishRef.current = {
+      name: dish.name,
+      href,
+      imageUrl: dish.imageUrl,
+    };
 
     event.currentTarget.addEventListener(
       'click',
       (clickEvent) => {
-        if (longPressActivatedRef.current) {
+        if (swipePreviewActivatedRef.current) {
           clickEvent.preventDefault();
           clickEvent.stopPropagation();
-          longPressActivatedRef.current = false;
+          swipePreviewActivatedRef.current = false;
         }
       },
       { once: true }
     );
+
   };
 
   const handleDishTouchEnd = (event: React.TouchEvent<HTMLAnchorElement>) => {
-    clearLongPressTimer();
-    if (longPressActivatedRef.current) {
+    resetSwipeState();
+    if (swipePreviewActivatedRef.current) {
       event.preventDefault();
       event.stopPropagation();
     }
   };
 
   const handleDishTouchMove = (event: React.TouchEvent<HTMLAnchorElement>) => {
-    clearLongPressTimer();
-    if (longPressActivatedRef.current) {
+    const startX = swipeStartXRef.current;
+    const startY = swipeStartYRef.current;
+    const touch = event.touches[0];
+    if (startX === null || startY === null || !touch || swipePreviewActivatedRef.current) {
+      return;
+    }
+
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Trigger preview on intentional horizontal swipe only.
+    if (absX >= 42 && absX > absY * 1.4) {
+      const preview = swipeDishRef.current;
+      if (preview) {
+        setDishPreview((current) => current ?? preview);
+      }
+      swipePreviewActivatedRef.current = true;
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(16);
+      }
       event.preventDefault();
       event.stopPropagation();
+      resetSwipeState();
     }
   };
 
