@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useOrderCart } from '../contexts/useOrderCart';
+import api, { resolveAssetUrl } from '../services/api';
+import { fetchGuestTableMenu } from '../services/orderService';
+import type { Dish } from '../types';
+import { buildGuestDishPath } from '../utils/guestTableRoutes';
 
 type Role = 'user' | 'assistant';
 type SupportedLanguage = 'ar' | 'fr' | 'en';
@@ -33,6 +37,19 @@ interface ChatApiResponse {
 interface ChatRestaurantContext {
   restaurant_slug?: string;
   table_id?: number;
+}
+
+interface ChatDishLink {
+  id: number;
+  name: string;
+  normalized: string;
+  imageUrl?: string;
+}
+
+interface ChatDishPreview {
+  name: string;
+  href: string;
+  imageUrl?: string;
 }
 
 interface StoredChatState {
@@ -147,7 +164,113 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
   };
 };
 
-const renderChatText = (text: string): React.ReactNode => {
+const normalizeDishName = (value: string): string => value.trim().toLowerCase();
+
+const buildDishHref = (
+  dishId: number,
+  context: ChatRestaurantContext
+): string | null => {
+  if (context.table_id && Number.isFinite(context.table_id) && context.table_id > 0) {
+    return buildGuestDishPath(context.table_id, dishId);
+  }
+
+  if (context.restaurant_slug) {
+    return `/menu/${encodeURIComponent(context.restaurant_slug)}/dish/${dishId}`;
+  }
+
+  return null;
+};
+
+const findNextDishMatch = (
+  sourceText: string,
+  fromIndex: number,
+  dishes: ChatDishLink[]
+): { start: number; end: number; dish: ChatDishLink } | null => {
+  const lowered = sourceText.toLowerCase();
+  let best: { start: number; end: number; dish: ChatDishLink } | null = null;
+
+  for (const dish of dishes) {
+    const start = lowered.indexOf(dish.normalized, fromIndex);
+    if (start < 0) {
+      continue;
+    }
+
+    const end = start + dish.normalized.length;
+
+    if (
+      !best
+      || start < best.start
+      || (start === best.start && dish.normalized.length > (best.end - best.start))
+    ) {
+      best = { start, end, dish };
+    }
+  }
+
+  return best;
+};
+
+const renderTextWithDishLinks = (
+  text: string,
+  dishes: ChatDishLink[],
+  context: ChatRestaurantContext,
+  keyPrefix: string,
+  onDishTouchStart: (dish: ChatDishLink, href: string, event: React.TouchEvent<HTMLAnchorElement>) => void,
+  onDishTouchEnd: (event: React.TouchEvent<HTMLAnchorElement>) => void,
+  onDishTouchMove: (event: React.TouchEvent<HTMLAnchorElement>) => void
+): React.ReactNode[] => {
+  if (dishes.length === 0) {
+    return [text];
+  }
+
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const match = findNextDishMatch(text, cursor, dishes);
+    if (!match) {
+      nodes.push(text.slice(cursor));
+      break;
+    }
+
+    if (match.start > cursor) {
+      nodes.push(text.slice(cursor, match.start));
+    }
+
+    const label = text.slice(match.start, match.end);
+    const href = buildDishHref(match.dish.id, context);
+
+    if (href) {
+      nodes.push(
+        <a
+          key={`${keyPrefix}-dish-${match.start}-${match.dish.id}`}
+          href={href}
+          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100/80 px-2 py-0.5 font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
+          onTouchStart={(event) => onDishTouchStart(match.dish, href, event)}
+          onTouchEnd={onDishTouchEnd}
+          onTouchCancel={onDishTouchEnd}
+          onTouchMove={onDishTouchMove}
+        >
+          {label}
+        </a>
+      );
+    } else {
+      nodes.push(label);
+    }
+
+    cursor = match.end;
+  }
+
+  return nodes;
+};
+
+const renderChatText = (
+  text: string,
+  dishes: ChatDishLink[],
+  context: ChatRestaurantContext,
+  onDishTouchStart: (dish: ChatDishLink, href: string, event: React.TouchEvent<HTMLAnchorElement>) => void,
+  onDishTouchEnd: (event: React.TouchEvent<HTMLAnchorElement>) => void,
+  onDishTouchMove: (event: React.TouchEvent<HTMLAnchorElement>) => void
+): React.ReactNode => {
   const normalized = text.replace(/\r\n/g, '\n');
   const lines = normalized.split('\n');
 
@@ -159,12 +282,31 @@ const renderChatText = (text: string): React.ReactNode => {
 
     while (match) {
       if (match.index > lastIndex) {
-        chunks.push(line.slice(lastIndex, match.index));
+        const plainText = line.slice(lastIndex, match.index);
+        chunks.push(
+          ...renderTextWithDishLinks(
+            plainText,
+            dishes,
+            context,
+            `p-${lineIndex}-${lastIndex}`,
+            onDishTouchStart,
+            onDishTouchEnd,
+            onDishTouchMove
+          )
+        );
       }
 
       chunks.push(
         <strong key={`b-${lineIndex}-${match.index}`} className="font-semibold">
-          {match[1]}
+          {renderTextWithDishLinks(
+            match[1],
+            dishes,
+            context,
+            `b-${lineIndex}-${match.index}`,
+            onDishTouchStart,
+            onDishTouchEnd,
+            onDishTouchMove
+          )}
         </strong>
       );
 
@@ -173,11 +315,31 @@ const renderChatText = (text: string): React.ReactNode => {
     }
 
     if (lastIndex < line.length) {
-      chunks.push(line.slice(lastIndex));
+      chunks.push(
+        ...renderTextWithDishLinks(
+          line.slice(lastIndex),
+          dishes,
+          context,
+          `t-${lineIndex}-${lastIndex}`,
+          onDishTouchStart,
+          onDishTouchEnd,
+          onDishTouchMove
+        )
+      );
     }
 
     if (chunks.length === 0) {
-      chunks.push(line);
+      chunks.push(
+        ...renderTextWithDishLinks(
+          line,
+          dishes,
+          context,
+          `e-${lineIndex}`,
+          onDishTouchStart,
+          onDishTouchEnd,
+          onDishTouchMove
+        )
+      );
     }
 
     return (
@@ -377,12 +539,16 @@ const ChatBot: React.FC = () => {
     () => initialStoredStateRef.current?.pendingOrder ?? null
   );
   const [orderNotice, setOrderNotice] = useState<string | null>(null);
+  const [chatDishes, setChatDishes] = useState<ChatDishLink[]>([]);
+  const [dishPreview, setDishPreview] = useState<ChatDishPreview | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const chatRequestAbortRef = useRef<AbortController | null>(null);
   const orderRequestAbortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressActivatedRef = useRef(false);
 
   const apiBase = useMemo(() => resolveApiBase(), []);
   const previousConversationScopeKeyRef = useRef(conversationScopeKey);
@@ -397,6 +563,10 @@ const ChatBot: React.FC = () => {
       isMountedRef.current = false;
       chatRequestAbortRef.current?.abort();
       orderRequestAbortRef.current?.abort();
+      if (longPressTimerRef.current !== null) {
+        window.clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -428,6 +598,74 @@ const ChatBot: React.FC = () => {
     });
   }, [conversationScopeKey, conversationId, messages, pendingOrder]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateDishes = async () => {
+      const tableId = chatContext.table_id;
+      const restaurantSlug = chatContext.restaurant_slug;
+
+      if (!tableId && !restaurantSlug) {
+        setChatDishes([]);
+        return;
+      }
+
+      try {
+        let dishes: Dish[] = [];
+
+        if (tableId) {
+          const response = await fetchGuestTableMenu(tableId, draft.guestAccessToken);
+          dishes = response.dishes;
+        } else if (restaurantSlug) {
+          const response = await api.get<{ dishes: Dish[] }>(`/menu/${restaurantSlug}/dishes`);
+          dishes = response.data.dishes;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const dedupe = new Map<string, ChatDishLink>();
+
+        dishes.forEach((dish) => {
+          const variants = [dish.name, dish.name_ar].filter(
+            (value): value is string => typeof value === 'string' && value.trim() !== ''
+          );
+
+          variants.forEach((variant) => {
+            const normalized = normalizeDishName(variant);
+            if (!normalized || dedupe.has(normalized)) {
+              return;
+            }
+
+            dedupe.set(normalized, {
+              id: dish.id,
+              name: variant.trim(),
+              normalized,
+              imageUrl: resolveAssetUrl(
+                dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url
+                || dish.image_url
+                || dish.assets.find((asset) => asset.asset_type === 'ingredient_image')?.file_url
+              ),
+            });
+          });
+        });
+
+        setChatDishes(Array.from(dedupe.values()));
+      } catch {
+        if (!cancelled) {
+          setChatDishes([]);
+        }
+      }
+    };
+
+    void hydrateDishes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken]);
+
   const pushMessage = (role: Role, content: string) => {
     setMessages((prev) => [
       ...prev,
@@ -438,6 +676,65 @@ const ChatBot: React.FC = () => {
         createdAt: new Date().toISOString(),
       },
     ]);
+  };
+
+  const closeDishPreview = () => setDishPreview(null);
+
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleDishTouchStart = (
+    dish: ChatDishLink,
+    href: string,
+    event: React.TouchEvent<HTMLAnchorElement>
+  ) => {
+    longPressActivatedRef.current = false;
+    clearLongPressTimer();
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressActivatedRef.current = true;
+      setDishPreview({
+        name: dish.name,
+        href,
+        imageUrl: dish.imageUrl,
+      });
+
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(20);
+      }
+    }, 450);
+
+    event.currentTarget.addEventListener(
+      'click',
+      (clickEvent) => {
+        if (longPressActivatedRef.current) {
+          clickEvent.preventDefault();
+          clickEvent.stopPropagation();
+          longPressActivatedRef.current = false;
+        }
+      },
+      { once: true }
+    );
+  };
+
+  const handleDishTouchEnd = (event: React.TouchEvent<HTMLAnchorElement>) => {
+    clearLongPressTimer();
+    if (longPressActivatedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  const handleDishTouchMove = (event: React.TouchEvent<HTMLAnchorElement>) => {
+    clearLongPressTimer();
+    if (longPressActivatedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   };
 
   const clearConversation = () => {
@@ -624,7 +921,14 @@ const ChatBot: React.FC = () => {
                       : 'rounded-bl-md border border-slate-200 bg-white text-slate-800',
                   ].join(' ')}
                 >
-                  {renderChatText(msg.content)}
+                  {renderChatText(
+                    msg.content,
+                    msg.role === 'assistant' ? chatDishes : [],
+                    chatContext,
+                    handleDishTouchStart,
+                    handleDishTouchEnd,
+                    handleDishTouchMove
+                  )}
                 </div>
               </div>
             ))}
@@ -727,6 +1031,39 @@ const ChatBot: React.FC = () => {
           <span className="text-xl">💬</span>
         </button>
       )}
+
+      {dishPreview ? (
+        <div className="fixed inset-0 z-[1100] flex items-end justify-center bg-slate-900/60 p-4 sm:items-center">
+          <button
+            type="button"
+            aria-label="Close preview"
+            className="absolute inset-0 cursor-default"
+            onClick={closeDishPreview}
+          />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/20 bg-white shadow-2xl">
+            {dishPreview.imageUrl ? (
+              <img
+                src={dishPreview.imageUrl}
+                alt={dishPreview.name}
+                className="h-56 w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-sm font-medium text-slate-500">
+                No image available
+              </div>
+            )}
+            <div className="space-y-3 p-4">
+              <p className="text-base font-semibold text-slate-900">{dishPreview.name}</p>
+              <a
+                href={dishPreview.href}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+              >
+                Open dish details
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
