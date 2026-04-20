@@ -107,8 +107,11 @@ export interface IngredientLibraryItem {
   uuid: string;
   name: string;
   name_ar?: string | null;
+  category?: string | null;
   global_ingredient_id?: number | null;
   file_url?: string | null;
+  image_url?: string | null;
+  image_status?: 'exists' | 'missing' | 'generating' | 'failed';
   source_file_name?: string | null;
   file_size?: number | null;
   mime_type?: string | null;

@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
-import IngredientLibraryPage from './pages/IngredientLibraryPage';
+import IngredientLibrary from './pages/IngredientLibrary';
 import AdminIngredientsPage from './pages/AdminIngredientsPage';
 import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
 import AdminDishPage from './pages/AdminDishPage';
@@ -99,7 +99,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/ingredients/library"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <IngredientLibraryPage />
+              <IngredientLibrary />
             </ProtectedRoute>
           )}
         />
