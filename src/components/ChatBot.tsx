@@ -169,7 +169,7 @@ const parsePathRestaurantContext = (pathname: string): ChatRestaurantContext => 
 
 const ChatBot: React.FC = () => {
   const location = useLocation();
-  const { restaurant, draft } = useOrderCart();
+  const { restaurant } = useOrderCart();
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -192,9 +192,10 @@ const ChatBot: React.FC = () => {
 
     return {
       restaurant_slug: fromPath.restaurant_slug ?? restaurant?.slug,
-      table_id: fromPath.table_id ?? draft.tableId ?? undefined,
+      // Only send table context when URL is explicitly table-scoped.
+      table_id: fromPath.table_id,
     };
-  }, [location.pathname, restaurant?.slug, draft.tableId]);
+  }, [location.pathname, restaurant?.slug]);
   const chatContextKey = `${chatContext.restaurant_slug ?? 'none'}::${chatContext.table_id ?? 'none'}`;
   const previousChatContextKeyRef = useRef(chatContextKey);
 
