@@ -139,6 +139,48 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
   };
 };
 
+const renderChatText = (text: string): React.ReactNode => {
+  const normalized = text.replace(/\r\n/g, '\n');
+  const lines = normalized.split('\n');
+
+  return lines.map((line, lineIndex) => {
+    const chunks: React.ReactNode[] = [];
+    const boldPattern = /\*\*(.+?)\*\*/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null = boldPattern.exec(line);
+
+    while (match) {
+      if (match.index > lastIndex) {
+        chunks.push(line.slice(lastIndex, match.index));
+      }
+
+      chunks.push(
+        <strong key={`b-${lineIndex}-${match.index}`} className="font-semibold">
+          {match[1]}
+        </strong>
+      );
+
+      lastIndex = match.index + match[0].length;
+      match = boldPattern.exec(line);
+    }
+
+    if (lastIndex < line.length) {
+      chunks.push(line.slice(lastIndex));
+    }
+
+    if (chunks.length === 0) {
+      chunks.push(line);
+    }
+
+    return (
+      <React.Fragment key={`line-${lineIndex}`}>
+        {chunks}
+        {lineIndex < lines.length - 1 ? <br /> : null}
+      </React.Fragment>
+    );
+  });
+};
+
 const safeDecodePathSegment = (value: string): string => {
   try {
     return decodeURIComponent(value);
@@ -427,7 +469,7 @@ const ChatBot: React.FC = () => {
                       : 'rounded-bl-md border border-slate-200 bg-white text-slate-800',
                   ].join(' ')}
                 >
-                  {msg.content}
+                  {renderChatText(msg.content)}
                 </div>
               </div>
             ))}
