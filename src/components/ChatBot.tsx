@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useOrderCart } from '../contexts/useOrderCart';
 
 type Role = 'user' | 'assistant';
 type SupportedLanguage = 'ar' | 'fr' | 'en';
@@ -26,6 +28,11 @@ interface ChatApiResponse {
     action?: string;
     items?: unknown;
   };
+}
+
+interface ChatRestaurantContext {
+  restaurant_slug?: string;
+  table_id?: number;
 }
 
 const makeId = (): string => {
@@ -132,7 +139,38 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
   };
 };
 
+const safeDecodePathSegment = (value: string): string => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const parsePathRestaurantContext = (pathname: string): ChatRestaurantContext => {
+  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+  const tableMatch = normalizedPath.match(/^\/menu\/table\/(\d+)(?:\/|$)/i);
+
+  if (tableMatch) {
+    return {
+      table_id: Number(tableMatch[1]),
+    };
+  }
+
+  const restaurantMatch = normalizedPath.match(/^\/menu\/([^/]+)(?:\/|$)/i);
+  if (restaurantMatch && restaurantMatch[1].toLowerCase() !== 'table') {
+    return {
+      restaurant_slug: safeDecodePathSegment(restaurantMatch[1]),
+    };
+  }
+
+  return {};
+};
+
 const ChatBot: React.FC = () => {
+  const location = useLocation();
+  const { restaurant, draft } = useOrderCart();
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -149,6 +187,16 @@ const ChatBot: React.FC = () => {
   const isMountedRef = useRef(true);
 
   const apiBase = useMemo(() => resolveApiBase(), []);
+  const chatContext = useMemo<ChatRestaurantContext>(() => {
+    const fromPath = parsePathRestaurantContext(location.pathname);
+
+    return {
+      restaurant_slug: fromPath.restaurant_slug ?? restaurant?.slug,
+      table_id: fromPath.table_id ?? draft.tableId ?? undefined,
+    };
+  }, [location.pathname, restaurant?.slug, draft.tableId]);
+  const chatContextKey = `${chatContext.restaurant_slug ?? 'none'}::${chatContext.table_id ?? 'none'}`;
+  const previousChatContextKeyRef = useRef(chatContextKey);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -167,6 +215,20 @@ const ChatBot: React.FC = () => {
     if (!listRef.current) return;
     listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages, isLoading, pendingOrder, isConfirmingOrder, orderNotice]);
+
+  useEffect(() => {
+    if (previousChatContextKeyRef.current === chatContextKey) {
+      return;
+    }
+
+    previousChatContextKeyRef.current = chatContextKey;
+    chatRequestAbortRef.current?.abort();
+    orderRequestAbortRef.current?.abort();
+    setMessages([]);
+    setConversationId(makeId());
+    setPendingOrder(null);
+    setOrderNotice(null);
+  }, [chatContextKey]);
 
   const pushMessage = (role: Role, content: string) => {
     setMessages((prev) => [
@@ -214,6 +276,8 @@ const ChatBot: React.FC = () => {
           message: content,
           conversation_id: conversationId,
           language: detectLanguageFromText(content),
+          restaurant_slug: chatContext.restaurant_slug,
+          table_id: chatContext.table_id,
         }),
       });
       window.clearTimeout(timeoutId);
