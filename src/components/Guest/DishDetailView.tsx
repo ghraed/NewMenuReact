@@ -34,7 +34,9 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
-  const hasIngredientStory = dish.assets.some((asset) => asset.asset_type === 'ingredient_image');
+  const hasIngredientStory = (dish.dish_ingredients || []).some(
+    (row) => row.show_in_animation !== false
+  );
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
   const alternativeDishes = dish.alternative_dishes || [];
   const suggestedDishes = dish.suggested_dishes || [];

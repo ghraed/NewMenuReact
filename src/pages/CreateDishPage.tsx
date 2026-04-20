@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
-import type { Dish, IngredientLibraryItem, InventoryIngredient } from '../types';
+import type { Dish, InventoryIngredient } from '../types';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -12,25 +12,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
     if (response?.data?.message) return response.data.message;
   }
   return fallback;
-};
-
-const uploadIngredientLayers = async (dishId: number, ingredientLayers: DishFormData['ingredient_layers']) => {
-  for (const [index, ingredient] of ingredientLayers.entries()) {
-    const payload = new FormData();
-    payload.append('type', 'ingredient_image');
-    payload.append('label', ingredient.name);
-    payload.append('order_index', String(index));
-
-    if (ingredient.library_ingredient_id) {
-      payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
-    } else {
-      continue;
-    }
-
-    await api.post(`/dishes/${dishId}/assets`, payload, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  }
 };
 
 const extractDishOptions = (payload: unknown): Dish[] => {
@@ -59,7 +40,6 @@ const CreateDishPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-  const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
   const [recipeIngredientOptions, setRecipeIngredientOptions] = useState<InventoryIngredient[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
@@ -67,8 +47,7 @@ const CreateDishPage: React.FC = () => {
   useEffect(() => {
     const fetchFormOptions = async () => {
       try {
-        const [ingredientLibraryResult, inventoryIngredientsResult, dishOptionsResult] = await Promise.allSettled([
-          api.get('/ingredients'),
+        const [inventoryIngredientsResult, dishOptionsResult] = await Promise.allSettled([
           api.get('/inventory/ingredients'),
           api.get('/dishes', {
             params: {
@@ -77,13 +56,6 @@ const CreateDishPage: React.FC = () => {
             },
           }),
         ]);
-
-        if (ingredientLibraryResult.status === 'fulfilled') {
-          setIngredientLibrary(Array.isArray(ingredientLibraryResult.value.data) ? ingredientLibraryResult.value.data : []);
-        } else {
-          console.error(ingredientLibraryResult.reason);
-          setIngredientLibrary([]);
-        }
 
         if (inventoryIngredientsResult.status === 'fulfilled') {
           const payload = inventoryIngredientsResult.value.data;
@@ -128,6 +100,8 @@ const CreateDishPage: React.FC = () => {
       dishData.recipe_ingredients.forEach((recipeItem, index) => {
         formData.append(`recipe_ingredients[${index}][ingredient_id]`, String(recipeItem.ingredient_id));
         formData.append(`recipe_ingredients[${index}][quantity_required]`, recipeItem.quantity_required);
+        formData.append(`recipe_ingredients[${index}][order_index]`, String(recipeItem.order_index));
+        formData.append(`recipe_ingredients[${index}][show_in_animation]`, recipeItem.show_in_animation ? '1' : '0');
       });
 
       if (dishData.glb_file) formData.append('glb_file', dishData.glb_file);
@@ -147,8 +121,6 @@ const CreateDishPage: React.FC = () => {
         });
       }
 
-      await uploadIngredientLayers(response.data.id, dishData.ingredient_layers);
-
       navigate('/admin/dashboard');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('createDish.failed')));
@@ -167,7 +139,6 @@ const CreateDishPage: React.FC = () => {
       <DishForm
         onSubmit={handleSubmit}
         allowDishNameSelection
-        ingredientLibrary={ingredientLibrary}
         recipeIngredientOptions={recipeIngredientOptions}
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}

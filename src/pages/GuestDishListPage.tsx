@@ -33,26 +33,12 @@ const normalizeIngredientName = (value?: string | null) => (
   (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
 );
 
-const getIngredientLabel = (dish: Dish, asset: Dish['assets'][number]) => {
-  const metadataLabel = asset.metadata?.label;
-  if (typeof metadataLabel === 'string' && metadataLabel.trim()) {
-    return metadataLabel.trim();
-  }
-
-  const fileName = asset.metadata?.file_name;
-  if (typeof fileName === 'string' && fileName.trim()) {
-    return fileName.replace(/\.[^.]+$/, '').replace(/-/g, ' ').trim();
-  }
-
-  return `${dish.name} ingredient`;
-};
-
 const getDishIngredients = (dish: Dish) => {
   const seen = new Set<string>();
 
-  return dish.assets
-    .filter((asset) => asset.asset_type === 'ingredient_image')
-    .map((asset) => getIngredientLabel(dish, asset))
+  return (dish.dish_ingredients || [])
+    .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
+    .map((row) => row.ingredient?.name || '')
     .filter((label) => {
       const normalized = normalizeIngredientName(label);
 

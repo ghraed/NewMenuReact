@@ -113,7 +113,7 @@ const dishToCartItem = (dish: Dish, quantity: number): OrderCartItem => ({
   previewImageUrl: resolveAssetUrl(
     dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url
       || dish.image_url
-      || dish.assets.find((asset) => asset.asset_type === 'ingredient_image')?.file_url
+      || dish.dish_ingredients?.find((row) => row.ingredient?.file_url)?.ingredient?.file_url
   ),
 });
 

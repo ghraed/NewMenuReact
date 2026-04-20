@@ -13,90 +13,11 @@ import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { translateIngredientLabel } from '../../i18n/ingredients';
 import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
-import type { IngredientLibraryItem, InventoryIngredient } from '../../types';
-import { resolveAssetUrl } from '../../services/api';
+import type { InventoryIngredient } from '../../types';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-const normalizeIngredientLookupValue = (value?: string | null): string => (
-  (value || '').trim().toLowerCase().replace(/\s+/g, ' ')
-);
-
-export interface DishIngredientLayerData {
-  client_id: string;
-  asset_id?: number;
-  name: string;
-  custom_name: string;
-  image_url: string | null;
-  existing_image_url: string | null;
-  existing_file_name?: string | null;
-  library_image_url?: string | null;
-  library_ingredient_id: number | null;
-  initial_library_ingredient_id: number | null;
-  file_name?: string | null;
-}
-
-export interface ExistingDishIngredientLayer {
-  asset_id: number;
-  name: string;
-  quantity?: string | null;
-  image_url: string | null;
-  library_ingredient_id?: number | null;
-  file_name?: string | null;
-  order_index?: number;
-}
-
-const createIngredientLayer = (
-  initial?: Partial<DishIngredientLayerData>
-): DishIngredientLayerData => ({
-  client_id: createClientId(),
-  asset_id: initial?.asset_id,
-  name: initial?.name || '',
-  custom_name: initial?.custom_name || '',
-  image_url: initial?.image_url || initial?.existing_image_url || null,
-  existing_image_url: initial?.existing_image_url || initial?.image_url || null,
-  existing_file_name: initial?.existing_file_name || initial?.file_name || null,
-  library_image_url: initial?.library_image_url || null,
-  library_ingredient_id: initial?.library_ingredient_id ?? null,
-  initial_library_ingredient_id: initial?.initial_library_ingredient_id ?? initial?.library_ingredient_id ?? null,
-  file_name: initial?.file_name || null,
-});
-
-const findMatchingLibraryIngredient = (
-  layer: Pick<DishIngredientLayerData, 'name' | 'existing_file_name' | 'file_name' | 'library_ingredient_id'>,
-  ingredientLibrary: IngredientLibraryItem[]
-): IngredientLibraryItem | null => {
-  if (layer.library_ingredient_id !== null) {
-    const byId = ingredientLibrary.find((ingredient) => ingredient.id === layer.library_ingredient_id);
-    if (byId) {
-      return byId;
-    }
-  }
-
-  const normalizedLabel = normalizeIngredientLookupValue(layer.name);
-  if (normalizedLabel) {
-    const byName = ingredientLibrary.find(
-      (ingredient) => normalizeIngredientLookupValue(ingredient.name) === normalizedLabel
-    );
-    if (byName) {
-      return byName;
-    }
-  }
-
-  const normalizedFileName = normalizeIngredientLookupValue(layer.existing_file_name || layer.file_name);
-  if (normalizedFileName) {
-    const byFileName = ingredientLibrary.find(
-      (ingredient) => normalizeIngredientLookupValue(ingredient.source_file_name) === normalizedFileName
-    );
-    if (byFileName) {
-      return byFileName;
-    }
-  }
-
-  return null;
-};
 
 export interface DishFormData {
   name: string;
@@ -109,19 +30,22 @@ export interface DishFormData {
   usdz_file: File | null;
   suggested_dish_ids: number[];
   related_dish_ids: number[];
-  ingredient_layers: DishIngredientLayerData[];
   recipe_ingredients: DishRecipeIngredientInput[];
 }
 
 export interface DishRecipeIngredientInput {
   ingredient_id: number;
   quantity_required: string;
+  order_index: number;
+  show_in_animation: boolean;
 }
 
 interface DishRecipeIngredientRow {
   client_id: string;
   ingredient_id: number | null;
   quantity_required: string;
+  order_index: number;
+  show_in_animation: boolean;
 }
 
 interface DishFormState extends Omit<DishFormData, 'recipe_ingredients'> {
@@ -134,6 +58,8 @@ const createRecipeIngredientRow = (
   client_id: createClientId(),
   ingredient_id: initial?.ingredient_id ?? null,
   quantity_required: initial?.quantity_required ?? '',
+  order_index: initial?.order_index ?? 0,
+  show_in_animation: initial?.show_in_animation ?? true,
 });
 
 interface DishFormProps {
@@ -149,9 +75,7 @@ interface DishFormProps {
     previewImage?: string | null;
     previewImageUrl?: string | null;
     imageUrl?: string | null;
-    ingredients?: ExistingDishIngredientLayer[];
   };
-  ingredientLibrary?: IngredientLibraryItem[];
   recipeIngredientOptions?: InventoryIngredient[];
   suggestedDishOptions?: Array<{
     id: number;
@@ -175,7 +99,6 @@ const DishForm: React.FC<DishFormProps> = ({
   submittingLabel = 'Saving...',
   allowDishNameSelection = false,
   existingFiles,
-  ingredientLibrary = [],
   recipeIngredientOptions = [],
   suggestedDishOptions = [],
   relatedDishOptions = [],
@@ -192,30 +115,12 @@ const DishForm: React.FC<DishFormProps> = ({
     usdz_file: null,
     suggested_dish_ids: initialValues?.suggested_dish_ids || [],
     related_dish_ids: initialValues?.related_dish_ids || [],
-    ingredient_layers: [...(existingFiles?.ingredients ?? [])]
-      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-      .map((ingredient) => {
-        const matchedIngredient = findMatchingLibraryIngredient({
-          name: ingredient.name,
-          existing_file_name: ingredient.file_name,
-          library_ingredient_id: ingredient.library_ingredient_id ?? null,
-          file_name: ingredient.file_name,
-        }, ingredientLibrary);
-
-        return createIngredientLayer({
-          asset_id: ingredient.asset_id,
-          name: ingredient.name,
-          image_url: ingredient.image_url,
-          existing_image_url: ingredient.image_url,
-          existing_file_name: ingredient.file_name,
-          library_ingredient_id: matchedIngredient?.id ?? ingredient.library_ingredient_id ?? null,
-          file_name: ingredient.file_name,
-        });
-      }),
     recipe_ingredients: (initialValues?.recipe_ingredients ?? []).map((recipeItem) =>
       createRecipeIngredientRow({
         ingredient_id: recipeItem.ingredient_id,
         quantity_required: recipeItem.quantity_required,
+        order_index: recipeItem.order_index,
+        show_in_animation: recipeItem.show_in_animation,
       })
     ),
   }));
@@ -225,16 +130,10 @@ const DishForm: React.FC<DishFormProps> = ({
   const [selectedDishDictionaryName, setSelectedDishDictionaryName] = useState('');
   const [dishNamePickerOpen, setDishNamePickerOpen] = useState(false);
   const [dishNameSearch, setDishNameSearch] = useState('');
-  const [openIngredientPickerId, setOpenIngredientPickerId] = useState<string | null>(null);
-  const [ingredientSearchQuery, setIngredientSearchQuery] = useState('');
   const [suggestedDishesPickerOpen, setSuggestedDishesPickerOpen] = useState(false);
   const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
   const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
   const [relatedDishesSearch, setRelatedDishesSearch] = useState('');
-
-  useEffect(() => {
-    setIngredientSearchQuery('');
-  }, [openIngredientPickerId]);
 
   useEffect(() => {
     setSuggestedDishesSearch('');
@@ -260,7 +159,6 @@ const DishForm: React.FC<DishFormProps> = ({
         return;
       }
 
-      setOpenIngredientPickerId(null);
       setSuggestedDishesPickerOpen(false);
       setRelatedDishesPickerOpen(false);
       setDishNamePickerOpen(false);
@@ -272,42 +170,6 @@ const DishForm: React.FC<DishFormProps> = ({
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, []);
-
-  useEffect(() => {
-    if (ingredientLibrary.length === 0) {
-      return;
-    }
-
-    setFormData((prev) => {
-      let hasChanges = false;
-
-      const nextLayers = prev.ingredient_layers.map((layer) => {
-        const matchedIngredient = findMatchingLibraryIngredient(layer, ingredientLibrary);
-
-        if (!matchedIngredient || layer.library_ingredient_id === matchedIngredient.id) {
-          return layer;
-        }
-
-        hasChanges = true;
-
-        return {
-          ...layer,
-          library_ingredient_id: matchedIngredient.id,
-          initial_library_ingredient_id: layer.initial_library_ingredient_id ?? matchedIngredient.id,
-          file_name: layer.file_name || matchedIngredient.source_file_name || null,
-        };
-      });
-
-      if (!hasChanges) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        ingredient_layers: nextLayers,
-      };
-    });
-  }, [ingredientLibrary]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -338,15 +200,6 @@ const DishForm: React.FC<DishFormProps> = ({
     return file.name.toLowerCase().endsWith(ext);
   };
 
-  const handleIngredientChange = (clientId: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      ingredient_layers: prev.ingredient_layers.map((layer) =>
-        layer.client_id === clientId ? { ...layer, name: value, custom_name: value } : layer
-      ),
-    }));
-  };
-
   const toggleSuggestedDish = (dishId: number) => {
     setFormData((prev) => ({
       ...prev,
@@ -365,97 +218,27 @@ const DishForm: React.FC<DishFormProps> = ({
     }));
   };
 
-  const handleIngredientLibraryChange = (
-    clientId: string,
-    ingredientIdValue: string
-  ) => {
-    const selectedIngredientId = ingredientIdValue ? Number(ingredientIdValue) : null;
-    const selectedIngredient = ingredientLibrary.find((ingredient) => ingredient.id === selectedIngredientId);
-
-    setFormData((prev) => ({
-      ...prev,
-      ingredient_layers: prev.ingredient_layers.map((layer) => {
-        if (layer.client_id !== clientId) {
-          return layer;
-        }
-
-        if (!selectedIngredient) {
-          return {
-            ...layer,
-            image_url: layer.existing_image_url,
-            library_image_url: null,
-            library_ingredient_id: null,
-            file_name: layer.existing_file_name,
-          };
-        }
-
-        return {
-          ...layer,
-          name: selectedIngredient.name,
-          image_url: resolveAssetUrl(selectedIngredient.file_url) || layer.image_url,
-          library_image_url: resolveAssetUrl(selectedIngredient.file_url) || null,
-          library_ingredient_id: selectedIngredient.id,
-          file_name: selectedIngredient.source_file_name || layer.file_name,
-        };
-      }),
-    }));
-  };
-
-  const addIngredientLayer = () => {
-    setFormData((prev) => ({
-      ...prev,
-      ingredient_layers: [...prev.ingredient_layers, createIngredientLayer()],
-    }));
-  };
-
-  const moveIngredientLayer = (clientId: string, direction: 'up' | 'down') => {
-    setFormData((prev) => {
-      const currentIndex = prev.ingredient_layers.findIndex((layer) => layer.client_id === clientId);
-
-      if (currentIndex === -1) {
-        return prev;
-      }
-
-      const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-
-      if (nextIndex < 0 || nextIndex >= prev.ingredient_layers.length) {
-        return prev;
-      }
-
-      const nextLayers = [...prev.ingredient_layers];
-      const [movedLayer] = nextLayers.splice(currentIndex, 1);
-      nextLayers.splice(nextIndex, 0, movedLayer);
-
-      return {
-        ...prev,
-        ingredient_layers: nextLayers,
-      };
-    });
-  };
-
-  const removeIngredientLayer = (clientId: string) => {
-    setFormData((prev) => {
-      setOpenIngredientPickerId((current) => (current === clientId ? null : current));
-
-      return {
-        ...prev,
-        ingredient_layers: prev.ingredient_layers.filter((layer) => layer.client_id !== clientId),
-      };
-    });
-  };
-
   const addRecipeIngredient = () => {
     setFormData((prev) => ({
       ...prev,
-      recipe_ingredients: [...prev.recipe_ingredients, createRecipeIngredientRow()],
+      recipe_ingredients: [
+        ...prev.recipe_ingredients,
+        createRecipeIngredientRow({ order_index: prev.recipe_ingredients.length, show_in_animation: true }),
+      ],
     }));
   };
 
   const removeRecipeIngredient = (clientId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      recipe_ingredients: prev.recipe_ingredients.filter((recipeItem) => recipeItem.client_id !== clientId),
-    }));
+    setFormData((prev) => {
+      const nextItems = prev.recipe_ingredients
+        .filter((recipeItem) => recipeItem.client_id !== clientId)
+        .map((recipeItem, index) => ({ ...recipeItem, order_index: index }));
+
+      return {
+        ...prev,
+        recipe_ingredients: nextItems,
+      };
+    });
   };
 
   const handleRecipeIngredientChange = (clientId: string, ingredientIdValue: string) => {
@@ -480,6 +263,42 @@ const DishForm: React.FC<DishFormProps> = ({
           : recipeItem
       )),
     }));
+  };
+
+  const handleRecipeAnimationToggle = (clientId: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      recipe_ingredients: prev.recipe_ingredients.map((recipeItem) => (
+        recipeItem.client_id === clientId
+          ? { ...recipeItem, show_in_animation: checked }
+          : recipeItem
+      )),
+    }));
+  };
+
+  const moveRecipeIngredient = (clientId: string, direction: 'up' | 'down') => {
+    setFormData((prev) => {
+      const currentIndex = prev.recipe_ingredients.findIndex((recipeItem) => recipeItem.client_id === clientId);
+
+      if (currentIndex === -1) {
+        return prev;
+      }
+
+      const nextIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+      if (nextIndex < 0 || nextIndex >= prev.recipe_ingredients.length) {
+        return prev;
+      }
+
+      const nextItems = [...prev.recipe_ingredients];
+      const [movedItem] = nextItems.splice(currentIndex, 1);
+      nextItems.splice(nextIndex, 0, movedItem);
+
+      return {
+        ...prev,
+        recipe_ingredients: nextItems.map((recipeItem, index) => ({ ...recipeItem, order_index: index })),
+      };
+    });
   };
 
   const recipeIngredientSelectOptions = recipeIngredientOptions.map((ingredient) => ({
@@ -559,30 +378,6 @@ const DishForm: React.FC<DishFormProps> = ({
       return;
     }
 
-    const normalizedIngredientLayers = formData.ingredient_layers
-      .map((layer) => ({
-        ...layer,
-        name: layer.name.trim(),
-      }))
-      .filter(
-        (layer) =>
-          layer.name.length > 0 ||
-          !!layer.existing_image_url ||
-          !!layer.library_ingredient_id
-      );
-
-    for (const [index, layer] of normalizedIngredientLayers.entries()) {
-      if (!layer.name) {
-        setFormError(`Ingredient ${index + 1} needs a label.`);
-        return;
-      }
-
-      if (!layer.library_ingredient_id) {
-        setFormError(`Ingredient ${index + 1} must be selected from the ingredient library.`);
-        return;
-      }
-    }
-
     const normalizedRecipeIngredients = formData.recipe_ingredients
       .map((recipeItem) => ({
         ...recipeItem,
@@ -627,10 +422,11 @@ const DishForm: React.FC<DishFormProps> = ({
         usdz_file: formData.usdz_file,
         suggested_dish_ids: formData.suggested_dish_ids,
         related_dish_ids: formData.related_dish_ids,
-        ingredient_layers: normalizedIngredientLayers,
         recipe_ingredients: normalizedRecipeIngredients.map((recipeItem) => ({
           ingredient_id: recipeItem.ingredient_id as number,
           quantity_required: recipeItem.quantity_required,
+          order_index: recipeItem.order_index,
+          show_in_animation: recipeItem.show_in_animation,
         })),
       };
 
@@ -1114,13 +910,33 @@ const DishForm: React.FC<DishFormProps> = ({
                         {t('dishForm.recipeIngredientRow', { index: index + 1 })}
                       </p>
                     </div>
-                    <LiquidButton
-                      type="button"
-                      tone="secondary"
-                      onClick={() => removeRecipeIngredient(recipeItem.client_id)}
-                    >
-                      {t('dishForm.removeRecipeIngredient')}
-                    </LiquidButton>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <LiquidButton
+                        type="button"
+                        tone="tertiary"
+                        onClick={() => moveRecipeIngredient(recipeItem.client_id, 'up')}
+                        disabled={index === 0}
+                        className="px-3 py-2 text-xs"
+                      >
+                        ↑ Up
+                      </LiquidButton>
+                      <LiquidButton
+                        type="button"
+                        tone="tertiary"
+                        onClick={() => moveRecipeIngredient(recipeItem.client_id, 'down')}
+                        disabled={index === formData.recipe_ingredients.length - 1}
+                        className="px-3 py-2 text-xs"
+                      >
+                        ↓ Down
+                      </LiquidButton>
+                      <LiquidButton
+                        type="button"
+                        tone="secondary"
+                        onClick={() => removeRecipeIngredient(recipeItem.client_id)}
+                      >
+                        {t('dishForm.removeRecipeIngredient')}
+                      </LiquidButton>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
@@ -1165,309 +981,28 @@ const DishForm: React.FC<DishFormProps> = ({
                           : t('dishForm.quantityRequiredHint')}
                       </p>
                     </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-text">
+                        {t('dishForm.showInAnimationLabel')}
+                      </label>
+                      <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-3">
+                        <GlassToggle
+                          checked={recipeItem.show_in_animation}
+                          onChange={(checked) => handleRecipeAnimationToggle(recipeItem.client_id, checked)}
+                          label={recipeItem.show_in_animation
+                            ? t('dishForm.showInAnimationOn')
+                            : t('dishForm.showInAnimationOff')}
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-muted">
+                        {t('dishForm.showInAnimationHint')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
-      </GlassSurface>
-
-      <GlassSurface className="relative z-20 overflow-visible space-y-5 p-5" sheen={false}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-medium text-text">{t('dishForm.ingredientLayersTitle')}</h3>
-            <p className="mt-1 text-sm text-muted">
-              {t('dishForm.ingredientLayersDescription')}
-            </p>
-            {ingredientLibrary.length > 0 && (
-              <p className="mt-2 text-xs text-gold2/85">
-                {t('dishForm.savedIngredientsHint')}
-              </p>
-            )}
-          </div>
-          {ingredientLibrary.length > 0 ? (
-            <LiquidButton type="button" tone="tertiary" onClick={addIngredientLayer}>
-              {t('dishForm.addIngredient')}
-            </LiquidButton>
-          ) : null}
-        </div>
-
-        {ingredientLibrary.length === 0 ? (
-          <div className="rounded-2xl border border-gold/25 bg-gold/10 px-4 py-5 text-sm text-gold2">
-            Build your ingredient library first, then come back to select dish ingredients here.
-            <div className="mt-3">
-              <Link to="/admin/ingredients/library">
-                <LiquidButton type="button" tone="tertiary" className="px-4 py-2 text-sm">
-                  {t('dishForm.openIngredientLibrary')}
-                </LiquidButton>
-              </Link>
-            </div>
-          </div>
-        ) : formData.ingredient_layers.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
-            {t('dishForm.noIngredientLayers')}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {formData.ingredient_layers.map((layer, index) => (
-              (() => {
-                const selectedLibraryIngredient = ingredientLibrary.find(
-                  (ingredient) => ingredient.id === layer.library_ingredient_id
-                ) ?? null;
-                const selectedLibraryThumbnail = selectedLibraryIngredient
-                  ? resolveAssetUrl(selectedLibraryIngredient.file_url)
-                  : null;
-                const ingredientPickerOpen = openIngredientPickerId === layer.client_id;
-                const normalizedSearchQuery = ingredientSearchQuery.trim().toLowerCase();
-                const filteredIngredientLibrary = ingredientLibrary.filter((ingredient) => {
-                  if (!normalizedSearchQuery) {
-                    return true;
-                  }
-
-                  const searchableText = `${ingredient.name} ${ingredient.name_ar || ''} ${ingredient.source_file_name || ''}`.toLowerCase();
-                  return searchableText.includes(normalizedSearchQuery);
-                });
-                const visibleIngredients = selectedLibraryIngredient
-                  ? [
-                    selectedLibraryIngredient,
-                    ...filteredIngredientLibrary.filter((ingredient) => ingredient.id !== selectedLibraryIngredient.id),
-                  ]
-                  : filteredIngredientLibrary;
-
-                return (
-                  <div
-                    key={layer.client_id}
-                    className="min-w-0 rounded-[26px] border border-white/10 bg-white/[0.035] p-4"
-                  >
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-text">Ingredient {index + 1}</p>
-                        <p className="mt-1 text-xs text-muted">
-                          Pick a saved ingredient and keep the order aligned with the story you want guests to see.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <LiquidButton
-                          type="button"
-                          tone="tertiary"
-                          onClick={() => moveIngredientLayer(layer.client_id, 'up')}
-                          disabled={index === 0}
-                          className="px-3 py-2 text-xs"
-                        >
-                          ↑ Up
-                        </LiquidButton>
-                        <LiquidButton
-                          type="button"
-                          tone="tertiary"
-                          onClick={() => moveIngredientLayer(layer.client_id, 'down')}
-                          disabled={index === formData.ingredient_layers.length - 1}
-                          className="px-3 py-2 text-xs"
-                        >
-                          ↓ Down
-                        </LiquidButton>
-                        <LiquidButton
-                          type="button"
-                          tone="secondary"
-                          onClick={() => removeIngredientLayer(layer.client_id)}
-                        >
-                          Remove
-                        </LiquidButton>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-[160px_minmax(0,1fr)]">
-                      <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/45">
-                        {layer.image_url ? (
-                          <img
-                            src={layer.image_url}
-                            alt={layer.name || `Ingredient ${index + 1}`}
-                            className="h-36 w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-36 items-center justify-center px-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
-                            Pick Ingredient
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          {ingredientLibrary.length > 0 && (
-                            <div className="relative z-20 min-w-0 md:col-span-2" data-admin-overlay-root="true">
-                              <label className="mb-1 block text-sm font-medium text-text">Choose Ingredient</label>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setOpenIngredientPickerId((current) =>
-                                    current === layer.client_id ? null : layer.client_id
-                                  )
-                                }
-                                className={cx(
-                                  'flex w-full min-w-0 items-center justify-between gap-3 rounded-[24px] border px-4 py-3 text-left',
-                                  glassControl,
-                                  focusRing
-                                )}
-                                aria-expanded={ingredientPickerOpen}
-                              >
-                                <div className="flex min-w-0 items-center gap-3">
-                                  <div className="h-11 w-11 shrink-0 overflow-hidden rounded-[18px] border border-white/12 bg-black/20">
-                                    {selectedLibraryThumbnail ? (
-                                      <img
-                                        src={selectedLibraryThumbnail}
-                                        alt={selectedLibraryIngredient?.name || 'Ingredient thumbnail'}
-                                        className="h-full w-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
-                                        Pick
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-text">
-                                      {selectedLibraryIngredient?.name || 'Choose ingredient'}
-                                    </p>
-                                    <p className="truncate text-xs text-muted">
-                                      {selectedLibraryIngredient
-                                        ? 'Saved ingredient selected'
-                                        : 'Pick from your ingredient library'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="shrink-0 text-muted2">{ingredientPickerOpen ? '▴' : '▾'}</span>
-                              </button>
-
-                              {ingredientPickerOpen && (
-                                <div
-                                  className={cx(
-                                    'absolute left-0 right-0 top-full z-40 mt-3 max-w-full overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2 backdrop-blur-xl',
-                                    'supports-[backdrop-filter]:bg-bg1/95'
-                                  )}
-                                >
-                                  <div className="mb-2">
-                                    <GlassInput
-                                      type="text"
-                                      value={ingredientSearchQuery}
-                                      onChange={(event) => setIngredientSearchQuery(event.target.value)}
-                                      placeholder="Search ingredients"
-                                      leftSlot={<span>🔎</span>}
-                                      className="min-w-0"
-                                    />
-                                  </div>
-
-                                  {layer.library_ingredient_id !== null && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleIngredientLibraryChange(layer.client_id, '');
-                                        setOpenIngredientPickerId(null);
-                                      }}
-                                      className="mb-2 flex w-full items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-gold2 transition"
-                                    >
-                                      Clear saved ingredient
-                                    </button>
-                                  )}
-
-                                  <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-                                    {selectedLibraryIngredient && (
-                                      <div className="px-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold2/80">
-                                        Selected
-                                      </div>
-                                    )}
-
-                                    {visibleIngredients.length === 0 && (
-                                      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
-                                        No ingredients match your search.
-                                      </div>
-                                    )}
-
-                                    {visibleIngredients.map((ingredient, visibleIndex) => {
-                                      const optionThumbnail = resolveAssetUrl(ingredient.file_url);
-                                      const isActive = ingredient.id === layer.library_ingredient_id;
-                                      const shouldShowResultsLabel = selectedLibraryIngredient !== null
-                                        && visibleIndex === 0
-                                        && ingredient.id !== selectedLibraryIngredient.id;
-
-                                      return (
-                                        <React.Fragment key={ingredient.id}>
-                                          {shouldShowResultsLabel && (
-                                            <div className="px-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted2">
-                                              Results
-                                            </div>
-                                          )}
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              handleIngredientLibraryChange(layer.client_id, String(ingredient.id));
-                                              setOpenIngredientPickerId(null);
-                                            }}
-                                            className={cx(
-                                              'flex w-full min-w-0 items-center gap-3 rounded-[18px] border px-3 py-2.5 text-left transition',
-                                              isActive
-                                                ? 'border-gold/35 bg-gold/12'
-                                                : 'border-white/10 bg-white/[0.03]'
-                                            )}
-                                          >
-                                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[16px] border border-white/10 bg-black/20">
-                                              {optionThumbnail ? (
-                                                <img
-                                                  src={optionThumbnail}
-                                                  alt={translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
-                                                  className="h-full w-full object-cover"
-                                                />
-                                              ) : (
-                                                <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-                                                  Img
-                                                </div>
-                                              )}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate text-sm font-medium text-text">
-                                                {translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
-                                              </p>
-                                              <p className="truncate text-xs text-muted">
-                                                {ingredient.source_file_name || 'Saved ingredient'}
-                                              </p>
-                                            </div>
-                                          </button>
-                                        </React.Fragment>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              <p className="mt-2 text-xs text-muted">
-                                {layer.library_ingredient_id
-                                  ? 'This layer uses the saved ingredient image and Arabic fallback from your library entry.'
-                                  : 'Choose a saved ingredient to populate this layer.'}
-                              </p>
-                              <p className="mt-1 text-xs text-muted2">
-                                Order here controls the animation stack from top to bottom.
-                              </p>
-                            </div>
-                          )}
-
-                          <div>
-                            <label className="mb-1 block text-sm font-medium text-text">Custom Ingredient Label</label>
-                            <GlassInput
-                              type="text"
-                              value={layer.custom_name}
-                              onChange={(event) => handleIngredientChange(layer.client_id, event.target.value)}
-                              placeholder="Restaurant special ingredient"
-                            />
-                            <p className="mt-2 text-xs text-muted">
-                              Leave this empty to use the selected ingredient name from your library.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            ))}
           </div>
         )}
       </GlassSurface>

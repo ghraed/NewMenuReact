@@ -97,6 +97,8 @@ export interface DishRecipeIngredient {
   ingredient_id: number;
   quantity: string;
   unit: IngredientStockUnit;
+  order_index?: number;
+  show_in_animation?: boolean;
   ingredient?: InventoryIngredient | null;
 }
 
@@ -131,6 +133,7 @@ export interface InventoryIngredient {
   uuid: string;
   name: string;
   name_ar?: string | null;
+  file_url?: string | null;
   unit: IngredientStockUnit;
   current_quantity: string;
   low_stock_threshold: string;

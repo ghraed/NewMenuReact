@@ -12,19 +12,9 @@ import type { Dish } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 
-const getIngredientOrder = (metadata: Dish['assets'][number]['metadata']) => {
-  const order = metadata?.order_index;
-  return typeof order === 'number' ? order : 0;
-};
-
-const getIngredientLabel = (metadata: Dish['assets'][number]['metadata']) => {
-  const label = metadata?.label;
-  return typeof label === 'string' && label.trim() ? label : '';
-};
-
-const getIngredientQuantity = (metadata: Dish['assets'][number]['metadata']) => {
-  const quantity = metadata?.quantity;
-  return typeof quantity === 'string' && quantity.trim() ? quantity : undefined;
+const formatIngredientQuantity = (quantity?: string, unit?: string) => {
+  if (!quantity) return undefined;
+  return unit ? `${quantity} ${unit}` : quantity;
 };
 
 const GuestDishIngredientsPage: React.FC = () => {
@@ -83,14 +73,14 @@ const GuestDishIngredientsPage: React.FC = () => {
   const ingredientItems = useMemo<DishIngredientStoryItem[]>(() => {
     if (!dish) return [];
 
-    return dish.assets
-      .filter((asset) => asset.asset_type === 'ingredient_image')
-      .sort((left, right) => getIngredientOrder(left.metadata) - getIngredientOrder(right.metadata))
-      .map((asset) => ({
-        id: asset.id,
-        name: translateIngredientLabel(getIngredientLabel(asset.metadata), i18n.resolvedLanguage),
-        quantity: getIngredientQuantity(asset.metadata),
-        imageUrl: resolveAssetUrl(asset.file_url),
+    return (dish.dish_ingredients || [])
+      .filter((row) => row.show_in_animation !== false)
+      .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
+      .map((row) => ({
+        id: row.id,
+        name: translateIngredientLabel(row.ingredient?.name || '', i18n.resolvedLanguage, row.ingredient?.name_ar),
+        quantity: formatIngredientQuantity(row.quantity, row.unit),
+        imageUrl: resolveAssetUrl(row.ingredient?.file_url),
       }));
   }, [dish, i18n.resolvedLanguage]);
 

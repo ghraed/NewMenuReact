@@ -49,21 +49,13 @@ export const getDishPairing = (dish: Dish): string => {
 };
 
 export const getDishIngredientsText = (dish: Dish): string => {
-  const assetIngredients = dish.assets
-    .filter((asset) => asset.asset_type === 'ingredient_image')
-    .sort((left, right) => {
-      const leftOrder = typeof left.metadata?.order_index === 'number' ? left.metadata.order_index : 0;
-      const rightOrder = typeof right.metadata?.order_index === 'number' ? right.metadata.order_index : 0;
-      return leftOrder - rightOrder;
-    })
-    .map((asset) => {
-      const label = asset.metadata?.label;
-      return typeof label === 'string' && label.trim() ? label.trim() : null;
-    })
-    .filter((label): label is string => Boolean(label));
+  const recipeIngredients = (dish.dish_ingredients || [])
+    .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
+    .map((row) => row.ingredient?.name?.trim() || null)
+    .filter((name): name is string => Boolean(name));
 
-  if (assetIngredients.length > 0) {
-    return unique(assetIngredients)
+  if (recipeIngredients.length > 0) {
+    return unique(recipeIngredients)
       .map((ingredient) => translateIngredientLabel(ingredient, i18n.resolvedLanguage))
       .join(', ');
   }

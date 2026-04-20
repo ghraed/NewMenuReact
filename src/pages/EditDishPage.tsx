@@ -6,7 +6,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
-import type { Dish, IngredientLibraryItem, InventoryIngredient } from '../types';
+import type { Dish, InventoryIngredient } from '../types';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 
 const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
@@ -39,47 +39,6 @@ const getAssetFileName = (asset?: Dish['assets'][number]) => {
   }
 };
 
-const getAssetMetadataString = (asset: Dish['assets'][number], key: 'label' | 'quantity') => {
-  const value = asset.metadata?.[key];
-  return typeof value === 'string' ? value : '';
-};
-
-const getAssetMetadataOrder = (asset: Dish['assets'][number]) => {
-  const value = asset.metadata?.order_index;
-  return typeof value === 'number' ? value : 0;
-};
-
-const getAssetMetadataLibraryId = (asset: Dish['assets'][number]) => {
-  const value = asset.metadata?.ingredient_library_id;
-
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
-  }
-
-  return null;
-};
-
-const uploadIngredientAsset = async (
-  dishId: string,
-  ingredient: DishFormData['ingredient_layers'][number],
-  orderIndex: number
-) => {
-  const payload = new FormData();
-  payload.append('label', ingredient.name);
-  payload.append('type', 'ingredient_image');
-  payload.append('order_index', String(orderIndex));
-
-  if (ingredient.library_ingredient_id) {
-    payload.append('ingredient_library_id', String(ingredient.library_ingredient_id));
-  } else {
-    return;
-  }
-
-  await api.post(`/dishes/${dishId}/assets`, payload, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-};
-
 const extractDishOptions = (payload: unknown): Dish[] => {
   if (Array.isArray(payload)) {
     return payload as Dish[];
@@ -108,7 +67,6 @@ const EditDishPage: React.FC = () => {
   const { t } = useTranslation();
 
   const [dish, setDish] = useState<Dish | null>(null);
-  const [ingredientLibrary, setIngredientLibrary] = useState<IngredientLibraryItem[]>([]);
   const [recipeIngredientOptions, setRecipeIngredientOptions] = useState<InventoryIngredient[]>([]);
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
@@ -123,9 +81,8 @@ const EditDishPage: React.FC = () => {
       if (!dish_id) return;
 
       try {
-        const [dishResult, ingredientLibraryResult, inventoryIngredientsResult, suggestedOptionsResult] = await Promise.allSettled([
+        const [dishResult, inventoryIngredientsResult, suggestedOptionsResult] = await Promise.allSettled([
           api.get(`/dishes/${dish_id}`),
-          api.get('/ingredients'),
           api.get('/inventory/ingredients'),
           api.get('/dishes', {
             params: {
@@ -140,13 +97,6 @@ const EditDishPage: React.FC = () => {
         }
 
         setDish(dishResult.value.data);
-
-        if (ingredientLibraryResult.status === 'fulfilled') {
-          setIngredientLibrary(Array.isArray(ingredientLibraryResult.value.data) ? ingredientLibraryResult.value.data : []);
-        } else {
-          console.error(ingredientLibraryResult.reason);
-          setIngredientLibrary([]);
-        }
 
         if (inventoryIngredientsResult.status === 'fulfilled') {
           const payload = inventoryIngredientsResult.value.data;
@@ -182,7 +132,7 @@ const EditDishPage: React.FC = () => {
     setError(null);
 
     try {
-      await api.patch(`/dishes/${dish_id}`, {
+        await api.patch(`/dishes/${dish_id}`, {
         name: data.name,
         price: parseFloat(data.price),
         calories: data.calories.trim() ? Number(data.calories) : null,
@@ -193,6 +143,8 @@ const EditDishPage: React.FC = () => {
         recipe_ingredients: data.recipe_ingredients.map((recipeItem) => ({
           ingredient_id: recipeItem.ingredient_id,
           quantity_required: Number(recipeItem.quantity_required),
+          order_index: recipeItem.order_index,
+          show_in_animation: recipeItem.show_in_animation,
         })),
       });
 
@@ -221,42 +173,6 @@ const EditDishPage: React.FC = () => {
         await api.post(`/dishes/${dish_id}/assets`, previewPayload, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-      }
-
-      const existingIngredientAssets = dish.assets.filter((asset) => asset.asset_type === 'ingredient_image');
-      const retainedAssetIds = new Set(
-        data.ingredient_layers
-          .map((ingredient) => ingredient.asset_id)
-          .filter((assetId): assetId is number => typeof assetId === 'number')
-      );
-
-      await Promise.all(
-        existingIngredientAssets
-          .filter((asset) => !retainedAssetIds.has(asset.id))
-          .map((asset) => api.delete(`/assets/${asset.id}`))
-      );
-
-      for (const [index, ingredient] of data.ingredient_layers.entries()) {
-        const shouldReplaceWithLibrary =
-          ingredient.library_ingredient_id !== null &&
-          ingredient.library_ingredient_id !== ingredient.initial_library_ingredient_id;
-
-        if (ingredient.asset_id && shouldReplaceWithLibrary) {
-          await api.delete(`/assets/${ingredient.asset_id}`);
-          await uploadIngredientAsset(dish_id, ingredient, index);
-          continue;
-        }
-
-        if (ingredient.asset_id) {
-          await api.patch(`/assets/${ingredient.asset_id}`, {
-            label: ingredient.name,
-            order_index: index,
-            ingredient_library_id: ingredient.library_ingredient_id ?? null,
-          });
-          continue;
-        }
-
-        await uploadIngredientAsset(dish_id, ingredient, index);
       }
 
       navigate('/admin/dashboard');
@@ -339,9 +255,6 @@ const EditDishPage: React.FC = () => {
   const glbAsset = dish.assets.find((asset) => asset.asset_type === 'glb');
   const usdzAsset = dish.assets.find((asset) => asset.asset_type === 'usdz');
   const previewAsset = dish.assets.find((asset) => asset.asset_type === 'preview_image');
-  const ingredientAssets = dish.assets
-    .filter((asset) => asset.asset_type === 'ingredient_image')
-    .sort((a, b) => getAssetMetadataOrder(a) - getAssetMetadataOrder(b));
   const glbUrl = resolveAssetUrl(glbAsset?.file_url);
   const usdzUrl = resolveAssetUrl(usdzAsset?.file_url);
   const previewAssetUrl = resolveAssetUrl(previewAsset?.file_url);
@@ -461,6 +374,8 @@ const EditDishPage: React.FC = () => {
             recipe_ingredients: (dish.dish_ingredients || []).map((dishIngredient) => ({
               ingredient_id: dishIngredient.ingredient_id,
               quantity_required: String(dishIngredient.quantity),
+              order_index: typeof dishIngredient.order_index === 'number' ? dishIngredient.order_index : 0,
+              show_in_animation: dishIngredient.show_in_animation !== false,
             })),
           }}
           existingFiles={{
@@ -469,16 +384,7 @@ const EditDishPage: React.FC = () => {
             previewImage: previewFileName,
             previewImageUrl: previewAssetUrl || null,
             imageUrl: dish.image_url || null,
-            ingredients: ingredientAssets.map((asset) => ({
-              asset_id: asset.id,
-              name: getAssetMetadataString(asset, 'label'),
-              image_url: resolveAssetUrl(asset.file_url) || null,
-              library_ingredient_id: getAssetMetadataLibraryId(asset),
-              file_name: getAssetFileName(asset),
-              order_index: getAssetMetadataOrder(asset),
-            })),
           }}
-          ingredientLibrary={ingredientLibrary}
           recipeIngredientOptions={recipeIngredientOptions}
           suggestedDishOptions={suggestedDishOptions}
           relatedDishOptions={relatedDishOptions}
