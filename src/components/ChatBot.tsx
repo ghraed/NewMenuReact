@@ -668,9 +668,20 @@ const ChatBot: React.FC = () => {
 
             {isLoading ? (
               <div className="flex justify-start">
-                <div className="inline-flex items-center gap-2 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
-                  Thinking...
+                <div className="inline-flex items-center gap-1 rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+                  <span className="sr-only">Thinking</span>
+                  <span
+                    className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-500"
+                    style={{ animationDelay: '0ms', animationDuration: '900ms' }}
+                  />
+                  <span
+                    className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-500"
+                    style={{ animationDelay: '150ms', animationDuration: '900ms' }}
+                  />
+                  <span
+                    className="inline-block h-2 w-2 animate-bounce rounded-full bg-slate-500"
+                    style={{ animationDelay: '300ms', animationDuration: '900ms' }}
+                  />
                 </div>
               </div>
             ) : null}
