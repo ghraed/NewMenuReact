@@ -541,9 +541,11 @@ const ChatBot: React.FC = () => {
   const [orderNotice, setOrderNotice] = useState<string | null>(null);
   const [chatDishes, setChatDishes] = useState<ChatDishLink[]>([]);
   const [dishPreview, setDishPreview] = useState<ChatDishPreview | null>(null);
+  const [animatingUserMessageId, setAnimatingUserMessageId] = useState<string | null>(null);
 
-  const listRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const latestUserBubbleRef = useRef<HTMLDivElement | null>(null);
   const chatRequestAbortRef = useRef<AbortController | null>(null);
   const orderRequestAbortRef = useRef<AbortController | null>(null);
   const isMountedRef = useRef(true);
@@ -569,8 +571,8 @@ const ChatBot: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!listRef.current) return;
-    listRef.current.scrollTop = listRef.current.scrollHeight;
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
   }, [messages, isLoading, pendingOrder, isConfirmingOrder, orderNotice]);
 
   useEffect(() => {
@@ -664,16 +666,121 @@ const ChatBot: React.FC = () => {
     };
   }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken]);
 
-  const pushMessage = (role: Role, content: string) => {
+  const pushMessage = (role: Role, content: string): string => {
+    const messageId = makeId();
     setMessages((prev) => [
       ...prev,
       {
-        id: makeId(),
+        id: messageId,
         role,
         content,
         createdAt: new Date().toISOString(),
       },
     ]);
+    return messageId;
+  };
+
+  const waitForNextFrame = (): Promise<void> => (
+    new Promise((resolve) => window.requestAnimationFrame(() => resolve()))
+  );
+
+  const animateOutgoingUserMessage = async (
+    rawText: string,
+    messageId: string
+  ): Promise<void> => {
+    const inputEl = inputRef.current;
+    const messagesEl = messagesContainerRef.current;
+
+    if (!inputEl || !messagesEl) {
+      setAnimatingUserMessageId(null);
+      return;
+    }
+
+    const typedText = rawText;
+    setAnimatingUserMessageId(messageId);
+
+    const inputRect = inputEl.getBoundingClientRect();
+    const clone = document.createElement('div');
+    clone.textContent = typedText;
+    clone.style.position = 'fixed';
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.left = `${inputRect.left}px`;
+    clone.style.top = `${inputRect.top}px`;
+    clone.style.width = `${inputRect.width}px`;
+    clone.style.minHeight = `${inputRect.height}px`;
+    clone.style.padding = '8px 12px';
+    clone.style.borderRadius = '16px';
+    clone.style.borderBottomRightRadius = '6px';
+    clone.style.background = 'rgb(15 23 42)';
+    clone.style.color = 'white';
+    clone.style.fontSize = '14px';
+    clone.style.lineHeight = '1.6';
+    clone.style.whiteSpace = 'pre-wrap';
+    clone.style.wordBreak = 'break-word';
+    clone.style.boxShadow = '0 2px 10px rgba(15,23,42,0.22)';
+    clone.style.transform = 'translate3d(0,0,0) scale(1)';
+    document.body.appendChild(clone);
+
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    await waitForNextFrame();
+    await waitForNextFrame();
+
+    const targetBubble = latestUserBubbleRef.current;
+    if (!targetBubble) {
+      clone.remove();
+      setAnimatingUserMessageId(null);
+      return;
+    }
+
+    const targetRect = targetBubble.getBoundingClientRect();
+    const durationMs = 550;
+    const easing = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+    clone.style.transition = [
+      `top ${durationMs}ms ${easing}`,
+      `left ${durationMs}ms ${easing}`,
+      `width ${durationMs}ms ${easing}`,
+      `min-height ${durationMs}ms ${easing}`,
+      `transform ${durationMs}ms ${easing}`,
+    ].join(', ');
+
+    void clone.offsetHeight;
+    clone.style.top = `${targetRect.top}px`;
+    clone.style.left = `${targetRect.left}px`;
+    clone.style.width = `${targetRect.width}px`;
+    clone.style.minHeight = `${targetRect.height}px`;
+    clone.style.transform = 'translate3d(0,0,0) scale(0.992)';
+
+    await new Promise<void>((resolve) => {
+      const done = () => resolve();
+      const timeoutId = window.setTimeout(done, durationMs + 120);
+      clone.addEventListener('transitionend', () => {
+        window.clearTimeout(timeoutId);
+        done();
+      }, { once: true });
+    });
+
+    clone.remove();
+    setAnimatingUserMessageId(null);
+
+    const finalBubble = latestUserBubbleRef.current;
+    if (finalBubble) {
+      finalBubble.animate(
+        [
+          { transform: 'scale(0.985)' },
+          { transform: 'scale(1.012)' },
+          { transform: 'scale(1)' },
+        ],
+        {
+          duration: 180,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        }
+      );
+    }
   };
 
   const closeDishPreview = () => setDishPreview(null);
@@ -762,8 +869,10 @@ const ChatBot: React.FC = () => {
     if (!content || isLoading || isConfirmingOrder) return;
 
     setOrderNotice(null);
-    pushMessage('user', content);
+    const typedText = input;
+    const pushedUserMessageId = pushMessage('user', content);
     setInput('');
+    void animateOutgoingUserMessage(typedText, pushedUserMessageId);
     setIsLoading(true);
 
     try {
@@ -915,7 +1024,7 @@ const ChatBot: React.FC = () => {
           </div>
 
           <div
-            ref={listRef}
+            ref={messagesContainerRef}
             className="h-72 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-3 py-3 sm:h-80"
           >
             {messages.length === 0 ? (
@@ -927,12 +1036,14 @@ const ChatBot: React.FC = () => {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
+                  ref={msg.role === 'user' && msg.id === animatingUserMessageId ? latestUserBubbleRef : null}
                   className={[
                     'max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed shadow-sm',
                     msg.role === 'user'
                       ? 'rounded-br-md bg-slate-900 text-white'
                       : 'rounded-bl-md border border-slate-200 bg-white text-slate-800',
                   ].join(' ')}
+                  style={msg.role === 'user' && msg.id === animatingUserMessageId ? { visibility: 'hidden' } : undefined}
                 >
                   {renderChatText(
                     msg.content,
