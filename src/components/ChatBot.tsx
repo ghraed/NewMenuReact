@@ -35,6 +35,14 @@ interface ChatRestaurantContext {
   table_id?: number;
 }
 
+interface StoredChatState {
+  conversationId: string;
+  messages: ChatMessage[];
+  pendingOrder: PlaceOrderData | null;
+}
+
+const CHAT_STATE_STORAGE_PREFIX = 'guest_chat_state:';
+
 const makeId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -209,26 +217,126 @@ const parsePathRestaurantContext = (pathname: string): ChatRestaurantContext => 
   return {};
 };
 
+const normalizeStoredMessages = (value: unknown): ChatMessage[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item): ChatMessage | null => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const candidate = item as Partial<ChatMessage>;
+      if (
+        typeof candidate.id !== 'string'
+        || (candidate.role !== 'user' && candidate.role !== 'assistant')
+        || typeof candidate.content !== 'string'
+        || typeof candidate.createdAt !== 'string'
+      ) {
+        return null;
+      }
+
+      return {
+        id: candidate.id,
+        role: candidate.role,
+        content: candidate.content,
+        createdAt: candidate.createdAt,
+      };
+    })
+    .filter((message): message is ChatMessage => message !== null);
+};
+
+const normalizeStoredPendingOrder = (value: unknown): PlaceOrderData | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const candidate = value as Partial<PlaceOrderData>;
+  if (candidate.action !== 'place_order' || !Array.isArray(candidate.items)) {
+    return null;
+  }
+
+  const items = candidate.items
+    .map((item): ChatOrderItem | null => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const entry = item as Partial<ChatOrderItem>;
+      if (typeof entry.name !== 'string' || typeof entry.quantity !== 'number') {
+        return null;
+      }
+
+      const name = entry.name.trim();
+      const quantity = Math.floor(entry.quantity);
+      if (!name || !Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      return { name, quantity };
+    })
+    .filter((item): item is ChatOrderItem => item !== null);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return {
+    action: 'place_order',
+    items,
+  };
+};
+
+const loadStoredChatState = (scopeKey: string): StoredChatState | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(`${CHAT_STATE_STORAGE_PREFIX}${scopeKey}`);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<StoredChatState>;
+    const conversationId = typeof parsed.conversationId === 'string' && parsed.conversationId.trim() !== ''
+      ? parsed.conversationId
+      : makeId();
+
+    return {
+      conversationId,
+      messages: normalizeStoredMessages(parsed.messages),
+      pendingOrder: normalizeStoredPendingOrder(parsed.pendingOrder),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistChatState = (
+  scopeKey: string,
+  state: StoredChatState
+): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      `${CHAT_STATE_STORAGE_PREFIX}${scopeKey}`,
+      JSON.stringify(state)
+    );
+  } catch {
+    // ignore storage write failures
+  }
+};
+
 const ChatBot: React.FC = () => {
   const location = useLocation();
-  const { restaurant } = useOrderCart();
+  const { restaurant, draft } = useOrderCart();
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
-  const [conversationId, setConversationId] = useState<string>(() => makeId());
-  const [pendingOrder, setPendingOrder] = useState<PlaceOrderData | null>(null);
-  const [orderNotice, setOrderNotice] = useState<string | null>(null);
-
-  const listRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const chatRequestAbortRef = useRef<AbortController | null>(null);
-  const orderRequestAbortRef = useRef<AbortController | null>(null);
-  const isMountedRef = useRef(true);
-
-  const apiBase = useMemo(() => resolveApiBase(), []);
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
 
@@ -238,8 +346,46 @@ const ChatBot: React.FC = () => {
       table_id: fromPath.table_id,
     };
   }, [location.pathname, restaurant?.slug]);
-  const chatContextKey = `${chatContext.restaurant_slug ?? 'none'}::${chatContext.table_id ?? 'none'}`;
-  const previousChatContextKeyRef = useRef(chatContextKey);
+
+  const conversationScopeKey = useMemo(() => {
+    const slug = (restaurant?.slug || chatContext.restaurant_slug || 'guest').trim() || 'guest';
+    const sessionId = draft.tableSessionId;
+
+    if (typeof sessionId === 'number' && sessionId > 0) {
+      return `${slug}::session:${sessionId}`;
+    }
+
+    return `${slug}::no-session`;
+  }, [restaurant?.slug, chatContext.restaurant_slug, draft.tableSessionId]);
+
+  const initialStoredStateRef = useRef<StoredChatState | null | undefined>(undefined);
+  if (initialStoredStateRef.current === undefined) {
+    initialStoredStateRef.current = loadStoredChatState(conversationScopeKey);
+  }
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => initialStoredStateRef.current?.messages ?? []
+  );
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
+  const [conversationId, setConversationId] = useState<string>(
+    () => initialStoredStateRef.current?.conversationId ?? makeId()
+  );
+  const [pendingOrder, setPendingOrder] = useState<PlaceOrderData | null>(
+    () => initialStoredStateRef.current?.pendingOrder ?? null
+  );
+  const [orderNotice, setOrderNotice] = useState<string | null>(null);
+
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const chatRequestAbortRef = useRef<AbortController | null>(null);
+  const orderRequestAbortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
+
+  const apiBase = useMemo(() => resolveApiBase(), []);
+  const previousConversationScopeKeyRef = useRef(conversationScopeKey);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -260,18 +406,27 @@ const ChatBot: React.FC = () => {
   }, [messages, isLoading, pendingOrder, isConfirmingOrder, orderNotice]);
 
   useEffect(() => {
-    if (previousChatContextKeyRef.current === chatContextKey) {
+    if (previousConversationScopeKeyRef.current === conversationScopeKey) {
       return;
     }
 
-    previousChatContextKeyRef.current = chatContextKey;
+    previousConversationScopeKeyRef.current = conversationScopeKey;
     chatRequestAbortRef.current?.abort();
     orderRequestAbortRef.current?.abort();
-    setMessages([]);
-    setConversationId(makeId());
-    setPendingOrder(null);
+    const nextStoredState = loadStoredChatState(conversationScopeKey);
+    setMessages(nextStoredState?.messages ?? []);
+    setConversationId(nextStoredState?.conversationId ?? makeId());
+    setPendingOrder(nextStoredState?.pendingOrder ?? null);
     setOrderNotice(null);
-  }, [chatContextKey]);
+  }, [conversationScopeKey]);
+
+  useEffect(() => {
+    persistChatState(conversationScopeKey, {
+      conversationId,
+      messages,
+      pendingOrder,
+    });
+  }, [conversationScopeKey, conversationId, messages, pendingOrder]);
 
   const pushMessage = (role: Role, content: string) => {
     setMessages((prev) => [
