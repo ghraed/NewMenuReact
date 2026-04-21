@@ -11,10 +11,10 @@ import {
 } from '../ui/liquid-glass';
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
-import { translateIngredientLabel } from '../../i18n/ingredients';
 import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
 import type { InventoryIngredient } from '../../types';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
+import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -304,8 +304,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const recipeIngredientSelectOptions = recipeIngredientOptions.map((ingredient) => ({
     value: String(ingredient.id),
     label: ingredient.is_active
-      ? `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)} (${ingredient.unit})`
-      : `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)} (${ingredient.unit}) • inactive`,
+      ? `${getIngredientDisplayName(ingredient, i18n.resolvedLanguage)} (${ingredient.unit})`
+      : `${getIngredientDisplayName(ingredient, i18n.resolvedLanguage)} (${ingredient.unit}) • inactive`,
   }));
 
   const normalizedSuggestedDishesSearch = suggestedDishesSearch.trim().toLowerCase();

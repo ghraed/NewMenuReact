@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { translateIngredientLabel } from '../../i18n/ingredients';
+import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
 
 export interface DishIngredientStoryItem {
   id: string | number;
   name: string;
+  nameAr?: string | null;
   quantity?: string;
   imageUrl?: string | null;
 }
@@ -208,7 +209,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                         >
                           <div className="text-right">
                             <p className="text-sm font-semibold leading-5 text-[var(--guest-text)] sm:text-base">
-                              {translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)}
+                              {getIngredientDisplayName({ name: ingredient.name, name_ar: ingredient.nameAr }, i18n.resolvedLanguage)}
                             </p>
                             {ingredient.quantity ? (
                               <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--guest-muted)]">
@@ -242,7 +243,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                         {ingredient.imageUrl ? (
                           <img
                             src={ingredient.imageUrl}
-                            alt={translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)}
+                            alt={getIngredientDisplayName({ name: ingredient.name, name_ar: ingredient.nameAr }, i18n.resolvedLanguage)}
                             className="max-h-[78px] w-auto max-w-[190px] object-contain sm:max-h-[106px] sm:max-w-[290px]"
                             style={{
                               filter: 'drop-shadow(0 14px 18px rgba(111, 84, 43, 0.18))',

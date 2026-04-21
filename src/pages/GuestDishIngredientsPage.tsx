@@ -5,7 +5,6 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import SectionHeading from '../components/Guest/SectionHeading';
 import DishIngredientStory, { type DishIngredientStoryItem } from '../components/Guest/DishIngredientStory';
-import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
 import { fetchGuestTableDish } from '../services/orderService';
 import type { Dish } from '../types';
@@ -19,7 +18,7 @@ const formatIngredientQuantity = (quantity?: string, unit?: string) => {
 
 const GuestDishIngredientsPage: React.FC = () => {
   const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [dish, setDish] = useState<Dish | null>(null);
   const [restaurantSlug, setRestaurantSlug] = useState<string | undefined>(restaurant_slug);
   const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
@@ -78,11 +77,12 @@ const GuestDishIngredientsPage: React.FC = () => {
       .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
       .map((row) => ({
         id: row.id,
-        name: translateIngredientLabel(row.ingredient?.name || '', i18n.resolvedLanguage, row.ingredient?.name_ar),
+        name: row.ingredient?.name || '',
+        nameAr: row.ingredient?.name_ar || null,
         quantity: formatIngredientQuantity(row.quantity, row.unit),
         imageUrl: resolveAssetUrl(row.ingredient?.file_url),
       }));
-  }, [dish, i18n.resolvedLanguage]);
+  }, [dish]);
 
   return (
     <GuestPageShell>

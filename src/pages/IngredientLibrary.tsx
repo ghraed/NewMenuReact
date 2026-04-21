@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
@@ -19,6 +20,7 @@ import {
   type IngredientImageStatus,
   updateIngredientLibraryItem,
 } from '../services/ingredientLibraryService';
+import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 const PAGE_SIZE = 24;
 
@@ -50,6 +52,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const IngredientLibrary: React.FC = () => {
+  const { i18n } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
   const [ingredients, setIngredients] = useState<IngredientLibraryRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,8 +96,10 @@ const IngredientLibrary: React.FC = () => {
   const filtered = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return ingredients.filter((item) => {
+      const displayName = getIngredientDisplayName(item, i18n.resolvedLanguage).toLowerCase();
       const nameOk = normalizedSearch === ''
-        || item.name.toLowerCase().includes(normalizedSearch);
+        || item.name.toLowerCase().includes(normalizedSearch)
+        || displayName.includes(normalizedSearch);
       const category = (item.category || '').trim();
       const categoryOk = categoryFilter === 'all'
         || (categoryFilter === '__uncategorized__'
@@ -102,7 +107,7 @@ const IngredientLibrary: React.FC = () => {
           : category === categoryFilter);
       return nameOk && categoryOk;
     });
-  }, [ingredients, search, categoryFilter]);
+  }, [ingredients, search, categoryFilter, i18n.resolvedLanguage]);
 
   const visibleItems = useMemo(
     () => filtered.slice(0, visibleCount),
@@ -171,7 +176,7 @@ const IngredientLibrary: React.FC = () => {
   };
 
   const handleDelete = async (item: IngredientLibraryRecord) => {
-    const confirmed = window.confirm(`Delete "${item.name}"?`);
+    const confirmed = window.confirm(`Delete "${getIngredientDisplayName(item, i18n.resolvedLanguage)}"?`);
     if (!confirmed) return;
 
     try {
@@ -191,7 +196,7 @@ const IngredientLibrary: React.FC = () => {
 
       const updated = await generateIngredientImage(item.id);
       setIngredients((prev) => prev.map((entry) => (entry.id === item.id ? updated : entry)));
-      showToast(`Image generated for ${item.name}.`, 'secondary');
+      showToast(`Image generated for ${getIngredientDisplayName(item, i18n.resolvedLanguage)}.`, 'secondary');
     } catch (err) {
       setIngredients((prev) => prev.map((entry) => (
         entry.id === item.id ? { ...entry, image_status: 'failed' } : entry
@@ -284,7 +289,7 @@ const IngredientLibrary: React.FC = () => {
                     {imageUrl ? (
                       <img
                         src={imageUrl}
-                        alt={item.name}
+                        alt={getIngredientDisplayName(item, i18n.resolvedLanguage)}
                         className="h-full w-full object-cover"
                         loading="lazy"
                       />
@@ -297,7 +302,7 @@ const IngredientLibrary: React.FC = () => {
 
                   <div className="space-y-3 p-4">
                     <div>
-                      <p className="line-clamp-1 text-base font-semibold text-text">{item.name}</p>
+                      <p className="line-clamp-1 text-base font-semibold text-text">{getIngredientDisplayName(item, i18n.resolvedLanguage)}</p>
                       <p className="mt-1 line-clamp-1 text-xs uppercase tracking-[0.14em] text-muted2">
                         {item.category || 'Uncategorized'}
                       </p>

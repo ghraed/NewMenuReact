@@ -12,11 +12,11 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { translateIngredientLabel } from '../i18n/ingredients';
 import { fetchGuestTableDish, fetchGuestTableMenu } from '../services/orderService';
 import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
+import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 interface GuestListResponse {
   restaurant: {
@@ -38,9 +38,10 @@ const getDishIngredients = (dish: Dish) => {
 
   return (dish.dish_ingredients || [])
     .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
-    .map((row) => row.ingredient?.name || '')
-    .filter((label) => {
-      const normalized = normalizeIngredientName(label);
+    .map((row) => row.ingredient)
+    .filter((ingredient): ingredient is NonNullable<typeof ingredient> => Boolean(ingredient))
+    .filter((ingredient) => {
+      const normalized = normalizeIngredientName(ingredient.name);
 
       if (!normalized || seen.has(normalized)) {
         return false;
@@ -172,7 +173,7 @@ const GuestDishListPage: React.FC = () => {
 
     dishes.forEach((dish) => {
       getDishIngredients(dish).forEach((ingredient) => {
-        const translatedIngredient = translateIngredientLabel(ingredient, i18n.resolvedLanguage);
+        const translatedIngredient = getIngredientDisplayName(ingredient, i18n.resolvedLanguage);
         const normalized = normalizeIngredientName(translatedIngredient);
 
         if (!normalized || values.has(normalized)) {
@@ -217,7 +218,7 @@ const GuestDishListPage: React.FC = () => {
 
     dishes.forEach((dish) => {
       const dishIngredients = getDishIngredients(dish)
-        .map((ingredient) => translateIngredientLabel(ingredient, i18n.resolvedLanguage))
+        .map((ingredient) => getIngredientDisplayName(ingredient, i18n.resolvedLanguage))
         .map((ingredient) => normalizeIngredientName(ingredient));
       const hasMatchingIngredient = selectedIngredients.some((ingredient) => dishIngredients.includes(ingredient));
 

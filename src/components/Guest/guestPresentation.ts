@@ -1,7 +1,7 @@
 import type { Dish } from '../../types';
 import i18n from '../../i18n';
-import { translateIngredientLabel } from '../../i18n/ingredients';
 import { translateCategoryLabel } from '../../i18n/dynamic';
+import { getRecipeIngredientDisplayName } from '../../utils/ingredientDisplay';
 
 const hasKeyword = (text: string, keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
 
@@ -51,13 +51,11 @@ export const getDishPairing = (dish: Dish): string => {
 export const getDishIngredientsText = (dish: Dish): string => {
   const recipeIngredients = (dish.dish_ingredients || [])
     .sort((left, right) => (left.order_index ?? 0) - (right.order_index ?? 0))
-    .map((row) => row.ingredient?.name?.trim() || null)
+    .map((row) => getRecipeIngredientDisplayName(row, i18n.resolvedLanguage).trim() || null)
     .filter((name): name is string => Boolean(name));
 
   if (recipeIngredients.length > 0) {
-    return unique(recipeIngredients)
-      .map((ingredient) => translateIngredientLabel(ingredient, i18n.resolvedLanguage))
-      .join(', ');
+    return unique(recipeIngredients).join(', ');
   }
 
   const parts = dish.description

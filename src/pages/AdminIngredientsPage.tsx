@@ -12,7 +12,7 @@ import {
 } from '../components/ui/liquid-glass';
 import api from '../services/api';
 import type { InventoryIngredient, IngredientStockUnit } from '../types';
-import { translateIngredientLabel } from '../i18n/ingredients';
+import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 interface IngredientPayload {
   name: string;
@@ -134,7 +134,10 @@ const AdminIngredientsPage: React.FC = () => {
   );
 
   const formatIngredientName = useCallback(
-    (name?: string, nameArabic?: string | null) => translateIngredientLabel(name, i18n.resolvedLanguage, nameArabic),
+    (name?: string, nameArabic?: string | null) => getIngredientDisplayName(
+      { name, name_ar: nameArabic },
+      i18n.resolvedLanguage
+    ),
     [i18n.resolvedLanguage]
   );
 
@@ -317,7 +320,7 @@ const AdminIngredientsPage: React.FC = () => {
       .sort((a, b) => a.localeCompare(b))
       .map((name) => ({
         value: name,
-        label: translateIngredientLabel(name, i18n.resolvedLanguage),
+        label: getIngredientDisplayName({ name }, i18n.resolvedLanguage),
       })),
     [i18n.resolvedLanguage, ingredients]
   );

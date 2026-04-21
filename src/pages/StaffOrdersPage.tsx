@@ -26,7 +26,7 @@ import {
   updatePendingOrder,
 } from '../services/orderService';
 import api from '../services/api';
-import { translateIngredientLabel } from '../i18n/ingredients';
+import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import type {
   ActiveTableSessionRecord,
   InventoryIngredient,
@@ -949,7 +949,7 @@ const StaffOrdersPage: React.FC = () => {
           <p className="mt-2 text-sm text-spicy/90">
             {lowStockIngredients
               .slice(0, 5)
-              .map((ingredient) => `${translateIngredientLabel(ingredient.name, i18n.resolvedLanguage)} (${ingredient.current_quantity} ${ingredient.unit})`)
+              .map((ingredient) => `${getIngredientDisplayName(ingredient, i18n.resolvedLanguage)} (${ingredient.current_quantity} ${ingredient.unit})`)
               .join(' • ')}
           </p>
         </div>

@@ -7,9 +7,9 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
-import { translateIngredientLabel } from '../i18n/ingredients';
 import api, { resolveAssetUrl } from '../services/api';
 import type { GlobalIngredient, IngredientLibraryItem } from '../types';
+import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 type DirectoryFile = File & {
   webkitRelativePath?: string;
@@ -233,7 +233,7 @@ const IngredientLibraryPage: React.FC = () => {
             {t('ingredientLibrary.introLineOne')}{' '}
             {t('ingredientLibrary.introLineTwo', {
               fileName: 'fresh-mint-leaves.png',
-              ingredientName: translateIngredientLabel('fresh mint leaves', i18n.resolvedLanguage),
+              ingredientName: getIngredientDisplayName({ name: 'fresh mint leaves' }, i18n.resolvedLanguage),
             })}
           </p>
         </div>
@@ -309,11 +309,11 @@ const IngredientLibraryPage: React.FC = () => {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 space-y-1">
-                      <p className="text-sm font-semibold text-text">{translateIngredientLabel(item.derivedName, i18n.resolvedLanguage)}</p>
+                      <p className="text-sm font-semibold text-text">{getIngredientDisplayName({ name: item.derivedName }, i18n.resolvedLanguage)}</p>
                       <p className="mt-1 break-all text-xs leading-5 text-muted">{item.relativePath}</p>
                       <p className="text-xs text-muted2">
                         {item.matchedGlobalIngredient
-                          ? `Global match: ${translateIngredientLabel(item.matchedGlobalIngredient.name, i18n.resolvedLanguage, item.matchedGlobalIngredient.name_ar)}`
+                          ? `Global match: ${getIngredientDisplayName(item.matchedGlobalIngredient, i18n.resolvedLanguage)}`
                           : 'No global catalog match found. This will stay restaurant-specific only.'}
                       </p>
                     </div>
@@ -388,7 +388,7 @@ const IngredientLibraryPage: React.FC = () => {
                   {resolveAssetUrl(ingredient.file_url) ? (
                     <img
                       src={resolveAssetUrl(ingredient.file_url)}
-                      alt={translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}
+                      alt={getIngredientDisplayName(ingredient, i18n.resolvedLanguage)}
                       className="h-full w-full object-cover"
                       loading="lazy"
                     />
@@ -398,7 +398,7 @@ const IngredientLibraryPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 p-4">
-                  <p className="text-base font-semibold text-text">{translateIngredientLabel(ingredient.name, i18n.resolvedLanguage, ingredient.name_ar)}</p>
+                  <p className="text-base font-semibold text-text">{getIngredientDisplayName(ingredient, i18n.resolvedLanguage)}</p>
                   <p className="break-all text-xs leading-5 text-muted">
                     {ingredient.source_file_name || t('ingredientLibrary.originalFilenameUnavailable')}
                   </p>
