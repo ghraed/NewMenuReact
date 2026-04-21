@@ -125,6 +125,9 @@ export interface GlobalIngredient {
   name: string;
   name_ar?: string | null;
   normalized_name: string;
+  file_url?: string | null;
+  image_url?: string | null;
+  mime_type?: string | null;
   created_at: string;
   updated_at: string;
 }
