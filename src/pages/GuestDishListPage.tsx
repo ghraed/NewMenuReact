@@ -59,7 +59,7 @@ const GuestDishListPage: React.FC = () => {
   const { addDish, draft, getDishQuantity, setGuestContext } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
-  const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || getPreferredGuestRestaurantSlug());
+  const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,8 +75,9 @@ const GuestDishListPage: React.FC = () => {
   const [relatedPopupDishes, setRelatedPopupDishes] = useState<Dish[]>([]);
 
   useEffect(() => {
-    const fetchList = async (slug: string): Promise<GuestListResponse> => {
-      const response = await api.get<GuestListResponse>(`/menu/${slug}/dishes`);
+    const fetchList = async (slug?: string): Promise<GuestListResponse> => {
+      const endpoint = slug ? `/menu/${slug}/dishes` : '/menu/dishes';
+      const response = await api.get<GuestListResponse>(endpoint);
       return response.data;
     };
 
@@ -101,22 +102,27 @@ const GuestDishListPage: React.FC = () => {
           return;
         }
 
-        const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
         let data: GuestListResponse | null = null;
 
-        for (const candidateSlug of candidateSlugs) {
-          try {
-            const nextData = await fetchList(candidateSlug);
+        if (restaurant_slug) {
+          const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
 
-            if (nextData.dishes.length > 0 || candidateSlugs.length === 1 || candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
-              data = nextData;
-              break;
-            }
-          } catch (err) {
-            if (candidateSlugs.length === 1) {
-              throw err;
+          for (const candidateSlug of candidateSlugs) {
+            try {
+              const nextData = await fetchList(candidateSlug);
+
+              if (nextData.dishes.length > 0 || candidateSlugs.length === 1 || candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
+                data = nextData;
+                break;
+              }
+            } catch (err) {
+              if (candidateSlugs.length === 1) {
+                throw err;
+              }
             }
           }
+        } else {
+          data = await fetchList();
         }
 
         if (!data) {
@@ -348,7 +354,10 @@ const GuestDishListPage: React.FC = () => {
           const response = await fetchGuestTableDish(table_id, relatedPopupDishId, draft.guestAccessToken);
           detailDish = response.dish;
         } else {
-          const response = await api.get<Dish>(`/menu/${restaurantSlug}/dish/${relatedPopupDishId}`);
+          const endpoint = restaurantSlug
+            ? `/menu/${restaurantSlug}/dish/${relatedPopupDishId}`
+            : `/menu/dish/${relatedPopupDishId}`;
+          const response = await api.get<Dish>(endpoint);
           detailDish = response.data;
         }
 
@@ -705,7 +714,7 @@ const GuestDishListPage: React.FC = () => {
                   onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
                     restaurant: {
                       name: restaurantName,
-                      slug: restaurantSlug,
+                      slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
                     },
                   }) : undefined}
                   cartQuantity={getDishQuantity(dish.id)}
@@ -713,7 +722,9 @@ const GuestDishListPage: React.FC = () => {
                   onOpen={() => navigate(
                     table_id
                       ? buildGuestDishPath(table_id, dish.id)
-                      : `/menu/${restaurantSlug}/dish/${dish.id}`
+                      : restaurantSlug
+                        ? `/menu/${restaurantSlug}/dish/${dish.id}`
+                        : `/menu/dish/${dish.id}`
                   )}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
@@ -837,7 +848,9 @@ const GuestDishListPage: React.FC = () => {
                         onClick={() => navigate(
                           table_id
                             ? buildGuestDishPath(table_id, candidate.id)
-                            : `/menu/${restaurantSlug}/dish/${candidate.id}`
+                            : restaurantSlug
+                              ? `/menu/${restaurantSlug}/dish/${candidate.id}`
+                              : `/menu/dish/${candidate.id}`
                         )}
                         className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
                         style={{
@@ -854,7 +867,7 @@ const GuestDishListPage: React.FC = () => {
                           onClick={() => addDish(candidate, {
                             restaurant: {
                               name: restaurantName,
-                              slug: restaurantSlug,
+                              slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
                             },
                           })}
                           className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"

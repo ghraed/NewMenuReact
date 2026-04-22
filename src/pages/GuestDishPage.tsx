@@ -58,23 +58,35 @@ const GuestDishPage: React.FC = () => {
         const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
         let loaded = false;
 
-        for (const candidateSlug of candidateSlugs) {
-          try {
-            const response = await api.get(`/menu/${candidateSlug}/dish/${dish_id}`, {
-              headers: {
-                'ngrok-skip-browser-warning': 'true',
-              },
-            });
+        if (restaurant_slug) {
+          for (const candidateSlug of candidateSlugs) {
+            try {
+              const response = await api.get(`/menu/${candidateSlug}/dish/${dish_id}`, {
+                headers: {
+                  'ngrok-skip-browser-warning': 'true',
+                },
+              });
 
-            setDish(response.data);
-            setResolvedRestaurantSlug(candidateSlug);
-            loaded = true;
-            break;
-          } catch (err) {
-            if (candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
-              throw err;
+              setDish(response.data);
+              setResolvedRestaurantSlug(response.data?.restaurant?.slug || candidateSlug);
+              loaded = true;
+              break;
+            } catch (err) {
+              if (candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
+                throw err;
+              }
             }
           }
+        } else {
+          const response = await api.get(`/menu/dish/${dish_id}`, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true',
+            },
+          });
+
+          setDish(response.data);
+          setResolvedRestaurantSlug(response.data?.restaurant?.slug);
+          loaded = true;
         }
 
         if (!loaded) {

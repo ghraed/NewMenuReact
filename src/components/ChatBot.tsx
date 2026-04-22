@@ -178,7 +178,7 @@ const buildDishHref = (
     return `/menu/${encodeURIComponent(context.restaurant_slug)}/dish/${dishId}`;
   }
 
-  return null;
+  return `/menu/dish/${dishId}`;
 };
 
 const findNextDishMatch = (
@@ -370,7 +370,10 @@ const parsePathRestaurantContext = (pathname: string): ChatRestaurantContext => 
   }
 
   const restaurantMatch = normalizedPath.match(/^\/menu\/([^/]+)(?:\/|$)/i);
-  if (restaurantMatch && restaurantMatch[1].toLowerCase() !== 'table') {
+  if (
+    restaurantMatch
+    && !['table', 'dish'].includes(restaurantMatch[1].toLowerCase())
+  ) {
     return {
       restaurant_slug: safeDecodePathSegment(restaurantMatch[1]),
     };
@@ -602,13 +605,14 @@ const ChatBot: React.FC = () => {
     let cancelled = false;
 
     const hydrateDishes = async () => {
-      const tableId = chatContext.table_id;
-      const restaurantSlug = chatContext.restaurant_slug;
-
-      if (!tableId && !restaurantSlug) {
+      const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
+      if (!onGuestMenuRoute) {
         setChatDishes([]);
         return;
       }
+
+      const tableId = chatContext.table_id;
+      const restaurantSlug = chatContext.restaurant_slug;
 
       try {
         let dishes: Dish[] = [];
@@ -618,6 +622,9 @@ const ChatBot: React.FC = () => {
           dishes = response.dishes;
         } else if (restaurantSlug) {
           const response = await api.get<{ dishes: Dish[] }>(`/menu/${restaurantSlug}/dishes`);
+          dishes = response.data.dishes;
+        } else {
+          const response = await api.get<{ dishes: Dish[] }>('/menu/dishes');
           dishes = response.data.dishes;
         }
 
@@ -664,7 +671,7 @@ const ChatBot: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken]);
+  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken, location.pathname]);
 
   const pushMessage = (role: Role, content: string): string => {
     const messageId = makeId();

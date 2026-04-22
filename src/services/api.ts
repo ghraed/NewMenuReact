@@ -1,12 +1,7 @@
 import axios from 'axios';
 import { getStoredLanguage } from '../i18n/language';
 
-const isLocalhost = window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1';
-
-const API_URL = import.meta.env.VITE_API_URL || (isLocalhost
-  ? 'http://127.0.0.1:8000/api'
-  : 'https://192.168.10.203/api');
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,

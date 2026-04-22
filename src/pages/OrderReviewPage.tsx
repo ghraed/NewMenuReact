@@ -8,7 +8,7 @@ import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { createGuestTableSessionOrder, fetchGuestTableMenu } from '../services/orderService';
 import type { OrderRecord } from '../types';
-import { formatRestaurantLabel, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
+import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -44,7 +44,7 @@ const OrderReviewPage: React.FC = () => {
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
-  const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug || getPreferredGuestRestaurantSlug();
+  const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug;
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
   const canSubmit = items.length > 0
     && draft.tableSessionId !== null
@@ -142,7 +142,7 @@ const OrderReviewPage: React.FC = () => {
           titleId="order-review-heading"
           aside={(
             <Link
-              to={activeTableId ? buildGuestMenuPath(activeTableId) : restaurantSlug ? `/menu/${restaurantSlug}` : '/'}
+              to={activeTableId ? buildGuestMenuPath(activeTableId) : restaurantSlug ? `/menu/${restaurantSlug}` : '/menu'}
               className="inline-flex rounded-full border px-4 py-2 text-sm font-medium"
               style={{
                 backgroundColor: 'var(--guest-panel)',

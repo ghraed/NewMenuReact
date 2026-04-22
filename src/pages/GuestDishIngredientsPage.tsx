@@ -44,12 +44,16 @@ const GuestDishIngredientsPage: React.FC = () => {
           return;
         }
 
-        const response = await api.get(`/menu/${restaurant_slug}/dish/${dish_id}`, {
+        const endpoint = restaurant_slug
+          ? `/menu/${restaurant_slug}/dish/${dish_id}`
+          : `/menu/dish/${dish_id}`;
+        const response = await api.get(endpoint, {
           headers: {
             'ngrok-skip-browser-warning': 'true',
           },
         });
         setDish(response.data);
+        setRestaurantSlug(response.data?.restaurant?.slug || restaurant_slug);
       } catch (err) {
         console.error(err);
         setError(t('ingredientStory.failedToLoad'));
@@ -93,7 +97,9 @@ const GuestDishIngredientsPage: React.FC = () => {
               ? buildGuestDishPath(resolvedTableId, dish_id ?? '')
               : restaurantSlug && dish_id
                 ? `/menu/${restaurantSlug}/dish/${dish_id}`
-                : '/'}
+                : dish_id
+                  ? `/menu/dish/${dish_id}`
+                  : '/menu'}
             className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
           >
             <span aria-hidden="true">←</span>

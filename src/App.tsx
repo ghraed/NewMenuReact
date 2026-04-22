@@ -44,12 +44,15 @@ const AppRoutes: React.FC = () => {
     <AppThemeShell>
       <Routes key={i18n.resolvedLanguage}>
         <Route path="/" element={<GuestDishListPage />} />
+        <Route path="/menu" element={<GuestDishListPage />} />
         <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
         <Route path="/menu/table/:table_id/dish/:dish_id" element={<GuestDishPage />} />
         <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
         <Route path="/menu/table/:table_id/review" element={<OrderReviewPage />} />
         <Route path="/menu/table/:table_id/orders" element={<GuestOrdersPage />} />
         <Route path="/menu/table/:table_id/invoice" element={<GuestInvoicePage />} />
+        <Route path="/menu/dish/:dish_id" element={<GuestDishPage />} />
+        <Route path="/menu/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
         <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
         <Route path="/dish/:dish_id" element={<GuestDishPage />} />

@@ -153,10 +153,11 @@ export const verifyGuestTablePin = async (
 };
 
 export const createGuestOrder = async (
-  restaurantSlug: string,
+  restaurantSlug: string | undefined,
   payload: CreateGuestOrderRequest
 ): Promise<OrderResponse> => {
-  const response = await api.post<OrderResponse>(`/menu/${restaurantSlug}/orders`, payload);
+  const endpoint = restaurantSlug ? `/menu/${restaurantSlug}/orders` : '/menu/orders';
+  const response = await api.post<OrderResponse>(endpoint, payload);
   return response.data;
 };
 
@@ -183,10 +184,11 @@ export const fetchGuestTableSessionOrders = async (
 };
 
 export const sendGuestWave = async (
-  restaurantSlug: string,
+  restaurantSlug: string | undefined,
   payload: { table_reference: string }
 ): Promise<WaveResponse> => {
-  const response = await api.post<WaveResponse>(`/menu/${restaurantSlug}/waves`, payload);
+  const endpoint = restaurantSlug ? `/menu/${restaurantSlug}/waves` : '/menu/waves';
+  const response = await api.post<WaveResponse>(endpoint, payload);
   return response.data;
 };
 
