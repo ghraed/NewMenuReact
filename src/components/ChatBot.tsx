@@ -501,6 +501,12 @@ const persistChatState = (
 const ChatBot: React.FC = () => {
   const location = useLocation();
   const { restaurant, draft } = useOrderCart();
+  const isGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
+  const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
+  const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
+  const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
+  const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
+  const shouldRenderChat = !isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess);
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
@@ -1007,6 +1013,10 @@ const ChatBot: React.FC = () => {
     e.preventDefault();
     void sendMessage();
   };
+
+  if (!shouldRenderChat) {
+    return null;
+  }
 
   return (
     <div
