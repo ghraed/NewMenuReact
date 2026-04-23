@@ -19,6 +19,29 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 type DishFilter = 'all' | 'active' | 'deleted';
 
+interface DishListPayload {
+  data?: unknown;
+  current_page?: number;
+  last_page?: number;
+}
+
+const parseDishListPage = (payload: unknown): { items: Dish[]; currentPage: number; lastPage: number } => {
+  if (Array.isArray(payload)) {
+    return { items: payload as Dish[], currentPage: 1, lastPage: 1 };
+  }
+
+  if (typeof payload !== 'object' || payload === null) {
+    return { items: [], currentPage: 1, lastPage: 1 };
+  }
+
+  const pagePayload = payload as DishListPayload;
+  const items = Array.isArray(pagePayload.data) ? (pagePayload.data as Dish[]) : [];
+  const currentPage = Number.isFinite(pagePayload.current_page) ? Number(pagePayload.current_page) : 1;
+  const lastPage = Number.isFinite(pagePayload.last_page) ? Number(pagePayload.last_page) : 1;
+
+  return { items, currentPage, lastPage };
+};
+
 const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -64,24 +87,41 @@ const AdminDashboard: React.FC = () => {
     setError(null);
 
     try {
-      const params =
+      const baseParams =
         filter === 'active'
           ? { include_deleted: '0' }
           : filter === 'deleted'
             ? { only_deleted: '1' }
             : { include_deleted: '1' };
 
-      const response = await api.get('/dishes', { params });
-      const payload = response.data;
-      const items = Array.isArray(payload?.data) ? payload.data : payload;
-      setDishes(items || []);
+      const perPage = 200;
+      let currentPage = 1;
+      let lastPage = 1;
+      const allDishes: Dish[] = [];
+
+      do {
+        const response = await api.get('/dishes', {
+          params: {
+            ...baseParams,
+            page: String(currentPage),
+            per_page: String(perPage),
+          },
+        });
+
+        const parsed = parseDishListPage(response.data);
+        allDishes.push(...parsed.items);
+        currentPage += 1;
+        lastPage = parsed.lastPage;
+      } while (currentPage <= lastPage);
+
+      setDishes(allDishes);
     } catch (err: unknown) {
       console.error(err);
       setError(getErrorMessage(err, t('menuList.failedToLoad')));
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, t]);
 
   useEffect(() => {
     fetchDishes();
