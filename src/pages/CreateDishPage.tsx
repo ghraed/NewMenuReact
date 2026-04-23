@@ -93,6 +93,7 @@ const CreateDishPage: React.FC = () => {
       formData.append('category', dishData.category);
       formData.append('status', dishData.status);
       formData.append('is_anchor', dishData.is_anchor ? '1' : '0');
+      formData.append('is_profitable', dishData.is_profitable ? '1' : '0');
       dishData.suggested_dish_ids.forEach((dishId) => {
         formData.append('suggested_dish_ids[]', String(dishId));
       });

@@ -60,6 +60,7 @@ export interface Dish {
   category_ar?: string | null;
   status: 'draft' | 'published';
   is_anchor?: boolean;
+  is_profitable?: boolean;
   image_url?: string;
   assets: DishAsset[];
   dish_ingredients?: DishRecipeIngredient[];

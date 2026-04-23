@@ -23,6 +23,23 @@ interface DishDetailViewProps {
   cartQuantity?: number;
 }
 
+const sortByRecommendationPriority = (list: Dish[]): Dish[] => {
+  const withIndex = list.map((dish, index) => ({ dish, index }));
+
+  withIndex.sort((left, right) => {
+    const leftScore = left.dish.is_profitable === true ? 1 : 0;
+    const rightScore = right.dish.is_profitable === true ? 1 : 0;
+
+    if (leftScore !== rightScore) {
+      return rightScore - leftScore;
+    }
+
+    return left.index - right.index;
+  });
+
+  return withIndex.map((entry) => entry.dish);
+};
+
 const DishDetailView: React.FC<DishDetailViewProps> = ({
   dish,
   tableId,
@@ -39,9 +56,9 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
     (row) => row.show_in_animation !== false
   );
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
-  const alternativeDishes = dish.alternative_dishes || [];
-  const suggestedDishes = dish.suggested_dishes || [];
-  const relatedDishes = dish.related_dishes || [];
+  const alternativeDishes = sortByRecommendationPriority(dish.alternative_dishes || []);
+  const suggestedDishes = sortByRecommendationPriority(dish.suggested_dishes || []);
+  const relatedDishes = sortByRecommendationPriority(dish.related_dishes || []);
   const sections = [
     { title: t('dishDetail.description'), content: dish.description },
     { title: t('dishDetail.ingredients'), content: getDishIngredientsText(dish) },

@@ -84,6 +84,23 @@ const applyRestaurantCurrencyToDishes = (
   });
 };
 
+const sortByRecommendationPriority = (list: Dish[]): Dish[] => {
+  const withIndex = list.map((dish, index) => ({ dish, index }));
+
+  withIndex.sort((left, right) => {
+    const leftScore = left.dish.is_profitable === true ? 1 : 0;
+    const rightScore = right.dish.is_profitable === true ? 1 : 0;
+
+    if (leftScore !== rightScore) {
+      return rightScore - leftScore;
+    }
+
+    return left.index - right.index;
+  });
+
+  return withIndex.map((entry) => entry.dish);
+};
+
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
@@ -347,7 +364,9 @@ const GuestDishListPage: React.FC = () => {
         return true;
       });
 
-    const relatedMatches = takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || []);
+    const relatedMatches = sortByRecommendationPriority(
+      takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || [])
+    );
 
     if (relatedMatches.length > 0) {
       return relatedMatches;
@@ -379,7 +398,7 @@ const GuestDishListPage: React.FC = () => {
       return true;
     });
 
-    return sameCategoryFallback;
+    return sortByRecommendationPriority(sameCategoryFallback);
   };
 
   const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;

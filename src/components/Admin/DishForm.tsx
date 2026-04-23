@@ -28,6 +28,7 @@ export interface DishFormData {
   category: string;
   status: 'draft' | 'published';
   is_anchor: boolean;
+  is_profitable: boolean;
   preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
@@ -115,6 +116,7 @@ const DishForm: React.FC<DishFormProps> = ({
     category: initialValues?.category || '',
     status: initialValues?.status || 'published',
     is_anchor: initialValues?.is_anchor === true,
+    is_profitable: initialValues?.is_profitable === true,
     preview_file: null,
     glb_file: null,
     usdz_file: null,
@@ -429,6 +431,7 @@ const DishForm: React.FC<DishFormProps> = ({
         category: formData.category,
         status: formData.status,
         is_anchor: formData.is_anchor,
+        is_profitable: formData.is_profitable,
         preview_file: formData.preview_file,
         glb_file: formData.glb_file,
         usdz_file: formData.usdz_file,
@@ -861,6 +864,37 @@ const DishForm: React.FC<DishFormProps> = ({
               setFormData((prev) => ({
                 ...prev,
                 status: checked ? 'published' : 'draft',
+              }));
+            }}
+            label=""
+          />
+        </div>
+      </GlassSurface>
+
+      <GlassSurface className="p-4" sheen={false}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <p className="text-sm font-semibold text-text">{t('dishForm.profitableItem')}</p>
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                  formData.is_profitable
+                    ? 'border-gold/35 bg-gold/10 text-gold2'
+                    : 'border-white/15 bg-white/5 text-muted2'
+                }`}
+              >
+                {formData.is_profitable ? t('dishForm.profitableEnabled') : t('dishForm.profitableDisabled')}
+              </span>
+            </div>
+            <p className="text-xs text-muted">{t('dishForm.profitableDescription')}</p>
+          </div>
+
+          <GlassToggle
+            checked={formData.is_profitable}
+            onChange={(checked) => {
+              setFormData((prev) => ({
+                ...prev,
+                is_profitable: checked,
               }));
             }}
             label=""

@@ -21,6 +21,37 @@ interface DishCardProps {
   isIngredientAlert?: boolean;
 }
 
+const getPublicDishBadge = (
+  dish: Dish,
+  t: ReturnType<typeof useTranslation>['t']
+): { label: string; tone: 'premium' | 'subtle' } | null => {
+  const isAnchor = dish.is_anchor === true;
+  const isProfitable = dish.is_profitable === true;
+
+  if (isAnchor && isProfitable) {
+    return {
+      label: t('dishCard.badgeChefRecommendation'),
+      tone: 'premium',
+    };
+  }
+
+  if (isAnchor) {
+    return {
+      label: t('dishCard.badgeRecommended'),
+      tone: 'premium',
+    };
+  }
+
+  if (isProfitable) {
+    return {
+      label: t('dishCard.badgePopularChoice'),
+      tone: 'subtle',
+    };
+  }
+
+  return null;
+};
+
 const DishCard: React.FC<DishCardProps> = ({
   dish,
   onOpen,
@@ -51,6 +82,7 @@ const DishCard: React.FC<DishCardProps> = ({
   }, [dish.price, dish.price_is_usd_base, dish.dollar_rate, currency, originalCurrency]);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
+  const publicBadge = useMemo(() => getPublicDishBadge(dish, t), [dish, t]);
 
   useEffect(() => {
     const node = articleRef.current;
@@ -142,6 +174,25 @@ const DishCard: React.FC<DishCardProps> = ({
               }}
             >
               {t('dishCard.outOfStock')}
+            </div>
+          ) : null}
+
+          {publicBadge ? (
+            <div
+              className="mb-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
+              style={publicBadge.tone === 'premium'
+                ? {
+                  backgroundColor: 'color-mix(in srgb, rgb(var(--color-gold)) 20%, transparent)',
+                  borderColor: 'color-mix(in srgb, rgb(var(--color-gold)) 52%, var(--guest-border))',
+                  color: 'rgb(var(--color-gold2))',
+                }
+                : {
+                  backgroundColor: 'var(--guest-accent-soft)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-accent)',
+                }}
+            >
+              {publicBadge.label}
             </div>
           ) : null}
 
