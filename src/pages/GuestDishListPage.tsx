@@ -60,11 +60,11 @@ const applyRestaurantCurrencyToDishes = (
   restaurant: GuestListResponse['restaurant']
 ): Dish[] => {
   const storedSettings = readGuestCurrencySettings();
-  const restaurantCurrency = normalizeCurrency(restaurant.currency || storedSettings?.currency);
-  const restaurantDollarRate = typeof restaurant.dollar_rate === 'number'
-    ? restaurant.dollar_rate
-    : (typeof storedSettings?.dollar_rate === 'number'
-      ? storedSettings.dollar_rate
+  const restaurantCurrency = normalizeCurrency(storedSettings?.currency || restaurant.currency);
+  const restaurantDollarRate = typeof storedSettings?.dollar_rate === 'number'
+    ? storedSettings.dollar_rate
+    : (typeof restaurant.dollar_rate === 'number'
+      ? restaurant.dollar_rate
       : (restaurantCurrency === 'USD' ? 1 : null));
 
   return list.map((dish) => {

@@ -83,11 +83,13 @@ const AdminCurrencyPage: React.FC = () => {
         return;
       }
 
+      // Keep guest view consistent immediately on this device, even if API sync fails.
+      persistGuestCurrencySettings(originalCurrency, safeDollarRate);
+
       await api.patch('/restaurant/currency-settings', {
         currency: originalCurrency,
         dollar_rate: safeDollarRate,
       });
-      persistGuestCurrencySettings(originalCurrency, safeDollarRate);
 
       if (originalCurrency === 'USD') {
         setDollarRate('1');
@@ -96,9 +98,10 @@ const AdminCurrencyPage: React.FC = () => {
       }
 
       setSuccess('Currency settings saved.');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setError('Failed to save currency settings.');
+      setSuccess('Saved locally for guest view on this device.');
+      setError('Backend sync failed. Please run API migration/deploy so currency saves for all devices.');
     } finally {
       setSaving(false);
     }
