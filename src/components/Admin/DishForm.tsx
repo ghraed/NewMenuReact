@@ -141,6 +141,7 @@ const DishForm: React.FC<DishFormProps> = ({
   const [suggestedDishesSearch, setSuggestedDishesSearch] = useState('');
   const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
   const [relatedDishesSearch, setRelatedDishesSearch] = useState('');
+  const [recipeIngredientsOpen, setRecipeIngredientsOpen] = useState(false);
 
   useEffect(() => {
     setSuggestedDishesSearch('');
@@ -964,14 +965,30 @@ const DishForm: React.FC<DishFormProps> = ({
               {t('dishForm.recipeIngredientsDescription')}
             </p>
           </div>
-          {recipeIngredientOptions.length > 0 ? (
-            <LiquidButton type="button" tone="tertiary" onClick={addRecipeIngredient}>
-              {t('dishForm.addRecipeIngredient')}
-            </LiquidButton>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRecipeIngredientsOpen((current) => !current)}
+              className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted2 transition hover:border-white/25 hover:text-text"
+            >
+              {recipeIngredientsOpen ? 'Collapse' : 'Expand'}
+            </button>
+            {recipeIngredientOptions.length > 0 && recipeIngredientsOpen ? (
+              <LiquidButton type="button" tone="tertiary" onClick={addRecipeIngredient}>
+                {t('dishForm.addRecipeIngredient')}
+              </LiquidButton>
+            ) : null}
+          </div>
         </div>
 
-        {recipeIngredientOptions.length === 0 ? (
+        <p className="text-xs text-muted">
+          {formData.recipe_ingredients.length > 0
+            ? `${formData.recipe_ingredients.length} ingredient${formData.recipe_ingredients.length > 1 ? 's' : ''} configured`
+            : t('dishForm.noRecipeIngredients')}
+        </p>
+
+        {recipeIngredientsOpen ? (
+          recipeIngredientOptions.length === 0 ? (
           <div className="rounded-2xl border border-gold/25 bg-gold/10 px-4 py-5 text-sm text-gold2">
             {t('dishForm.recipeIngredientsMissingInventory')}
             <div className="mt-3">
@@ -982,11 +999,11 @@ const DishForm: React.FC<DishFormProps> = ({
               </Link>
             </div>
           </div>
-        ) : formData.recipe_ingredients.length === 0 ? (
+          ) : formData.recipe_ingredients.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 text-sm text-muted">
             {t('dishForm.noRecipeIngredients')}
           </div>
-        ) : (
+          ) : (
           <div className="space-y-4">
             {formData.recipe_ingredients.map((recipeItem, index) => {
               const selectedIngredient = recipeIngredientOptions.find(
@@ -1098,7 +1115,8 @@ const DishForm: React.FC<DishFormProps> = ({
               );
             })}
           </div>
-        )}
+          )
+        ) : null}
       </GlassSurface>
 
       <div className="border-t border-stroke pt-6">
