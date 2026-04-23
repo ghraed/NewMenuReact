@@ -91,6 +91,7 @@ const CreateDishPage: React.FC = () => {
       if (dishData.calories.trim()) formData.append('calories', dishData.calories.trim());
       formData.append('category', dishData.category);
       formData.append('status', dishData.status);
+      formData.append('is_anchor', dishData.is_anchor ? '1' : '0');
       dishData.suggested_dish_ids.forEach((dishId) => {
         formData.append('suggested_dish_ids[]', String(dishId));
       });

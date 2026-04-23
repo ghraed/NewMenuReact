@@ -138,6 +138,7 @@ const EditDishPage: React.FC = () => {
         calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
         status: data.status,
+        is_anchor: data.is_anchor,
         suggested_dish_ids: data.suggested_dish_ids,
         related_dish_ids: data.related_dish_ids,
         recipe_ingredients: data.recipe_ingredients.map((recipeItem) => ({
@@ -367,6 +368,7 @@ const EditDishPage: React.FC = () => {
             name: dish.name,
             category: dish.category,
             status: dish.status,
+            is_anchor: dish.is_anchor === true,
             price: String(dish.price),
             calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),

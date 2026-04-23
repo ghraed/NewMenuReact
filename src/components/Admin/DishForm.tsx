@@ -25,6 +25,7 @@ export interface DishFormData {
   calories: string;
   category: string;
   status: 'draft' | 'published';
+  is_anchor: boolean;
   preview_file: File | null;
   glb_file: File | null;
   usdz_file: File | null;
@@ -110,6 +111,7 @@ const DishForm: React.FC<DishFormProps> = ({
     calories: initialValues?.calories || '',
     category: initialValues?.category || '',
     status: initialValues?.status || 'published',
+    is_anchor: initialValues?.is_anchor === true,
     preview_file: null,
     glb_file: null,
     usdz_file: null,
@@ -417,6 +419,7 @@ const DishForm: React.FC<DishFormProps> = ({
         calories: formData.calories,
         category: formData.category,
         status: formData.status,
+        is_anchor: formData.is_anchor,
         preview_file: formData.preview_file,
         glb_file: formData.glb_file,
         usdz_file: formData.usdz_file,
@@ -832,6 +835,37 @@ const DishForm: React.FC<DishFormProps> = ({
               setFormData((prev) => ({
                 ...prev,
                 status: checked ? 'published' : 'draft',
+              }));
+            }}
+            label=""
+          />
+        </div>
+      </GlassSurface>
+
+      <GlassSurface className="p-4" sheen={false}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <p className="text-sm font-semibold text-text">{t('dishForm.anchorItem')}</p>
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                  formData.is_anchor
+                    ? 'border-sky-400/35 bg-sky-400/10 text-sky-200'
+                    : 'border-white/15 bg-white/5 text-muted2'
+                }`}
+              >
+                {formData.is_anchor ? t('dishForm.anchorEnabled') : t('dishForm.anchorDisabled')}
+              </span>
+            </div>
+            <p className="text-xs text-muted">{t('dishForm.anchorDescription')}</p>
+          </div>
+
+          <GlassToggle
+            checked={formData.is_anchor}
+            onChange={(checked) => {
+              setFormData((prev) => ({
+                ...prev,
+                is_anchor: checked,
               }));
             }}
             label=""

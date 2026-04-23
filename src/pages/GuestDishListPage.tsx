@@ -264,6 +264,16 @@ const GuestDishListPage: React.FC = () => {
     });
   }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, i18n.resolvedLanguage, t]);
 
+  const anchorDishes = useMemo(
+    () => filteredDishes.filter((dish) => dish.is_anchor === true),
+    [filteredDishes]
+  );
+
+  const regularDishes = useMemo(
+    () => filteredDishes.filter((dish) => dish.is_anchor !== true),
+    [filteredDishes]
+  );
+
   const dishLookup = useMemo(() => {
     const map = new Map<number, Dish>();
 
@@ -714,9 +724,47 @@ const GuestDishListPage: React.FC = () => {
             </div>
           ) : null}
 
-          {!loading && !error ? (
+          {!loading && !error && anchorDishes.length > 0 ? (
+            <div className="mt-6">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="inline-flex rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold2">
+                  {t('menuList.featuredEyebrow')}
+                </span>
+                <span className="text-sm text-[var(--guest-muted)]">
+                  {t('menuList.featuredCount', { count: anchorDishes.length })}
+                </span>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {anchorDishes.map((dish) => (
+                  <DishCard
+                    key={`anchor-${dish.id}`}
+                    dish={dish}
+                    onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
+                      restaurant: {
+                        name: restaurantName,
+                        slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
+                      },
+                    }) : undefined}
+                    cartQuantity={getDishQuantity(dish.id)}
+                    onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
+                    onOpen={() => navigate(
+                      table_id
+                        ? buildGuestDishPath(table_id, dish.id)
+                        : restaurantSlug
+                          ? `/menu/${restaurantSlug}/dish/${dish.id}`
+                          : `/menu/dish/${dish.id}`
+                    )}
+                    isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {!loading && !error && regularDishes.length > 0 ? (
             <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {filteredDishes.map((dish) => (
+              {regularDishes.map((dish) => (
                 <DishCard
                   key={dish.id}
                   dish={dish}

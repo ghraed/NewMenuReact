@@ -54,6 +54,7 @@ export interface Dish {
   category: string;
   category_ar?: string | null;
   status: 'draft' | 'published';
+  is_anchor?: boolean;
   image_url?: string;
   assets: DishAsset[];
   dish_ingredients?: DishRecipeIngredient[];
