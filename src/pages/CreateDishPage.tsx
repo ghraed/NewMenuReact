@@ -88,6 +88,7 @@ const CreateDishPage: React.FC = () => {
       const formData = new FormData();
       formData.append('name', dishData.name);
       formData.append('price', dishData.price);
+      formData.append('currency', dishData.currency);
       if (dishData.calories.trim()) formData.append('calories', dishData.calories.trim());
       formData.append('category', dishData.category);
       formData.append('status', dishData.status);

@@ -13,6 +13,7 @@ import {
 } from './guestPresentation';
 import { translateCategoryLabel } from '../../i18n/dynamic';
 import { buildGuestDishIngredientsPath, buildGuestDishPath } from '../../utils/guestTableRoutes';
+import { formatPriceWithCurrency } from '../../utils/currency';
 
 interface DishDetailViewProps {
   dish: Dish;
@@ -30,7 +31,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   cartQuantity = 0,
 }) => {
   const { t } = useTranslation();
-  const price = Number(dish.price).toFixed(2);
+  const priceLabel = formatPriceWithCurrency(Number(dish.price), dish.currency);
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
@@ -133,7 +134,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                 color: 'var(--guest-accent)',
               }}
             >
-              ${price}
+              {priceLabel}
             </span>
           </div>
 

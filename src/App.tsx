@@ -19,6 +19,7 @@ import StaffOrdersPage from './pages/StaffOrdersPage';
 import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
 import InvoicePrintPage from './pages/InvoicePrintPage';
+import AdminCurrencyPage from './pages/AdminCurrencyPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
@@ -158,6 +159,15 @@ const AppRoutes: React.FC = () => {
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
               <AccountingOrdersPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/currency"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminCurrencyPage />
             </ProtectedRoute>
           )}
         />

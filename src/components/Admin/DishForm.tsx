@@ -12,9 +12,10 @@ import {
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
-import type { InventoryIngredient } from '../../types';
+import type { CurrencyCode, InventoryIngredient } from '../../types';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
+import { CURRENCY_OPTIONS } from '../../utils/currency';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -22,6 +23,7 @@ const createClientId = () =>
 export interface DishFormData {
   name: string;
   price: string;
+  currency: CurrencyCode;
   calories: string;
   category: string;
   status: 'draft' | 'published';
@@ -108,6 +110,7 @@ const DishForm: React.FC<DishFormProps> = ({
   const [formData, setFormData] = useState<DishFormState>(() => ({
     name: initialValues?.name || '',
     price: initialValues?.price || '',
+    currency: initialValues?.currency || 'USD',
     calories: initialValues?.calories || '',
     category: initialValues?.category || '',
     status: initialValues?.status || 'published',
@@ -178,6 +181,11 @@ const DishForm: React.FC<DishFormProps> = ({
     if (name === 'name' && value.trim().length > 0) {
       setSelectedDishDictionaryName('');
     }
+    if (name === 'currency') {
+      setFormData((prev) => ({ ...prev, currency: value as CurrencyCode }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -416,6 +424,7 @@ const DishForm: React.FC<DishFormProps> = ({
       const submitPayload: DishFormData = {
         name: dishName,
         price: formData.price,
+        currency: formData.currency,
         calories: formData.calories,
         category: formData.category,
         status: formData.status,
@@ -536,7 +545,7 @@ const DishForm: React.FC<DishFormProps> = ({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div>
           <label htmlFor="price" className="mb-1 block text-sm font-medium text-text">
             {t('dishForm.priceLabel')}
@@ -551,6 +560,23 @@ const DishForm: React.FC<DishFormProps> = ({
             step="0.01"
             min="0"
             placeholder={t('dishForm.pricePlaceholder')}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
+            Currency
+          </label>
+          <GlassSelect
+            id="currency"
+            name="currency"
+            value={formData.currency}
+            onChange={handleChange}
+            required
+            options={CURRENCY_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
           />
         </div>
 

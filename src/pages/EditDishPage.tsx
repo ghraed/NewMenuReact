@@ -135,6 +135,7 @@ const EditDishPage: React.FC = () => {
         await api.patch(`/dishes/${dish_id}`, {
         name: data.name,
         price: parseFloat(data.price),
+        currency: data.currency,
         calories: data.calories.trim() ? Number(data.calories) : null,
         category: data.category,
         status: data.status,
@@ -370,6 +371,7 @@ const EditDishPage: React.FC = () => {
             status: dish.status,
             is_anchor: dish.is_anchor === true,
             price: String(dish.price),
+            currency: dish.currency || 'USD',
             calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
             related_dish_ids: (dish.related_dishes || []).map((relatedDish) => relatedDish.id),

@@ -5,6 +5,7 @@ import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishTags from './DishTags';
 import { getDishTags } from './guestPresentation';
+import { formatDollarRate, formatPriceWithCurrency, normalizeCurrency } from '../../utils/currency';
 
 interface DishCardProps {
   dish: Dish;
@@ -25,9 +26,12 @@ const DishCard: React.FC<DishCardProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
+  const [showDollarRate, setShowDollarRate] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
-  const price = Number(dish.price).toFixed(2);
+  const currency = normalizeCurrency(dish.currency);
+  const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);
+  const dollarRateLabel = formatDollarRate(currency, dish.dollar_rate);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
 
@@ -124,21 +128,30 @@ const DishCard: React.FC<DishCardProps> = ({
             </div>
           ) : null}
 
-          <div className="flex items-start justify-between gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-5">
             <h3 className="min-w-0 font-serif text-2xl leading-tight text-[var(--guest-text)] sm:text-[1.75rem]">{dish.name}</h3>
-            <span
-              className="shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold"
-              style={{
-                backgroundColor: 'var(--guest-accent-soft)',
-                borderColor: 'var(--guest-border)',
-                color: 'var(--guest-accent)',
-              }}
-            >
-              ${price}
-            </span>
+
+            <div className="min-w-[86px] pt-1 text-right">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowDollarRate((current) => !current);
+                }}
+                className="text-xs font-medium tracking-[0.06em] text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
+                aria-label="Show dollar rate"
+              >
+                {priceLabel}
+              </button>
+              {showDollarRate ? (
+                <p className="mt-1 text-[10px] font-medium leading-4 text-[var(--guest-muted)]">
+                  {dollarRateLabel}
+                </p>
+              ) : null}
+            </div>
           </div>
 
-          <p className="mt-3 line-clamp-3 text-sm leading-7 text-[var(--guest-muted)]">{dish.description}</p>
+          <p className="mt-3 pr-1 line-clamp-3 text-sm leading-7 text-[var(--guest-muted)]">{dish.description}</p>
 
           <DishTags tags={tags} className="mt-4" />
 

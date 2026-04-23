@@ -6,6 +6,7 @@ export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
+export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
 
 export interface StaffMember {
   id: number;
@@ -50,6 +51,8 @@ export interface Dish {
   description: string;
   description_ar?: string | null;
   price: number;
+  currency?: CurrencyCode | null;
+  dollar_rate?: number | null;
   calories?: number | null;
   category: string;
   category_ar?: string | null;
@@ -74,6 +77,8 @@ export interface RestaurantSummary {
   id: number;
   name: string;
   slug: string;
+  currency?: CurrencyCode | null;
+  dollar_rate?: number | null;
   max_tables?: number;
 }
 

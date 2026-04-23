@@ -17,12 +17,15 @@ import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } fro
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
+import { formatPriceWithCurrency, normalizeCurrency } from '../utils/currency';
 
 interface GuestListResponse {
   restaurant: {
     id: number;
     name: string;
     slug: string;
+    currency?: string | null;
+    dollar_rate?: number | null;
   };
   dishes: Dish[];
 }
@@ -51,6 +54,15 @@ const getDishIngredients = (dish: Dish) => {
       return true;
     });
 };
+
+const applyRestaurantCurrencyToDishes = (
+  list: Dish[],
+  restaurant: GuestListResponse['restaurant']
+): Dish[] => list.map((dish) => ({
+  ...dish,
+  currency: normalizeCurrency(dish.currency || restaurant.currency),
+  dollar_rate: typeof dish.dollar_rate === 'number' ? dish.dollar_rate : restaurant.dollar_rate ?? null,
+}));
 
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
@@ -107,7 +119,7 @@ const GuestDishListPage: React.FC = () => {
           }
           setRestaurantName(response.restaurant.name);
           setRestaurantSlug(response.restaurant.slug);
-          setDishes(response.dishes);
+          setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
           return;
         }
 
@@ -140,7 +152,7 @@ const GuestDishListPage: React.FC = () => {
 
         setRestaurantName(data.restaurant.name);
         setRestaurantSlug(data.restaurant.slug);
-        setDishes(data.dishes);
+        setDishes(applyRestaurantCurrencyToDishes(data.dishes, data.restaurant));
       } catch (err) {
         console.error(err);
         setError(i18n.t('menuList.failedToLoad'));
@@ -887,7 +899,9 @@ const GuestDishListPage: React.FC = () => {
                       />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--guest-text)] sm:text-base">{candidate.name}</p>
-                        <p className="mt-1 text-xs text-[var(--guest-muted)]">${Number(candidate.price).toFixed(2)}</p>
+                        <p className="mt-1 text-xs text-[var(--guest-muted)]">
+                          {formatPriceWithCurrency(Number(candidate.price), candidate.currency)}
+                        </p>
                         {getDishQuantity(candidate.id) > 0 ? (
                           <p className="mt-1 text-xs font-medium text-[var(--guest-accent)]">
                             {t('dishCard.inCartCount', {
