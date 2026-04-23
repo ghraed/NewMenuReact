@@ -10,8 +10,8 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
-import api from '../services/api';
-import type { InventoryIngredient, IngredientStockUnit } from '../types';
+import api, { resolveAssetUrl } from '../services/api';
+import type { GlobalIngredient, InventoryIngredient, IngredientStockUnit } from '../types';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 interface IngredientPayload {
@@ -31,6 +31,18 @@ interface InventoryActionState {
   reference: string;
   notes: string;
 }
+
+interface ImportGlobalIngredientsResponse {
+  message?: string;
+  created_count: number;
+  linked_count: number;
+  skipped_count: number;
+  created_ids: number[];
+  linked_ids: number[];
+  skipped_global_ingredient_ids: number[];
+}
+
+type GlobalImportStatus = 'already_added' | 'will_link' | 'new';
 
 const defaultIngredientPayload: IngredientPayload = {
   name: '',
@@ -79,6 +91,15 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const normalizeIngredientName = (value?: string | null): string => (
+  (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+);
+
 const AdminIngredientsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
@@ -96,6 +117,13 @@ const AdminIngredientsPage: React.FC = () => {
   const [listSearch, setListSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'low_stock'>('all');
   const [unitFilter, setUnitFilter] = useState<'all' | IngredientStockUnit>('all');
+  const [globalIngredients, setGlobalIngredients] = useState<GlobalIngredient[]>([]);
+  const [globalIngredientsLoading, setGlobalIngredientsLoading] = useState(false);
+  const [globalImportModalOpen, setGlobalImportModalOpen] = useState(false);
+  const [globalImportSearch, setGlobalImportSearch] = useState('');
+  const [hideAlreadyAddedGlobals, setHideAlreadyAddedGlobals] = useState(true);
+  const [selectedGlobalIngredientIds, setSelectedGlobalIngredientIds] = useState<number[]>([]);
+  const [importingGlobalIngredients, setImportingGlobalIngredients] = useState(false);
 
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
@@ -111,6 +139,19 @@ const AdminIngredientsPage: React.FC = () => {
       setLoading(false);
     }
   }, [t]);
+
+  const fetchGlobalIngredients = useCallback(async () => {
+    setGlobalIngredientsLoading(true);
+
+    try {
+      const response = await api.get<GlobalIngredient[]>('/global-ingredients');
+      setGlobalIngredients(Array.isArray(response.data) ? response.data : []);
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, t('inventoryIngredients.importGlobal.failedLoad')), 'tertiary');
+    } finally {
+      setGlobalIngredientsLoading(false);
+    }
+  }, [showToast, t]);
 
   useEffect(() => {
     void fetchIngredients();
@@ -354,6 +395,141 @@ const AdminIngredientsPage: React.FC = () => {
     })
   ), [formatIngredientName, ingredients, normalizedListSearch, statusFilter, unitFilter]);
 
+  const globalImportRows = useMemo(() => {
+    const existingByGlobalId = new Set<number>(
+      ingredients
+        .map((ingredient) => ingredient.global_ingredient_id)
+        .filter((globalIngredientId): globalIngredientId is number => typeof globalIngredientId === 'number')
+    );
+
+    const unlinkedByNormalizedName = new Map<string, number>();
+    ingredients.forEach((ingredient) => {
+      if (ingredient.global_ingredient_id) {
+        return;
+      }
+
+      const normalizedName = normalizeIngredientName(ingredient.name);
+      if (!normalizedName || unlinkedByNormalizedName.has(normalizedName)) {
+        return;
+      }
+
+      unlinkedByNormalizedName.set(normalizedName, ingredient.id);
+    });
+
+    return globalIngredients.map((globalIngredient) => {
+      const normalizedName = normalizeIngredientName(globalIngredient.normalized_name || globalIngredient.name);
+
+      const status: GlobalImportStatus = existingByGlobalId.has(globalIngredient.id)
+        ? 'already_added'
+        : unlinkedByNormalizedName.has(normalizedName)
+          ? 'will_link'
+          : 'new';
+
+      return {
+        globalIngredient,
+        status,
+        isSelectable: status !== 'already_added',
+      };
+    });
+  }, [globalIngredients, ingredients]);
+
+  const filteredGlobalImportRows = useMemo(() => {
+    const normalizedSearch = globalImportSearch.trim().toLowerCase();
+
+    return globalImportRows.filter(({ globalIngredient, status }) => {
+      if (hideAlreadyAddedGlobals && status === 'already_added') {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const localizedName = getIngredientDisplayName(globalIngredient, i18n.resolvedLanguage).toLowerCase();
+      return (
+        (globalIngredient.name || '').toLowerCase().includes(normalizedSearch)
+        || (globalIngredient.name_ar || '').toLowerCase().includes(normalizedSearch)
+        || localizedName.includes(normalizedSearch)
+      );
+    });
+  }, [globalImportRows, globalImportSearch, hideAlreadyAddedGlobals, i18n.resolvedLanguage]);
+
+  const selectedGlobalIngredientsCount = selectedGlobalIngredientIds.length;
+
+  const handleOpenGlobalImportModal = async () => {
+    setGlobalImportModalOpen(true);
+    setSelectedGlobalIngredientIds([]);
+    setGlobalImportSearch('');
+
+    if (globalIngredients.length === 0 && !globalIngredientsLoading) {
+      await fetchGlobalIngredients();
+    }
+  };
+
+  const handleCloseGlobalImportModal = () => {
+    if (importingGlobalIngredients) {
+      return;
+    }
+
+    setGlobalImportModalOpen(false);
+    setSelectedGlobalIngredientIds([]);
+    setGlobalImportSearch('');
+  };
+
+  const handleToggleGlobalSelection = (globalIngredientId: number) => {
+    setSelectedGlobalIngredientIds((current) => (
+      current.includes(globalIngredientId)
+        ? current.filter((id) => id !== globalIngredientId)
+        : [...current, globalIngredientId]
+    ));
+  };
+
+  const handleSelectVisibleGlobals = () => {
+    const visibleSelectableIds = filteredGlobalImportRows
+      .filter((row) => row.isSelectable)
+      .map((row) => row.globalIngredient.id);
+
+    setSelectedGlobalIngredientIds(visibleSelectableIds);
+  };
+
+  const handleClearGlobalSelection = () => {
+    setSelectedGlobalIngredientIds([]);
+  };
+
+  const handleImportSelectedGlobals = async () => {
+    if (selectedGlobalIngredientIds.length === 0) {
+      showToast(t('inventoryIngredients.importGlobal.selectFirst'), 'tertiary');
+      return;
+    }
+
+    setImportingGlobalIngredients(true);
+    setError(null);
+
+    try {
+      const response = await api.post<ImportGlobalIngredientsResponse>('/inventory/ingredients/import-global', {
+        global_ingredient_ids: selectedGlobalIngredientIds,
+      });
+
+      await fetchIngredients();
+      setSelectedGlobalIngredientIds([]);
+
+      showToast(
+        t('inventoryIngredients.importGlobal.summary', {
+          created: response.data.created_count ?? 0,
+          linked: response.data.linked_count ?? 0,
+          skipped: response.data.skipped_count ?? 0,
+        }),
+        'secondary'
+      );
+    } catch (err: unknown) {
+      const message = getErrorMessage(err, t('inventoryIngredients.importGlobal.failedImport'));
+      setError(message);
+      showToast(message, 'tertiary');
+    } finally {
+      setImportingGlobalIngredients(false);
+    }
+  };
+
   return (
     <DashboardLayout title={t('inventoryIngredients.pageTitle')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -363,9 +539,14 @@ const AdminIngredientsPage: React.FC = () => {
           <p className="mt-2 text-sm leading-6 text-muted">{t('inventoryIngredients.description')}</p>
         </div>
 
-        <LiquidButton tone="tertiary" onClick={fetchIngredients} disabled={loading}>
-          {loading ? t('common.loading') : t('inventoryIngredients.refresh')}
-        </LiquidButton>
+        <div className="flex flex-wrap gap-2">
+          <LiquidButton tone="tertiary" onClick={fetchIngredients} disabled={loading}>
+            {loading ? t('common.loading') : t('inventoryIngredients.refresh')}
+          </LiquidButton>
+          <LiquidButton tone="primary" onClick={() => void handleOpenGlobalImportModal()} disabled={loading}>
+            {t('inventoryIngredients.importGlobal.open')}
+          </LiquidButton>
+        </div>
       </div>
 
       {error && (
@@ -667,6 +848,130 @@ const AdminIngredientsPage: React.FC = () => {
           </div>
         )}
       </GlassCard>
+
+      {globalImportModalOpen ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-5xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.importGlobal.eyebrow')}</p>
+                <h3 className="mt-2 text-xl font-semibold text-text">{t('inventoryIngredients.importGlobal.title')}</h3>
+                <p className="mt-2 text-sm text-muted">{t('inventoryIngredients.importGlobal.description')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <LiquidButton tone="tertiary" onClick={handleClearGlobalSelection} disabled={importingGlobalIngredients}>
+                  {t('inventoryIngredients.importGlobal.clearSelection')}
+                </LiquidButton>
+                <LiquidButton tone="tertiary" onClick={handleCloseGlobalImportModal} disabled={importingGlobalIngredients}>
+                  {t('common.close')}
+                </LiquidButton>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <GlassInput
+                value={globalImportSearch}
+                onChange={(event) => setGlobalImportSearch(event.target.value)}
+                placeholder={t('inventoryIngredients.importGlobal.searchPlaceholder')}
+                leftSlot={<span>⌕</span>}
+                disabled={globalIngredientsLoading || importingGlobalIngredients}
+              />
+              <label className="inline-flex items-center gap-2 rounded-[16px] border border-white/12 bg-white/6 px-3 py-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={hideAlreadyAddedGlobals}
+                  onChange={(event) => setHideAlreadyAddedGlobals(event.target.checked)}
+                  disabled={importingGlobalIngredients}
+                />
+                {t('inventoryIngredients.importGlobal.hideAdded')}
+              </label>
+              <LiquidButton
+                tone="tertiary"
+                onClick={handleSelectVisibleGlobals}
+                disabled={importingGlobalIngredients || filteredGlobalImportRows.filter((row) => row.isSelectable).length === 0}
+              >
+                {t('inventoryIngredients.importGlobal.selectVisible')}
+              </LiquidButton>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/12 bg-white/6 px-4 py-3 text-sm text-muted">
+              <p>{t('inventoryIngredients.importGlobal.selectedCount', { count: selectedGlobalIngredientsCount })}</p>
+              <LiquidButton
+                tone="primary"
+                onClick={() => void handleImportSelectedGlobals()}
+                disabled={importingGlobalIngredients || selectedGlobalIngredientsCount === 0}
+              >
+                {importingGlobalIngredients
+                  ? t('inventoryIngredients.importGlobal.importing')
+                  : t('inventoryIngredients.importGlobal.importSelected')}
+              </LiquidButton>
+            </div>
+
+            {globalIngredientsLoading ? (
+              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+                {t('inventoryIngredients.importGlobal.loading')}
+              </div>
+            ) : filteredGlobalImportRows.length === 0 ? (
+              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+                {t('inventoryIngredients.importGlobal.empty')}
+              </div>
+            ) : (
+              <div className="mt-5 max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+                {filteredGlobalImportRows.map(({ globalIngredient, status, isSelectable }) => {
+                  const isChecked = selectedGlobalIngredientIds.includes(globalIngredient.id);
+                  const imageUrl = resolveAssetUrl(globalIngredient.image_url || globalIngredient.file_url || null);
+                  const statusClasses = status === 'already_added'
+                    ? 'border-emerald-300/70 bg-emerald-50 text-emerald-700'
+                    : status === 'will_link'
+                      ? 'border-sky-300/70 bg-sky-50 text-sky-700'
+                      : 'border-gold/40 bg-gold/12 text-gold2';
+
+                  return (
+                    <div key={globalIngredient.id} className="rounded-[20px] border border-white/12 bg-white/6 p-4">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={!isSelectable || importingGlobalIngredients}
+                          onChange={() => handleToggleGlobalSelection(globalIngredient.id)}
+                          className="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+                        />
+
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/12 bg-white/10">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={getIngredientDisplayName(globalIngredient, i18n.resolvedLanguage)}
+                              className="h-full w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] text-muted2">
+                              {t('inventoryIngredients.importGlobal.noImage')}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-text">
+                              {getIngredientDisplayName(globalIngredient, i18n.resolvedLanguage)}
+                            </p>
+                            <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${statusClasses}`}>
+                              {t(`inventoryIngredients.importGlobal.status.${status}`)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted2">{globalIngredient.normalized_name}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>

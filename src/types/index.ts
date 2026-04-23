@@ -139,6 +139,7 @@ export interface InventoryIngredient {
   uuid: string;
   name: string;
   name_ar?: string | null;
+  global_ingredient_id?: number | null;
   file_url?: string | null;
   unit: IngredientStockUnit;
   current_quantity: string;
