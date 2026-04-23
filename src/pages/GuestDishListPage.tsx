@@ -56,7 +56,7 @@ const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { addDish, draft, getDishQuantity, setGuestContext } = useOrderCart();
+  const { addDish, draft, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
@@ -89,13 +89,22 @@ const GuestDishListPage: React.FC = () => {
         if (table_id) {
           const response = await fetchGuestTableMenu(table_id, draft.guestAccessToken);
 
-          setGuestContext({
-            restaurant: response.restaurant,
-            tableId: response.table.number,
-            tableReference: response.table.name,
-            tableSessionId: response.table_session.id,
-            guestAccess: response.guest_access,
-          });
+          if (response.table_session) {
+            setGuestContext({
+              restaurant: response.restaurant,
+              tableId: response.table.number,
+              tableReference: response.table.name,
+              tableSessionId: response.table_session.id,
+              guestAccess: response.guest_access,
+            });
+          } else {
+            clearGuestAccess();
+            updateDraft({
+              tableId: response.table.number,
+              tableReference: response.table.name,
+              tableSessionId: null,
+            });
+          }
           setRestaurantName(response.restaurant.name);
           setRestaurantSlug(response.restaurant.slug);
           setDishes(response.dishes);
@@ -141,7 +150,7 @@ const GuestDishListPage: React.FC = () => {
     };
 
     fetchDishes();
-  }, [draft.guestAccessToken, restaurant_slug, table_id, i18n, setGuestContext]);
+  }, [draft.guestAccessToken, restaurant_slug, table_id, i18n, setGuestContext, updateDraft, clearGuestAccess]);
 
   useEffect(() => {
     setCategory(t('menuList.allCategories'));

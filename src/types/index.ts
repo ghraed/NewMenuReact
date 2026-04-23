@@ -262,7 +262,7 @@ export interface GuestProtectedActions {
 export interface GuestTableMenuResponse {
   restaurant: RestaurantSummary;
   table: GuestTableSummary;
-  table_session: TableSessionSummary;
+  table_session: TableSessionSummary | null;
   guest_access: GuestAccessSummary;
   protected_actions: GuestProtectedActions;
   dishes: Dish[];
@@ -271,7 +271,7 @@ export interface GuestTableMenuResponse {
 export interface GuestTableDishResponse {
   restaurant: RestaurantSummary;
   table: GuestTableSummary;
-  table_session: TableSessionSummary;
+  table_session: TableSessionSummary | null;
   guest_access: GuestAccessSummary;
   protected_actions: GuestProtectedActions;
   dish: Dish;

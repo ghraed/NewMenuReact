@@ -19,7 +19,7 @@ import {
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
   const { t } = useTranslation();
-  const { addDish, draft, getDishQuantity, setGuestContext } = useOrderCart();
+  const { addDish, draft, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
   const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
   const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
@@ -45,13 +45,22 @@ const GuestDishPage: React.FC = () => {
           setDish(response.dish);
           setResolvedRestaurantSlug(response.restaurant.slug);
           setResolvedTableId(response.table.number);
-          setGuestContext({
-            restaurant: response.restaurant,
-            tableId: response.table.number,
-            tableReference: response.table.name,
-            tableSessionId: response.table_session.id,
-            guestAccess: response.guest_access,
-          });
+          if (response.table_session) {
+            setGuestContext({
+              restaurant: response.restaurant,
+              tableId: response.table.number,
+              tableReference: response.table.name,
+              tableSessionId: response.table_session.id,
+              guestAccess: response.guest_access,
+            });
+          } else {
+            clearGuestAccess();
+            updateDraft({
+              tableId: response.table.number,
+              tableReference: response.table.name,
+              tableSessionId: null,
+            });
+          }
           return;
         }
 
@@ -101,7 +110,7 @@ const GuestDishPage: React.FC = () => {
     };
 
     fetchDish();
-  }, [draft.guestAccessToken, restaurant_slug, table_id, dish_id, t, setGuestContext]);
+  }, [draft.guestAccessToken, restaurant_slug, table_id, dish_id, t, setGuestContext, updateDraft, clearGuestAccess]);
 
   return (
     <GuestPageShell>

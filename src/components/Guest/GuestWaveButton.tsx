@@ -22,7 +22,7 @@ const GuestWaveButton: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
-  const { totalItems, draft, clearGuestAccess, setGuestContext } = useOrderCart();
+  const { totalItems, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
   const [activeAction, setActiveAction] = useState<'waiter' | 'bill' | null>(null);
 
@@ -46,6 +46,16 @@ const GuestWaveButton: React.FC = () => {
     }
 
     const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+    if (!response.table_session) {
+      updateDraft({
+        tableId: response.table.number,
+        tableReference: response.table.name,
+        tableSessionId: null,
+      });
+      clearGuestAccess();
+      return null;
+    }
+
     setGuestContext({
       restaurant: response.restaurant,
       tableId: response.table.number,

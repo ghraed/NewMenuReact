@@ -24,7 +24,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 const GuestOrdersPage: React.FC = () => {
   const { table_id } = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
-  const { restaurant, draft, clearGuestAccess, setGuestContext } = useOrderCart();
+  const { restaurant, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +45,17 @@ const GuestOrdersPage: React.FC = () => {
 
       try {
         const sessionResponse = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+        if (!sessionResponse.table_session) {
+          updateDraft({
+            tableId: sessionResponse.table.number,
+            tableReference: sessionResponse.table.name,
+            tableSessionId: null,
+          });
+          clearGuestAccess();
+          setOrders([]);
+          return;
+        }
+
         setGuestContext({
           restaurant: sessionResponse.restaurant,
           tableId: sessionResponse.table.number,
@@ -79,7 +90,7 @@ const GuestOrdersPage: React.FC = () => {
     };
 
     load();
-  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, t]);
+  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, updateDraft, t]);
 
   const totalItems = useMemo(() => (
     orders.reduce((sum, order) => (

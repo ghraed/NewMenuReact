@@ -64,6 +64,17 @@ const OrderReviewPage: React.FC = () => {
 
       try {
         const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+        if (!response.table_session) {
+          updateDraft({
+            tableId: response.table.number,
+            tableReference: response.table.name,
+            tableSessionId: null,
+          });
+          clearGuestAccess();
+          setError(t('orderReview.validationMissingSession'));
+          return;
+        }
+
         setGuestContext({
           restaurant: response.restaurant,
           tableId: response.table.number,
@@ -79,7 +90,7 @@ const OrderReviewPage: React.FC = () => {
     };
 
     loadSession();
-  }, [activeTableId, draft.guestAccessToken, submittedOrder, setGuestContext, t]);
+  }, [activeTableId, draft.guestAccessToken, submittedOrder, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
