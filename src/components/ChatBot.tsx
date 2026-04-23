@@ -182,15 +182,14 @@ const buildDishHref = (
 };
 
 const findNextDishMatch = (
-  sourceText: string,
+  loweredText: string,
   fromIndex: number,
   dishes: ChatDishLink[]
 ): { start: number; end: number; dish: ChatDishLink } | null => {
-  const lowered = sourceText.toLowerCase();
   let best: { start: number; end: number; dish: ChatDishLink } | null = null;
 
   for (const dish of dishes) {
-    const start = lowered.indexOf(dish.normalized, fromIndex);
+    const start = loweredText.indexOf(dish.normalized, fromIndex);
     if (start < 0) {
       continue;
     }
@@ -223,10 +222,11 @@ const renderTextWithDishLinks = (
   }
 
   const nodes: React.ReactNode[] = [];
+  const loweredText = text.toLowerCase();
   let cursor = 0;
 
   while (cursor < text.length) {
-    const match = findNextDishMatch(text, cursor, dishes);
+    const match = findNextDishMatch(loweredText, cursor, dishes);
     if (!match) {
       nodes.push(text.slice(cursor));
       break;
@@ -611,6 +611,10 @@ const ChatBot: React.FC = () => {
     let cancelled = false;
 
     const hydrateDishes = async () => {
+      if (!isOpen) {
+        return;
+      }
+
       const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
       if (!onGuestMenuRoute) {
         setChatDishes([]);
@@ -677,7 +681,7 @@ const ChatBot: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken, location.pathname]);
+  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken, isOpen, location.pathname]);
 
   const pushMessage = (role: Role, content: string): string => {
     const messageId = makeId();

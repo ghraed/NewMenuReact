@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
 import GuestDishPage from './pages/GuestDishPage';
@@ -29,8 +29,9 @@ import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
-import ChatBot from './components/ChatBot';
 import { useTranslation } from 'react-i18next';
+
+const ChatBot = React.lazy(() => import('./components/ChatBot'));
 
 const RoleHomeRedirect: React.FC = () => {
   const { defaultRoute, isAuthenticated } = useAuth();
@@ -223,7 +224,9 @@ const App: React.FC = () => {
           <AppLocaleSync />
           <BrowserRouter>
             <AppRoutes />
-            <ChatBot />
+            <Suspense fallback={null}>
+              <ChatBot />
+            </Suspense>
           </BrowserRouter>
         </AppThemeProvider>
       </OrderCartProvider>
