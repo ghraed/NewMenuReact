@@ -3,7 +3,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import api from '../services/api';
 import type { CurrencyCode } from '../types';
 import { GlassInput, GlassSelect, LiquidButton } from '../components/ui/liquid-glass';
-import { CURRENCY_OPTIONS, normalizeCurrency } from '../utils/currency';
+import { CURRENCY_OPTIONS, normalizeCurrency, persistGuestCurrencySettings, readGuestCurrencySettings } from '../utils/currency';
 
 interface CurrencySettingsResponse {
   currency?: string;
@@ -50,9 +50,16 @@ const AdminCurrencyPage: React.FC = () => {
 
         setOriginalCurrency(nextCurrency);
         setDollarRate(nextRate);
+        persistGuestCurrencySettings(nextCurrency, Number(nextRate));
       } catch (err) {
         console.error(err);
-        setError('Failed to load currency settings.');
+        const stored = readGuestCurrencySettings();
+        if (stored) {
+          setOriginalCurrency(stored.currency);
+          setDollarRate(String(stored.dollar_rate));
+        } else {
+          setError('Failed to load currency settings.');
+        }
       } finally {
         setLoading(false);
       }
@@ -80,6 +87,7 @@ const AdminCurrencyPage: React.FC = () => {
         currency: originalCurrency,
         dollar_rate: safeDollarRate,
       });
+      persistGuestCurrencySettings(originalCurrency, safeDollarRate);
 
       if (originalCurrency === 'USD') {
         setDollarRate('1');

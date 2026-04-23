@@ -53,6 +53,8 @@ export interface Dish {
   price: number;
   currency?: CurrencyCode | null;
   dollar_rate?: number | null;
+  original_currency?: CurrencyCode | null;
+  price_is_usd_base?: boolean;
   calories?: number | null;
   category: string;
   category_ar?: string | null;

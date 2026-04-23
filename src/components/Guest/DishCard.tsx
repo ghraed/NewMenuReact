@@ -5,7 +5,12 @@ import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishTags from './DishTags';
 import { getDishTags } from './guestPresentation';
-import { formatPriceWithCurrency, formatUsdEquivalent, normalizeCurrency } from '../../utils/currency';
+import {
+  convertPriceFromUsdToCurrency,
+  formatPriceWithCurrency,
+  formatUsdEquivalent,
+  normalizeCurrency,
+} from '../../utils/currency';
 
 interface DishCardProps {
   dish: Dish;
@@ -30,8 +35,20 @@ const DishCard: React.FC<DishCardProps> = ({
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
   const currency = normalizeCurrency(dish.currency);
+  const originalCurrency = normalizeCurrency(dish.original_currency || dish.currency);
   const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);
-  const usdEquivalentLabel = formatUsdEquivalent(Number(dish.price), currency, dish.dollar_rate);
+  const clickLabel = useMemo(() => {
+    const amount = Number(dish.price);
+    const hasRate = typeof dish.dollar_rate === 'number' && Number.isFinite(dish.dollar_rate) && dish.dollar_rate > 0;
+
+    // If current price is USD but the configured original currency is not USD, show converted original amount on click.
+    if (dish.price_is_usd_base === true && currency === 'USD' && originalCurrency !== 'USD' && hasRate) {
+      const converted = convertPriceFromUsdToCurrency(amount, originalCurrency, dish.dollar_rate);
+      return formatPriceWithCurrency(converted, originalCurrency);
+    }
+
+    return formatUsdEquivalent(amount, currency, dish.dollar_rate);
+  }, [dish.price, dish.price_is_usd_base, dish.dollar_rate, currency, originalCurrency]);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
 
@@ -145,7 +162,7 @@ const DishCard: React.FC<DishCardProps> = ({
               </button>
               {showDollarRate ? (
                 <p className="mt-1 text-[10px] font-medium leading-4 text-[var(--guest-muted)]">
-                  {usdEquivalentLabel}
+                  {clickLabel}
                 </p>
               ) : null}
             </div>

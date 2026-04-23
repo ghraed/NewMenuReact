@@ -103,3 +103,49 @@ export const formatUsdEquivalent = (
   const usdAmount = convertPriceToUsd(amount, currency, dollarRate);
   return `USD: $${formatMoney(usdAmount)}`;
 };
+
+const GUEST_CURRENCY_SETTINGS_KEY = 'guest_currency_settings_v1';
+
+export const persistGuestCurrencySettings = (currency: CurrencyCode, dollarRate: number): void => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      GUEST_CURRENCY_SETTINGS_KEY,
+      JSON.stringify({
+        currency: normalizeCurrency(currency),
+        dollar_rate: dollarRate > 0 ? dollarRate : 1,
+      })
+    );
+  } catch {
+    // ignore storage failures
+  }
+};
+
+export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_rate: number } | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(GUEST_CURRENCY_SETTINGS_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as { currency?: string; dollar_rate?: unknown };
+    const currency = normalizeCurrency(parsed.currency);
+    const dollarRate = typeof parsed.dollar_rate === 'number' && Number.isFinite(parsed.dollar_rate) && parsed.dollar_rate > 0
+      ? parsed.dollar_rate
+      : 1;
+
+    return {
+      currency,
+      dollar_rate: dollarRate,
+    };
+  } catch {
+    return null;
+  }
+};
