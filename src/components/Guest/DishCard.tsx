@@ -5,7 +5,7 @@ import { cx, focusRing } from '../../theme/liquidGlass';
 import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishTags from './DishTags';
 import { getDishTags } from './guestPresentation';
-import { formatDollarRate, formatPriceWithCurrency, normalizeCurrency } from '../../utils/currency';
+import { formatPriceWithCurrency, formatUsdEquivalent, normalizeCurrency } from '../../utils/currency';
 
 interface DishCardProps {
   dish: Dish;
@@ -31,7 +31,7 @@ const DishCard: React.FC<DishCardProps> = ({
   const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
   const currency = normalizeCurrency(dish.currency);
   const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);
-  const dollarRateLabel = formatDollarRate(currency, dish.dollar_rate);
+  const usdEquivalentLabel = formatUsdEquivalent(Number(dish.price), currency, dish.dollar_rate);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
 
@@ -139,13 +139,13 @@ const DishCard: React.FC<DishCardProps> = ({
                   setShowDollarRate((current) => !current);
                 }}
                 className="text-xs font-medium tracking-[0.06em] text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
-                aria-label="Show dollar rate"
+                aria-label="Show USD equivalent"
               >
                 {priceLabel}
               </button>
               {showDollarRate ? (
                 <p className="mt-1 text-[10px] font-medium leading-4 text-[var(--guest-muted)]">
-                  {dollarRateLabel}
+                  {usdEquivalentLabel}
                 </p>
               ) : null}
             </div>

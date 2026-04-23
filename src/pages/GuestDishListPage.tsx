@@ -17,7 +17,7 @@ import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } fro
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
-import { formatPriceWithCurrency, normalizeCurrency } from '../utils/currency';
+import { convertPriceFromUsdToCurrency, formatPriceWithCurrency, normalizeCurrency } from '../utils/currency';
 
 interface GuestListResponse {
   restaurant: {
@@ -58,11 +58,36 @@ const getDishIngredients = (dish: Dish) => {
 const applyRestaurantCurrencyToDishes = (
   list: Dish[],
   restaurant: GuestListResponse['restaurant']
-): Dish[] => list.map((dish) => ({
-  ...dish,
-  currency: normalizeCurrency(dish.currency || restaurant.currency),
-  dollar_rate: typeof dish.dollar_rate === 'number' ? dish.dollar_rate : restaurant.dollar_rate ?? null,
-}));
+): Dish[] => {
+  const restaurantCurrency = normalizeCurrency(restaurant.currency);
+  const restaurantDollarRate = typeof restaurant.dollar_rate === 'number'
+    ? restaurant.dollar_rate
+    : (restaurantCurrency === 'USD' ? 1 : null);
+
+  return list.map((dish) => {
+    const dishCurrency = normalizeCurrency(dish.currency || restaurant.currency);
+    const basePrice = Number(dish.price);
+    const hasRestaurantRate = typeof restaurantDollarRate === 'number' && restaurantDollarRate > 0;
+
+    // Legacy rows may still be USD; display in restaurant original currency for the guest.
+    if (dishCurrency === 'USD' && restaurantCurrency !== 'USD' && hasRestaurantRate) {
+      return {
+        ...dish,
+        price: Number(convertPriceFromUsdToCurrency(basePrice, restaurantCurrency, restaurantDollarRate).toFixed(2)),
+        currency: restaurantCurrency,
+        dollar_rate: restaurantDollarRate,
+      };
+    }
+
+    return {
+      ...dish,
+      currency: dishCurrency,
+      dollar_rate: typeof dish.dollar_rate === 'number'
+        ? dish.dollar_rate
+        : (restaurantDollarRate ?? null),
+    };
+  });
+};
 
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();

@@ -54,3 +54,52 @@ export const formatDollarRate = (currency?: string | null, dollarRate?: number |
 
   return `1 USD = ${safeRate.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${normalized}`;
 };
+
+export const convertPriceFromUsdToCurrency = (
+  amountInUsd: number,
+  currency?: string | null,
+  dollarRate?: number | null
+): number => {
+  const normalized = normalizeCurrency(currency);
+  const safeAmount = Number.isFinite(amountInUsd) ? amountInUsd : 0;
+
+  if (normalized === 'USD') {
+    return safeAmount;
+  }
+
+  const safeRate = typeof dollarRate === 'number' && Number.isFinite(dollarRate) && dollarRate > 0 ? dollarRate : 0;
+  if (safeRate <= 0) {
+    return safeAmount;
+  }
+
+  return safeAmount * safeRate;
+};
+
+export const convertPriceToUsd = (
+  amount: number,
+  currency?: string | null,
+  dollarRate?: number | null
+): number => {
+  const normalized = normalizeCurrency(currency);
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+
+  if (normalized === 'USD') {
+    return safeAmount;
+  }
+
+  const safeRate = typeof dollarRate === 'number' && Number.isFinite(dollarRate) && dollarRate > 0 ? dollarRate : 0;
+  if (safeRate <= 0) {
+    return safeAmount;
+  }
+
+  return safeAmount / safeRate;
+};
+
+export const formatUsdEquivalent = (
+  amount: number,
+  currency?: string | null,
+  dollarRate?: number | null
+): string => {
+  const usdAmount = convertPriceToUsd(amount, currency, dollarRate);
+  return `USD: $${formatMoney(usdAmount)}`;
+};
