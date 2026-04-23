@@ -30,7 +30,7 @@ const parseDollarRate = (value: unknown): string => {
 };
 
 const AdminCurrencyPage: React.FC = () => {
-  const [currency, setCurrency] = useState<CurrencyCode>('USD');
+  const [originalCurrency, setOriginalCurrency] = useState<CurrencyCode>('USD');
   const [dollarRate, setDollarRate] = useState('1');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,7 +48,7 @@ const AdminCurrencyPage: React.FC = () => {
         const nextCurrency = normalizeCurrency(payload.currency || payload.restaurant?.currency);
         const nextRate = parseDollarRate(payload.dollar_rate ?? payload.restaurant?.dollar_rate);
 
-        setCurrency(nextCurrency);
+        setOriginalCurrency(nextCurrency);
         setDollarRate(nextRate);
       } catch (err) {
         console.error(err);
@@ -68,7 +68,7 @@ const AdminCurrencyPage: React.FC = () => {
 
     try {
       const parsedRate = Number(dollarRate);
-      const safeDollarRate = currency === 'USD' ? 1 : parsedRate;
+      const safeDollarRate = originalCurrency === 'USD' ? 1 : parsedRate;
 
       if (!Number.isFinite(safeDollarRate) || safeDollarRate <= 0) {
         setError('Please enter a valid dollar rate greater than zero.');
@@ -77,11 +77,11 @@ const AdminCurrencyPage: React.FC = () => {
       }
 
       await api.patch('/restaurant/currency-settings', {
-        currency,
+        currency: originalCurrency,
         dollar_rate: safeDollarRate,
       });
 
-      if (currency === 'USD') {
+      if (originalCurrency === 'USD') {
         setDollarRate('1');
       } else {
         setDollarRate(String(safeDollarRate));
@@ -105,22 +105,22 @@ const AdminCurrencyPage: React.FC = () => {
           <div className="rounded-[24px] border border-stroke bg-bg1/60 p-5">
             <h2 className="text-lg font-semibold text-text">Guest Menu Currency</h2>
             <p className="mt-2 text-sm text-muted">
-              Pick the main menu currency and the exchange rate shown to guests when they tap a dish price.
+              Pick the original currency and the exchange rate shown to guests when they tap a dish price.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
-                Currency
+                Original Currency
               </label>
               <GlassSelect
                 id="currency"
                 name="currency"
-                value={currency}
+                value={originalCurrency}
                 onChange={(event) => {
                   const nextCurrency = normalizeCurrency(event.target.value);
-                  setCurrency(nextCurrency);
+                  setOriginalCurrency(nextCurrency);
                   if (nextCurrency === 'USD') {
                     setDollarRate('1');
                   }
@@ -144,13 +144,13 @@ const AdminCurrencyPage: React.FC = () => {
                 step="0.01"
                 value={dollarRate}
                 onChange={(event) => setDollarRate(event.target.value)}
-                disabled={currency === 'USD'}
-                placeholder={currency === 'USD' ? '1' : 'e.g. 89500'}
+                disabled={originalCurrency === 'USD'}
+                placeholder={originalCurrency === 'USD' ? 'Not required' : 'e.g. 89500'}
               />
               <p className="mt-2 text-xs text-muted">
-                {currency === 'USD'
-                  ? 'USD uses a fixed 1 USD = 1 USD.'
-                  : `Example: 1 USD = ${dollarRate || '...'} ${currency}`}
+                {originalCurrency === 'USD'
+                  ? 'USD to USD rate is not allowed to be edited. It is always fixed to 1.'
+                  : `Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
               </p>
             </div>
           </div>
