@@ -7,6 +7,7 @@ export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
 export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
+export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 
 export interface StaffMember {
   id: number;
@@ -353,6 +354,38 @@ export interface OrderRecord {
   confirmed_by: OrderActorSummary | null;
   cancelled_by: OrderActorSummary | null;
   accounted_by: OrderActorSummary | null;
+}
+
+export interface FinanceInvoiceItem {
+  id: number;
+  name: string;
+  quantity: string;
+  unit_price: string;
+  line_total: string;
+  order_index: number;
+}
+
+export interface FinanceInvoice {
+  id: number;
+  uuid: string;
+  restaurant_id: number;
+  invoice_number: string;
+  invoice_date: string;
+  status: FinanceInvoiceStatus;
+  subtotal: string;
+  total: string;
+  notes?: string | null;
+  paid_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  items: FinanceInvoiceItem[];
+}
+
+export interface FinanceRevenuePoint {
+  bucket: string;
+  label: string;
+  revenue: number;
+  invoice_count: number;
 }
 
 export interface TableWaveRecord {

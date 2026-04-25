@@ -20,6 +20,7 @@ import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
 import InvoicePrintPage from './pages/InvoicePrintPage';
 import AdminCurrencyPage from './pages/AdminCurrencyPage';
+import AdminFinanceDashboardPage from './pages/AdminFinanceDashboardPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
@@ -165,6 +166,15 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route
+          path="/admin/finance"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminFinanceDashboardPage />
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/admin/currency"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
@@ -187,6 +197,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin" element={<RoleHomeRedirect />} />
         <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
         <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
+        <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
         <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
 
         <Route
@@ -205,6 +216,7 @@ const AppRoutes: React.FC = () => {
                   <li>• <a href="/admin/inventory/ingredients" className="underline underline-offset-4">/admin/inventory/ingredients</a> - {t('app.adminIngredients')}</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
                   <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
+                  <li>• <a href="/admin/finance" className="underline underline-offset-4">/admin/finance</a> - Finance dashboard</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>
                 </ul>
               </GlassBoard>
