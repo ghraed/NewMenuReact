@@ -27,8 +27,8 @@ const LoginPage: React.FC = () => {
   const { toast, showToast, dismiss } = useGlassToast();
   const { t } = useTranslation();
 
-  const [identifier, setIdentifier] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin@example.com');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
