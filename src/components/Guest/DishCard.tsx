@@ -61,7 +61,9 @@ const DishCard: React.FC<DishCardProps> = ({
   isIngredientAlert = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(
+    () => typeof window === 'undefined' || !('IntersectionObserver' in window)
+  );
   const [showDollarRate, setShowDollarRate] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
@@ -89,7 +91,6 @@ const DishCard: React.FC<DishCardProps> = ({
 
     if (!node) return;
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-      setIsVisible(true);
       return;
     }
 

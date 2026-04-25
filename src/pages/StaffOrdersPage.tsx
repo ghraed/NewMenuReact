@@ -1174,6 +1174,7 @@ const StaffOrdersPage: React.FC = () => {
       ) : null}
 
       <StaffOrderEditor
+        key={editingOrder ? `${editingOrder.id}:${editingOrder.updated_at ?? ''}` : 'no-order'}
         order={editingOrder}
         dishes={publishedDishes}
         dishesLoading={publishedDishesLoading}

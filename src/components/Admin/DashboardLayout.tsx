@@ -42,8 +42,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       ];
 
   useEffect(() => {
-    setMobileNavOpen(false);
-  }, [location.pathname]);
+    if (!mobileNavOpen || typeof window === 'undefined') {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      setMobileNavOpen(false);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [location.pathname, mobileNavOpen]);
 
   const handleLogout = async () => {
     await logout();

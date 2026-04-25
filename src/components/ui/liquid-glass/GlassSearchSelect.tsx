@@ -44,18 +44,17 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
     return options.filter((option) => option.label.toLowerCase().includes(normalizedQuery));
   }, [options, query]);
 
-  useEffect(() => {
-    if (!open) {
-      setQuery('');
-    }
-  }, [open]);
+  const closeDropdown = () => {
+    setOpen(false);
+    setQuery('');
+  };
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest('[data-admin-overlay-root=\"true\"]')) return;
-      setOpen(false);
+      if (target.closest('[data-admin-overlay-root="true"]')) return;
+      closeDropdown();
     };
 
     document.addEventListener('mousedown', handlePointerDown);
@@ -69,7 +68,15 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
     <div className="relative z-30" data-admin-overlay-root="true">
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          setOpen((current) => {
+            const nextOpen = !current;
+            if (!nextOpen) {
+              setQuery('');
+            }
+            return nextOpen;
+          });
+        }}
         className={cx(
           'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
           glassControl,
@@ -110,7 +117,7 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
                       type="button"
                       onClick={() => {
                         onChange(option.value);
-                        setOpen(false);
+                        closeDropdown();
                       }}
                       className={cx(
                         'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',

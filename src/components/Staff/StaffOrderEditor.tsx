@@ -35,6 +35,21 @@ const normalizeDraftItems = (items: DraftItem[]) => JSON.stringify(
   }))
 );
 
+const buildDraftItems = (order: OrderRecord | null): DraftItem[] => {
+  if (!order) {
+    return [];
+  }
+
+  return order.items
+    .filter((item): item is OrderRecord['items'][number] & { dish_id: number } => item.dish_id !== null)
+    .map((item) => ({
+      dish_id: item.dish_id,
+      dish_name: item.dish_name,
+      unit_price: Number(item.unit_price),
+      quantity: item.quantity,
+    }));
+};
+
 const itemButtonClass = cx(
   'inline-flex h-12 w-12 items-center justify-center rounded-full border text-lg font-semibold text-text',
   glassControl,
@@ -52,33 +67,11 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   onSave,
   onSaveAndConfirm,
 }) => {
-  const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
+  const [draftItems, setDraftItems] = useState<DraftItem[]>(() => buildDraftItems(order));
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (!order) {
-      setDraftItems([]);
-      setSearch('');
-      setSelectedCategory('All');
-      setIsAddSectionOpen(false);
-      return;
-    }
-
-    setDraftItems(order.items
-      .filter((item): item is OrderRecord['items'][number] & { dish_id: number } => item.dish_id !== null)
-      .map((item) => ({
-        dish_id: item.dish_id,
-        dish_name: item.dish_name,
-        unit_price: Number(item.unit_price),
-        quantity: item.quantity,
-      })));
-    setSearch('');
-    setSelectedCategory('All');
-    setIsAddSectionOpen(false);
-  }, [order]);
 
   useEffect(() => {
     if (!order || typeof document === 'undefined') {
@@ -113,16 +106,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   ), [dishes]);
 
   const initialSignature = useMemo(() => (
-    order
-      ? normalizeDraftItems(order.items
-        .filter((item): item is OrderRecord['items'][number] & { dish_id: number } => item.dish_id !== null)
-        .map((item) => ({
-          dish_id: item.dish_id,
-          dish_name: item.dish_name,
-          unit_price: Number(item.unit_price),
-          quantity: item.quantity,
-        })))
-      : '[]'
+    normalizeDraftItems(buildDraftItems(order))
   ), [order]);
 
   const isDirty = normalizeDraftItems(draftItems) !== initialSignature;
