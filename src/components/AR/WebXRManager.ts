@@ -3,6 +3,16 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton';
 
+type PlaceableModel = {
+    position: {
+        setFromMatrixPosition: (matrix: unknown) => void;
+    };
+    visible: boolean;
+    scale: {
+        setScalar: (scale: number) => void;
+    };
+};
+
 export const startWebXRSession = async (glbUrl: string) => {
     // Create scene
     const scene = new THREE.Scene();
@@ -40,7 +50,7 @@ export const startWebXRSession = async (glbUrl: string) => {
     reticle.visible = false;
     scene.add(reticle);
 
-    let model: any = null;
+    let model: PlaceableModel | null = null;
     let hitTestSource: XRHitTestSource | null = null;
     let hitTestSourceRequested = false;
 
@@ -60,10 +70,14 @@ export const startWebXRSession = async (glbUrl: string) => {
         if (frame) {
             const referenceSpace = renderer.xr.getReferenceSpace();
             const session = renderer.xr.getSession();
+            if (!session || !referenceSpace) {
+                renderer.render(scene, camera);
+                return;
+            }
             
             if (!hitTestSourceRequested) {
-                session.requestReferenceSpace('viewer').then((refSpace: any) => {
-                    session.requestHitTestSource({ space: refSpace }).then((source: any) => {
+                session.requestReferenceSpace('viewer').then((refSpace: XRReferenceSpace) => {
+                    session.requestHitTestSource({ space: refSpace }).then((source: XRHitTestSource) => {
                         hitTestSource = source;
                     });
                 });
@@ -74,7 +88,7 @@ export const startWebXRSession = async (glbUrl: string) => {
                 const hitTestResults = frame.getHitTestResults(hitTestSource);
                 if (hitTestResults.length > 0) {
                     const hit = hitTestResults[0];
-                    const pose = hit.getPose(referenceSpace!);
+                    const pose = hit.getPose(referenceSpace);
                     if (pose) {
                         reticle.visible = true;
                         reticle.matrix.fromArray(pose.transform.matrix);
@@ -89,7 +103,7 @@ export const startWebXRSession = async (glbUrl: string) => {
     });
 
     // Load GLB
-    loader.load(glbUrl, (gltf: any) => {
+    loader.load(glbUrl, (gltf: { scene: PlaceableModel }) => {
         model = gltf.scene;
         
         // Auto-scale for AR (real-world size approximation)

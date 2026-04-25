@@ -27,7 +27,7 @@ export const useDeviceCapability = (): DeviceCapabilities => {
 
     const detectWebXR = async (): Promise<boolean> => {
       try {
-        return !!(navigator as any).xr;
+        return 'xr' in navigator;
       } catch {
         return false;
       }
