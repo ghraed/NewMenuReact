@@ -16,12 +16,15 @@ import type { CurrencyCode, InventoryIngredient } from '../../types';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
 import { CURRENCY_OPTIONS } from '../../utils/currency';
+import { generateDishDescription } from '../../services/dishDescriptionService';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export interface DishFormData {
   name: string;
+  description: string;
+  description_ar: string;
   price: string;
   currency: CurrencyCode;
   calories: string;
@@ -110,6 +113,8 @@ const DishForm: React.FC<DishFormProps> = ({
   const { t, i18n } = useTranslation();
   const [formData, setFormData] = useState<DishFormState>(() => ({
     name: initialValues?.name || '',
+    description: initialValues?.description || '',
+    description_ar: initialValues?.description_ar || '',
     price: initialValues?.price || '',
     currency: initialValues?.currency || 'USD',
     calories: initialValues?.calories || '',
@@ -142,6 +147,9 @@ const DishForm: React.FC<DishFormProps> = ({
   const [relatedDishesPickerOpen, setRelatedDishesPickerOpen] = useState(false);
   const [relatedDishesSearch, setRelatedDishesSearch] = useState('');
   const [recipeIngredientsOpen, setRecipeIngredientsOpen] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [descriptionGenerationError, setDescriptionGenerationError] = useState<string | null>(null);
+  const [descriptionGenerationSuccess, setDescriptionGenerationSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     setSuggestedDishesSearch('');
@@ -352,6 +360,34 @@ const DishForm: React.FC<DishFormProps> = ({
     label: translateCategoryLabel(category.value, category.arabic),
   }));
   const hasDishName = formData.name.trim().length > 0 || selectedDishDictionaryName.trim().length > 0;
+  const hasDescription = formData.description.trim().length > 0;
+  const validRecipeIngredientsForGeneration = formData.recipe_ingredients
+    .map((recipeItem) => {
+      if (recipeItem.ingredient_id === null) {
+        return null;
+      }
+
+      const quantityRequired = Number(recipeItem.quantity_required);
+      if (!Number.isFinite(quantityRequired) || quantityRequired <= 0) {
+        return null;
+      }
+
+      const ingredient = recipeIngredientOptions.find((candidate) => candidate.id === recipeItem.ingredient_id);
+      if (!ingredient) {
+        return null;
+      }
+
+      return {
+        ingredient_id: recipeItem.ingredient_id,
+        ingredient_name: getIngredientDisplayName(ingredient, i18n.resolvedLanguage).trim() || ingredient.name,
+        quantity_required: quantityRequired,
+        unit: ingredient.unit,
+        order_index: recipeItem.order_index,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  const canGenerateDescription = validRecipeIngredientsForGeneration.length > 0 && !isGeneratingDescription && !isSubmitting;
   const normalizedDishNameSearch = dishNameSearch.trim().toLowerCase();
   const filteredDishNameDictionaryOptions = dishDictionaryOptions.filter((dish) => {
     if (!normalizedDishNameSearch) {
@@ -363,6 +399,45 @@ const DishForm: React.FC<DishFormProps> = ({
     return searchableText.includes(normalizedDishNameSearch);
   });
 
+  const handleGenerateDescription = async () => {
+    if (!canGenerateDescription) {
+      return;
+    }
+
+    const dishName = formData.name.trim() || selectedDishDictionaryName.trim();
+    if (!dishName || !formData.category.trim()) {
+      setDescriptionGenerationError(t('dishForm.generateDescriptionNeedsBasics'));
+      setDescriptionGenerationSuccess(null);
+      return;
+    }
+
+    setDescriptionGenerationError(null);
+    setDescriptionGenerationSuccess(null);
+    setIsGeneratingDescription(true);
+
+    try {
+      const calories = Number(formData.calories);
+      const generated = await generateDishDescription({
+        name: dishName,
+        category: formData.category.trim(),
+        calories: formData.calories.trim() && Number.isFinite(calories) ? calories : undefined,
+        recipe_ingredients: validRecipeIngredientsForGeneration,
+        target_languages: ['en', 'ar'],
+      });
+
+      setFormData((prev) => ({
+        ...prev,
+        description: generated.description || prev.description,
+        description_ar: generated.description_ar || prev.description_ar,
+      }));
+      setDescriptionGenerationSuccess(t('dishForm.generateDescriptionSuccess'));
+    } catch {
+      setDescriptionGenerationError(t('dishForm.generateDescriptionFailed'));
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -370,6 +445,10 @@ const DishForm: React.FC<DishFormProps> = ({
 
     if (!dishName) {
       setFormError('Please enter a dish name or choose one from the dropdown.');
+      return;
+    }
+    if (!formData.description.trim()) {
+      setFormError(t('dishForm.descriptionRequired'));
       return;
     }
 
@@ -426,6 +505,8 @@ const DishForm: React.FC<DishFormProps> = ({
     try {
       const submitPayload: DishFormData = {
         name: dishName,
+        description: formData.description.trim(),
+        description_ar: formData.description_ar.trim(),
         price: formData.price,
         currency: formData.currency,
         calories: formData.calories,
@@ -546,6 +627,71 @@ const DishForm: React.FC<DishFormProps> = ({
               {t('dishForm.dropdownClearsTypedNameHint')}
             </p>
           </>
+        ) : null}
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="description" className="mb-1 block text-sm font-medium text-text">
+            {t('dishForm.descriptionEn')} *
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            rows={4}
+            placeholder={t('dishForm.descriptionEnPlaceholder')}
+            className={cx(
+              'w-full rounded-[24px] border bg-transparent px-4 py-3 text-sm text-text placeholder:text-muted2 focus:outline-none',
+              glassControl,
+              focusRing
+            )}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="description_ar" className="mb-1 block text-sm font-medium text-text">
+            {t('dishForm.descriptionAr')}
+          </label>
+          <textarea
+            id="description_ar"
+            name="description_ar"
+            value={formData.description_ar}
+            onChange={handleChange}
+            rows={4}
+            placeholder={t('dishForm.descriptionArPlaceholder')}
+            className={cx(
+              'w-full rounded-[24px] border bg-transparent px-4 py-3 text-sm text-text placeholder:text-muted2 focus:outline-none',
+              glassControl,
+              focusRing
+            )}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <LiquidButton
+            type="button"
+            tone="tertiary"
+            onClick={handleGenerateDescription}
+            disabled={!canGenerateDescription}
+          >
+            {isGeneratingDescription
+              ? t('dishForm.generateDescriptionLoading')
+              : t('dishForm.generateDescriptionButton')}
+          </LiquidButton>
+          <p className="text-xs text-muted">{t('dishForm.generateDescriptionHint')}</p>
+        </div>
+        {descriptionGenerationError ? (
+          <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
+            {descriptionGenerationError}
+          </div>
+        ) : null}
+        {descriptionGenerationSuccess ? (
+          <div className="rounded-xl2 border border-sage/35 bg-sage/10 p-3 text-sm text-sage">
+            {descriptionGenerationSuccess}
+          </div>
         ) : null}
       </div>
 
@@ -1168,7 +1314,7 @@ const DishForm: React.FC<DishFormProps> = ({
         <LiquidButton
           type="submit"
           className="flex-1"
-          disabled={isSubmitting || !hasDishName || !formData.price || !formData.category}
+          disabled={isSubmitting || !hasDishName || !hasDescription || !formData.price || !formData.category}
         >
           {isSubmitting ? submittingLabel : submitLabel}
         </LiquidButton>
