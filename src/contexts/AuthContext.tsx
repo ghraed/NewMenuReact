@@ -5,7 +5,7 @@ import { resetEcho } from '../services/realtime';
 import type { AuthUserSummary } from '../types';
 import { getDefaultRouteForRole } from '../utils/auth';
 
-export interface AuthUser extends AuthUserSummary {}
+export type AuthUser = AuthUserSummary;
 
 interface AuthContextValue {
   user: AuthUser | null;
