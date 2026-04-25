@@ -143,8 +143,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
       {
         label: 'Revenue',
         data: chartRevenues,
-        backgroundColor: 'rgba(215, 180, 106, 0.75)',
-        borderColor: 'rgba(243, 215, 154, 1)',
+        backgroundColor: 'rgba(215, 180, 106, 0.82)',
+        borderColor: 'rgba(243, 215, 154, 0.98)',
         borderWidth: 1.5,
         borderRadius: 10,
         barPercentage: 0.72,
@@ -178,19 +178,25 @@ const AdminFinanceDashboardPage: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.05)',
+          color: 'rgba(215, 180, 106, 0.12)',
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.72)',
+          color: 'rgba(243, 215, 154, 0.9)',
+          font: {
+            weight: 600,
+          },
         },
       },
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(255, 255, 255, 0.08)',
+          color: 'rgba(215, 180, 106, 0.14)',
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.72)',
+          color: 'rgba(243, 215, 154, 0.85)',
+          font: {
+            weight: 600,
+          },
           callback: (value) => formatPriceWithCurrency(Number(value), currency),
         },
       },
@@ -311,10 +317,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="relative overflow-hidden rounded-[26px] border border-gold/20 bg-[radial-gradient(circle_at_top_right,rgba(215,180,106,0.24),rgba(10,16,32,0.82)_58%)] p-6 shadow-[0_28px_60px_rgba(0,0,0,0.36)]"
+          className="relative overflow-hidden rounded-[26px] border border-gold/30 bg-[radial-gradient(circle_at_top_right,rgba(215,180,106,0.3),rgba(10,16,32,0.9)_56%)] p-6 shadow-[0_28px_60px_rgba(0,0,0,0.4)]"
         >
           <div className="absolute -top-20 right-0 h-60 w-60 rounded-full bg-gold/10 blur-[68px]" />
-          <div className="absolute -bottom-14 left-4 h-44 w-44 rounded-full bg-sage/10 blur-[64px]" />
+          <div className="absolute -bottom-14 left-4 h-44 w-44 rounded-full bg-gold2/10 blur-[64px]" />
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Revenue Intelligence</p>
