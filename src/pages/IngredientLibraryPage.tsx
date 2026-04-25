@@ -82,7 +82,7 @@ const IngredientLibraryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchIngredients();

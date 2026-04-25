@@ -91,7 +91,7 @@ const AdminStaffPage: React.FC = () => {
     } finally {
       setTablesLoading(false);
     }
-  }, [user?.restaurant?.slug]);
+  }, [t, user?.restaurant?.slug]);
 
   const loadStaffMembers = useCallback(async () => {
     setStaffLoading(true);
@@ -104,7 +104,7 @@ const AdminStaffPage: React.FC = () => {
     } finally {
       setStaffLoading(false);
     }
-  }, [syncStaffMembers]);
+  }, [syncStaffMembers, t]);
 
   useEffect(() => {
     setPageError(null);

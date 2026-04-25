@@ -30,7 +30,7 @@ const AdminDishPage: React.FC = () => {
     };
 
     if (dish_id) fetchDish();
-  }, [dish_id]);
+  }, [dish_id, t]);
 
   return (
     <DashboardLayout title={t('adminDish.pageTitle')}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -230,7 +230,7 @@ const GuestDishListPage: React.FC = () => {
   const categories = useMemo(() => {
     const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category, dish.category_ar)).filter(Boolean)));
     return [t('menuList.allCategories'), ...values];
-  }, [dishes, i18n.resolvedLanguage, t]);
+  }, [dishes, t]);
 
   const allIngredients = useMemo(() => {
     const values = new Map<string, string>();
@@ -311,7 +311,7 @@ const GuestDishListPage: React.FC = () => {
 
       return categoryMatch && searchMatch && ingredientMatch;
     });
-  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, i18n.resolvedLanguage, t]);
+  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, t]);
 
   const anchorDishes = useMemo(
     () => filteredDishes.filter((dish) => dish.is_anchor === true),
@@ -345,7 +345,7 @@ const GuestDishListPage: React.FC = () => {
     return map;
   }, [dishes]);
 
-  const getOrderableRelatedDishes = (sourceDish: Dish, detailDish?: Dish | null) => {
+  const getOrderableRelatedDishes = useCallback((sourceDish: Dish, detailDish?: Dish | null) => {
     const seen = new Set<number>();
     const isOrderableCandidate = (candidate: Dish) => (
       candidate.id !== sourceDish.id
@@ -399,7 +399,7 @@ const GuestDishListPage: React.FC = () => {
     });
 
     return sortByRecommendationPriority(sameCategoryFallback);
-  };
+  }, [dishLookup, dishes]);
 
   const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
 
@@ -456,7 +456,7 @@ const GuestDishListPage: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [relatedPopupSourceDish, relatedPopupDishId, table_id, draft.guestAccessToken, restaurantSlug, t]);
+  }, [relatedPopupSourceDish, relatedPopupDishId, table_id, draft.guestAccessToken, restaurantSlug, t, getOrderableRelatedDishes]);
 
   const toggleIngredientFilter = (ingredientValue: string) => {
     setSelectedIngredients((current) =>

@@ -242,7 +242,9 @@ const AccountingOrdersPage: React.FC = () => {
   }, [loadOrders]);
 
   useEffect(() => {
-    if (!user?.restaurant?.slug) {
+    const restaurantSlug = user?.restaurant?.slug;
+
+    if (!restaurantSlug) {
       setTables([]);
       return;
     }
@@ -252,7 +254,7 @@ const AccountingOrdersPage: React.FC = () => {
       setTablesError(null);
 
       try {
-        const response = await fetchGuestTables(user.restaurant!.slug);
+        const response = await fetchGuestTables(restaurantSlug);
         setTables(response.tables);
       } catch (err: unknown) {
         setTablesError(getErrorMessage(err, t('accountingPage.failedLoadTables')));
@@ -262,7 +264,7 @@ const AccountingOrdersPage: React.FC = () => {
     };
 
     loadTables();
-  }, [user?.restaurant?.slug]);
+  }, [t, user?.restaurant?.slug]);
 
   useEffect(() => {
     if (!isTableMenuOpen) {
