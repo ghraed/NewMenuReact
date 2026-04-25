@@ -324,19 +324,21 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Revenue Intelligence</p>
-              <h2 className="mt-2 text-3xl font-semibold text-text sm:text-4xl">Luxury Financial Overview</h2>
-              <p className="mt-3 max-w-2xl text-sm text-muted">
+              <h2 className="mt-2 text-3xl font-semibold text-[#f8f2e6] drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)] sm:text-4xl">
+                Luxury Financial Overview
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm text-[#efe6d4]/90">
                 Track revenue momentum and manage invoice lifecycle from one elegant control panel.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(totalRevenue, currency)}</p>
+                <p className="mt-1 text-xl font-semibold text-[#f8f2e6]">{formatPriceWithCurrency(totalRevenue, currency)}</p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
-                <p className="mt-1 text-xl font-semibold text-text">{totalInvoicesInRange}</p>
+                <p className="mt-1 text-xl font-semibold text-[#f8f2e6]">{totalInvoicesInRange}</p>
               </div>
             </div>
           </div>
