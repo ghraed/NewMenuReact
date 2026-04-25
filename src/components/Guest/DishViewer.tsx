@@ -256,7 +256,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
       isCleaningUpRef.current = true;
       cleanupViewer();
     };
-  }, [dish.id, dish.assets, glbUrl, hasDishAssets, isGuestDetail, trackEvent]);
+  }, [dish.id, dish.assets, glbUrl, hasDishAssets, isGuestDetail, t, trackEvent]);
 
   if (!hasDishAssets) {
     return (
