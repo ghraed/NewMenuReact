@@ -254,7 +254,7 @@ const StaffOrdersPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, []);
+  }, [t]);
 
   const replaceOrder = useCallback((nextOrder: OrderRecord) => {
     setOrders((current) => current.map((item) => (item.id === nextOrder.id ? nextOrder : item)));
@@ -277,7 +277,7 @@ const StaffOrdersPage: React.FC = () => {
     } finally {
       setPublishedDishesLoading(false);
     }
-  }, [publishedDishesLoading]);
+  }, [publishedDishesLoading, t]);
 
   const loadOrders = useCallback(async () => {
     await refreshStaffActivity();
@@ -448,7 +448,9 @@ const StaffOrdersPage: React.FC = () => {
   }, [editingOrder, mobilePollingEnabled, refreshStaffActivity, user?.restaurant?.id]);
 
   useEffect(() => {
-    if (!user?.restaurant?.slug) {
+    const restaurantSlug = user?.restaurant?.slug;
+
+    if (!restaurantSlug) {
       setAccessibleTables([]);
       return;
     }
@@ -462,7 +464,7 @@ const StaffOrdersPage: React.FC = () => {
 
     const loadAccessibleTables = async () => {
       try {
-        const response = await fetchGuestTables(user.restaurant!.slug);
+        const response = await fetchGuestTables(restaurantSlug);
 
         if (!isActive) {
           return;
@@ -481,10 +483,12 @@ const StaffOrdersPage: React.FC = () => {
     return () => {
       isActive = false;
     };
-  }, [user?.assigned_tables, user?.restaurant?.slug, user?.role]);
+  }, [user?.assigned_tables, user?.role, user?.restaurant?.slug]);
 
   useEffect(() => {
-    if (user?.role !== 'admin' || !user.restaurant?.slug) {
+    const restaurantSlug = user?.restaurant?.slug;
+
+    if (user?.role !== 'admin' || !restaurantSlug) {
       setAdminRealtimeTableIds([]);
       return;
     }
@@ -493,7 +497,7 @@ const StaffOrdersPage: React.FC = () => {
 
     const loadRealtimeTables = async () => {
       try {
-        const response = await fetchGuestTables(user.restaurant!.slug);
+        const response = await fetchGuestTables(restaurantSlug);
 
         if (!isActive) {
           return;
@@ -623,6 +627,7 @@ const StaffOrdersPage: React.FC = () => {
     getWaveNotificationBody,
     getWaveNotificationTitle,
     getWaveToastMessage,
+    showToast,
     user?.assigned_tables,
     user?.restaurant?.id,
     user?.role,
