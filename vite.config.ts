@@ -12,6 +12,19 @@ export default defineConfig(({ mode }) => {
     react(),
     tailwindcss(), // Add this line
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          i18n: ['i18next', 'react-i18next'],
+          realtime: ['laravel-echo', 'pusher-js'],
+          three: ['three', '@google/model-viewer'],
+          charts: ['chart.js', 'react-chartjs-2'],
+        },
+      },
+    },
+  },
   server: {
     host: true,
     allowedHosts: [

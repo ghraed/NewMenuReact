@@ -1,37 +1,37 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
-import GuestDishPage from './pages/GuestDishPage';
-import GuestDishIngredientsPage from './pages/GuestDishIngredientsPage';
 import LoginPage from './pages/LoginPage';
-import AdminDashboard from './pages/AdminDashboard';
-import CreateDishPage from './pages/CreateDishPage';
-import EditDishPage from './pages/EditDishPage';
-import IngredientLibrary from './pages/IngredientLibrary';
-import GlobalIngredientsPage from './pages/GlobalIngredientsPage';
-import AdminIngredientsPage from './pages/AdminIngredientsPage';
-import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
-import AdminDishPage from './pages/AdminDishPage';
-import OrderReviewPage from './pages/OrderReviewPage';
-import GuestOrdersPage from './pages/GuestOrdersPage';
-import GuestInvoicePage from './pages/GuestInvoicePage';
-import StaffOrdersPage from './pages/StaffOrdersPage';
-import AdminStaffPage from './pages/AdminStaffPage';
-import AccountingOrdersPage from './pages/AccountingOrdersPage';
-import InvoicePrintPage from './pages/InvoicePrintPage';
-import AdminCurrencyPage from './pages/AdminCurrencyPage';
-import AdminFinanceDashboardPage from './pages/AdminFinanceDashboardPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
 import { useAuth } from './contexts/useAuth';
-import LiquidGlassDemoPage from './pages/LiquidGlassDemoPage';
 import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
 import { useTranslation } from 'react-i18next';
 
+const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
+const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const CreateDishPage = React.lazy(() => import('./pages/CreateDishPage'));
+const EditDishPage = React.lazy(() => import('./pages/EditDishPage'));
+const IngredientLibrary = React.lazy(() => import('./pages/IngredientLibrary'));
+const GlobalIngredientsPage = React.lazy(() => import('./pages/GlobalIngredientsPage'));
+const AdminIngredientsPage = React.lazy(() => import('./pages/AdminIngredientsPage'));
+const AdminStockHistoryPage = React.lazy(() => import('./pages/AdminStockHistoryPage'));
+const AdminDishPage = React.lazy(() => import('./pages/AdminDishPage'));
+const OrderReviewPage = React.lazy(() => import('./pages/OrderReviewPage'));
+const GuestOrdersPage = React.lazy(() => import('./pages/GuestOrdersPage'));
+const GuestInvoicePage = React.lazy(() => import('./pages/GuestInvoicePage'));
+const StaffOrdersPage = React.lazy(() => import('./pages/StaffOrdersPage'));
+const AdminStaffPage = React.lazy(() => import('./pages/AdminStaffPage'));
+const AccountingOrdersPage = React.lazy(() => import('./pages/AccountingOrdersPage'));
+const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
+const AdminCurrencyPage = React.lazy(() => import('./pages/AdminCurrencyPage'));
+const AdminFinanceDashboardPage = React.lazy(() => import('./pages/AdminFinanceDashboardPage'));
+const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
 
 const RoleHomeRedirect: React.FC = () => {
@@ -39,6 +39,12 @@ const RoleHomeRedirect: React.FC = () => {
 
   return <Navigate to={isAuthenticated ? defaultRoute : '/admin/login'} replace />;
 };
+
+const lazyRoute = (element: React.ReactNode) => (
+  <Suspense fallback={null}>
+    {element}
+  </Suspense>
+);
 
 const AppRoutes: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -49,20 +55,20 @@ const AppRoutes: React.FC = () => {
         <Route path="/" element={<GuestDishListPage />} />
         <Route path="/menu" element={<GuestDishListPage />} />
         <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
-        <Route path="/menu/table/:table_id/dish/:dish_id" element={<GuestDishPage />} />
-        <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
-        <Route path="/menu/table/:table_id/review" element={<OrderReviewPage />} />
-        <Route path="/menu/table/:table_id/orders" element={<GuestOrdersPage />} />
-        <Route path="/menu/table/:table_id/invoice" element={<GuestInvoicePage />} />
-        <Route path="/menu/dish/:dish_id" element={<GuestDishPage />} />
-        <Route path="/menu/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
+        <Route path="/menu/table/:table_id/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+        <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+        <Route path="/menu/table/:table_id/review" element={lazyRoute(<OrderReviewPage />)} />
+        <Route path="/menu/table/:table_id/orders" element={lazyRoute(<GuestOrdersPage />)} />
+        <Route path="/menu/table/:table_id/invoice" element={lazyRoute(<GuestInvoicePage />)} />
+        <Route path="/menu/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+        <Route path="/menu/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
         <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
-        <Route path="/menu/:restaurant_slug/dish/:dish_id" element={<GuestDishPage />} />
-        <Route path="/dish/:dish_id" element={<GuestDishPage />} />
-        <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={<GuestDishIngredientsPage />} />
-        <Route path="/order/review" element={<OrderReviewPage />} />
-        <Route path="/liquid-glass-preview" element={<LiquidGlassDemoPage />} />
-        <Route path="/invoice/print" element={<InvoicePrintPage />} />
+        <Route path="/menu/:restaurant_slug/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+        <Route path="/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+        <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+        <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
+        <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
+        <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
         <Route path="/admin/login" element={<LoginPage />} />
 
@@ -70,7 +76,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/dashboard"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
+              {lazyRoute(<AdminDashboard />)}
             </ProtectedRoute>
           )}
         />
@@ -79,7 +85,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/dishes/create"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <CreateDishPage />
+              {lazyRoute(<CreateDishPage />)}
             </ProtectedRoute>
           )}
         />
@@ -88,7 +94,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/dish/:dish_id"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDishPage />
+              {lazyRoute(<AdminDishPage />)}
             </ProtectedRoute>
           )}
         />
@@ -97,7 +103,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/dishes/:dish_id/edit"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <EditDishPage />
+              {lazyRoute(<EditDishPage />)}
             </ProtectedRoute>
           )}
         />
@@ -106,7 +112,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/ingredients/library"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <IngredientLibrary />
+              {lazyRoute(<IngredientLibrary />)}
             </ProtectedRoute>
           )}
         />
@@ -115,7 +121,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/ingredients/global"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <GlobalIngredientsPage />
+              {lazyRoute(<GlobalIngredientsPage />)}
             </ProtectedRoute>
           )}
         />
@@ -124,7 +130,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/inventory/ingredients"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminIngredientsPage />
+              {lazyRoute(<AdminIngredientsPage />)}
             </ProtectedRoute>
           )}
         />
@@ -133,7 +139,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/inventory/stock-history"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminStockHistoryPage />
+              {lazyRoute(<AdminStockHistoryPage />)}
             </ProtectedRoute>
           )}
         />
@@ -142,7 +148,7 @@ const AppRoutes: React.FC = () => {
           path="/staff/orders"
           element={(
             <ProtectedRoute allowedRoles={['staff', 'admin']}>
-              <StaffOrdersPage />
+              {lazyRoute(<StaffOrdersPage />)}
             </ProtectedRoute>
           )}
         />
@@ -151,7 +157,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/staff"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminStaffPage />
+              {lazyRoute(<AdminStaffPage />)}
             </ProtectedRoute>
           )}
         />
@@ -160,7 +166,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/accounting"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AccountingOrdersPage />
+              {lazyRoute(<AccountingOrdersPage />)}
             </ProtectedRoute>
           )}
         />
@@ -169,7 +175,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/finance"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminFinanceDashboardPage />
+              {lazyRoute(<AdminFinanceDashboardPage />)}
             </ProtectedRoute>
           )}
         />
@@ -178,7 +184,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/currency"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminCurrencyPage />
+              {lazyRoute(<AdminCurrencyPage />)}
             </ProtectedRoute>
           )}
         />
@@ -187,7 +193,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/theme-demo"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              <LiquidGlassDemoPage />
+              {lazyRoute(<LiquidGlassDemoPage />)}
             </ProtectedRoute>
           )}
         />
