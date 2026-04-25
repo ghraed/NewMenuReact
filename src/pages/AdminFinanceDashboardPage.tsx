@@ -317,28 +317,28 @@ const AdminFinanceDashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: 'easeOut' }}
-          className="relative overflow-hidden rounded-[26px] border border-gold/30 bg-[radial-gradient(circle_at_top_right,rgba(215,180,106,0.3),rgba(10,16,32,0.9)_56%)] p-6 shadow-[0_28px_60px_rgba(0,0,0,0.4)]"
+          className="relative overflow-hidden rounded-[26px] border border-stroke bg-gradient-to-r from-bg1/70 via-bg1/55 to-bg1/68 p-6 shadow-lux2"
         >
-          <div className="absolute -top-20 right-0 h-60 w-60 rounded-full bg-gold/10 blur-[68px]" />
-          <div className="absolute -bottom-14 left-4 h-44 w-44 rounded-full bg-gold2/10 blur-[64px]" />
+          <div className="absolute -top-16 right-8 h-56 w-56 rounded-full bg-gold/8 blur-[70px]" />
+          <div className="absolute -bottom-12 left-4 h-40 w-40 rounded-full bg-gold2/8 blur-[64px]" />
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Revenue Intelligence</p>
-              <h2 className="mt-2 text-3xl font-semibold text-[#f8f2e6] drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)] sm:text-4xl">
+              <h2 className="mt-2 text-3xl font-semibold text-text sm:text-4xl">
                 Luxury Financial Overview
               </h2>
-              <p className="mt-3 max-w-2xl text-sm text-[#efe6d4]/90">
+              <p className="mt-3 max-w-2xl text-sm text-muted">
                 Track revenue momentum and manage invoice lifecycle from one elegant control panel.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
-                <p className="mt-1 text-xl font-semibold text-[#f8f2e6]">{formatPriceWithCurrency(totalRevenue, currency)}</p>
+                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(totalRevenue, currency)}</p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
-                <p className="mt-1 text-xl font-semibold text-[#f8f2e6]">{totalInvoicesInRange}</p>
+                <p className="mt-1 text-xl font-semibold text-text">{totalInvoicesInRange}</p>
               </div>
             </div>
           </div>
@@ -348,9 +348,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.06 }}
-          className="grid gap-5 xl:grid-cols-3"
+          className="space-y-5"
         >
-          <GlassCard className="xl:col-span-2">
+          <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue Trend</p>
@@ -380,11 +380,13 @@ const AdminFinanceDashboardPage: React.FC = () => {
           </GlassCard>
 
           <GlassCard>
-            <h3 className="text-lg font-semibold text-text">Filters</h3>
-            <p className="mt-1 text-sm text-muted">Refine records by invoice date and status.</p>
+            <div className="mb-3">
+              <h3 className="text-lg font-semibold text-text">Filters</h3>
+              <p className="mt-1 text-sm text-muted">Refine records by invoice date and status.</p>
+            </div>
 
-            <div className="mt-4 space-y-4">
-              <label className="block">
+            <div className="grid gap-4 md:grid-cols-4 md:items-end">
+              <label className="block md:col-span-1">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date From</span>
                 <input
                   type="date"
@@ -394,7 +396,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 />
               </label>
 
-              <label className="block">
+              <label className="block md:col-span-1">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date To</span>
                 <input
                   type="date"
@@ -404,7 +406,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 />
               </label>
 
-              <label className="block">
+              <label className="block md:col-span-1">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Status</span>
                 <select
                   value={statusFilter}
@@ -421,7 +423,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <LiquidButton
                 type="button"
                 tone="tertiary"
-                className="w-full"
+                className="w-full md:col-span-1"
                 onClick={() => {
                   setDateFrom('');
                   setDateTo('');

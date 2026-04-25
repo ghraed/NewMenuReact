@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
@@ -89,21 +90,25 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
               {t('admin.navigation')}
             </div>
-            <ul className="flex min-w-0 items-center gap-1">
+            <ul className="flex min-w-0 flex-nowrap items-center justify-between gap-1">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path;
 
                 return (
-                  <li key={item.path} className="min-w-0 flex-1">
+                  <li key={item.path} className="relative shrink-0">
                     <Link
                       to={item.path}
-                      className={`group flex w-full items-center justify-center rounded-full px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] transition xl:text-[11px] ${
+                      aria-label={item.label}
+                      className={`group relative flex h-11 w-11 items-center justify-center rounded-full text-base transition ${
                         isActive
                           ? 'bg-gold/80 text-bg0 shadow-[0_12px_28px_rgba(215,180,106,0.3)]'
                           : 'border border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
                       }`}
                     >
-                      <span className="truncate whitespace-nowrap">{item.label}</span>
+                      <span>{item.icon}</span>
+                      <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                        {item.label}
+                      </span>
                     </Link>
                   </li>
                 );
@@ -112,51 +117,70 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </GlassBoard>
         </div>
 
-        {mobileNavOpen ? (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label="Close navigation"
-              className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
-              onClick={() => setMobileNavOpen(false)}
-            />
-            <div className="absolute right-3 top-3 w-[min(92vw,360px)]">
-              <GlassBoard className="p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold2/85">{t('admin.navigation')}</p>
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-text transition hover:border-gold/40"
-                    onClick={() => setMobileNavOpen(false)}
-                    aria-label="Close"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <ul className="space-y-2">
-                  {navItems.map((item) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <li key={item.path}>
-                        <Link
-                          to={item.path}
-                          className={`flex items-center gap-2 rounded-2xl px-3 py-2.5 text-sm transition ${
-                            isActive
-                              ? 'border border-gold/35 bg-gold/15 text-gold2'
-                              : 'border border-stroke bg-bg1/65 text-text hover:border-gold/30'
-                          }`}
+        <AnimatePresence>
+          {mobileNavOpen ? (
+            <motion.div
+              className="fixed inset-0 z-50 lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+            >
+              <button
+                type="button"
+                aria-label="Close navigation"
+                className="absolute inset-0 bg-black/45 backdrop-blur-[4px]"
+                onClick={() => setMobileNavOpen(false)}
+              />
+              <motion.aside
+                className="absolute inset-0 border-t border-gold/20 bg-gradient-to-b from-bg0 via-bg1 to-bg0 p-5"
+                initial={{ y: '-8%', opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: '-6%', opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
+                  <div className="mb-6 flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold2/85">{t('admin.navigation')}</p>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-text transition hover:border-gold/40"
+                      onClick={() => setMobileNavOpen(false)}
+                      aria-label="Close"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {navItems.map((item, index) => {
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <motion.li
+                          key={item.path}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.02 }}
                         >
-                          <span className="shrink-0">{item.icon}</span>
-                          <span className="truncate">{item.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </GlassBoard>
-            </div>
-          </div>
-        ) : null}
+                          <Link
+                            to={item.path}
+                            className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm transition ${
+                              isActive
+                                ? 'border border-gold/35 bg-gold/15 text-gold2'
+                                : 'border border-stroke bg-bg1/65 text-text hover:border-gold/30'
+                            }`}
+                          >
+                            <span className="text-base">{item.icon}</span>
+                            <span className="truncate">{item.label}</span>
+                          </Link>
+                        </motion.li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </motion.aside>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
         <div>
           <GlassBoard className="overflow-visible p-0">
