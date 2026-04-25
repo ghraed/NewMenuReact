@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     bootstrap();
-  }, []);
+  }, [refreshUser]);
 
   const login = async (identifier: string, password: string) => {
     const response = await api.post('/auth/login', { email: identifier, password });
