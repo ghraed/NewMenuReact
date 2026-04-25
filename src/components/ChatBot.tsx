@@ -891,12 +891,13 @@ const ChatBot: React.FC = () => {
     setInput('');
     void animateOutgoingUserMessage(typedText, pushedUserMessageId);
     setIsLoading(true);
+    let timeoutId: number | null = null;
 
     try {
       chatRequestAbortRef.current?.abort();
       const controller = new AbortController();
       chatRequestAbortRef.current = controller;
-      const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+      timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
       const response = await fetch(`${apiBase}/chat`, {
         method: 'POST',
@@ -914,7 +915,6 @@ const ChatBot: React.FC = () => {
           table_id: chatContext.table_id,
         }),
       });
-      window.clearTimeout(timeoutId);
       chatRequestAbortRef.current = null;
 
       if (!response.ok) {
@@ -950,6 +950,9 @@ const ChatBot: React.FC = () => {
         pushMessage('assistant', fallbackMessage);
       }
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       chatRequestAbortRef.current = null;
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -962,12 +965,13 @@ const ChatBot: React.FC = () => {
 
     setOrderNotice(null);
     setIsConfirmingOrder(true);
+    let timeoutId: number | null = null;
 
     try {
       orderRequestAbortRef.current?.abort();
       const controller = new AbortController();
       orderRequestAbortRef.current = controller;
-      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+      timeoutId = window.setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch(`${apiBase}/chat/orders`, {
         method: 'POST',
@@ -981,7 +985,6 @@ const ChatBot: React.FC = () => {
           items: pendingOrder.items,
         }),
       });
-      window.clearTimeout(timeoutId);
       orderRequestAbortRef.current = null;
 
       if (!response.ok) {
@@ -1008,6 +1011,9 @@ const ChatBot: React.FC = () => {
         : 'Could not send the order. Please try again.';
       setOrderNotice(message);
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       orderRequestAbortRef.current = null;
       if (isMountedRef.current) {
         setIsConfirmingOrder(false);
