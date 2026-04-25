@@ -951,8 +951,9 @@ const ChatBot: React.FC = () => {
       }
     } finally {
       chatRequestAbortRef.current = null;
-      if (!isMountedRef.current) return;
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -1008,8 +1009,9 @@ const ChatBot: React.FC = () => {
       setOrderNotice(message);
     } finally {
       orderRequestAbortRef.current = null;
-      if (!isMountedRef.current) return;
-      setIsConfirmingOrder(false);
+      if (isMountedRef.current) {
+        setIsConfirmingOrder(false);
+      }
     }
   };
 
