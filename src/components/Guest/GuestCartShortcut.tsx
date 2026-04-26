@@ -7,12 +7,13 @@ import { buildGuestOrderReviewPath } from '../../utils/guestTableRoutes';
 const GuestCartShortcut: React.FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
-  const { totalItems, subtotal, draft } = useOrderCart();
+  const { restaurant, totalItems, subtotal, draft } = useOrderCart();
 
   if (
     totalItems === 0
     || !draft.tableId
     || !draft.guestAccessVerified
+    || restaurant?.feature_flags?.table_ordering === false
     || location.pathname.endsWith('/review')
     || location.pathname === '/order/review'
   ) {

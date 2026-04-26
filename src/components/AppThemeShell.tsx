@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import FixedBackground from './FixedBackground';
 import ThemeToggle from './Guest/ThemeToggle';
 import { getAppThemeStyle } from './Guest/guestTheme';
 import { useAppTheme } from '../hooks/useGuestTheme';
 import LanguageToggle from './LanguageToggle';
+import { useOrderCart } from '../contexts/useOrderCart';
 
 const TRANSITION_NAME = 'app-theme-shell';
 const REVEAL_DURATION_MS = 650;
@@ -34,6 +36,8 @@ const shouldUseLightweightThemeTransition = () => {
 
 const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
   const { theme, toggleTheme } = useAppTheme();
+  const location = useLocation();
+  const { restaurant } = useOrderCart();
   const isTransitioningRef = useRef(false);
   const hideRevealTimeoutRef = useRef<number | null>(null);
   const revealIdRef = useRef(0);
@@ -107,6 +111,14 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
     });
   };
 
+  const isGuestRoute = (
+    location.pathname === '/'
+    || location.pathname.startsWith('/menu')
+    || location.pathname.startsWith('/dish/')
+    || location.pathname === '/order/review'
+  );
+  const showLanguageToggle = !isGuestRoute || restaurant?.feature_flags?.multi_language !== false;
+
   return (
     <div
       className="relative min-h-screen bg-bg0 text-text transition-colors duration-500"
@@ -138,7 +150,7 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
         />
       ) : null}
 
-      <LanguageToggle />
+      {showLanguageToggle ? <LanguageToggle /> : null}
       <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
 
       <div className="relative min-h-screen">{children}</div>

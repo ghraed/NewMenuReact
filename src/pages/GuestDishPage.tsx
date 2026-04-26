@@ -26,6 +26,7 @@ const GuestDishPage: React.FC = () => {
     table_id ? Number(table_id) : undefined
   );
   const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
+  const [tableOrderingEnabled, setTableOrderingEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ const GuestDishPage: React.FC = () => {
           setResolvedRestaurantSlug(response.restaurant.slug);
           setResolvedTableId(response.table.number);
           setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
+          setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
           if (response.table_session) {
             setGuestContext({
               restaurant: response.restaurant,
@@ -81,6 +83,7 @@ const GuestDishPage: React.FC = () => {
               setDish(response.data);
               setResolvedRestaurantSlug(response.data?.restaurant?.slug || candidateSlug);
               setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
+              setTableOrderingEnabled(response.data?.restaurant?.feature_flags?.table_ordering !== false);
               loaded = true;
               break;
             } catch (err) {
@@ -99,6 +102,7 @@ const GuestDishPage: React.FC = () => {
           setDish(response.data);
           setResolvedRestaurantSlug(response.data?.restaurant?.slug);
           setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
+          setTableOrderingEnabled(response.data?.restaurant?.feature_flags?.table_ordering !== false);
           loaded = true;
         }
 
@@ -175,7 +179,7 @@ const GuestDishPage: React.FC = () => {
               tableId={resolvedTableId}
               restaurantSlug={resolvedRestaurantSlug}
               aiRecommendationsEnabled={aiRecommendationsEnabled}
-              onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
+              onAddToCart={draft.guestAccessVerified && tableOrderingEnabled ? () => addDish(dish, {
                 restaurant: {
                   name: formatRestaurantLabel(resolvedRestaurantSlug || getPreferredGuestRestaurantSlug()),
                   slug: resolvedRestaurantSlug || getPreferredGuestRestaurantSlug(),

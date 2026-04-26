@@ -46,9 +46,11 @@ const OrderReviewPage: React.FC = () => {
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug;
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
+  const tableOrderingEnabled = restaurant?.feature_flags?.table_ordering !== false;
   const canSubmit = items.length > 0
     && draft.tableSessionId !== null
     && draft.guestAccessVerified
+    && tableOrderingEnabled
     && !submitting
     && !sessionLoading;
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
@@ -428,6 +430,19 @@ const OrderReviewPage: React.FC = () => {
                     }}
                   >
                     {error}
+                  </div>
+                ) : null}
+
+                {!tableOrderingEnabled ? (
+                  <div
+                    className="rounded-[22px] border p-4 text-sm"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 12%, var(--guest-panel))',
+                      borderColor: 'color-mix(in srgb, rgb(var(--color-spicy)) 38%, var(--guest-border))',
+                      color: 'rgb(var(--color-spicy))',
+                    }}
+                  >
+                    {t('orderReview.orderingDisabled', { defaultValue: 'Table ordering is currently disabled for this restaurant.' })}
                   </div>
                 ) : null}
 

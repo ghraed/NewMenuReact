@@ -105,6 +105,7 @@ const GuestDishListPage: React.FC = () => {
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
+  const [tableOrderingEnabled, setTableOrderingEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -152,6 +153,7 @@ const GuestDishListPage: React.FC = () => {
           setRestaurantName(response.restaurant.name);
           setRestaurantSlug(response.restaurant.slug);
           setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
+          setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
           setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
           return;
         }
@@ -186,6 +188,7 @@ const GuestDishListPage: React.FC = () => {
         setRestaurantName(data.restaurant.name);
         setRestaurantSlug(data.restaurant.slug);
         setAiRecommendationsEnabled(data.restaurant.feature_flags?.ai_recommendations !== false);
+        setTableOrderingEnabled(data.restaurant.feature_flags?.table_ordering !== false);
         setDishes(applyRestaurantCurrencyToDishes(data.dishes, data.restaurant));
       } catch (err) {
         console.error(err);
@@ -791,7 +794,7 @@ const GuestDishListPage: React.FC = () => {
                   <DishCard
                     key={`anchor-${dish.id}`}
                     dish={dish}
-                    onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
+                    onAddToCart={draft.guestAccessVerified && tableOrderingEnabled ? () => addDish(dish, {
                       restaurant: {
                         name: restaurantName,
                         slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
@@ -819,7 +822,7 @@ const GuestDishListPage: React.FC = () => {
                 <DishCard
                   key={dish.id}
                   dish={dish}
-                  onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
+                  onAddToCart={draft.guestAccessVerified && tableOrderingEnabled ? () => addDish(dish, {
                     restaurant: {
                       name: restaurantName,
                       slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
@@ -971,7 +974,7 @@ const GuestDishListPage: React.FC = () => {
                       >
                         {t('dishCard.viewDetails')}
                       </button>
-                      {draft.guestAccessVerified ? (
+                      {draft.guestAccessVerified && tableOrderingEnabled ? (
                         <button
                           type="button"
                           onClick={() => addDish(candidate, {
