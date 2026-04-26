@@ -4,13 +4,16 @@ import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import { OwnerAuthProvider } from './contexts/OwnerAuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
 import { useAuth } from './contexts/useAuth';
+import { useOwnerAuth } from './contexts/useOwnerAuth';
 import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
 import { useTranslation } from 'react-i18next';
+import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
@@ -33,11 +36,19 @@ const AdminCurrencyPage = React.lazy(() => import('./pages/AdminCurrencyPage'));
 const AdminFinanceDashboardPage = React.lazy(() => import('./pages/AdminFinanceDashboardPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
+const OwnerLoginPage = React.lazy(() => import('./pages/OwnerLoginPage'));
+const OwnerDashboardPage = React.lazy(() => import('./pages/OwnerDashboardPage'));
 
 const RoleHomeRedirect: React.FC = () => {
   const { defaultRoute, isAuthenticated } = useAuth();
 
   return <Navigate to={isAuthenticated ? defaultRoute : '/admin/login'} replace />;
+};
+
+const OwnerHomeRedirect: React.FC = () => {
+  const { isAuthenticated } = useOwnerAuth();
+
+  return <Navigate to={isAuthenticated ? '/owner/dashboard' : '/owner/login'} replace />;
 };
 
 const lazyRoute = (element: React.ReactNode) => (
@@ -71,6 +82,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
         <Route path="/admin/login" element={<LoginPage />} />
+        <Route path="/owner/login" element={lazyRoute(<OwnerLoginPage />)} />
 
         <Route
           path="/admin/dashboard"
@@ -78,6 +90,15 @@ const AppRoutes: React.FC = () => {
             <ProtectedRoute allowedRoles={['admin']}>
               {lazyRoute(<AdminDashboard />)}
             </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/owner/dashboard"
+          element={(
+            <OwnerProtectedRoute>
+              {lazyRoute(<OwnerDashboardPage />)}
+            </OwnerProtectedRoute>
           )}
         />
 
@@ -201,6 +222,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<Navigate to="/admin/login" replace />} />
         <Route path="/dashboard" element={<RoleHomeRedirect />} />
         <Route path="/admin" element={<RoleHomeRedirect />} />
+        <Route path="/owner" element={<OwnerHomeRedirect />} />
         <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
         <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
         <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
@@ -237,17 +259,19 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <OrderCartProvider>
-        <AppThemeProvider>
-          <AppLocaleSync />
-          <BrowserRouter>
-            <AppRoutes />
-            <Suspense fallback={null}>
-              <ChatBot />
-            </Suspense>
-          </BrowserRouter>
-        </AppThemeProvider>
-      </OrderCartProvider>
+      <OwnerAuthProvider>
+        <OrderCartProvider>
+          <AppThemeProvider>
+            <AppLocaleSync />
+            <BrowserRouter>
+              <AppRoutes />
+              <Suspense fallback={null}>
+                <ChatBot />
+              </Suspense>
+            </BrowserRouter>
+          </AppThemeProvider>
+        </OrderCartProvider>
+      </OwnerAuthProvider>
     </AuthProvider>
   );
 };
