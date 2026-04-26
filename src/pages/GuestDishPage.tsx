@@ -25,6 +25,7 @@ const GuestDishPage: React.FC = () => {
   const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
     table_id ? Number(table_id) : undefined
   );
+  const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +46,7 @@ const GuestDishPage: React.FC = () => {
           setDish(response.dish);
           setResolvedRestaurantSlug(response.restaurant.slug);
           setResolvedTableId(response.table.number);
+          setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
           if (response.table_session) {
             setGuestContext({
               restaurant: response.restaurant,
@@ -78,6 +80,7 @@ const GuestDishPage: React.FC = () => {
 
               setDish(response.data);
               setResolvedRestaurantSlug(response.data?.restaurant?.slug || candidateSlug);
+              setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
               loaded = true;
               break;
             } catch (err) {
@@ -95,6 +98,7 @@ const GuestDishPage: React.FC = () => {
 
           setDish(response.data);
           setResolvedRestaurantSlug(response.data?.restaurant?.slug);
+          setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
           loaded = true;
         }
 
@@ -170,6 +174,7 @@ const GuestDishPage: React.FC = () => {
               dish={dish}
               tableId={resolvedTableId}
               restaurantSlug={resolvedRestaurantSlug}
+              aiRecommendationsEnabled={aiRecommendationsEnabled}
               onAddToCart={draft.guestAccessVerified ? () => addDish(dish, {
                 restaurant: {
                   name: formatRestaurantLabel(resolvedRestaurantSlug || getPreferredGuestRestaurantSlug()),

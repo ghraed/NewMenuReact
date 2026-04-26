@@ -19,6 +19,7 @@ interface DishDetailViewProps {
   dish: Dish;
   tableId?: number;
   restaurantSlug?: string;
+  aiRecommendationsEnabled?: boolean;
   onAddToCart?: () => void;
   cartQuantity?: number;
 }
@@ -44,6 +45,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   dish,
   tableId,
   restaurantSlug,
+  aiRecommendationsEnabled = true,
   onAddToCart,
   cartQuantity = 0,
 }) => {
@@ -56,9 +58,15 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
     (row) => row.show_in_animation !== false
   );
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
-  const alternativeDishes = sortByRecommendationPriority(dish.alternative_dishes || []);
-  const suggestedDishes = sortByRecommendationPriority(dish.suggested_dishes || []);
-  const relatedDishes = sortByRecommendationPriority(dish.related_dishes || []);
+  const alternativeDishes = aiRecommendationsEnabled
+    ? sortByRecommendationPriority(dish.alternative_dishes || [])
+    : [];
+  const suggestedDishes = aiRecommendationsEnabled
+    ? sortByRecommendationPriority(dish.suggested_dishes || [])
+    : [];
+  const relatedDishes = aiRecommendationsEnabled
+    ? sortByRecommendationPriority(dish.related_dishes || [])
+    : [];
   const sections = [
     { title: t('dishDetail.description'), content: dish.description },
     { title: t('dishDetail.ingredients'), content: getDishIngredientsText(dish) },

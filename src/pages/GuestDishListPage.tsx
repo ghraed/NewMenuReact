@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-import type { Dish } from '../types';
+import type { Dish, RestaurantSummary } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DishCard from '../components/Guest/DishCard';
 import DishTags from '../components/Guest/DishTags';
@@ -20,13 +20,7 @@ import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
 
 interface GuestListResponse {
-  restaurant: {
-    id: number;
-    name: string;
-    slug: string;
-    currency?: string | null;
-    dollar_rate?: number | null;
-  };
+  restaurant: RestaurantSummary;
   dishes: Dish[];
 }
 
@@ -110,6 +104,7 @@ const GuestDishListPage: React.FC = () => {
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -156,6 +151,7 @@ const GuestDishListPage: React.FC = () => {
           }
           setRestaurantName(response.restaurant.name);
           setRestaurantSlug(response.restaurant.slug);
+          setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
           setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
           return;
         }
@@ -189,6 +185,7 @@ const GuestDishListPage: React.FC = () => {
 
         setRestaurantName(data.restaurant.name);
         setRestaurantSlug(data.restaurant.slug);
+        setAiRecommendationsEnabled(data.restaurant.feature_flags?.ai_recommendations !== false);
         setDishes(applyRestaurantCurrencyToDishes(data.dishes, data.restaurant));
       } catch (err) {
         console.error(err);
@@ -364,9 +361,10 @@ const GuestDishListPage: React.FC = () => {
         return true;
       });
 
-    const relatedMatches = sortByRecommendationPriority(
-      takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || [])
-    );
+    const relatedMatchesRaw = takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || []);
+    const relatedMatches = aiRecommendationsEnabled
+      ? sortByRecommendationPriority(relatedMatchesRaw)
+      : relatedMatchesRaw;
 
     if (relatedMatches.length > 0) {
       return relatedMatches;
@@ -398,8 +396,10 @@ const GuestDishListPage: React.FC = () => {
       return true;
     });
 
-    return sortByRecommendationPriority(sameCategoryFallback);
-  }, [dishLookup, dishes]);
+    return aiRecommendationsEnabled
+      ? sortByRecommendationPriority(sameCategoryFallback)
+      : sameCategoryFallback;
+  }, [dishLookup, dishes, aiRecommendationsEnabled]);
 
   const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
 
