@@ -506,9 +506,9 @@ const ChatBot: React.FC = () => {
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
   const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
-  const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState(true);
+  const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState<boolean | null>(null);
   const shouldRenderChat = (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
-    && (!isGuestMenuRoute || isAiChatbotEnabled);
+    && (!isGuestMenuRoute || isAiChatbotEnabled === true);
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
@@ -613,14 +613,15 @@ const ChatBot: React.FC = () => {
     let cancelled = false;
 
     const hydrateDishes = async () => {
-      if (!isOpen) {
+      const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
+      if (!onGuestMenuRoute) {
+        setIsAiChatbotEnabled(true);
+        setChatDishes([]);
         return;
       }
 
-      const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
-      if (!onGuestMenuRoute) {
-        setChatDishes([]);
-        return;
+      if (restaurant?.feature_flags && typeof restaurant.feature_flags.ai_chatbot === 'boolean') {
+        setIsAiChatbotEnabled(restaurant.feature_flags.ai_chatbot);
       }
 
       const tableId = chatContext.table_id;
@@ -654,7 +655,7 @@ const ChatBot: React.FC = () => {
 
         if (featureFlags && typeof featureFlags.ai_chatbot === 'boolean') {
           setIsAiChatbotEnabled(featureFlags.ai_chatbot);
-        } else {
+        } else if (isAiChatbotEnabled === null) {
           setIsAiChatbotEnabled(true);
         }
 
@@ -684,11 +685,15 @@ const ChatBot: React.FC = () => {
           });
         });
 
-        setChatDishes(Array.from(dedupe.values()));
+        if (isOpen) {
+          setChatDishes(Array.from(dedupe.values()));
+        }
       } catch {
         if (!cancelled) {
-          setIsAiChatbotEnabled(true);
-          setChatDishes([]);
+          setIsAiChatbotEnabled(false);
+          if (isOpen) {
+            setChatDishes([]);
+          }
         }
       }
     };
@@ -698,7 +703,15 @@ const ChatBot: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [chatContext.table_id, chatContext.restaurant_slug, draft.guestAccessToken, isOpen, location.pathname]);
+  }, [
+    chatContext.table_id,
+    chatContext.restaurant_slug,
+    draft.guestAccessToken,
+    isOpen,
+    location.pathname,
+    restaurant?.feature_flags,
+    isAiChatbotEnabled,
+  ]);
 
   const pushMessage = (role: Role, content: string): string => {
     const messageId = makeId();

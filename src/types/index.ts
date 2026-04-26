@@ -205,6 +205,7 @@ export interface OrderCartRestaurant {
   id?: number;
   name?: string;
   slug: string;
+  feature_flags?: Record<string, boolean>;
 }
 
 export interface OrderCartItem {

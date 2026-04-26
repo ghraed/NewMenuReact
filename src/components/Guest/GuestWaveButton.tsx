@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GlassToast, useGlassToast } from '../ui/liquid-glass';
@@ -25,6 +25,9 @@ const GuestWaveButton: React.FC = () => {
   const { totalItems, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
   const [activeAction, setActiveAction] = useState<'waiter' | 'bill' | null>(null);
+  const [canCallWaiter, setCanCallWaiter] = useState(false);
+  const [canRequestBill, setCanRequestBill] = useState(false);
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   const routeTableId = params.table_id ? Number(params.table_id) : null;
   const activeTableId = draft.tableId ?? routeTableId;
@@ -67,7 +70,49 @@ const GuestWaveButton: React.FC = () => {
     return response.table_session.id;
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPermissions = async () => {
+      if (!activeTableId || Number.isNaN(activeTableId) || !draft.guestAccessVerified) {
+        setCanCallWaiter(false);
+        setCanRequestBill(false);
+        setPermissionsLoaded(false);
+        return;
+      }
+
+      try {
+        const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+        if (cancelled) {
+          return;
+        }
+
+        setCanCallWaiter(response.protected_actions.can_call_waiter === true);
+        setCanRequestBill(response.protected_actions.can_request_bill === true);
+        setPermissionsLoaded(true);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setCanCallWaiter(false);
+        setCanRequestBill(false);
+        setPermissionsLoaded(true);
+      }
+    };
+
+    void loadPermissions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTableId, draft.guestAccessToken, draft.guestAccessVerified]);
+
   const handleProtectedAction = async (action: 'waiter' | 'bill') => {
+    if ((action === 'waiter' && !canCallWaiter) || (action === 'bill' && !canRequestBill)) {
+      return;
+    }
+
     setActiveAction(action);
 
     try {
@@ -131,7 +176,7 @@ const GuestWaveButton: React.FC = () => {
     }
   };
 
-  if (!activeTableId || !draft.guestAccessVerified) {
+  if (!activeTableId || !draft.guestAccessVerified || !permissionsLoaded || (!canCallWaiter && !canRequestBill)) {
     return null;
   }
 
@@ -139,36 +184,40 @@ const GuestWaveButton: React.FC = () => {
     <>
       <div className={wrapperClassName}>
         <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
-          <button
-            type="button"
-            onClick={() => handleProtectedAction('waiter')}
-            disabled={activeAction !== null}
-            className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-            style={{
-              backgroundColor: 'rgb(212 175 55 / 80%)',
-              borderColor: 'var(--guest-border)',
-              color: 'var(--guest-text)',
-              boxShadow: 'var(--guest-shadow-soft)',
-            }}
-          >
-            <span aria-hidden="true" className="text-base leading-none">👋</span>
-            <span>{activeAction === 'waiter' ? t('wave.buttonSending') : t('wave.buttonIdle')}</span>
-          </button>
+          {canCallWaiter ? (
+            <button
+              type="button"
+              onClick={() => handleProtectedAction('waiter')}
+              disabled={activeAction !== null}
+              className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                backgroundColor: 'rgb(212 175 55 / 80%)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+                boxShadow: 'var(--guest-shadow-soft)',
+              }}
+            >
+              <span aria-hidden="true" className="text-base leading-none">👋</span>
+              <span>{activeAction === 'waiter' ? t('wave.buttonSending') : t('wave.buttonIdle')}</span>
+            </button>
+          ) : null}
 
-          <button
-            type="button"
-            onClick={() => handleProtectedAction('bill')}
-            disabled={activeAction !== null}
-            className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-            style={{
-              backgroundColor: 'var(--guest-panel)',
-              borderColor: 'var(--guest-border)',
-              color: 'var(--guest-text)',
-              boxShadow: 'var(--guest-shadow-soft)',
-            }}
-          >
-            <span>{activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}</span>
-          </button>
+          {canRequestBill ? (
+            <button
+              type="button"
+              onClick={() => handleProtectedAction('bill')}
+              disabled={activeAction !== null}
+              className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+                boxShadow: 'var(--guest-shadow-soft)',
+              }}
+            >
+              <span>{activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}</span>
+            </button>
+          ) : null}
         </div>
       </div>
 
