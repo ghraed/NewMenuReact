@@ -84,6 +84,7 @@ export interface RestaurantSummary {
   currency?: CurrencyCode | null;
   dollar_rate?: number | null;
   max_tables?: number;
+  feature_flags?: Record<string, boolean>;
 }
 
 export interface RestaurantTableSummary {

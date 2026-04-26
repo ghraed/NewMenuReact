@@ -506,7 +506,9 @@ const ChatBot: React.FC = () => {
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
   const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
-  const shouldRenderChat = !isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess);
+  const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState(true);
+  const shouldRenderChat = (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
+    && (!isGuestMenuRoute || isAiChatbotEnabled);
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
@@ -626,20 +628,34 @@ const ChatBot: React.FC = () => {
 
       try {
         let dishes: Dish[] = [];
+        let featureFlags: Record<string, boolean> | undefined;
 
         if (tableId) {
           const response = await fetchGuestTableMenu(tableId, draft.guestAccessToken);
           dishes = response.dishes;
+          featureFlags = response.restaurant.feature_flags;
         } else if (restaurantSlug) {
-          const response = await api.get<{ dishes: Dish[] }>(`/menu/${restaurantSlug}/dishes`);
+          const response = await api.get<{ restaurant?: { feature_flags?: Record<string, boolean> }; dishes: Dish[] }>(
+            `/menu/${restaurantSlug}/dishes`
+          );
           dishes = response.data.dishes;
+          featureFlags = response.data.restaurant?.feature_flags;
         } else {
-          const response = await api.get<{ dishes: Dish[] }>('/menu/dishes');
+          const response = await api.get<{ restaurant?: { feature_flags?: Record<string, boolean> }; dishes: Dish[] }>(
+            '/menu/dishes'
+          );
           dishes = response.data.dishes;
+          featureFlags = response.data.restaurant?.feature_flags;
         }
 
         if (cancelled) {
           return;
+        }
+
+        if (featureFlags && typeof featureFlags.ai_chatbot === 'boolean') {
+          setIsAiChatbotEnabled(featureFlags.ai_chatbot);
+        } else {
+          setIsAiChatbotEnabled(true);
         }
 
         const dedupe = new Map<string, ChatDishLink>();
@@ -671,6 +687,7 @@ const ChatBot: React.FC = () => {
         setChatDishes(Array.from(dedupe.values()));
       } catch {
         if (!cancelled) {
+          setIsAiChatbotEnabled(true);
           setChatDishes([]);
         }
       }
