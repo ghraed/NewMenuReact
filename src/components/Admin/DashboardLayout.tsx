@@ -25,11 +25,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navItems = user?.role === 'staff'
     ? [
         { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
+        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
       ]
     : [
         { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
         { path: '/admin/finance', label: 'Finance', icon: '📈' },
         { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
+        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
         { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳' },
         { path: '/admin/currency', label: 'Currency', icon: '💱' },
         { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },

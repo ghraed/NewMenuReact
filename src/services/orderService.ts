@@ -6,6 +6,8 @@ import type {
   GuestTableDishResponse,
   GuestTableMenuResponse,
   OrderRecord,
+  PosCheckoutRequest,
+  PosCheckoutResponse,
   PublishedDishSummary,
   RestaurantSummary,
   RestaurantTableSummary,
@@ -300,5 +302,10 @@ export const accountConfirmedOrder = async (
   payload: AccountOrderRequest
 ): Promise<OrderResponse> => {
   const response = await api.post<OrderResponse>(`/orders/${orderId}/account`, sanitizeAccountingPayload(payload));
+  return response.data;
+};
+
+export const quickPosCheckout = async (payload: PosCheckoutRequest): Promise<PosCheckoutResponse> => {
+  const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload);
   return response.data;
 };

@@ -29,6 +29,7 @@ const OrderReviewPage = React.lazy(() => import('./pages/OrderReviewPage'));
 const GuestOrdersPage = React.lazy(() => import('./pages/GuestOrdersPage'));
 const GuestInvoicePage = React.lazy(() => import('./pages/GuestInvoicePage'));
 const StaffOrdersPage = React.lazy(() => import('./pages/StaffOrdersPage'));
+const CashierPosPage = React.lazy(() => import('./pages/CashierPosPage'));
 const AdminStaffPage = React.lazy(() => import('./pages/AdminStaffPage'));
 const AccountingOrdersPage = React.lazy(() => import('./pages/AccountingOrdersPage'));
 const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
@@ -175,6 +176,15 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route
+          path="/staff/pos"
+          element={(
+            <ProtectedRoute allowedRoles={['staff', 'admin']}>
+              {lazyRoute(<CashierPosPage />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/admin/staff"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
@@ -243,6 +253,7 @@ const AppRoutes: React.FC = () => {
                   <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - {t('app.adminStaff')}</li>
                   <li>• <a href="/admin/inventory/ingredients" className="underline underline-offset-4">/admin/inventory/ingredients</a> - {t('app.adminIngredients')}</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
+                  <li>• <a href="/staff/pos" className="underline underline-offset-4">/staff/pos</a> - Cashier POS</li>
                   <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
                   <li>• <a href="/admin/finance" className="underline underline-offset-4">/admin/finance</a> - Finance dashboard</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>

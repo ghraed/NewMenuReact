@@ -308,6 +308,33 @@ export interface AccountOrderRequest {
   discount_value?: number;
 }
 
+export type PosPaymentMethod = 'cash' | 'card' | 'wallet';
+
+export interface PosCheckoutRequest {
+  table_reference?: string;
+  notes?: string;
+  items: Array<{
+    dish_id: number;
+    quantity: number;
+  }>;
+  vat_rate?: number;
+  discount_type?: DiscountType;
+  discount_value?: number;
+  payment_method: PosPaymentMethod;
+  amount_received?: number;
+}
+
+export interface PosCheckoutResponse {
+  message: string;
+  order: OrderRecord;
+  payment: {
+    method: PosPaymentMethod;
+    amount_received: string;
+    change_due: string;
+    total: string;
+  };
+}
+
 export interface OrderInvoiceSummary {
   subtotal: string;
   discount_type: DiscountType | null;
