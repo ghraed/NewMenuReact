@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   createRoomPlan,
@@ -34,6 +35,20 @@ const DEFAULT_ITEM_SIZE: Record<RoomPlanItemType, { width: number; height: numbe
 const typeLabel = (type: RoomPlanItemType): string => {
   const found = ROOM_PLAN_ITEM_GROUPS.flatMap((group) => group.options).find((option) => option.value === type);
   return found?.label || type;
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as AxiosError<{ message?: string; errors?: Record<string, string[]> }>).response;
+    const firstValidationError = response?.data?.errors
+      ? Object.values(response.data.errors)[0]?.[0]
+      : null;
+
+    if (firstValidationError) return firstValidationError;
+    if (response?.data?.message) return response.data.message;
+  }
+
+  return fallback;
 };
 
 const AdminRoomPlansPage: React.FC = () => {
@@ -80,8 +95,8 @@ const AdminRoomPlansPage: React.FC = () => {
         setSelectedPlan(null);
         setItems([]);
       }
-    } catch {
-      setError('Failed to load room plans.');
+    } catch (loadError: unknown) {
+      setError(getApiErrorMessage(loadError, 'Failed to load room plans.'));
     } finally {
       setLoading(false);
     }
@@ -105,8 +120,8 @@ const AdminRoomPlansPage: React.FC = () => {
         setSelectedPlan(plan);
         setItems((plan.items ?? []).sort((left, right) => left.z_index - right.z_index));
         setSelectedItemId(null);
-      } catch {
-        setError('Failed to load selected room plan.');
+      } catch (loadError: unknown) {
+        setError(getApiErrorMessage(loadError, 'Failed to load selected room plan.'));
       }
     };
 
@@ -166,8 +181,8 @@ const AdminRoomPlansPage: React.FC = () => {
       setSuccess('Room plan created.');
       await loadRoomPlans();
       setSelectedPlanId(plan.id);
-    } catch {
-      setError('Failed to create room plan.');
+    } catch (createError: unknown) {
+      setError(getApiErrorMessage(createError, 'Failed to create room plan.'));
     }
   };
 
@@ -186,8 +201,8 @@ const AdminRoomPlansPage: React.FC = () => {
       setSelectedPlan(updated);
       setSuccess('Room plan details updated.');
       await loadRoomPlans();
-    } catch {
-      setError('Failed to update room plan details.');
+    } catch (updateError: unknown) {
+      setError(getApiErrorMessage(updateError, 'Failed to update room plan details.'));
     }
   };
 
@@ -200,8 +215,8 @@ const AdminRoomPlansPage: React.FC = () => {
       await deleteRoomPlan(selectedPlan.id);
       setSuccess('Room plan deleted.');
       await loadRoomPlans();
-    } catch {
-      setError('Failed to delete room plan.');
+    } catch (deleteError: unknown) {
+      setError(getApiErrorMessage(deleteError, 'Failed to delete room plan.'));
     }
   };
 
@@ -217,8 +232,8 @@ const AdminRoomPlansPage: React.FC = () => {
       const updated = await uploadRoomPlanBackground(selectedPlan.id, file);
       setSelectedPlan(updated);
       setSuccess('Background image uploaded.');
-    } catch {
-      setError('Failed to upload background image.');
+    } catch (uploadError: unknown) {
+      setError(getApiErrorMessage(uploadError, 'Failed to upload background image.'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -317,8 +332,8 @@ const AdminRoomPlansPage: React.FC = () => {
       setItems(savedItems.sort((left, right) => left.z_index - right.z_index));
       setSuccess('Room plan layout saved successfully.');
       await loadRoomPlans();
-    } catch {
-      setError('Failed to save room plan layout.');
+    } catch (saveError: unknown) {
+      setError(getApiErrorMessage(saveError, 'Failed to save room plan layout.'));
     } finally {
       setSaving(false);
     }
