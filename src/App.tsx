@@ -35,6 +35,9 @@ const AccountingOrdersPage = React.lazy(() => import('./pages/AccountingOrdersPa
 const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const AdminCurrencyPage = React.lazy(() => import('./pages/AdminCurrencyPage'));
 const AdminFinanceDashboardPage = React.lazy(() => import('./pages/AdminFinanceDashboardPage'));
+const AdminRoomPlansPage = React.lazy(() => import('./pages/AdminRoomPlansPage'));
+const AdminReservationsPage = React.lazy(() => import('./pages/AdminReservationsPage'));
+const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
 const OwnerLoginPage = React.lazy(() => import('./pages/OwnerLoginPage'));
@@ -78,12 +81,31 @@ const AppRoutes: React.FC = () => {
         <Route path="/menu/:restaurant_slug/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
         <Route path="/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
         <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+        <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
         <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
         <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
         <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
         <Route path="/admin/login" element={<LoginPage />} />
         <Route path="/owner/login" element={lazyRoute(<OwnerLoginPage />)} />
+
+        <Route
+          path="/admin/room-plans"
+          element={(
+            <ProtectedRoute allowedRoles={['admin', 'staff']}>
+              {lazyRoute(<AdminRoomPlansPage />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/reservations"
+          element={(
+            <ProtectedRoute allowedRoles={['admin', 'staff']}>
+              {lazyRoute(<AdminReservationsPage />)}
+            </ProtectedRoute>
+          )}
+        />
 
         <Route
           path="/admin/dashboard"

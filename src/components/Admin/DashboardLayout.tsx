@@ -26,9 +26,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     ? [
         { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
         { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
+        { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
       ]
     : [
         { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
+        { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️' },
+        { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
         { path: '/admin/finance', label: 'Finance', icon: '📈' },
         { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
         { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },

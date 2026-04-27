@@ -453,3 +453,95 @@ export const trackEvent: (
   // Your analytics implementation
   console.log(eventType, properties);
 };
+
+export type RoomPlanItemType =
+  | 'table'
+  | 'window'
+  | 'counter'
+  | 'bar'
+  | 'kitchen'
+  | 'cashier'
+  | 'fridge'
+  | 'sofa'
+  | 'plant'
+  | 'wc';
+
+export type RoomPlanItemContainer = 'room' | 'wrapper';
+
+export interface RoomPlanItem {
+  id: number;
+  room_plan_id: number;
+  restaurant_table_id?: number | null;
+  type: RoomPlanItemType;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  seats?: number | null;
+  z_index: number;
+  container: RoomPlanItemContainer;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface RoomPlan {
+  id: number;
+  restaurant_id: number;
+  name: string;
+  width: number;
+  height: number;
+  background_image_path?: string | null;
+  background_image_url?: string | null;
+  items?: RoomPlanItem[];
+  items_count?: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export type ReservationStatus = 'reserved' | 'busy' | 'cancelled' | 'completed' | 'no_show';
+export type ReservationVisualStatus = ReservationStatus | 'free';
+
+export interface ReservationRecord {
+  id: number;
+  restaurant_id: number;
+  room_plan_id: number;
+  room_plan_item_id: number;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+  start_at: string;
+  end_at: string;
+  status: ReservationStatus;
+  notes?: string | null;
+  room_plan?: RoomPlan;
+  room_plan_item?: RoomPlanItem;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface RoomPlanAvailabilityRow {
+  room_plan_item_id: number;
+  restaurant_table_id?: number | null;
+  label: string;
+  status: ReservationVisualStatus;
+  color: 'green' | 'orange' | 'red' | 'gray';
+  is_selectable: boolean;
+}
+
+export interface CreateReservationPayload {
+  room_plan_id: number;
+  room_plan_item_id: number;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+}
