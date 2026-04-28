@@ -197,9 +197,10 @@ export const loadBorderPoints = async (file: File): Promise<BorderGuidePoint[]> 
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    const normalized = text.replace(/^\uFEFF/, '').trim();
+    parsed = JSON.parse(normalized);
   } catch {
-    throw new Error('Invalid JSON file.');
+    throw new Error('Invalid JSON file. Ensure it is raw JSON (starts with [ and contains only points).');
   }
 
   if (!Array.isArray(parsed)) {

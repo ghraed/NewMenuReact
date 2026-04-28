@@ -49,4 +49,10 @@ describe('room plan edge overlay utils', () => {
     expect(snapPoints.length).toBeGreaterThan(20);
     expect(snapPoints[0].angle).toBeGreaterThanOrEqual(0);
   });
+
+  it('parses JSON content with BOM marker', () => {
+    const raw = '\uFEFF[{"x":1,"y":2},{"x":3,"y":4},{"x":5,"y":6}]';
+    const parsed = JSON.parse(raw.replace(/^\uFEFF/, '').trim()) as Array<{ x: number; y: number }>;
+    expect(parsed.length).toBe(3);
+  });
 });
