@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
@@ -12,11 +12,17 @@ import {
 } from '../services/roomPlanService';
 import type { RoomPlan, RoomPlanItem, RoomPlanItemType } from '../types';
 import { clampRoomPlanItem, nextZIndex, ROOM_PLAN_ITEM_GROUPS } from '../utils/roomPlan';
+import type { BorderSamplePoint } from '../utils/roomPlanGeometry';
+import { loadBorderPointsFromPlan, sampleRectBorderPoints } from '../utils/roomPlanGeometry';
+import { findNearestBorderPoint, snapWindowItemToBorder, snapWindowUsingCurrentPosition } from '../utils/roomPlanWindowSnap';
+
+type DragMode = 'free' | 'window';
 
 type DragState = {
   itemId: number;
   offsetX: number;
   offsetY: number;
+  mode: DragMode;
 } | null;
 
 const DEFAULT_ITEM_SIZE: Record<RoomPlanItemType, { width: number; height: number; seats?: number }> = {
@@ -68,6 +74,8 @@ const AdminRoomPlansPage: React.FC = () => {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [pendingType, setPendingType] = useState<RoomPlanItemType>('table');
   const [dragState, setDragState] = useState<DragState>(null);
+  const [borderPoints, setBorderPoints] = useState<BorderSamplePoint[]>([]);
+  const windowDragSnapIndexRef = useRef<number | null>(null);
 
   const [newPlanName, setNewPlanName] = useState('Main Room');
   const [newPlanWidth, setNewPlanWidth] = useState(1200);
@@ -79,6 +87,60 @@ const AdminRoomPlansPage: React.FC = () => {
   );
 
   const selectedType = selectedItem?.type ?? pendingType;
+
+  const constrainItemToPlan = useCallback((item: RoomPlanItem, preferredSnapIndex: number | null = null): RoomPlanItem => {
+    if (!selectedPlan) return item;
+
+    if (item.type === 'window') {
+      const snapped = snapWindowUsingCurrentPosition(
+        {
+          ...item,
+          container: 'wrapper',
+          rotation: item.rotation,
+        },
+        borderPoints,
+        selectedPlan.width,
+        selectedPlan.height,
+        preferredSnapIndex
+      );
+      return snapped.item;
+    }
+
+    return clampRoomPlanItem(
+      {
+        ...item,
+        container: item.container,
+      },
+      selectedPlan.width,
+      selectedPlan.height
+    );
+  }, [borderPoints, selectedPlan]);
+
+  const constrainItemsWithWindowSnap = useCallback((sourceItems: RoomPlanItem[]): RoomPlanItem[] => {
+    if (!selectedPlan) return sourceItems;
+
+    let changed = false;
+    const constrained = sourceItems.map((item) => {
+      if (item.type !== 'window') return item;
+      const next = constrainItemToPlan(item);
+
+      const hasChanged = (
+        Math.abs(next.x - item.x) > 0.01
+        || Math.abs(next.y - item.y) > 0.01
+        || Math.abs(next.rotation - item.rotation) > 0.01
+        || next.container !== item.container
+      );
+
+      if (hasChanged) {
+        changed = true;
+        return next;
+      }
+
+      return item;
+    });
+
+    return changed ? constrained : sourceItems;
+  }, [constrainItemToPlan, selectedPlan]);
 
   const loadRoomPlans = async () => {
     setLoading(true);
@@ -129,6 +191,41 @@ const AdminRoomPlansPage: React.FC = () => {
   }, [selectedPlanId]);
 
   useEffect(() => {
+    if (!selectedPlan) {
+      setBorderPoints([]);
+      return;
+    }
+
+    let isCancelled = false;
+    const fallbackPoints = sampleRectBorderPoints(selectedPlan.width, selectedPlan.height);
+    setBorderPoints(fallbackPoints);
+
+    const loadBorderPoints = async () => {
+      const sampledFromBackground = await loadBorderPointsFromPlan(selectedPlan.background_image_url, {
+        width: selectedPlan.width,
+        height: selectedPlan.height,
+      });
+
+      if (isCancelled) return;
+      if (sampledFromBackground.length > 0) {
+        setBorderPoints(sampledFromBackground);
+      }
+    };
+
+    void loadBorderPoints();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedPlan?.id, selectedPlan?.width, selectedPlan?.height, selectedPlan?.background_image_url]);
+
+  useEffect(() => {
+    if (!selectedPlan) return;
+
+    setItems((current) => constrainItemsWithWindowSnap(current));
+  }, [constrainItemsWithWindowSnap, selectedPlan]);
+
+  useEffect(() => {
     if (!dragState || !selectedPlan || !roomRef.current) {
       return;
     }
@@ -139,6 +236,38 @@ const AdminRoomPlansPage: React.FC = () => {
 
       setItems((current) => current.map((item) => {
         if (item.id !== dragState.itemId) return item;
+
+        if (dragState.mode === 'window') {
+          const anchor = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+          };
+
+          if (!borderPoints.length) {
+            const fallbackWindow = {
+              ...item,
+              x: event.clientX - rect.left - dragState.offsetX,
+              y: event.clientY - rect.top - dragState.offsetY,
+              container: 'wrapper' as const,
+            };
+            return clampRoomPlanItem(fallbackWindow, selectedPlan.width, selectedPlan.height);
+          }
+
+          const snapped = snapWindowItemToBorder(
+            item,
+            borderPoints,
+            selectedPlan.width,
+            selectedPlan.height,
+            anchor,
+            windowDragSnapIndexRef.current
+          );
+
+          windowDragSnapIndexRef.current = snapped.snapIndex >= 0
+            ? snapped.snapIndex
+            : windowDragSnapIndexRef.current;
+
+          return snapped.item;
+        }
 
         const next = {
           ...item,
@@ -152,6 +281,7 @@ const AdminRoomPlansPage: React.FC = () => {
 
     const handleUp = () => {
       setDragState(null);
+      windowDragSnapIndexRef.current = null;
     };
 
     window.addEventListener('mousemove', handleMove);
@@ -161,7 +291,7 @@ const AdminRoomPlansPage: React.FC = () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleUp);
     };
-  }, [dragState, selectedPlan]);
+  }, [borderPoints, dragState, selectedPlan]);
 
   const handleCreatePlan = async () => {
     setError(null);
@@ -259,12 +389,14 @@ const AdminRoomPlansPage: React.FC = () => {
       rotation: 0,
       seats: selectedType === 'table' ? size.seats ?? 2 : null,
       z_index: nextZIndex(items),
-      container: 'room',
+      container: selectedType === 'window' ? 'wrapper' : 'room',
       is_active: true,
     };
 
-    setItems((current) => [...current, nextItem]);
-    setSelectedItemId(nextItem.id);
+    const constrainedItem = constrainItemToPlan(nextItem);
+
+    setItems((current) => [...current, constrainedItem]);
+    setSelectedItemId(constrainedItem.id);
   };
 
   const handleSelectItemType = (nextType: RoomPlanItemType) => {
@@ -272,11 +404,14 @@ const AdminRoomPlansPage: React.FC = () => {
       setItems((current) => current.map((item) => {
         if (item.id !== selectedItem.id) return item;
 
-        return {
+        const updated: RoomPlanItem = {
           ...item,
           type: nextType,
           seats: nextType === 'table' ? (item.seats ?? 2) : null,
+          container: nextType === 'window' ? 'wrapper' : item.container,
         };
+
+        return constrainItemToPlan(updated);
       }));
       return;
     }
@@ -287,16 +422,25 @@ const AdminRoomPlansPage: React.FC = () => {
   const patchSelectedItem = (patch: Partial<RoomPlanItem>) => {
     if (!selectedPlan || !selectedItem) return;
 
+    const isWindow = selectedItem.type === 'window';
+    const safePatch: Partial<RoomPlanItem> = isWindow
+      ? {
+          ...patch,
+          rotation: selectedItem.rotation,
+          container: 'wrapper',
+        }
+      : patch;
+
     setItems((current) => current.map((item) => {
       if (item.id !== selectedItem.id) return item;
-      return clampRoomPlanItem({ ...item, ...patch }, selectedPlan.width, selectedPlan.height);
+      return constrainItemToPlan({ ...item, ...safePatch });
     }));
   };
 
   const handleDuplicateSelected = () => {
     if (!selectedPlan || !selectedItem) return;
 
-    const duplicate: RoomPlanItem = clampRoomPlanItem(
+    const duplicate: RoomPlanItem = constrainItemToPlan(
       {
         ...selectedItem,
         id: -Math.floor(Math.random() * 1_000_000_000),
@@ -304,9 +448,8 @@ const AdminRoomPlansPage: React.FC = () => {
         x: selectedItem.x + 24,
         y: selectedItem.y + 24,
         z_index: nextZIndex(items),
-      },
-      selectedPlan.width,
-      selectedPlan.height
+        container: selectedItem.type === 'window' ? 'wrapper' : selectedItem.container,
+      }
     );
 
     setItems((current) => [...current, duplicate]);
@@ -328,7 +471,8 @@ const AdminRoomPlansPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      const savedItems = await saveRoomPlanItemsBulk(selectedPlan.id, items);
+      const normalizedItems = items.map((item) => constrainItemToPlan(item));
+      const savedItems = await saveRoomPlanItemsBulk(selectedPlan.id, normalizedItems);
       setItems(savedItems.sort((left, right) => left.z_index - right.z_index));
       setSuccess('Room plan layout saved successfully.');
       await loadRoomPlans();
@@ -542,7 +686,14 @@ const AdminRoomPlansPage: React.FC = () => {
                     <input
                       type="number"
                       value={selectedItem.rotation}
-                      onChange={(event) => patchSelectedItem({ rotation: Number(event.target.value) })}
+                      onChange={(event) => {
+                        if (selectedItem.type === 'window') {
+                          patchSelectedItem({});
+                          return;
+                        }
+                        patchSelectedItem({ rotation: Number(event.target.value) });
+                      }}
+                      disabled={selectedItem.type === 'window'}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                       placeholder="Rotation"
                     />
@@ -556,6 +707,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     <select
                       value={selectedItem.container}
                       onChange={(event) => patchSelectedItem({ container: event.target.value as RoomPlanItem['container'] })}
+                      disabled={selectedItem.type === 'window'}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                     >
                       <option value="room">Room</option>
@@ -571,7 +723,9 @@ const AdminRoomPlansPage: React.FC = () => {
                       />
                     ) : null}
                     <div className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                      Drag on canvas to move
+                      {selectedItem.type === 'window'
+                        ? 'Windows slide along walls and auto-rotate.'
+                        : 'Drag on canvas to move'}
                     </div>
                   </div>
                 ) : (
@@ -583,7 +737,9 @@ const AdminRoomPlansPage: React.FC = () => {
                 <div className="mb-3 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Layout Canvas</h3>
-                    <p className="text-xs text-muted">Items are constrained inside the room bounds ({selectedPlan.width} x {selectedPlan.height}).</p>
+                    <p className="text-xs text-muted">
+                      Tables stay inside the room. Windows snap to wall borders and follow wall direction ({selectedPlan.width} x {selectedPlan.height}).
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -618,10 +774,23 @@ const AdminRoomPlansPage: React.FC = () => {
 
                           event.preventDefault();
                           setSelectedItemId(item.id);
+                          const mode: DragMode = item.type === 'window' ? 'window' : 'free';
+
+                          if (mode === 'window') {
+                            const currentCenter = {
+                              x: item.x + item.width / 2,
+                              y: item.y + item.height / 2,
+                            };
+                            windowDragSnapIndexRef.current = findNearestBorderPoint(currentCenter, borderPoints)?.index ?? null;
+                          } else {
+                            windowDragSnapIndexRef.current = null;
+                          }
+
                           setDragState({
                             itemId: item.id,
                             offsetX: event.clientX - rect.left - item.x,
                             offsetY: event.clientY - rect.top - item.y,
+                            mode,
                           });
                         }}
                         onClick={() => setSelectedItemId(item.id)}
