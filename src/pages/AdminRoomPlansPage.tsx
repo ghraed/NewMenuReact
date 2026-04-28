@@ -12,7 +12,7 @@ import {
 } from '../services/roomPlanService';
 import type { RoomPlan, RoomPlanItem, RoomPlanItemType } from '../types';
 import { clampRoomPlanItem, nextZIndex, ROOM_PLAN_ITEM_GROUPS } from '../utils/roomPlan';
-import type { BorderSamplePoint } from '../utils/roomPlanGeometry';
+import type { BorderPointsLoadResult, BorderSamplePoint } from '../utils/roomPlanGeometry';
 import { loadBorderPointsFromPlan, sampleRectBorderPoints } from '../utils/roomPlanGeometry';
 import { findNearestBorderPoint, snapWindowItemToBorder, snapWindowUsingCurrentPosition } from '../utils/roomPlanWindowSnap';
 
@@ -75,6 +75,7 @@ const AdminRoomPlansPage: React.FC = () => {
   const [pendingType, setPendingType] = useState<RoomPlanItemType>('table');
   const [dragState, setDragState] = useState<DragState>(null);
   const [borderPoints, setBorderPoints] = useState<BorderSamplePoint[]>([]);
+  const [snapWarning, setSnapWarning] = useState<string | null>(null);
   const windowDragSnapIndexRef = useRef<number | null>(null);
 
   const [newPlanName, setNewPlanName] = useState('Main Room');
@@ -193,22 +194,27 @@ const AdminRoomPlansPage: React.FC = () => {
   useEffect(() => {
     if (!selectedPlan) {
       setBorderPoints([]);
+      setSnapWarning(null);
       return;
     }
 
     let isCancelled = false;
     const fallbackPoints = sampleRectBorderPoints(selectedPlan.width, selectedPlan.height);
     setBorderPoints(fallbackPoints);
+    setSnapWarning('Using plan boundary fallback until wall contour is detected from the SVG background.');
 
     const loadBorderPoints = async () => {
-      const sampledFromBackground = await loadBorderPointsFromPlan(selectedPlan.background_image_url, {
+      const sampledFromBackground: BorderPointsLoadResult = await loadBorderPointsFromPlan(selectedPlan.background_image_url, {
         width: selectedPlan.width,
         height: selectedPlan.height,
       });
 
       if (isCancelled) return;
-      if (sampledFromBackground.length > 0) {
-        setBorderPoints(sampledFromBackground);
+      if (sampledFromBackground.points.length > 0) {
+        setBorderPoints(sampledFromBackground.points);
+        setSnapWarning(sampledFromBackground.warning ?? null);
+      } else {
+        setSnapWarning('Could not extract SVG wall contour. Windows are temporarily snapping to the plan boundary.');
       }
     };
 
@@ -750,6 +756,11 @@ const AdminRoomPlansPage: React.FC = () => {
                     {saving ? 'Saving...' : 'Save Layout'}
                   </button>
                 </div>
+                {snapWarning ? (
+                  <div className="mb-3 rounded-xl border border-amber-500/45 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    {snapWarning}
+                  </div>
+                ) : null}
 
                 <div className="overflow-auto rounded-xl border border-stroke bg-bg1/30 p-3">
                   <div
