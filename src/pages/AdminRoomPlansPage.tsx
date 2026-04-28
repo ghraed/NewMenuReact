@@ -490,8 +490,8 @@ const AdminRoomPlansPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Room Plan Editor">
-      <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className="space-y-5">
+        <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
             <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Create Room Plan</h2>
             <div className="mt-3 space-y-2">
