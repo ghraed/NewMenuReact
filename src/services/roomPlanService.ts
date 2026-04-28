@@ -85,18 +85,24 @@ export const uploadRoomPlanBackground = async (roomPlanId: number, file: File): 
 };
 
 export const saveRoomPlanItemsBulk = async (roomPlanId: number, items: RoomPlanItem[]): Promise<RoomPlanItem[]> => {
+  const toFiniteNumber = (value: number, fallback = 0): number => (
+    Number.isFinite(value) ? value : fallback
+  );
+
+  const toSafeInt = (value: number, fallback = 0): number => Math.round(toFiniteNumber(value, fallback));
+
   const response = await api.put<RoomPlanItemsResponse>(`/room-plans/${roomPlanId}/items/bulk`, {
     items: items.map((item) => ({
       id: item.id,
       type: item.type,
       label: item.label,
-      x: item.x,
-      y: item.y,
-      width: item.width,
-      height: item.height,
-      rotation: item.rotation,
-      seats: item.seats,
-      z_index: item.z_index,
+      x: toSafeInt(item.x),
+      y: toSafeInt(item.y),
+      width: Math.max(10, toSafeInt(item.width, 10)),
+      height: Math.max(10, toSafeInt(item.height, 10)),
+      rotation: toSafeInt(item.rotation),
+      seats: item.seats == null ? null : Math.max(1, toSafeInt(item.seats, 1)),
+      z_index: Math.max(1, toSafeInt(item.z_index, 1)),
       container: item.container,
       is_active: item.is_active,
     })),
