@@ -12,17 +12,13 @@ import {
 } from '../services/roomPlanService';
 import type { RoomPlan, RoomPlanItem, RoomPlanItemType } from '../types';
 import { clampRoomPlanItem, nextZIndex, ROOM_PLAN_ITEM_GROUPS } from '../utils/roomPlan';
-import type { BorderPointsLoadResult, BorderSamplePoint } from '../utils/roomPlanGeometry';
-import { loadBorderPointsFromPlan, sampleRectBorderPoints } from '../utils/roomPlanGeometry';
+import type { BorderSamplePoint } from '../utils/roomPlanGeometry';
 import { findNearestBorderPoint, snapWindowItemToBorder, snapWindowUsingCurrentPosition } from '../utils/roomPlanWindowSnap';
 import {
-  addBorderPoint,
-  clearEdgeOverlay,
-  detectEdges,
-  drawEdgeOverlay,
-  finishBorder,
-  startBorderDrawing,
-  toSnapBorderPoints,
+  buildSnapPoints,
+  clearBorderOverlay,
+  drawBorder,
+  loadBorderPoints,
   type BorderGuidePoint,
 } from '../utils/roomPlanEdgeOverlay';
 
@@ -33,10 +29,6 @@ type DragState = {
   offsetX: number;
   offsetY: number;
   mode: DragMode;
-} | null;
-
-type BorderDragState = {
-  pointIndex: number;
 } | null;
 
 const DEFAULT_ITEM_SIZE: Record<RoomPlanItemType, { width: number; height: number; seats?: number }> = {
@@ -73,7 +65,8 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 
 const AdminRoomPlansPage: React.FC = () => {
   const roomRef = useRef<HTMLDivElement | null>(null);
-  const edgeOverlayRef = useRef<HTMLCanvasElement | null>(null);
+  const borderOverlayRef = useRef<HTMLCanvasElement | null>(null);
+  const borderInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
@@ -91,13 +84,9 @@ const AdminRoomPlansPage: React.FC = () => {
   const [dragState, setDragState] = useState<DragState>(null);
   const [borderPoints, setBorderPoints] = useState<BorderSamplePoint[]>([]);
   const [snapWarning, setSnapWarning] = useState<string | null>(null);
-  const [edgeThreshold, setEdgeThreshold] = useState(36);
-  const [edgeOverlayActive, setEdgeOverlayActive] = useState(false);
-  const [drawBorderMode, setDrawBorderMode] = useState(false);
-  const [borderDraftPoints, setBorderDraftPoints] = useState<BorderGuidePoint[]>([]);
-  const [savedBorderPoints, setSavedBorderPoints] = useState<BorderGuidePoint[]>([]);
-  const [borderClosed, setBorderClosed] = useState(false);
-  const [borderDragState, setBorderDragState] = useState<BorderDragState>(null);
+  const [uploadedBorderPoints, setUploadedBorderPoints] = useState<BorderGuidePoint[]>([]);
+  const [showBorderOverlay, setShowBorderOverlay] = useState(true);
+  const [imageNaturalSize, setImageNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const windowDragSnapIndexRef = useRef<number | null>(null);
 
   const [newPlanName, setNewPlanName] = useState('Main Room');
@@ -110,7 +99,6 @@ const AdminRoomPlansPage: React.FC = () => {
   );
 
   const selectedType = selectedItem?.type ?? pendingType;
-  const activeBorderPoints = borderDraftPoints.length > 0 ? borderDraftPoints : savedBorderPoints;
 
   const constrainItemToPlan = useCallback((item: RoomPlanItem, preferredSnapIndex: number | null = null): RoomPlanItem => {
     if (!selectedPlan) return item;
@@ -218,45 +206,18 @@ const AdminRoomPlansPage: React.FC = () => {
     if (!selectedPlan) {
       setBorderPoints([]);
       setSnapWarning(null);
-      setBorderDraftPoints([]);
-      setSavedBorderPoints([]);
-      setBorderClosed(false);
-      setDrawBorderMode(false);
-      setEdgeOverlayActive(false);
+      setUploadedBorderPoints([]);
+      setImageNaturalSize(null);
       return;
     }
-
-    let isCancelled = false;
-    const fallbackPoints = sampleRectBorderPoints(selectedPlan.width, selectedPlan.height);
-    setBorderPoints(fallbackPoints);
-    setSnapWarning('Using plan boundary fallback until wall contour is detected from the SVG background.');
-
-    const loadBorderPoints = async () => {
-      const sampledFromBackground: BorderPointsLoadResult = await loadBorderPointsFromPlan(selectedPlan.background_image_url, {
-        width: selectedPlan.width,
-        height: selectedPlan.height,
-      });
-
-      if (isCancelled) return;
-      if (sampledFromBackground.points.length > 0) {
-        setBorderPoints(sampledFromBackground.points);
-        setSnapWarning(sampledFromBackground.warning ?? null);
-      } else {
-        setSnapWarning('Could not extract SVG wall contour. Windows are temporarily snapping to the plan boundary.');
-      }
-    };
-
-    void loadBorderPoints();
-
-    return () => {
-      isCancelled = true;
-    };
+    setBorderPoints([]);
+    setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
   }, [selectedPlan?.id, selectedPlan?.width, selectedPlan?.height, selectedPlan?.background_image_url]);
 
   useEffect(() => {
-    if (!selectedPlan || !roomRef.current || !edgeOverlayRef.current) return;
-    edgeOverlayRef.current.width = selectedPlan.width;
-    edgeOverlayRef.current.height = selectedPlan.height;
+    if (!selectedPlan || !roomRef.current || !borderOverlayRef.current) return;
+    borderOverlayRef.current.width = selectedPlan.width;
+    borderOverlayRef.current.height = selectedPlan.height;
   }, [selectedPlan]);
 
   useEffect(() => {
@@ -356,144 +317,57 @@ const AdminRoomPlansPage: React.FC = () => {
     }
   };
 
-  const renderBorderPath = useCallback(() => {
-    setBorderDraftPoints((current) => [...current]);
-  }, []);
-
-  const runEdgeDetection = useCallback(async () => {
-    if (!selectedPlan?.background_image_url || !edgeOverlayRef.current) {
-      setError('Please upload/select a background image before edge detection.');
-      return;
-    }
+  const handleUploadBorderFile = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedPlan) return;
 
     try {
-      const image = new Image();
-      image.crossOrigin = 'anonymous';
-      image.src = selectedPlan.background_image_url;
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve();
-        image.onerror = () => reject(new Error('Failed to load image for edge detection.'));
-      });
-
-      const width = Math.max(1, selectedPlan.width);
-      const height = Math.max(1, selectedPlan.height);
-      const offscreen = document.createElement('canvas');
-      offscreen.width = width;
-      offscreen.height = height;
-
-      const ctx = offscreen.getContext('2d', { willReadFrequently: true });
-      if (!ctx) {
-        setError('Edge detection is unavailable in this browser context.');
+      const rawPoints = await loadBorderPoints(file);
+      const originalWidth = imageNaturalSize?.width ?? selectedPlan.width;
+      const originalHeight = imageNaturalSize?.height ?? selectedPlan.height;
+      if (originalWidth <= 0 || originalHeight <= 0) {
+        setError('Could not resolve source image size for scaling.');
         return;
       }
 
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(image, 0, 0, width, height);
-      const pixels = ctx.getImageData(0, 0, width, height);
-      const edges = detectEdges(pixels, edgeThreshold);
-      drawEdgeOverlay(edgeOverlayRef.current, edges);
-      setEdgeOverlayActive(true);
-      setSuccess('Edge overlay generated. You can now trace the room border.');
-    } catch {
-      setError('Failed to detect edges from the selected background image.');
-    }
-  }, [edgeThreshold, selectedPlan?.background_image_url, selectedPlan?.height, selectedPlan?.width]);
+      const scaledPoints = rawPoints.map((point) => ({
+        x: point.x * (selectedPlan.width / originalWidth),
+        y: point.y * (selectedPlan.height / originalHeight),
+      }));
 
-  const handleClearEdges = useCallback(() => {
-    if (!edgeOverlayRef.current) return;
-    clearEdgeOverlay(edgeOverlayRef.current);
-    setEdgeOverlayActive(false);
-  }, []);
-
-  const startBorderDrawingMode = useCallback(() => {
-    setDrawBorderMode(true);
-    setBorderDraftPoints(startBorderDrawing());
-    setBorderClosed(false);
-    setBorderDragState(null);
-  }, []);
-
-  const appendBorderPoint = useCallback((x: number, y: number) => {
-    let shouldClose = false;
-    setBorderDraftPoints((current) => {
-      const next = addBorderPoint(current, x, y);
-      if (next.length >= 3) {
-        const first = next[0];
-        const last = next[next.length - 1];
-        if (Math.hypot(last.x - first.x, last.y - first.y) <= 16) {
-          shouldClose = true;
-          return [...current];
-        }
+      const snapTrack = buildSnapPoints(scaledPoints, 8);
+      if (!snapTrack.length) {
+        setError('Uploaded border points could not generate a snap path.');
+        return;
       }
-      return next;
-    });
-    if (shouldClose) {
-      setBorderClosed(true);
-      setSuccess('Border path closed. Click Save Border to apply snapping.');
+
+      setUploadedBorderPoints(scaledPoints);
+      setBorderPoints(snapTrack);
+      setSnapWarning(null);
+      setSuccess(`Border loaded (${scaledPoints.length} points). Window snapping now follows uploaded border.`);
+    } catch (uploadError: unknown) {
+      const message = uploadError instanceof Error ? uploadError.message : 'Failed to parse uploaded border JSON.';
+      setError(message);
+    } finally {
+      if (borderInputRef.current) borderInputRef.current.value = '';
     }
+  }, [imageNaturalSize?.height, imageNaturalSize?.width, selectedPlan]);
+
+  const handleClearBorder = useCallback(() => {
+    if (borderOverlayRef.current) clearBorderOverlay(borderOverlayRef.current);
+    setUploadedBorderPoints([]);
+    setBorderPoints([]);
+    setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
   }, []);
-
-  const undoLastBorderPoint = useCallback(() => {
-    setBorderClosed(false);
-    setBorderDraftPoints((current) => current.slice(0, -1));
-  }, []);
-
-  const finishBorderDrawing = useCallback(() => {
-    if (!selectedPlan) return;
-    if (borderDraftPoints.length < 3) {
-      setError('Add at least 3 points to finish border drawing.');
-      return;
-    }
-
-    const finalPoints = finishBorder(borderDraftPoints);
-    const snapPoints = toSnapBorderPoints(finalPoints);
-    if (!snapPoints.length) {
-      setError('Could not build snapping points from border path.');
-      return;
-    }
-
-    setSavedBorderPoints(finalPoints);
-    setBorderPoints(snapPoints);
-    setDrawBorderMode(false);
-    setBorderClosed(true);
-    setSnapWarning(null);
-    setSuccess(`Border saved with ${finalPoints.length} points.`);
-  }, [borderDraftPoints, selectedPlan]);
-
-  const addPointFromMouseEvent = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    if (!drawBorderMode || !roomRef.current || borderClosed) return;
-    const target = event.target as HTMLElement;
-    if (target.closest('[data-room-item="1"]') || target.closest('[data-border-point="1"]')) return;
-
-    const rect = roomRef.current.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    appendBorderPoint(x, y);
-    renderBorderPath();
-  }, [appendBorderPoint, borderClosed, drawBorderMode, renderBorderPath]);
 
   useEffect(() => {
-    if (!borderDragState || !drawBorderMode || !roomRef.current) return;
-
-    const handleMove = (event: MouseEvent) => {
-      const rect = roomRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      setBorderDraftPoints((current) => current.map((point, index) => (
-        index === borderDragState.pointIndex ? { x, y } : point
-      )));
-    };
-
-    const handleUp = () => setBorderDragState(null);
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-    };
-  }, [borderDragState, drawBorderMode]);
+    if (!borderOverlayRef.current || !selectedPlan) return;
+    if (!showBorderOverlay || uploadedBorderPoints.length < 2) {
+      clearBorderOverlay(borderOverlayRef.current);
+      return;
+    }
+    drawBorder(borderOverlayRef.current, uploadedBorderPoints, true);
+  }, [selectedPlan, showBorderOverlay, uploadedBorderPoints]);
 
   const handleUpdatePlanMeta = async () => {
     if (!selectedPlan) return;
@@ -929,63 +803,41 @@ const AdminRoomPlansPage: React.FC = () => {
                     {saving ? 'Saving...' : 'Save Layout'}
                   </button>
                 </div>
-                <div className="mb-3 grid gap-2 lg:grid-cols-[auto_auto_minmax(0,220px)_auto_auto_auto]">
+                <div className="mb-3 grid gap-2 lg:grid-cols-[auto_auto_auto_auto]">
                   <button
                     type="button"
-                    onClick={() => void runEdgeDetection()}
+                    onClick={() => borderInputRef.current?.click()}
                     className="rounded-xl border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:border-sky-400/55"
                   >
-                    Detect Edges
+                    Upload Border
                   </button>
                   <button
                     type="button"
-                    onClick={handleClearEdges}
+                    onClick={() => setShowBorderOverlay((current) => !current)}
                     className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-text transition hover:border-gold/35"
                   >
-                    Clear Edges
-                  </button>
-                  <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                    Sensitivity: {edgeThreshold}
-                    <input
-                      type="range"
-                      min={6}
-                      max={96}
-                      value={edgeThreshold}
-                      onChange={(event) => setEdgeThreshold(Number(event.target.value))}
-                      className="mt-1 w-full"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => (drawBorderMode ? setDrawBorderMode(false) : startBorderDrawingMode())}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                      drawBorderMode
-                        ? 'border-amber-500/45 bg-amber-500/15 text-amber-200'
-                        : 'border-gold/45 bg-gold/20 text-gold2 hover:border-gold/65'
-                    }`}
-                  >
-                    {drawBorderMode ? 'Exit Draw Border Mode' : 'Draw Border Mode'}
+                    {showBorderOverlay ? 'Hide Border' : 'Show Border'}
                   </button>
                   <button
                     type="button"
-                    onClick={undoLastBorderPoint}
-                    disabled={!drawBorderMode || borderDraftPoints.length === 0}
-                    className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-text transition hover:border-gold/35 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={handleClearBorder}
+                    disabled={uploadedBorderPoints.length === 0}
+                    className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-xs font-semibold text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Undo Point
+                    Clear Border
                   </button>
-                  <button
-                    type="button"
-                    onClick={finishBorderDrawing}
-                    disabled={!drawBorderMode || borderDraftPoints.length < 3}
-                    className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Save Border
-                  </button>
+                  <input
+                    ref={borderInputRef}
+                    id="borderInput"
+                    type="file"
+                    accept="application/json"
+                    onChange={(event) => void handleUploadBorderFile(event)}
+                    className="hidden"
+                  />
                 </div>
-                {savedBorderPoints.length > 0 ? (
+                {uploadedBorderPoints.length > 0 ? (
                   <div className="mb-3 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
-                    Border saved: {savedBorderPoints.length} points
+                    Border loaded: {uploadedBorderPoints.length} points
                   </div>
                 ) : null}
                 {snapWarning ? (
@@ -998,7 +850,6 @@ const AdminRoomPlansPage: React.FC = () => {
                   <div
                     ref={roomRef}
                     className="relative overflow-hidden rounded-lg border border-stroke"
-                    onMouseDown={addPointFromMouseEvent}
                     style={{
                       width: selectedPlan.width,
                       height: selectedPlan.height,
@@ -1009,65 +860,35 @@ const AdminRoomPlansPage: React.FC = () => {
                       <img
                         src={selectedPlan.background_image_url}
                         alt=""
+                        onLoad={(event) => {
+                          const image = event.currentTarget;
+                          setImageNaturalSize({
+                            width: image.naturalWidth,
+                            height: image.naturalHeight,
+                          });
+                        }}
                         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                        style={{ objectFit: 'fill' }}
                         draggable={false}
                       />
                     ) : null}
                     <canvas
-                      ref={edgeOverlayRef}
-                      className={`pointer-events-none absolute inset-0 h-full w-full ${edgeOverlayActive ? 'opacity-100' : 'opacity-0'}`}
+                      ref={borderOverlayRef}
+                      className={`pointer-events-none absolute inset-0 h-full w-full ${showBorderOverlay ? 'opacity-100' : 'opacity-0'}`}
                       style={{ zIndex: 5 }}
                     />
-                    <svg
-                      className="pointer-events-none absolute inset-0 h-full w-full"
-                      viewBox={`0 0 ${selectedPlan.width} ${selectedPlan.height}`}
-                      style={{ zIndex: 8 }}
-                    >
-                      {activeBorderPoints.length > 1 ? (
-                        <polyline
-                          points={[
-                            ...activeBorderPoints.map((point) => `${point.x},${point.y}`),
-                            ...(borderClosed && activeBorderPoints.length > 2 ? [`${activeBorderPoints[0].x},${activeBorderPoints[0].y}`] : []),
-                          ].join(' ')}
-                          fill="none"
-                          stroke="rgba(250, 204, 21, 0.95)"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      ) : null}
-                    </svg>
-                    {drawBorderMode ? activeBorderPoints.map((point, index) => (
-                      <button
-                        key={`border-point-${index}`}
-                        type="button"
-                        data-border-point="1"
-                        onMouseDown={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setBorderDragState({ pointIndex: index });
-                        }}
-                        className="absolute h-3 w-3 rounded-full border border-white bg-amber-300 shadow"
-                        style={{
-                          left: point.x - 6,
-                          top: point.y - 6,
-                          zIndex: 25,
-                        }}
-                      />
-                    )) : null}
                     {sortedItems.map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         data-room-item="1"
                         onMouseDown={(event) => {
-                          if (drawBorderMode) return;
                           const rect = roomRef.current?.getBoundingClientRect();
                           if (!rect) return;
 
                           event.preventDefault();
                           setSelectedItemId(item.id);
-                          const mode: DragMode = item.type === 'window' ? 'window' : 'free';
+                          const mode: DragMode = item.type === 'window' && borderPoints.length > 0 ? 'window' : 'free';
 
                           if (mode === 'window') {
                             const currentCenter = {

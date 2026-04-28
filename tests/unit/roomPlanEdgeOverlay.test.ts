@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectEdges, toSnapBorderPoints } from '../../src/utils/roomPlanEdgeOverlay';
+import { buildSnapPoints, detectEdges, toSnapBorderPoints } from '../../src/utils/roomPlanEdgeOverlay';
 
 describe('room plan edge overlay utils', () => {
   it('detects pixel edges using right and bottom differences', () => {
@@ -37,5 +37,16 @@ describe('room plan edge overlay utils', () => {
     expect(snapPoints.length).toBe(4);
     expect(snapPoints[0].angle).toBeGreaterThanOrEqual(0);
     expect(snapPoints[0].angle).toBeLessThan(360);
+  });
+
+  it('builds dense snap points for segments', () => {
+    const snapPoints = buildSnapPoints([
+      { x: 0, y: 0 },
+      { x: 50, y: 0 },
+      { x: 50, y: 50 },
+    ], 5);
+
+    expect(snapPoints.length).toBeGreaterThan(20);
+    expect(snapPoints[0].angle).toBeGreaterThanOrEqual(0);
   });
 });
