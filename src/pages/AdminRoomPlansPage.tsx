@@ -17,9 +17,15 @@ import { findNearestBorderPoint, snapWindowItemToBorder, snapWindowUsingCurrentP
 import {
   buildSnapPoints,
   clearBorderOverlay,
+  detectEdges,
+  drawContourPreview,
   drawBorder,
+  findContours,
   loadBorderPoints,
+  pickContourByPoint,
+  simplifyPath,
   type BorderGuidePoint,
+  type DetectedContour,
 } from '../utils/roomPlanEdgeOverlay';
 
 type DragMode = 'free' | 'window';
@@ -87,6 +93,11 @@ const AdminRoomPlansPage: React.FC = () => {
   const [uploadedBorderPoints, setUploadedBorderPoints] = useState<BorderGuidePoint[]>([]);
   const [showBorderOverlay, setShowBorderOverlay] = useState(true);
   const [imageNaturalSize, setImageNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [edgeThreshold, setEdgeThreshold] = useState(34);
+  const [simplifyTolerance, setSimplifyTolerance] = useState(3);
+  const [showContours, setShowContours] = useState(true);
+  const [detectedContours, setDetectedContours] = useState<DetectedContour[]>([]);
+  const [selectedContourId, setSelectedContourId] = useState<string | null>(null);
   const windowDragSnapIndexRef = useRef<number | null>(null);
 
   const [newPlanName, setNewPlanName] = useState('Main Room');
@@ -208,6 +219,8 @@ const AdminRoomPlansPage: React.FC = () => {
       setSnapWarning(null);
       setUploadedBorderPoints([]);
       setImageNaturalSize(null);
+      setDetectedContours([]);
+      setSelectedContourId(null);
       return;
     }
     setBorderPoints([]);
@@ -358,16 +371,122 @@ const AdminRoomPlansPage: React.FC = () => {
     setUploadedBorderPoints([]);
     setBorderPoints([]);
     setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
+    setDetectedContours([]);
+    setSelectedContourId(null);
   }, []);
 
   useEffect(() => {
     if (!borderOverlayRef.current || !selectedPlan) return;
+    const selectedRaw = detectedContours.find((contour) => contour.id === selectedContourId)?.points ?? null;
+    const selectedSimplified = selectedRaw ? simplifyPath(selectedRaw, simplifyTolerance) : null;
+
+    if (detectedContours.length > 0) {
+      drawContourPreview(borderOverlayRef.current, detectedContours, selectedContourId, selectedSimplified, showContours);
+      return;
+    }
+
     if (!showBorderOverlay || uploadedBorderPoints.length < 2) {
       clearBorderOverlay(borderOverlayRef.current);
       return;
     }
     drawBorder(borderOverlayRef.current, uploadedBorderPoints, true);
-  }, [selectedPlan, showBorderOverlay, uploadedBorderPoints]);
+  }, [detectedContours, selectedContourId, selectedPlan, showBorderOverlay, showContours, simplifyTolerance, uploadedBorderPoints]);
+
+  const runContourDetection = useCallback(async () => {
+    if (!selectedPlan?.background_image_url || !borderOverlayRef.current) {
+      setError('Please upload/select a background image before detection.');
+      return;
+    }
+
+    try {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.src = selectedPlan.background_image_url;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('Failed to load image.'));
+      });
+
+      const width = Math.max(1, selectedPlan.width);
+      const height = Math.max(1, selectedPlan.height);
+      const offscreen = document.createElement('canvas');
+      offscreen.width = width;
+      offscreen.height = height;
+      const context = offscreen.getContext('2d', { willReadFrequently: true });
+      if (!context) {
+        setError('Detection is unavailable in this browser context.');
+        return;
+      }
+
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      const imageData = context.getImageData(0, 0, width, height);
+      const edgeMask = detectEdges(imageData, edgeThreshold);
+      const contours = findContours(edgeMask, Math.max(80, Math.round((width * height) * 0.0003)));
+      if (!contours.length) {
+        setDetectedContours([]);
+        setSelectedContourId(null);
+        clearBorderOverlay(borderOverlayRef.current);
+        setError('No valid contours found. Try lowering threshold.');
+        return;
+      }
+
+      const selected = contours[0];
+      setDetectedContours(contours);
+      setSelectedContourId(selected.id);
+      setSuccess(`Detected ${contours.length} contours. Largest contour selected.`);
+    } catch {
+      setError('Failed to detect contours from image.');
+    }
+  }, [edgeThreshold, selectedPlan?.background_image_url, selectedPlan?.height, selectedPlan?.width]);
+
+  const exportSelectedContour = useCallback(() => {
+    const selectedRaw = detectedContours.find((contour) => contour.id === selectedContourId)?.points;
+    if (!selectedRaw || selectedRaw.length < 3) {
+      setError('No selected contour to export.');
+      return;
+    }
+
+    const simplified = simplifyPath(selectedRaw, simplifyTolerance);
+    if (simplified.length < 3) {
+      setError('Selected contour became too small after simplification.');
+      return;
+    }
+
+    const payload = JSON.stringify(simplified.map((point) => ({ x: point.x, y: point.y })), null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'points.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+
+    setUploadedBorderPoints(simplified);
+    setBorderPoints(buildSnapPoints(simplified, 8));
+    setSnapWarning(null);
+    setSuccess(`Exported selected contour (${simplified.length} points) and applied snapping.`);
+  }, [detectedContours, selectedContourId, simplifyTolerance]);
+
+  const handleClearDetection = useCallback(() => {
+    setDetectedContours([]);
+    setSelectedContourId(null);
+    if (borderOverlayRef.current) clearBorderOverlay(borderOverlayRef.current);
+  }, []);
+
+  const handleSelectContourAtClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!detectedContours.length || !showContours) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const point = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+    const nextContourId = pickContourByPoint(detectedContours, point, 18);
+    if (nextContourId) {
+      setSelectedContourId(nextContourId);
+      setSuccess('Contour selected.');
+    }
+  }, [detectedContours, showContours]);
 
   const handleUpdatePlanMeta = async () => {
     if (!selectedPlan) return;
@@ -803,7 +922,21 @@ const AdminRoomPlansPage: React.FC = () => {
                     {saving ? 'Saving...' : 'Save Layout'}
                   </button>
                 </div>
-                <div className="mb-3 grid gap-2 lg:grid-cols-[auto_auto_auto_auto]">
+                <div className="mb-3 grid gap-2 lg:grid-cols-[auto_auto_auto_auto_auto_minmax(0,220px)]">
+                  <button
+                    type="button"
+                    onClick={() => void runContourDetection()}
+                    className="rounded-xl border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:border-sky-400/55"
+                  >
+                    Detect Edges
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowContours((current) => !current)}
+                    className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-text transition hover:border-gold/35"
+                  >
+                    {showContours ? 'Hide Contours' : 'Show Contours'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => borderInputRef.current?.click()}
@@ -826,6 +959,44 @@ const AdminRoomPlansPage: React.FC = () => {
                   >
                     Clear Border
                   </button>
+                  <button
+                    type="button"
+                    onClick={exportSelectedContour}
+                    disabled={!selectedContourId}
+                    className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Export Selected Contour
+                  </button>
+                  <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
+                    Simplify: {simplifyTolerance}
+                    <input
+                      type="range"
+                      min={1}
+                      max={14}
+                      value={simplifyTolerance}
+                      onChange={(event) => setSimplifyTolerance(Number(event.target.value))}
+                      className="mt-1 w-full"
+                    />
+                  </label>
+                  <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
+                    Edge Threshold: {edgeThreshold}
+                    <input
+                      type="range"
+                      min={8}
+                      max={96}
+                      value={edgeThreshold}
+                      onChange={(event) => setEdgeThreshold(Number(event.target.value))}
+                      className="mt-1 w-full"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleClearDetection}
+                    disabled={detectedContours.length === 0}
+                    className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-xs font-semibold text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Clear Detection
+                  </button>
                   <input
                     ref={borderInputRef}
                     id="borderInput"
@@ -838,6 +1009,11 @@ const AdminRoomPlansPage: React.FC = () => {
                 {uploadedBorderPoints.length > 0 ? (
                   <div className="mb-3 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
                     Border loaded: {uploadedBorderPoints.length} points
+                  </div>
+                ) : null}
+                {detectedContours.length > 0 ? (
+                  <div className="mb-3 rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
+                    Contours: {detectedContours.length}. Click a contour on canvas to select.
                   </div>
                 ) : null}
                 {snapWarning ? (
@@ -874,7 +1050,8 @@ const AdminRoomPlansPage: React.FC = () => {
                     ) : null}
                     <canvas
                       ref={borderOverlayRef}
-                      className={`pointer-events-none absolute inset-0 h-full w-full ${showBorderOverlay ? 'opacity-100' : 'opacity-0'}`}
+                      onMouseDown={handleSelectContourAtClick}
+                      className={`absolute inset-0 h-full w-full ${showBorderOverlay ? 'opacity-100' : 'opacity-0'} ${detectedContours.length > 0 ? 'pointer-events-auto' : 'pointer-events-none'}`}
                       style={{ zIndex: 5 }}
                     />
                     {sortedItems.map((item) => (
