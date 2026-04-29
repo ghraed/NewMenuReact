@@ -29,6 +29,10 @@ const sanitizeCreateStaffPayload = (payload: CreateStaffRequest): CreateStaffReq
     nextPayload.phone = payload.phone.trim();
   }
 
+  if (payload.role) {
+    nextPayload.role = payload.role;
+  }
+
   if (payload.table_ids?.length) {
     nextPayload.table_ids = payload.table_ids;
   }

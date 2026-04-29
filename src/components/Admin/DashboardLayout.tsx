@@ -22,29 +22,33 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const navItems = user?.role === 'staff'
+  const navItems = user?.role === 'chef'
     ? [
-        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
-        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
-        { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
+        { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: '👨‍🍳' },
       ]
-    : [
-        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
-        { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️' },
-        { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
-        { path: '/admin/finance', label: 'Finance', icon: '📈' },
-        { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
-        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
-        { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳' },
-        { path: '/admin/currency', label: 'Currency', icon: '💱' },
-        { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },
-        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: '➕' },
-        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: '📦' },
-        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: '📜' },
-        { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: '🥬' },
-        { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: '🌐' },
-        { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
-      ];
+    : user?.role === 'staff'
+      ? [
+          { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
+          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
+          { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
+        ]
+      : [
+          { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
+          { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️' },
+          { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
+          { path: '/admin/finance', label: 'Finance', icon: '📈' },
+          { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
+          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
+          { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳' },
+          { path: '/admin/currency', label: 'Currency', icon: '💱' },
+          { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },
+          { path: '/admin/dishes/create', label: t('admin.createDish'), icon: '➕' },
+          { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: '📦' },
+          { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: '📜' },
+          { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: '🥬' },
+          { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: '🌐' },
+          { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
+        ];
 
   useEffect(() => {
     if (!mobileNavOpen || typeof window === 'undefined') {
@@ -75,7 +79,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('admin.controlRoom')}</p>
                 <h1 className="text-2xl font-semibold text-text">
-                  {user?.role === 'staff' ? t('admin.staffTitle') : t('admin.adminTitle')}
+                  {user?.role === 'chef' ? 'Kitchen Team'
+                    : user?.role === 'staff' ? t('admin.staffTitle')
+                      : t('admin.adminTitle')}
                 </h1>
               </div>
             </div>

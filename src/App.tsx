@@ -30,6 +30,7 @@ const GuestOrdersPage = React.lazy(() => import('./pages/GuestOrdersPage'));
 const GuestInvoicePage = React.lazy(() => import('./pages/GuestInvoicePage'));
 const StaffOrdersPage = React.lazy(() => import('./pages/StaffOrdersPage'));
 const CashierPosPage = React.lazy(() => import('./pages/CashierPosPage'));
+const ChefDashboardPage = React.lazy(() => import('./pages/ChefDashboardPage'));
 const AdminStaffPage = React.lazy(() => import('./pages/AdminStaffPage'));
 const AccountingOrdersPage = React.lazy(() => import('./pages/AccountingOrdersPage'));
 const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
@@ -207,6 +208,15 @@ const AppRoutes: React.FC = () => {
         />
 
         <Route
+          path="/chef/dashboard"
+          element={(
+            <ProtectedRoute allowedRoles={['chef']}>
+              {lazyRoute(<ChefDashboardPage />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
           path="/admin/staff"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
@@ -256,6 +266,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin" element={<RoleHomeRedirect />} />
         <Route path="/owner" element={<OwnerHomeRedirect />} />
         <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
+        <Route path="/chef" element={<Navigate to="/chef/dashboard" replace />} />
         <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
         <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
         <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
@@ -276,6 +287,7 @@ const AppRoutes: React.FC = () => {
                   <li>• <a href="/admin/inventory/ingredients" className="underline underline-offset-4">/admin/inventory/ingredients</a> - {t('app.adminIngredients')}</li>
                   <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
                   <li>• <a href="/staff/pos" className="underline underline-offset-4">/staff/pos</a> - Cashier POS</li>
+                  <li>• <a href="/chef/dashboard" className="underline underline-offset-4">/chef/dashboard</a> - Kitchen dashboard</li>
                   <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
                   <li>• <a href="/admin/finance" className="underline underline-offset-4">/admin/finance</a> - Finance dashboard</li>
                   <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>

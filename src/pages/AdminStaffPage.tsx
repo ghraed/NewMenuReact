@@ -54,6 +54,7 @@ const AdminStaffPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<'staff' | 'chef'>('staff');
   const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
@@ -137,6 +138,7 @@ const AdminStaffPage: React.FC = () => {
         name: normalizedName,
         email: normalizedEmail || undefined,
         phone: normalizedPhone || undefined,
+        role,
         table_ids: selectedTableIds,
       });
 
@@ -145,6 +147,7 @@ const AdminStaffPage: React.FC = () => {
       setName('');
       setEmail('');
       setPhone('');
+      setRole('staff');
       setSelectedTableIds([]);
       await loadStaffMembers();
       showToast(response.message || t('adminStaff.created'), 'primary');
@@ -239,6 +242,18 @@ const AdminStaffPage: React.FC = () => {
             </div>
 
             <div>
+              <div className="mb-2 block text-sm font-medium text-text">Role</div>
+              <div className="flex flex-wrap gap-2">
+                <GlassChip type="button" active={role === 'staff'} onClick={() => setRole('staff')} className="px-4 py-2 text-sm" disabled={creating}>
+                  Staff
+                </GlassChip>
+                <GlassChip type="button" active={role === 'chef'} onClick={() => setRole('chef')} className="px-4 py-2 text-sm" disabled={creating}>
+                  Chef
+                </GlassChip>
+              </div>
+            </div>
+
+            <div>
               <div className="mb-2 flex items-center justify-between gap-3">
                 <label className="block text-sm font-medium text-text">{t('adminStaff.assignedTables')}</label>
                 <span className="text-xs uppercase tracking-[0.18em] text-muted2">
@@ -298,7 +313,7 @@ const AdminStaffPage: React.FC = () => {
               <div className="mt-4 space-y-3 text-sm text-muted">
                 <div className="relative isolate overflow-hidden rounded-xl2 border border-sage/35 bg-sage/10 p-4">
                   <p className="text-base font-semibold text-text">{createdStaff.name}</p>
-                  <p className="mt-1">Role: {createdStaff.role}</p>
+                  <p className="mt-1">Role: {createdStaff.role === 'chef' ? 'Chef' : 'Staff'}</p>
                   <p>Email: {createdStaff.email || 'Not provided'}</p>
                   <p>Phone: {createdStaff.phone || 'Not provided'}</p>
                   <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
@@ -354,6 +369,9 @@ const AdminStaffPage: React.FC = () => {
                         {staff.email || staff.phone || t('adminStaff.noLoginContact')}
                       </p>
                       <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted2">
+                        Role: {staff.role === 'chef' ? 'Chef' : 'Staff'}
+                      </p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted2">
                         {t('adminStaff.assignedNow', { tables: assignedNames.join(', ') || t('adminStaff.noTablesAssigned') })}
                       </p>
                     </div>

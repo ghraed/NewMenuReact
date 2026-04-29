@@ -1,7 +1,8 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
-export type UserRole = 'admin' | 'staff';
+export type UserRole = 'admin' | 'staff' | 'chef';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
+export type KitchenOrderStatus = 'new' | 'in_progress' | 'ready' | 'served';
 export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
@@ -33,6 +34,7 @@ export interface CreateStaffRequest {
   name: string;
   email?: string;
   phone?: string;
+  role?: Extract<UserRole, 'staff' | 'chef'>;
   table_ids?: number[];
 }
 
@@ -361,6 +363,8 @@ export interface OrderLineItem {
   unit_price: string;
   quantity: number;
   line_subtotal: string;
+  modifiers?: string[];
+  dish_notes?: string | null;
 }
 
 export interface OrderRecord {
@@ -369,6 +373,7 @@ export interface OrderRecord {
   order_number: string | null;
   invoice_number: string | null;
   status: OrderStatus;
+  kitchen_status?: KitchenOrderStatus | null;
   table_session_id?: number | null;
   table_reference: string;
   table: RestaurantTableSummary | null;
@@ -377,12 +382,23 @@ export interface OrderRecord {
   confirmed_at: string | null;
   cancelled_at: string | null;
   accounted_at: string | null;
+  kitchen_started_at?: string | null;
+  kitchen_ready_at?: string | null;
+  kitchen_completed_at?: string | null;
   restaurant: RestaurantSummary;
   items: OrderLineItem[];
   invoice: OrderInvoiceSummary;
   confirmed_by: OrderActorSummary | null;
   cancelled_by: OrderActorSummary | null;
   accounted_by: OrderActorSummary | null;
+}
+
+export interface KitchenOrderRecord extends OrderRecord {
+  kitchen_status: KitchenOrderStatus;
+  guest_identifier?: string | null;
+  time_ordered?: string | null;
+  waiter_name?: string | null;
+  special_requests?: string | null;
 }
 
 export interface FinanceInvoiceItem {

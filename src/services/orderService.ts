@@ -5,6 +5,7 @@ import type {
   CreateGuestOrderRequest,
   GuestTableDishResponse,
   GuestTableMenuResponse,
+  KitchenOrderRecord,
   OrderRecord,
   PosCheckoutRequest,
   PosCheckoutResponse,
@@ -24,6 +25,15 @@ interface OrderResponse {
 
 interface PendingOrdersResponse {
   orders: OrderRecord[];
+}
+
+interface KitchenOrdersResponse {
+  orders: KitchenOrderRecord[];
+}
+
+interface KitchenOrderResponse {
+  message: string;
+  order: KitchenOrderRecord;
 }
 
 interface PublishedDishesResponse {
@@ -257,6 +267,31 @@ export const finalizeGuestTableSession = async (sessionId: number | string): Pro
 export const fetchPendingOrders = async (): Promise<OrderRecord[]> => {
   const response = await api.get<PendingOrdersResponse>('/orders/pending-confirmation');
   return response.data.orders;
+};
+
+export const fetchKitchenOrders = async (
+  status?: KitchenOrderRecord['kitchen_status'] | 'all'
+): Promise<KitchenOrderRecord[]> => {
+  const response = await api.get<KitchenOrdersResponse>('/kitchen/orders', {
+    params: status && status !== 'all' ? { status } : undefined,
+  });
+
+  return response.data.orders;
+};
+
+export const fetchKitchenOrderDetails = async (orderId: number): Promise<KitchenOrderRecord> => {
+  const response = await api.get<{ order: KitchenOrderRecord }>(`/kitchen/orders/${orderId}`);
+  return response.data.order;
+};
+
+export const startKitchenOrder = async (orderId: number): Promise<KitchenOrderResponse> => {
+  const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/start`);
+  return response.data;
+};
+
+export const markKitchenOrderReady = async (orderId: number): Promise<KitchenOrderResponse> => {
+  const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/ready`);
+  return response.data;
 };
 
 export const fetchPendingWaves = async (): Promise<TableWaveRecord[]> => {
