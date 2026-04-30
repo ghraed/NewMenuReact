@@ -229,12 +229,18 @@ const ReservationsPage: React.FC = () => {
                     style={{
                       width: selectedPlan.width,
                       height: selectedPlan.height,
-                      backgroundImage: selectedPlan.background_image_url ? `url(${selectedPlan.background_image_url})` : undefined,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
                       backgroundColor: 'rgba(8, 10, 20, 0.35)',
                     }}
                   >
+                    {selectedPlan.background_image_url ? (
+                      <img
+                        src={selectedPlan.background_image_url}
+                        alt=""
+                        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                        style={{ objectFit: 'fill' }}
+                        draggable={false}
+                      />
+                    ) : null}
                     {(selectedPlan.items ?? []).filter((item) => item.is_active).sort((a, b) => a.z_index - b.z_index).map((item) => {
                       const row = availabilityByItemId.get(item.id);
                       const isTable = item.type === 'table';
