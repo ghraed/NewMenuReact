@@ -69,6 +69,32 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const ROOM_PLAN_BORDER_POINTS_KEY_PREFIX = 'room-plan-border-points:';
+
+const getRoomPlanBorderPointsStorageKey = (roomPlanId: number): string => (
+  `${ROOM_PLAN_BORDER_POINTS_KEY_PREFIX}${roomPlanId}`
+);
+
+const parsePersistedBorderPoints = (value: string): BorderGuidePoint[] | null => {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed)) return null;
+
+    const points = parsed.filter((entry): entry is BorderGuidePoint => (
+      typeof entry === 'object'
+      && entry !== null
+      && typeof (entry as { x?: unknown }).x === 'number'
+      && Number.isFinite((entry as { x: number }).x)
+      && typeof (entry as { y?: unknown }).y === 'number'
+      && Number.isFinite((entry as { y: number }).y)
+    ));
+
+    return points.length >= 3 ? points : null;
+  } catch {
+    return null;
+  }
+};
+
 const AdminRoomPlansPage: React.FC = () => {
   const roomRef = useRef<HTMLDivElement | null>(null);
   const borderOverlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -223,9 +249,38 @@ const AdminRoomPlansPage: React.FC = () => {
       setSelectedContourId(null);
       return;
     }
+
+    const storageKey = getRoomPlanBorderPointsStorageKey(selectedPlan.id);
+    const persistedValue = window.localStorage.getItem(storageKey);
+    const persistedPoints = persistedValue ? parsePersistedBorderPoints(persistedValue) : null;
+
+    if (persistedPoints) {
+      const snapTrack = buildSnapPoints(persistedPoints, 8);
+      if (snapTrack.length > 0) {
+        setUploadedBorderPoints(persistedPoints);
+        setBorderPoints(snapTrack);
+        setSnapWarning(null);
+        return;
+      }
+    }
+
+    setUploadedBorderPoints([]);
     setBorderPoints([]);
     setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
   }, [selectedPlan?.id, selectedPlan?.width, selectedPlan?.height, selectedPlan?.background_image_url]);
+
+  useEffect(() => {
+    if (!selectedPlan) return;
+
+    const storageKey = getRoomPlanBorderPointsStorageKey(selectedPlan.id);
+
+    if (uploadedBorderPoints.length < 3) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+
+    window.localStorage.setItem(storageKey, JSON.stringify(uploadedBorderPoints));
+  }, [selectedPlan, uploadedBorderPoints]);
 
   useEffect(() => {
     if (!selectedPlan || !roomRef.current || !borderOverlayRef.current) return;
@@ -368,12 +423,15 @@ const AdminRoomPlansPage: React.FC = () => {
 
   const handleClearBorder = useCallback(() => {
     if (borderOverlayRef.current) clearBorderOverlay(borderOverlayRef.current);
+    if (selectedPlan) {
+      window.localStorage.removeItem(getRoomPlanBorderPointsStorageKey(selectedPlan.id));
+    }
     setUploadedBorderPoints([]);
     setBorderPoints([]);
     setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
     setDetectedContours([]);
     setSelectedContourId(null);
-  }, []);
+  }, [selectedPlan]);
 
   useEffect(() => {
     if (!borderOverlayRef.current || !selectedPlan) return;
