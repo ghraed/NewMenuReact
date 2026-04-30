@@ -112,10 +112,15 @@ const ReservationsPage: React.FC = () => {
     [selectedPlan]
   );
 
+  const selectedTableItem = useMemo(
+    () => tableItems.find((item) => item.id === selectedTableItemId) ?? null,
+    [selectedTableItemId, tableItems]
+  );
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!selectedPlanId || !selectedTableItemId) {
+    if (!selectedPlanId || !selectedTableItemId || !selectedTableItem) {
       setError('Please select an available table before booking.');
       return;
     }
@@ -125,7 +130,12 @@ const ReservationsPage: React.FC = () => {
       return;
     }
 
-    const tableAvailability = availabilityByItemId.get(selectedTableItemId);
+    if (selectedTableItem.type !== 'table' || !selectedTableItem.is_active) {
+      setError('Only active tables can be reserved.');
+      return;
+    }
+
+    const tableAvailability = availabilityByItemId.get(selectedTableItem.id);
     if (tableAvailability && !tableAvailability.is_selectable) {
       setError('Selected table is unavailable for the chosen time range.');
       return;
@@ -138,7 +148,7 @@ const ReservationsPage: React.FC = () => {
     try {
       await createPublicReservation({
         room_plan_id: selectedPlanId,
-        room_plan_item_id: selectedTableItemId,
+        room_plan_item_id: selectedTableItem.id,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
         customer_email: customerEmail.trim() || undefined,
@@ -296,7 +306,7 @@ const ReservationsPage: React.FC = () => {
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
             <h2 className="text-lg font-semibold text-text">Reservation Details</h2>
             <p className="mt-1 text-xs text-muted">
-              Selected table: {tableItems.find((item) => item.id === selectedTableItemId)?.label ?? 'None'}
+              Selected table: {selectedTableItem?.label ?? 'None'}
             </p>
 
             <form className="mt-4 space-y-3" onSubmit={(event) => void handleSubmit(event)}>
