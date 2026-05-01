@@ -117,6 +117,7 @@ const StaffOrdersPage: React.FC = () => {
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
   const [processingSessionId, setProcessingSessionId] = useState<number | null>(null);
+  const [tableUrlPopup, setTableUrlPopup] = useState<{ label: string; url: string } | null>(null);
   const [editorBusyAction, setEditorBusyAction] = useState<'save' | 'saveConfirm' | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
   const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
@@ -816,6 +817,30 @@ const StaffOrdersPage: React.FC = () => {
     void loadPublishedMenu();
   };
 
+  const handleShowTableUrl = (order: OrderRecord) => {
+    const tableId = order.table?.id;
+    if (!tableId) {
+      showToast('Table URL is unavailable for this order.', 'tertiary', 3200);
+      return;
+    }
+
+    setTableUrlPopup({
+      label: order.table_reference,
+      url: `${window.location.origin}/menu/table/${tableId}`,
+    });
+  };
+
+  const handleCopyTableUrl = async () => {
+    if (!tableUrlPopup) return;
+
+    try {
+      await navigator.clipboard.writeText(tableUrlPopup.url);
+      showToast('Table URL copied.', 'secondary', 2400);
+    } catch {
+      showToast('Failed to copy table URL.', 'tertiary', 3200);
+    }
+  };
+
   const handleSaveEditedOrder = async (payload: UpdatePendingOrderRequest) => {
     if (!editingOrder) {
       return;
@@ -1111,6 +1136,14 @@ const StaffOrdersPage: React.FC = () => {
                     {t('invoice.tableTitle', { table: order.table_reference })}
                     {order.created_at ? ` • ${new Date(order.created_at).toLocaleString()}` : ''}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => handleShowTableUrl(order)}
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-text transition hover:border-gold/40 hover:text-gold2"
+                  >
+                    <span aria-hidden="true">🔗</span>
+                    <span>Table URL</span>
+                  </button>
                   {order.notes ? (
                     <p className="mt-3 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted">
                       {order.notes}
@@ -1189,6 +1222,34 @@ const StaffOrdersPage: React.FC = () => {
         onSave={handleSaveEditedOrder}
         onSaveAndConfirm={handleSaveAndConfirmEditedOrder}
       />
+
+      {tableUrlPopup ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-bg1 p-5">
+            <h3 className="text-lg font-semibold text-text">Guest Table URL</h3>
+            <p className="mt-1 text-sm text-muted">{tableUrlPopup.label}</p>
+            <div className="mt-4 break-all rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-text">
+              {tableUrlPopup.url}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <LiquidButton tone="secondary" onClick={() => void handleCopyTableUrl()}>
+                Copy URL
+              </LiquidButton>
+              <a
+                href={tableUrlPopup.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-xl border border-gold/35 bg-gold/15 px-4 py-2 text-sm font-medium text-gold2"
+              >
+                Open URL
+              </a>
+              <LiquidButton tone="tertiary" onClick={() => setTableUrlPopup(null)}>
+                Close
+              </LiquidButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
