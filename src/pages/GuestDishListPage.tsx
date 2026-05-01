@@ -163,7 +163,7 @@ const GuestDishListPage: React.FC = () => {
       if (response.table_session && response.guest_access) {
         setGuestContext({
           restaurant: response.restaurant,
-          tableId: response.table.number,
+          tableId: response.table.id,
           tableReference: response.table.name,
           tableSessionId: response.table_session.id,
           guestAccess: response.guest_access,
@@ -171,7 +171,7 @@ const GuestDishListPage: React.FC = () => {
       } else {
         clearGuestAccess();
         updateDraft({
-          tableId: response.table.number,
+          tableId: response.table.id,
           tableReference: response.table.name,
           tableSessionId: null,
         });

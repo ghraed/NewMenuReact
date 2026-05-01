@@ -46,13 +46,13 @@ const GuestDishPage: React.FC = () => {
           const response = await fetchGuestTableDish(table_id, dish_id, draft.guestAccessToken);
           setDish(response.dish);
           setResolvedRestaurantSlug(response.restaurant.slug);
-          setResolvedTableId(response.table.number);
+          setResolvedTableId(response.table.id);
           setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
           setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
           if (response.table_session) {
             setGuestContext({
               restaurant: response.restaurant,
-              tableId: response.table.number,
+              tableId: response.table.id,
               tableReference: response.table.name,
               tableSessionId: response.table_session.id,
               guestAccess: response.guest_access,
@@ -60,7 +60,7 @@ const GuestDishPage: React.FC = () => {
           } else {
             clearGuestAccess();
             updateDraft({
-              tableId: response.table.number,
+              tableId: response.table.id,
               tableReference: response.table.name,
               tableSessionId: null,
             });

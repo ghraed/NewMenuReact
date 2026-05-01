@@ -40,7 +40,7 @@ const GuestDishIngredientsPage: React.FC = () => {
           const response = await fetchGuestTableDish(table_id, dish_id);
           setDish(response.dish);
           setRestaurantSlug(response.restaurant.slug);
-          setResolvedTableId(response.table.number);
+          setResolvedTableId(response.table.id);
           return;
         }
 
