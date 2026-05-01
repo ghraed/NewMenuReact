@@ -6,10 +6,11 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { createGuestTableSessionOrder, fetchGuestTableMenu } from '../services/orderService';
+import { createGuestTableSessionOrder } from '../services/orderService';
 import type { OrderRecord } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
+import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -44,6 +45,13 @@ const OrderReviewPage: React.FC = () => {
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
+  const guestMenuResource = useGuestMenuResource({
+    tableId: activeTableId,
+    guestAccessToken: draft.guestAccessToken,
+  }, {
+    enabled: Boolean(activeTableId) && !submittedOrder,
+    ttlMs: 10_000,
+  });
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug;
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
   const tableOrderingEnabled = restaurant?.feature_flags?.table_ordering !== false;
@@ -60,39 +68,42 @@ const OrderReviewPage: React.FC = () => {
       return;
     }
 
-    const loadSession = async () => {
-      setSessionLoading(true);
-      setError(null);
+    setSessionLoading(true);
+    setError(null);
 
-      try {
-        const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
-        if (!response.table_session) {
-          updateDraft({
-            tableId: response.table.number,
-            tableReference: response.table.name,
-            tableSessionId: null,
-          });
+    void guestMenuResource.ensure()
+      .then((entry) => {
+        const response = entry.data;
+        if (!response?.table || !response.table_session) {
+          if (response?.table) {
+            updateDraft({
+              tableId: response.table.number,
+              tableReference: response.table.name,
+              tableSessionId: null,
+            });
+          }
           clearGuestAccess();
           setError(t('orderReview.validationMissingSession'));
           return;
         }
 
-        setGuestContext({
-          restaurant: response.restaurant,
-          tableId: response.table.number,
-          tableReference: response.table.name,
-          tableSessionId: response.table_session.id,
-          guestAccess: response.guest_access,
-        });
-      } catch (err: unknown) {
+        if (response.guest_access) {
+          setGuestContext({
+            restaurant: response.restaurant,
+            tableId: response.table.number,
+            tableReference: response.table.name,
+            tableSessionId: response.table_session.id,
+            guestAccess: response.guest_access,
+          });
+        }
+      })
+      .catch((err: unknown) => {
         setError(getErrorMessage(err, t('orderReview.validationMissingSession')));
-      } finally {
+      })
+      .finally(() => {
         setSessionLoading(false);
-      }
-    };
-
-    loadSession();
-  }, [activeTableId, draft.guestAccessToken, submittedOrder, setGuestContext, updateDraft, clearGuestAccess, t]);
+      });
+  }, [activeTableId, submittedOrder, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

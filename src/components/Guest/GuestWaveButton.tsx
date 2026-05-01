@@ -3,8 +3,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
-import { callGuestTableWaiter, fetchGuestTableMenu, requestGuestTableBill } from '../../services/orderService';
+import { callGuestTableWaiter, requestGuestTableBill } from '../../services/orderService';
 import { savePrintableInvoice } from '../../utils/printableInvoice';
+import { useGuestMenuResource } from '../../contexts/GuestMenuResourceContext';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -32,6 +33,13 @@ const GuestWaveButton: React.FC = () => {
   const routeTableId = params.table_id ? Number(params.table_id) : null;
   const activeTableId = draft.tableId ?? routeTableId;
   const hasCartShortcut = totalItems > 0 && !location.pathname.endsWith('/review') && location.pathname !== '/order/review';
+  const guestMenuResource = useGuestMenuResource({
+    tableId: activeTableId,
+    guestAccessToken: draft.guestAccessToken,
+  }, {
+    enabled: Boolean(activeTableId),
+    ttlMs: 10_000,
+  });
 
   const wrapperClassName = useMemo(() => (
     hasCartShortcut
@@ -40,73 +48,77 @@ const GuestWaveButton: React.FC = () => {
   ), [hasCartShortcut]);
 
   const ensureSessionId = async (): Promise<number | null> => {
-    if (draft.tableSessionId) {
-      return draft.tableSessionId;
+    if (guestMenuResource.data?.table_session?.id) {
+      return guestMenuResource.data.table_session.id;
     }
 
     if (!activeTableId || Number.isNaN(activeTableId)) {
       return null;
     }
 
-    const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
-    if (!response.table_session) {
-      updateDraft({
-        tableId: response.table.number,
-        tableReference: response.table.name,
-        tableSessionId: null,
-      });
+    const refreshed = await guestMenuResource.refresh();
+    const data = refreshed.data;
+
+    if (!data?.table || !data?.table_session) {
+      if (data?.table) {
+        updateDraft({
+          tableId: data.table.number,
+          tableReference: data.table.name,
+          tableSessionId: null,
+        });
+      }
       clearGuestAccess();
       return null;
     }
 
-    setGuestContext({
-      restaurant: response.restaurant,
-      tableId: response.table.number,
-      tableReference: response.table.name,
-      tableSessionId: response.table_session.id,
-      guestAccess: response.guest_access,
-    });
+    if (data.guest_access) {
+      setGuestContext({
+        restaurant: data.restaurant,
+        tableId: data.table.number,
+        tableReference: data.table.name,
+        tableSessionId: data.table_session.id,
+        guestAccess: data.guest_access,
+      });
+    }
 
-    return response.table_session.id;
+    return data.table_session.id;
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadPermissions = async () => {
-      if (!activeTableId || Number.isNaN(activeTableId) || !draft.guestAccessVerified) {
+    if (!activeTableId || Number.isNaN(activeTableId) || !draft.guestAccessVerified) {
+      setCanCallWaiter(false);
+      setCanRequestBill(false);
+      setPermissionsLoaded(false);
+      return;
+    }
+
+    if (guestMenuResource.data?.protected_actions) {
+      setCanCallWaiter(guestMenuResource.data.protected_actions.can_call_waiter === true);
+      setCanRequestBill(guestMenuResource.data.protected_actions.can_request_bill === true);
+      setPermissionsLoaded(true);
+      return;
+    }
+
+    void guestMenuResource.ensure()
+      .then((entry) => {
+        if (cancelled) return;
+        setCanCallWaiter(entry.data?.protected_actions?.can_call_waiter === true);
+        setCanRequestBill(entry.data?.protected_actions?.can_request_bill === true);
+        setPermissionsLoaded(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
         setCanCallWaiter(false);
         setCanRequestBill(false);
-        setPermissionsLoaded(false);
-        return;
-      }
-
-      try {
-        const response = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
-        if (cancelled) {
-          return;
-        }
-
-        setCanCallWaiter(response.protected_actions.can_call_waiter === true);
-        setCanRequestBill(response.protected_actions.can_request_bill === true);
         setPermissionsLoaded(true);
-      } catch {
-        if (cancelled) {
-          return;
-        }
-
-        setCanCallWaiter(false);
-        setCanRequestBill(false);
-        setPermissionsLoaded(true);
-      }
-    };
-
-    void loadPermissions();
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [activeTableId, draft.guestAccessToken, draft.guestAccessVerified]);
+  }, [activeTableId, draft.guestAccessVerified, guestMenuResource.data?.protected_actions]);
 
   const handleProtectedAction = async (action: 'waiter' | 'bill') => {
     if ((action === 'waiter' && !canCallWaiter) || (action === 'bill' && !canRequestBill)) {

@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../contexts/useOrderCart';
-import api, { resolveAssetUrl } from '../services/api';
-import { fetchGuestTableMenu } from '../services/orderService';
-import type { Dish } from '../types';
+import { resolveAssetUrl } from '../services/api';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
+import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 type Role = 'user' | 'assistant';
 type SupportedLanguage = 'ar' | 'fr' | 'en';
@@ -500,6 +500,7 @@ const persistChatState = (
 
 const ChatBot: React.FC = () => {
   const location = useLocation();
+  const { i18n } = useTranslation();
   const { restaurant, draft } = useOrderCart();
   const isGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
   const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
@@ -553,6 +554,15 @@ const ChatBot: React.FC = () => {
   const [chatDishes, setChatDishes] = useState<ChatDishLink[]>([]);
   const [dishPreview, setDishPreview] = useState<ChatDishPreview | null>(null);
   const [animatingUserMessageId, setAnimatingUserMessageId] = useState<string | null>(null);
+  const guestMenuResource = useGuestMenuResource({
+    tableId: chatContext.table_id ?? null,
+    restaurantSlug: chatContext.table_id ? null : chatContext.restaurant_slug ?? null,
+    guestAccessToken: draft.guestAccessToken,
+    language: i18n.resolvedLanguage,
+  }, {
+    enabled: isOpen && isGuestMenuRoute,
+    ttlMs: 10_000,
+  });
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -624,30 +634,12 @@ const ChatBot: React.FC = () => {
         setIsAiChatbotEnabled(restaurant.feature_flags.ai_chatbot);
       }
 
-      const tableId = chatContext.table_id;
-      const restaurantSlug = chatContext.restaurant_slug;
-
       try {
-        let dishes: Dish[] = [];
-        let featureFlags: Record<string, boolean> | undefined;
-
-        if (tableId) {
-          const response = await fetchGuestTableMenu(tableId, draft.guestAccessToken);
-          dishes = response.dishes;
-          featureFlags = response.restaurant.feature_flags;
-        } else if (restaurantSlug) {
-          const response = await api.get<{ restaurant?: { feature_flags?: Record<string, boolean> }; dishes: Dish[] }>(
-            `/menu/${restaurantSlug}/dishes`
-          );
-          dishes = response.data.dishes;
-          featureFlags = response.data.restaurant?.feature_flags;
-        } else {
-          const response = await api.get<{ restaurant?: { feature_flags?: Record<string, boolean> }; dishes: Dish[] }>(
-            '/menu/dishes'
-          );
-          dishes = response.data.dishes;
-          featureFlags = response.data.restaurant?.feature_flags;
-        }
+        const entry = guestMenuResource.data
+          ? { data: guestMenuResource.data }
+          : await guestMenuResource.ensure();
+        const dishes = entry.data?.dishes ?? [];
+        const featureFlags = entry.data?.restaurant?.feature_flags;
 
         if (cancelled) {
           return;
@@ -704,9 +696,7 @@ const ChatBot: React.FC = () => {
       cancelled = true;
     };
   }, [
-    chatContext.table_id,
-    chatContext.restaurant_slug,
-    draft.guestAccessToken,
+    guestMenuResource.data,
     isOpen,
     location.pathname,
     restaurant?.feature_flags,

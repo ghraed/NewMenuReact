@@ -14,6 +14,7 @@ import AppLocaleSync from './components/AppLocaleSync';
 import { useTranslation } from 'react-i18next';
 import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
 import NotFoundView from './components/Common/NotFoundView';
+import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
@@ -287,12 +288,14 @@ const App: React.FC = () => {
         <OrderCartProvider>
           <AppThemeProvider>
             <AppLocaleSync />
-            <BrowserRouter>
-              <AppRoutes />
-              <Suspense fallback={null}>
-                <ChatBot />
-              </Suspense>
-            </BrowserRouter>
+            <GuestMenuResourceProvider>
+              <BrowserRouter>
+                <AppRoutes />
+                <Suspense fallback={null}>
+                  <ChatBot />
+                </Suspense>
+              </BrowserRouter>
+            </GuestMenuResourceProvider>
           </AppThemeProvider>
         </OrderCartProvider>
       </OwnerAuthProvider>

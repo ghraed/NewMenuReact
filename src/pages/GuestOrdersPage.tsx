@@ -6,9 +6,10 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { fetchGuestTableMenu, fetchGuestTableSessionOrders } from '../services/orderService';
+import { fetchGuestTableSessionOrders } from '../services/orderService';
 import type { OrderRecord } from '../types';
 import { buildGuestMenuPath, buildGuestOrderReviewPath } from '../utils/guestTableRoutes';
+import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -30,6 +31,13 @@ const GuestOrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
+  const guestMenuResource = useGuestMenuResource({
+    tableId: activeTableId,
+    guestAccessToken: draft.guestAccessToken,
+  }, {
+    enabled: Boolean(activeTableId),
+    ttlMs: 10_000,
+  });
   const restaurantName = restaurant?.name || t('guestOrders.title');
   const canLoadOrders = Boolean(draft.tableSessionId && draft.guestAccessToken);
 
@@ -44,7 +52,12 @@ const GuestOrdersPage: React.FC = () => {
       setError(null);
 
       try {
-        const sessionResponse = await fetchGuestTableMenu(activeTableId, draft.guestAccessToken);
+        const entry = await guestMenuResource.ensure();
+        const sessionResponse = entry.data;
+        if (!sessionResponse?.table) {
+          setOrders([]);
+          return;
+        }
         if (!sessionResponse.table_session) {
           updateDraft({
             tableId: sessionResponse.table.number,
@@ -61,7 +74,7 @@ const GuestOrdersPage: React.FC = () => {
           tableId: sessionResponse.table.number,
           tableReference: sessionResponse.table.name,
           tableSessionId: sessionResponse.table_session.id,
-          guestAccess: sessionResponse.guest_access,
+          guestAccess: sessionResponse.guest_access ?? undefined,
         });
 
         if (!draft.guestAccessToken) {

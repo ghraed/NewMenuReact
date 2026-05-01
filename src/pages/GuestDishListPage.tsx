@@ -12,12 +12,13 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { fetchGuestTableDish, fetchGuestTableMenu } from '../services/orderService';
-import { getGuestRestaurantCandidateSlugs, getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
+import { fetchGuestTableDish } from '../services/orderService';
+import { getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
+import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 interface GuestListResponse {
   restaurant: RestaurantSummary;
@@ -118,88 +119,80 @@ const GuestDishListPage: React.FC = () => {
   const [relatedPopupLoading, setRelatedPopupLoading] = useState(false);
   const [relatedPopupError, setRelatedPopupError] = useState<string | null>(null);
   const [relatedPopupDishes, setRelatedPopupDishes] = useState<Dish[]>([]);
+  const resourceRequestKeyRef = useRef<string | null>(null);
+
+  const candidateSlug = restaurant_slug?.trim() || null;
+  const guestResource = useGuestMenuResource(
+    {
+      tableId: table_id ? Number(table_id) : null,
+      restaurantSlug: table_id ? null : candidateSlug,
+      guestAccessToken: draft.guestAccessToken,
+      language: i18n.resolvedLanguage,
+    },
+    { enabled: true, ttlMs: 10_000 }
+  );
 
   useEffect(() => {
-    const fetchList = async (slug?: string): Promise<GuestListResponse> => {
-      const endpoint = slug ? `/menu/${slug}/dishes` : '/menu/dishes';
-      const response = await api.get<GuestListResponse>(endpoint);
-      return response.data;
-    };
+    if (!guestResource.enabled || !guestResource.key) {
+      setLoading(false);
+      return;
+    }
 
-    const fetchDishes = async () => {
-      setLoading(true);
-      setError(null);
+    if (resourceRequestKeyRef.current === guestResource.key && guestResource.loading) {
+      return;
+    }
 
-      try {
-        if (table_id) {
-          const response = await fetchGuestTableMenu(table_id, draft.guestAccessToken);
+    resourceRequestKeyRef.current = guestResource.key;
+    setLoading(true);
+    setError(null);
+    void guestResource.ensure()
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [guestResource.enabled, guestResource.key, guestResource.loading]);
 
-          if (response.table_session) {
-            setGuestContext({
-              restaurant: response.restaurant,
-              tableId: response.table.number,
-              tableReference: response.table.name,
-              tableSessionId: response.table_session.id,
-              guestAccess: response.guest_access,
-            });
-          } else {
-            clearGuestAccess();
-            updateDraft({
-              tableId: response.table.number,
-              tableReference: response.table.name,
-              tableSessionId: null,
-            });
-          }
-          setRestaurantName(response.restaurant.name);
-          setRestaurantSlug(response.restaurant.slug);
-          setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
-          setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
-          setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
-          return;
-        }
-
-        let data: GuestListResponse | null = null;
-
-        if (restaurant_slug) {
-          const candidateSlugs = getGuestRestaurantCandidateSlugs(restaurant_slug);
-
-          for (const candidateSlug of candidateSlugs) {
-            try {
-              const nextData = await fetchList(candidateSlug);
-
-              if (nextData.dishes.length > 0 || candidateSlugs.length === 1 || candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
-                data = nextData;
-                break;
-              }
-            } catch (err) {
-              if (candidateSlugs.length === 1) {
-                throw err;
-              }
-            }
-          }
-        } else {
-          data = await fetchList();
-        }
-
-        if (!data) {
-          throw new Error(i18n.t('menuList.noRestaurantData'));
-        }
-
-        setRestaurantName(data.restaurant.name);
-        setRestaurantSlug(data.restaurant.slug);
-        setAiRecommendationsEnabled(data.restaurant.feature_flags?.ai_recommendations !== false);
-        setTableOrderingEnabled(data.restaurant.feature_flags?.table_ordering !== false);
-        setDishes(applyRestaurantCurrencyToDishes(data.dishes, data.restaurant));
-      } catch (err) {
-        console.error(err);
-        setError(i18n.t('menuList.failedToLoad'));
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    if (!guestResource.data) {
+      if (guestResource.error) {
+        setError(guestResource.error || i18n.t('menuList.failedToLoad'));
       }
-    };
+      return;
+    }
 
-    fetchDishes();
-  }, [draft.guestAccessToken, restaurant_slug, table_id, i18n, setGuestContext, updateDraft, clearGuestAccess]);
+    const response = guestResource.data;
+    if (table_id && response.table) {
+      if (response.table_session && response.guest_access) {
+        setGuestContext({
+          restaurant: response.restaurant,
+          tableId: response.table.number,
+          tableReference: response.table.name,
+          tableSessionId: response.table_session.id,
+          guestAccess: response.guest_access,
+        });
+      } else {
+        clearGuestAccess();
+        updateDraft({
+          tableId: response.table.number,
+          tableReference: response.table.name,
+          tableSessionId: null,
+        });
+      }
+    }
+
+    setRestaurantName(response.restaurant.name);
+    setRestaurantSlug(response.restaurant.slug);
+    setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
+    setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
+    setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
+    setError(null);
+  }, [
+    guestResource.data,
+    guestResource.error,
+    table_id,
+    i18n,
+    setGuestContext,
+    updateDraft,
+    clearGuestAccess,
+  ]);
 
   useEffect(() => {
     setCategory(t('menuList.allCategories'));
