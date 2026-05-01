@@ -39,6 +39,7 @@ type DragState = {
 
 const DEFAULT_ITEM_SIZE: Record<RoomPlanItemType, { width: number; height: number; seats?: number }> = {
   table: { width: 120, height: 120, seats: 4 },
+  table_circle: { width: 120, height: 120, seats: 4 },
   window: { width: 160, height: 40 },
   counter: { width: 180, height: 70 },
   bar: { width: 220, height: 80 },
@@ -943,7 +944,7 @@ const AdminRoomPlansPage: React.FC = () => {
                       <option value="room">Room</option>
                       <option value="wrapper">Wrapper</option>
                     </select>
-                    {selectedItem.type === 'table' ? (
+                    {selectedItem.type === 'table' || selectedItem.type === 'table_circle' ? (
                       <input
                         type="number"
                         value={selectedItem.seats ?? 2}
@@ -1156,11 +1157,12 @@ const AdminRoomPlansPage: React.FC = () => {
                           transform: `rotate(${item.rotation}deg)`,
                           zIndex: item.z_index + 10,
                           padding: 6,
+                          borderRadius: item.type === 'table_circle' ? '999px' : '10px',
                         }}
                       >
                         <div className="pointer-events-none text-[11px] font-semibold uppercase tracking-[0.08em]">{item.label}</div>
                         <div className="pointer-events-none text-[10px] text-muted">
-                          {typeLabel(item.type)}{item.type === 'table' ? ` • ${item.seats ?? 0} seats` : ''}
+                          {typeLabel(item.type)}{item.type === 'table' || item.type === 'table_circle' ? ` • ${item.seats ?? 0} seats` : ''}
                         </div>
                       </button>
                     ))}

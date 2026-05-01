@@ -3,7 +3,10 @@ import type { ReservationVisualStatus, RoomPlanItem, RoomPlanItemType } from '..
 export const ROOM_PLAN_ITEM_GROUPS: Array<{ label: string; options: Array<{ value: RoomPlanItemType; label: string }> }> = [
   {
     label: 'Tables',
-    options: [{ value: 'table', label: 'Table' }],
+    options: [
+      { value: 'table', label: 'Table' },
+      { value: 'table_circle', label: 'Circle Table' },
+    ],
   },
   {
     label: 'Structure',

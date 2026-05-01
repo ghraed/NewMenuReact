@@ -130,7 +130,7 @@ const ReservationsPage: React.FC = () => {
   }, [selectedPlanId, reservationDate, startTime, endTime]);
 
   const tableItems = useMemo(
-    () => (selectedPlan?.items ?? []).filter((item) => item.type === 'table' && item.is_active),
+    () => (selectedPlan?.items ?? []).filter((item) => (item.type === 'table' || item.type === 'table_circle') && item.is_active),
     [selectedPlan]
   );
 
@@ -152,7 +152,7 @@ const ReservationsPage: React.FC = () => {
       return;
     }
 
-    if (selectedTableItem.type !== 'table' || !selectedTableItem.is_active) {
+    if ((selectedTableItem.type !== 'table' && selectedTableItem.type !== 'table_circle') || !selectedTableItem.is_active) {
       setError('Only active tables can be reserved.');
       return;
     }

@@ -480,6 +480,7 @@ export const trackEvent: (
 
 export type RoomPlanItemType =
   | 'table'
+  | 'table_circle'
   | 'window'
   | 'counter'
   | 'bar'
