@@ -38,6 +38,14 @@ export interface CreateStaffRequest {
   table_ids?: number[];
 }
 
+export type TableManagementMode = 'ROOM_PLAN' | 'MANUAL';
+
+export interface TableManagementSummary {
+  mode: TableManagementMode;
+  manual_table_count: number | null;
+  active_tables: RestaurantTableSummary[];
+}
+
 export interface DishAssetMetadata extends Record<string, unknown> {
   file_name?: string;
   label?: string;

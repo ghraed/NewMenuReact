@@ -1,18 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { useAuth } from '../contexts/useAuth';
-import { fetchGuestTables } from '../services/orderService';
 import { createStaffMember, fetchStaffMembers, updateStaffMemberTables } from '../services/staffService';
-import type { RestaurantTableSummary, StaffMember } from '../types';
-import {
-  GlassCard,
-  GlassChip,
-  GlassInput,
-  GlassToast,
-  LiquidButton,
-  useGlassToast,
-} from '../components/ui/liquid-glass';
+import { fetchTableManagement, updateManualTableCount } from '../services/tableManagementService';
+import type { StaffMember, TableManagementSummary } from '../types';
+import { GlassCard, GlassChip, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 
 type AssignmentState = Record<number, number[]>;
 
@@ -48,7 +40,6 @@ const mapAssignments = (staffMembers: StaffMember[]): AssignmentState => (
 
 const AdminStaffPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
   const [name, setName] = useState('');
@@ -56,43 +47,41 @@ const AdminStaffPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'staff' | 'chef'>('staff');
   const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
-  const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [staffAssignments, setStaffAssignments] = useState<AssignmentState>({});
+  const [management, setManagement] = useState<TableManagementSummary | null>(null);
+  const [manualCountInput, setManualCountInput] = useState('');
   const [createdStaff, setCreatedStaff] = useState<StaffMember | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [tablesLoading, setTablesLoading] = useState(false);
   const [staffLoading, setStaffLoading] = useState(false);
+  const [managementLoading, setManagementLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [savingStaffId, setSavingStaffId] = useState<number | null>(null);
+  const [savingManualCount, setSavingManualCount] = useState(false);
 
-  const tableNameById = useMemo(() => (
-    new Map(tables.map((table) => [table.id, table.name]))
-  ), [tables]);
+  const tables = management?.active_tables ?? [];
+  const manualModeRequiresCount = management?.mode === 'MANUAL' && !management?.manual_table_count;
+  const tableNameById = useMemo(() => new Map(tables.map((table) => [table.id, table.name])), [tables]);
 
   const syncStaffMembers = useCallback((nextStaffMembers: StaffMember[]) => {
     setStaffMembers(nextStaffMembers);
     setStaffAssignments(mapAssignments(nextStaffMembers));
   }, []);
 
-  const loadTables = useCallback(async () => {
-    if (!user?.restaurant?.slug) {
-      setTables([]);
-      return;
-    }
-
-    setTablesLoading(true);
+  const loadTableManagement = useCallback(async () => {
+    setManagementLoading(true);
 
     try {
-      const response = await fetchGuestTables(user.restaurant.slug);
-      setTables(response.tables);
+      const response = await fetchTableManagement();
+      setManagement(response);
+      setManualCountInput(response.manual_table_count ? String(response.manual_table_count) : '');
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, t('wave.failedTables')));
+      setPageError(getErrorMessage(error, 'Failed to load table mode.'));
     } finally {
-      setTablesLoading(false);
+      setManagementLoading(false);
     }
-  }, [t, user?.restaurant?.slug]);
+  }, []);
 
   const loadStaffMembers = useCallback(async () => {
     setStaffLoading(true);
@@ -109,9 +98,36 @@ const AdminStaffPage: React.FC = () => {
 
   useEffect(() => {
     setPageError(null);
-    loadTables();
+    loadTableManagement();
     loadStaffMembers();
-  }, [loadTables, loadStaffMembers]);
+  }, [loadTableManagement, loadStaffMembers]);
+
+  const handleSaveManualCount = async () => {
+    const parsed = Number.parseInt(manualCountInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      setPageError('Table count must be greater than 0.');
+      return;
+    }
+
+    setSavingManualCount(true);
+    setPageError(null);
+
+    try {
+      const response = await updateManualTableCount(parsed);
+      setManagement({
+        mode: response.mode,
+        manual_table_count: response.manual_table_count,
+        active_tables: response.active_tables,
+      });
+      setSelectedTableIds([]);
+      await loadStaffMembers();
+      showToast(response.message, 'primary');
+    } catch (error: unknown) {
+      setPageError(getErrorMessage(error, 'Failed to update manual table count.'));
+    } finally {
+      setSavingManualCount(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,6 +147,11 @@ const AdminStaffPage: React.FC = () => {
       return;
     }
 
+    if (manualModeRequiresCount) {
+      setPageError('Set manual table count before assigning tables.');
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -139,7 +160,7 @@ const AdminStaffPage: React.FC = () => {
         email: normalizedEmail || undefined,
         phone: normalizedPhone || undefined,
         role,
-        table_ids: selectedTableIds,
+        table_ids: role === 'staff' ? selectedTableIds : [],
       });
 
       setCreatedStaff(response.staff);
@@ -166,9 +187,7 @@ const AdminStaffPage: React.FC = () => {
 
     try {
       const response = await updateStaffMemberTables(staff.id, nextTableIds);
-      setStaffMembers((current) => current.map((member) => (
-        member.id === staff.id ? response.staff : member
-      )));
+      setStaffMembers((current) => current.map((member) => (member.id === staff.id ? response.staff : member)));
       setStaffAssignments((current) => ({
         ...current,
         [staff.id]: (response.staff.assigned_tables ?? []).map((table) => table.id),
@@ -185,126 +204,74 @@ const AdminStaffPage: React.FC = () => {
     <DashboardLayout title={t('adminStaff.pageTitle')}>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
         <GlassCard noise={false}>
-          <div className="mb-6">
-            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">{t('adminStaff.teamEyebrow')}</p>
-            <h2 className="mt-2 text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-              {t('adminStaff.addTeamMemberForRestaurant', { restaurant: user?.restaurant?.name ?? t('adminStaff.yourRestaurant') })}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="staff-name" className="mb-1 block text-sm font-medium text-text">
-                {t('adminStaff.staffName')}
-              </label>
-              <GlassInput
-                id="staff-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Maya Hassan"
-                disabled={creating}
-                required
-                leftSlot={<span>👤</span>}
-              />
-            </div>
-
+          <h2 className="text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <GlassInput id="staff-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Maya Hassan" disabled={creating} required />
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label htmlFor="staff-email" className="mb-1 block text-sm font-medium text-text">
-                  {t('adminStaff.email')}
-                </label>
-                <GlassInput
-                  id="staff-email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="maya@restaurant.com"
-                  disabled={creating}
-                  leftSlot={<span>✉️</span>}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="staff-phone" className="mb-1 block text-sm font-medium text-text">
-                  {t('adminStaff.phone')}
-                </label>
-                <GlassInput
-                  id="staff-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  placeholder="+961 70 000 000"
-                  disabled={creating}
-                  leftSlot={<span>📱</span>}
-                />
-              </div>
+              <GlassInput id="staff-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="maya@restaurant.com" disabled={creating} />
+              <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+961 70 000 000" disabled={creating} />
             </div>
-
             <div>
               <div className="mb-2 block text-sm font-medium text-text">Role</div>
               <div className="flex flex-wrap gap-2">
-                <GlassChip type="button" active={role === 'staff'} onClick={() => setRole('staff')} className="px-4 py-2 text-sm" disabled={creating}>
-                  Staff
-                </GlassChip>
-                <GlassChip type="button" active={role === 'chef'} onClick={() => setRole('chef')} className="px-4 py-2 text-sm" disabled={creating}>
-                  Chef
-                </GlassChip>
+                <GlassChip type="button" active={role === 'staff'} onClick={() => setRole('staff')} className="px-4 py-2 text-sm" disabled={creating}>Staff</GlassChip>
+                <GlassChip type="button" active={role === 'chef'} onClick={() => setRole('chef')} className="px-4 py-2 text-sm" disabled={creating}>Chef</GlassChip>
               </div>
             </div>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-text">{t('adminStaff.assignedTables')}</label>
-                <span className="text-xs uppercase tracking-[0.18em] text-muted2">
-                  {t('adminStaff.selectedCount', { count: selectedTableIds.length })}
-                </span>
-              </div>
-              <div className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
-                {tablesLoading ? (
-                  <p className="text-sm text-muted">{t('wave.loadingTables')}</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {tables.map((table) => (
-                      <GlassChip
-                        key={table.id}
-                        type="button"
-                        active={selectedTableIds.includes(table.id)}
-                        onClick={() => setSelectedTableIds((current) => toggleTableId(current, table.id))}
-                        className="px-4 py-2 text-sm"
-                        disabled={creating}
-                      >
-                        {table.name}
-                      </GlassChip>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {pageError ? (
-              <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
-                {pageError}
+            {role === 'staff' ? (
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-medium text-text">{t('adminStaff.assignedTables')}</label>
+                  <span className="text-xs uppercase tracking-[0.18em] text-muted2">{t('adminStaff.selectedCount', { count: selectedTableIds.length })}</span>
+                </div>
+                <div className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
+                  {managementLoading ? (
+                    <p className="text-sm text-muted">{t('common.loading')}</p>
+                  ) : manualModeRequiresCount ? (
+                    <p className="text-sm text-muted">Set manual table count first.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {tables.map((table) => (
+                        <GlassChip
+                          key={table.id}
+                          type="button"
+                          active={selectedTableIds.includes(table.id)}
+                          onClick={() => setSelectedTableIds((current) => toggleTableId(current, table.id))}
+                          className="px-4 py-2 text-sm"
+                          disabled={creating}
+                        >
+                          {table.name}
+                        </GlassChip>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : null}
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl2 border border-stroke/70 bg-panel2/40 p-4 text-sm text-muted">
-              <p>{t('adminStaff.contactHint')}</p>
-              <LiquidButton type="submit" tone="primary" disabled={creating}>
-                {creating ? t('adminStaff.creating') : t('adminStaff.createStaff')}
-              </LiquidButton>
-            </div>
+            {pageError ? <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">{pageError}</div> : null}
+
+            <LiquidButton type="submit" tone="primary" disabled={creating || managementLoading}>
+              {creating ? t('adminStaff.creating') : t('adminStaff.createStaff')}
+            </LiquidButton>
           </form>
         </GlassCard>
 
         <div className="space-y-6">
           <GlassCard noise={false}>
-            <h3 className="text-lg font-semibold text-text">{t('adminStaff.accessSummary')}</h3>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
-              <li>{t('adminStaff.accessSummaryLineOne')}</li>
-              <li>{t('adminStaff.accessSummaryLineTwo')}</li>
-              <li>{t('adminStaff.accessSummaryLineThree')}</li>
-            </ul>
+            <h3 className="text-lg font-semibold text-text">Table Management</h3>
+            <p className="mt-2 text-sm text-muted">Mode: {management?.mode ?? '...'}</p>
+            {management?.mode === 'MANUAL' ? (
+              <div className="mt-4 space-y-3">
+                <GlassInput value={manualCountInput} onChange={(event) => setManualCountInput(event.target.value)} placeholder="Number of tables" type="number" min={1} />
+                <LiquidButton type="button" tone="primary" onClick={handleSaveManualCount} disabled={savingManualCount}>
+                  {savingManualCount ? t('adminDashboard.saving') : 'Save Table Count'}
+                </LiquidButton>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted">Tables are synced from Room Plan items.</p>
+            )}
           </GlassCard>
 
           <GlassCard interactive={false} noise={false}>
@@ -318,13 +285,6 @@ const AdminStaffPage: React.FC = () => {
                   <p>Phone: {createdStaff.phone || 'Not provided'}</p>
                   <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
                   <p>Temporary password: <span className="font-semibold text-text">{temporaryPassword || 'Unavailable'}</span></p>
-                  <p>
-                    Tables:
-                    {' '}
-                    <span className="font-medium text-text">
-                      {(createdStaff.assigned_tables ?? []).map((table) => table.name).join(', ') || 'No tables assigned yet'}
-                    </span>
-                  </p>
                 </div>
               </div>
             ) : (
@@ -336,10 +296,7 @@ const AdminStaffPage: React.FC = () => {
 
       <GlassCard className="mt-6" noise={false}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-gold2/80">{t('adminStaff.assignmentsEyebrow')}</p>
-            <h3 className="mt-2 text-xl font-semibold text-text">{t('adminStaff.assignmentsTitle')}</h3>
-          </div>
+          <h3 className="text-xl font-semibold text-text">{t('adminStaff.assignmentsTitle')}</h3>
           <LiquidButton type="button" tone="tertiary" onClick={loadStaffMembers} disabled={staffLoading}>
             {staffLoading ? t('common.loading') : t('adminStaff.refresh')}
           </LiquidButton>
@@ -349,6 +306,8 @@ const AdminStaffPage: React.FC = () => {
           <p className="text-sm text-muted">{t('adminStaff.loadingAssignments')}</p>
         ) : staffMembers.length === 0 ? (
           <p className="text-sm text-muted">{t('adminStaff.noStaffYet')}</p>
+        ) : manualModeRequiresCount ? (
+          <p className="text-sm text-muted">Set manual table count to start assignments.</p>
         ) : (
           <div className="space-y-4">
             {staffMembers.map((staff) => {
@@ -358,34 +317,17 @@ const AdminStaffPage: React.FC = () => {
                 .filter((tableName): tableName is string => Boolean(tableName));
 
               return (
-                <div
-                  key={staff.id}
-                  className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4"
-                >
+                <div key={staff.id} className="relative isolate overflow-hidden rounded-xl2 border border-stroke/70 bg-panel2/30 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <p className="text-lg font-semibold text-text">{staff.name}</p>
-                      <p className="mt-1 text-sm text-muted">
-                        {staff.email || staff.phone || t('adminStaff.noLoginContact')}
-                      </p>
-                      <p className="mt-2 text-xs uppercase tracking-[0.18em] text-muted2">
-                        Role: {staff.role === 'chef' ? 'Chef' : 'Staff'}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted2">
-                        {t('adminStaff.assignedNow', { tables: assignedNames.join(', ') || t('adminStaff.noTablesAssigned') })}
-                      </p>
+                      <p className="mt-1 text-sm text-muted">{staff.email || staff.phone || t('adminStaff.noLoginContact')}</p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted2">{t('adminStaff.assignedNow', { tables: assignedNames.join(', ') || t('adminStaff.noTablesAssigned') })}</p>
                     </div>
-
-                    <LiquidButton
-                      type="button"
-                      tone="primary"
-                      onClick={() => handleSaveAssignments(staff)}
-                      disabled={savingStaffId === staff.id}
-                    >
+                    <LiquidButton type="button" tone="primary" onClick={() => handleSaveAssignments(staff)} disabled={savingStaffId === staff.id}>
                       {savingStaffId === staff.id ? t('adminDashboard.saving') : t('adminStaff.saveTables')}
                     </LiquidButton>
                   </div>
-
                   <div className="mt-4 flex flex-wrap gap-2">
                     {tables.map((table) => (
                       <GlassChip
@@ -416,3 +358,4 @@ const AdminStaffPage: React.FC = () => {
 };
 
 export default AdminStaffPage;
+
