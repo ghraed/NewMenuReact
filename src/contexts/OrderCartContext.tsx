@@ -144,12 +144,29 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         current.restaurant?.slug !== context.restaurant.slug
         || (current.draft.tableSessionId !== null && sessionChanged)
       );
+      const hasExistingVerifiedAccess = (
+        current.draft.guestAccessVerified
+        && Boolean(current.draft.guestAccessToken)
+      );
+      const incomingVerifiedAccess = context.guestAccess?.verified === true;
 
+      // Keep verified guest access when stale/unverified payloads arrive for the same session.
+      const shouldKeepExistingAccess = !sessionChanged && hasExistingVerifiedAccess && !incomingVerifiedAccess;
       const nextGuestAccessToken = sessionChanged
         ? null
-        : context.guestAccess?.verified
+        : (incomingVerifiedAccess || shouldKeepExistingAccess)
           ? current.draft.guestAccessToken
           : null;
+      const nextGuestAccessVerified = sessionChanged
+        ? false
+        : incomingVerifiedAccess || shouldKeepExistingAccess;
+      const nextGuestAccessExpiresAt = sessionChanged
+        ? null
+        : incomingVerifiedAccess
+          ? context.guestAccess?.expires_at ?? current.draft.guestAccessExpiresAt
+          : shouldKeepExistingAccess
+            ? current.draft.guestAccessExpiresAt
+            : null;
 
       return {
         restaurant: context.restaurant,
@@ -160,8 +177,8 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           tableReference: context.tableReference,
           tableSessionId: context.tableSessionId,
           guestAccessToken: nextGuestAccessToken,
-          guestAccessVerified: context.guestAccess?.verified === true && Boolean(nextGuestAccessToken),
-          guestAccessExpiresAt: context.guestAccess?.verified === true ? context.guestAccess.expires_at : null,
+          guestAccessVerified: nextGuestAccessVerified && Boolean(nextGuestAccessToken),
+          guestAccessExpiresAt: nextGuestAccessExpiresAt,
         },
       };
     });
