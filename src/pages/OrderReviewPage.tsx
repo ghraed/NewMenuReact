@@ -77,7 +77,7 @@ const OrderReviewPage: React.FC = () => {
         if (!response?.table || !response.table_session) {
           if (response?.table) {
             updateDraft({
-              tableId: response.table.number,
+              tableId: response.table.id,
               tableReference: response.table.name,
               tableSessionId: null,
             });
@@ -90,7 +90,7 @@ const OrderReviewPage: React.FC = () => {
         if (response.guest_access) {
           setGuestContext({
             restaurant: response.restaurant,
-            tableId: response.table.number,
+            tableId: response.table.id,
             tableReference: response.table.name,
             tableSessionId: response.table_session.id,
             guestAccess: response.guest_access,
