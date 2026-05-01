@@ -136,7 +136,7 @@ const AdminRoomPlansPage: React.FC = () => {
     [items, selectedItemId]
   );
 
-  const selectedType = selectedItem?.type ?? pendingType;
+  const selectedType = pendingType;
 
   const constrainItemToPlan = useCallback((item: RoomPlanItem, preferredSnapIndex: number | null = null): RoomPlanItem => {
     if (!selectedPlan) return item;
@@ -618,7 +618,7 @@ const AdminRoomPlansPage: React.FC = () => {
       width: size.width,
       height: size.height,
       rotation: 0,
-      seats: selectedType === 'table' ? size.seats ?? 2 : null,
+      seats: selectedType === 'table' || selectedType === 'table_circle' ? size.seats ?? 2 : null,
       z_index: nextZIndex(items),
       container: selectedType === 'window' ? 'wrapper' : 'room',
       is_active: true,
@@ -631,22 +631,6 @@ const AdminRoomPlansPage: React.FC = () => {
   };
 
   const handleSelectItemType = (nextType: RoomPlanItemType) => {
-    if (selectedItem) {
-      setItems((current) => current.map((item) => {
-        if (item.id !== selectedItem.id) return item;
-
-        const updated: RoomPlanItem = {
-          ...item,
-          type: nextType,
-          seats: nextType === 'table' ? (item.seats ?? 2) : null,
-          container: nextType === 'window' ? 'wrapper' : item.container,
-        };
-
-        return constrainItemToPlan(updated);
-      }));
-      return;
-    }
-
     setPendingType(nextType);
   };
 
