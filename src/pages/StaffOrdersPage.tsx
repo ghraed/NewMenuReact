@@ -817,15 +817,14 @@ const StaffOrdersPage: React.FC = () => {
     void loadPublishedMenu();
   };
 
-  const handleShowTableUrl = (order: OrderRecord) => {
-    const tableId = order.table?.id;
+  const handleShowTableUrl = (tableId: number | null | undefined, tableLabel: string) => {
     if (!tableId) {
-      showToast('Table URL is unavailable for this order.', 'tertiary', 3200);
+      showToast('Table URL is unavailable for this table session.', 'tertiary', 3200);
       return;
     }
 
     setTableUrlPopup({
-      label: order.table_reference,
+      label: tableLabel,
       url: `${window.location.origin}/menu/table/${tableId}`,
     });
   };
@@ -1051,7 +1050,7 @@ const StaffOrdersPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <LiquidButton
                       tone="secondary"
                       onClick={() => handleResetSessionPin(session)}
@@ -1067,6 +1066,13 @@ const StaffOrdersPage: React.FC = () => {
                       className="w-full"
                     >
                       {processingSessionId === session.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.finalizeSession')}
+                    </LiquidButton>
+                    <LiquidButton
+                      tone="primary"
+                      onClick={() => handleShowTableUrl(session.table?.id, session.table_reference)}
+                      className="w-full"
+                    >
+                      🔗 Table URL
                     </LiquidButton>
                   </div>
                 </div>
@@ -1136,14 +1142,6 @@ const StaffOrdersPage: React.FC = () => {
                     {t('invoice.tableTitle', { table: order.table_reference })}
                     {order.created_at ? ` • ${new Date(order.created_at).toLocaleString()}` : ''}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => handleShowTableUrl(order)}
-                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-text transition hover:border-gold/40 hover:text-gold2"
-                  >
-                    <span aria-hidden="true">🔗</span>
-                    <span>Table URL</span>
-                  </button>
                   {order.notes ? (
                     <p className="mt-3 max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-muted">
                       {order.notes}
