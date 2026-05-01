@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
+import { areFeaturesEnabled } from '../../utils/features';
 import {
   GlassBoard,
   GlassIconButton,
@@ -15,6 +16,13 @@ interface DashboardLayoutProps {
   title: string;
 }
 
+type NavItem = {
+  path: string;
+  label: string;
+  icon: string;
+  requiredFeatures?: string[];
+};
+
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -22,33 +30,37 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  const navItems = user?.role === 'chef'
+  const navItems: NavItem[] = user?.role === 'chef'
     ? [
         { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: '👨‍🍳' },
       ]
     : user?.role === 'staff'
       ? [
-          { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾' },
-          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
-          { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
+          { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾', requiredFeatures: ['realtime_staff_orders'] },
+          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+          { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
         ]
       : [
           { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
-          { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️' },
-          { path: '/admin/reservations', label: 'Reservations', icon: '📅' },
-          { path: '/admin/finance', label: 'Finance', icon: '📈' },
-          { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾' },
-          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒' },
-          { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳' },
+          { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️', requiredFeatures: ['room_plan_editor'] },
+          { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
+          { path: '/admin/finance', label: 'Finance', icon: '📈', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+          { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾', requiredFeatures: ['realtime_staff_orders'] },
+          { path: '/staff/pos', label: 'Cashier POS', icon: '🛒', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+          { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
           { path: '/admin/currency', label: 'Currency', icon: '💱' },
           { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },
           { path: '/admin/dishes/create', label: t('admin.createDish'), icon: '➕' },
-          { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: '📦' },
-          { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: '📜' },
+          { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: '📦', requiredFeatures: ['inventory'] },
+          { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: '📜', requiredFeatures: ['inventory'] },
           { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: '🥬' },
           { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: '🌐' },
           { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
         ];
+
+  const visibleNavItems = navItems.filter((item) => (
+    areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures)
+  ));
 
   useEffect(() => {
     if (!mobileNavOpen || typeof window === 'undefined') {
@@ -112,7 +124,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               {t('admin.navigation')}
             </div>
             <ul className="flex min-w-0 flex-nowrap items-center justify-between gap-1">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
 
                 return (
@@ -173,7 +185,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                     </button>
                   </div>
                   <ul className="grid gap-3 sm:grid-cols-2">
-                    {navItems.map((item, index) => {
+                    {visibleNavItems.map((item, index) => {
                       const isActive = location.pathname === item.path;
                       return (
                         <motion.li

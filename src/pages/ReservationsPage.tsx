@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import type { AxiosError } from 'axios';
 import {
   createPublicReservation,
   fetchPublicRoomPlan,
@@ -7,6 +8,7 @@ import {
 } from '../services/roomPlanService';
 import type { RoomPlan, RoomPlanAvailabilityRow } from '../types';
 import { roomPlanStatusColor, toTimeSlots } from '../utils/roomPlan';
+import NotFoundView from '../components/Common/NotFoundView';
 
 const today = new Date().toISOString().slice(0, 10);
 const timeSlots = toTimeSlots(15);
@@ -32,6 +34,13 @@ const ReservationsPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [featureUnavailable, setFeatureUnavailable] = useState(false);
+
+  const isFeatureDisabledNotFound = (unknownError: unknown): boolean => {
+    const status = (unknownError as AxiosError<{ message?: string }>)?.response?.status;
+    const message = (unknownError as AxiosError<{ message?: string }>)?.response?.data?.message ?? '';
+    return status === 404 && /feature/i.test(message);
+  };
 
   const availabilityByItemId = useMemo(
     () => new Map(availability.map((row) => [row.room_plan_item_id, row])),
@@ -41,6 +50,7 @@ const ReservationsPage: React.FC = () => {
   const loadPlans = async () => {
     setLoading(true);
     setError(null);
+    setFeatureUnavailable(false);
 
     try {
       const response = await fetchPublicRoomPlans();
@@ -48,7 +58,11 @@ const ReservationsPage: React.FC = () => {
       if ((response.room_plans ?? []).length > 0) {
         setSelectedPlanId((previous) => previous ?? response.room_plans[0].id);
       }
-    } catch {
+    } catch (loadError: unknown) {
+      if (isFeatureDisabledNotFound(loadError)) {
+        setFeatureUnavailable(true);
+        return;
+      }
       setError('Failed to load available room plans.');
     } finally {
       setLoading(false);
@@ -71,7 +85,11 @@ const ReservationsPage: React.FC = () => {
         const plan = await fetchPublicRoomPlan(selectedPlanId);
         setSelectedPlan(plan);
         setSelectedTableItemId(null);
-      } catch {
+      } catch (loadError: unknown) {
+        if (isFeatureDisabledNotFound(loadError)) {
+          setFeatureUnavailable(true);
+          return;
+        }
         setError('Failed to load selected room plan.');
       }
     };
@@ -97,7 +115,11 @@ const ReservationsPage: React.FC = () => {
           end_time: endTime,
         });
         setAvailability(rows);
-      } catch {
+      } catch (loadError: unknown) {
+        if (isFeatureDisabledNotFound(loadError)) {
+          setFeatureUnavailable(true);
+          return;
+        }
         setError('Failed to load table availability for selected time range.');
       } finally {
         setAvailabilityLoading(false);
@@ -172,12 +194,20 @@ const ReservationsPage: React.FC = () => {
         end_time: endTime,
       });
       setAvailability(rows);
-    } catch {
+    } catch (submitError: unknown) {
+      if (isFeatureDisabledNotFound(submitError)) {
+        setFeatureUnavailable(true);
+        return;
+      }
       setError('Reservation failed. Please review your selected table/time and try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (featureUnavailable) {
+    return <NotFoundView title="404" message="The requested page could not be found." />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-bg0 via-bg1 to-bg0 px-4 py-6 sm:px-6">

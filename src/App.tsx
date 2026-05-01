@@ -8,12 +8,12 @@ import { OwnerAuthProvider } from './contexts/OwnerAuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
 import { useAuth } from './contexts/useAuth';
 import { useOwnerAuth } from './contexts/useOwnerAuth';
-import { GlassBoard } from './components/ui/liquid-glass';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
 import { useTranslation } from 'react-i18next';
 import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
+import NotFoundView from './components/Common/NotFoundView';
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
@@ -93,7 +93,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/room-plans"
           element={(
-            <ProtectedRoute allowedRoles={['admin', 'staff']}>
+            <ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['room_plan_editor']}>
               {lazyRoute(<AdminRoomPlansPage />)}
             </ProtectedRoute>
           )}
@@ -102,7 +102,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/reservations"
           element={(
-            <ProtectedRoute allowedRoles={['admin', 'staff']}>
+            <ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['table_reservations']}>
               {lazyRoute(<AdminReservationsPage />)}
             </ProtectedRoute>
           )}
@@ -174,7 +174,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/inventory/ingredients"
           element={(
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['inventory']}>
               {lazyRoute(<AdminIngredientsPage />)}
             </ProtectedRoute>
           )}
@@ -183,7 +183,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/inventory/stock-history"
           element={(
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['inventory']}>
               {lazyRoute(<AdminStockHistoryPage />)}
             </ProtectedRoute>
           )}
@@ -192,7 +192,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/staff/orders"
           element={(
-            <ProtectedRoute allowedRoles={['staff', 'admin']}>
+            <ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders']}>
               {lazyRoute(<StaffOrdersPage />)}
             </ProtectedRoute>
           )}
@@ -201,7 +201,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/staff/pos"
           element={(
-            <ProtectedRoute allowedRoles={['staff', 'admin']}>
+            <ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders', 'table_ordering']}>
               {lazyRoute(<CashierPosPage />)}
             </ProtectedRoute>
           )}
@@ -228,7 +228,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/accounting"
           element={(
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
               {lazyRoute(<AccountingOrdersPage />)}
             </ProtectedRoute>
           )}
@@ -237,7 +237,7 @@ const AppRoutes: React.FC = () => {
         <Route
           path="/admin/finance"
           element={(
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
               {lazyRoute(<AdminFinanceDashboardPage />)}
             </ProtectedRoute>
           )}
@@ -273,28 +273,7 @@ const AppRoutes: React.FC = () => {
 
         <Route
           path="*"
-          element={(
-            <div className="flex min-h-screen items-center justify-center p-4">
-              <GlassBoard className="w-full max-w-lg">
-                <h1 className="text-2xl font-bold text-text">{t('app.brand')}</h1>
-                <p className="mt-2 text-muted">{t('app.visit')}</p>
-                <ul className="mt-3 space-y-1 text-sm text-muted">
-                  <li>• <a href="/menu/table/1" className="underline underline-offset-4">/menu/table/1</a> - {t('app.guestDishList')}</li>
-                  <li>• <a href="/menu/table/1/review" className="underline underline-offset-4">/menu/table/1/review</a> - {t('app.guestOrderReview')}</li>
-                  <li>• <a href="/menu/table/1/orders" className="underline underline-offset-4">/menu/table/1/orders</a> - {t('app.guestOrders')}</li>
-                  <li>• <a href="/admin/login" className="underline underline-offset-4">/admin/login</a> - {t('app.adminLogin')}</li>
-                  <li>• <a href="/admin/staff" className="underline underline-offset-4">/admin/staff</a> - {t('app.adminStaff')}</li>
-                  <li>• <a href="/admin/inventory/ingredients" className="underline underline-offset-4">/admin/inventory/ingredients</a> - {t('app.adminIngredients')}</li>
-                  <li>• <a href="/staff/orders" className="underline underline-offset-4">/staff/orders</a> - {t('app.staffPendingOrders')}</li>
-                  <li>• <a href="/staff/pos" className="underline underline-offset-4">/staff/pos</a> - Cashier POS</li>
-                  <li>• <a href="/chef/dashboard" className="underline underline-offset-4">/chef/dashboard</a> - Kitchen dashboard</li>
-                  <li>• <a href="/admin/accounting" className="underline underline-offset-4">/admin/accounting</a> - {t('app.adminAccounting')}</li>
-                  <li>• <a href="/admin/finance" className="underline underline-offset-4">/admin/finance</a> - Finance dashboard</li>
-                  <li>• <a href="/liquid-glass-preview" className="underline underline-offset-4">/liquid-glass-preview</a> - {t('app.themePreview')}</li>
-                </ul>
-              </GlassBoard>
-            </div>
-          )}
+          element={<NotFoundView title={t('app.brand')} message={t('app.visit')} />}
         />
       </Routes>
     </AppThemeShell>
