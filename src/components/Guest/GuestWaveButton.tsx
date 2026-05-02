@@ -45,8 +45,8 @@ const GuestWaveButton: React.FC = () => {
 
   const actionWrapperClassName = useMemo(() => (
     hasCartShortcut
-      ? 'pointer-events-none fixed bottom-20 right-4 z-40 sm:bottom-24 sm:right-6'
-      : 'pointer-events-none fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6'
+      ? 'pointer-events-none fixed bottom-20 right-2 z-40 sm:bottom-24 sm:right-3'
+      : 'pointer-events-none fixed bottom-4 right-2 z-40 sm:bottom-6 sm:right-3'
   ), [hasCartShortcut]);
 
   const waveWrapperClassName = useMemo(() => (
@@ -237,7 +237,7 @@ const GuestWaveButton: React.FC = () => {
               boxShadow: 'var(--guest-shadow-soft)',
             }}
           >
-            <div className="flex items-center gap-2 p-2.5">
+            <div className="flex flex-col items-center gap-2 p-2.5">
               <button
                 type="button"
                 onClick={() => {
