@@ -279,6 +279,40 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                   </span>
                 </div>
               </div>
+
+              {invoice.split?.enabled && invoice.split.breakdown.length > 0 ? (
+                <div
+                  className={`mt-5 pt-4 ${isGuest ? '' : 'border-t border-white/10 print:border-black/15'}`}
+                  style={isGuest ? { borderTop: '1px solid var(--guest-border)' } : undefined}
+                >
+                  <p
+                    className={`text-xs uppercase tracking-[0.18em] ${isGuest ? '' : 'text-[#9a958c] print:text-black/65'}`}
+                    style={isGuest ? { color: 'var(--guest-accent)' } : undefined}
+                  >
+                    {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {invoice.split.breakdown.map((item) => (
+                      <div
+                        key={item.key}
+                        className={`flex items-center justify-between rounded-[18px] border px-3 py-2.5 text-sm ${
+                          isGuest
+                            ? ''
+                            : 'border-white/10 bg-black/10 text-[#f1ede4] print:border-black/15 print:bg-black/[0.04] print:text-black'
+                        }`}
+                        style={isGuest ? {
+                          borderColor: 'var(--guest-border)',
+                          backgroundColor: 'var(--guest-panel-strong)',
+                          color: 'var(--guest-text)',
+                        } : undefined}
+                      >
+                        <span>{item.label}</span>
+                        <span className="font-semibold">{item.amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

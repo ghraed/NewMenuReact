@@ -5,6 +5,8 @@ import type {
   CreateGuestOrderRequest,
   GuestTableDishResponse,
   GuestTableMenuResponse,
+  InvoiceSplitMode,
+  InvoiceSplitSummary,
   KitchenOrderRecord,
   OrderRecord,
   PosCheckoutRequest,
@@ -77,7 +79,13 @@ interface TableSessionActionResponse {
       vat_amount: string;
       total: string;
     };
+    invoice_split?: InvoiceSplitSummary;
   };
+}
+
+interface InvoiceSplitResponse {
+  message?: string;
+  invoice_split: InvoiceSplitSummary;
 }
 
 interface PendingWavesResponse {
@@ -195,6 +203,29 @@ export const fetchGuestTableSessionOrders = async (
   return response.data.orders;
 };
 
+export const fetchGuestTableSessionInvoiceSplit = async (
+  sessionId: number | string,
+  guestAccessToken?: string | null
+): Promise<InvoiceSplitSummary> => {
+  const response = await api.get<InvoiceSplitResponse>(`/table-session/${sessionId}/invoice-split`, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+
+  return response.data.invoice_split;
+};
+
+export const updateGuestTableSessionInvoiceSplit = async (
+  sessionId: number | string,
+  payload: { mode: InvoiceSplitMode; split_count?: number },
+  guestAccessToken?: string | null
+): Promise<InvoiceSplitSummary> => {
+  const response = await api.patch<InvoiceSplitResponse>(`/table-session/${sessionId}/invoice-split`, payload, {
+    headers: buildGuestAccessHeaders(guestAccessToken),
+  });
+
+  return response.data.invoice_split;
+};
+
 export const sendGuestWave = async (
   restaurantSlug: string | undefined,
   payload: { table_reference: string }
@@ -262,6 +293,11 @@ export const resetActiveTableSessionPin = async (sessionId: number | string): Pr
 export const finalizeGuestTableSession = async (sessionId: number | string): Promise<TableSessionActionResponse> => {
   const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`);
   return response.data;
+};
+
+export const fetchStaffTableSessionInvoiceSplit = async (sessionId: number | string): Promise<InvoiceSplitSummary> => {
+  const response = await api.get<InvoiceSplitResponse>(`/table-sessions/${sessionId}/invoice-split`);
+  return response.data.invoice_split;
 };
 
 export const fetchPendingOrders = async (): Promise<OrderRecord[]> => {

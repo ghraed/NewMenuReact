@@ -10,10 +10,17 @@ import {
   useGlassToast,
 } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { accountConfirmedOrder, fetchAccountingOrders, fetchGuestTables, fetchPendingWaves, finalizeGuestTableSession } from '../services/orderService';
+import {
+  accountConfirmedOrder,
+  fetchAccountingOrders,
+  fetchGuestTables,
+  fetchPendingWaves,
+  fetchStaffTableSessionInvoiceSplit,
+  finalizeGuestTableSession,
+} from '../services/orderService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
-import type { AccountOrderRequest, DiscountType, OrderRecord, RestaurantTableSummary } from '../types';
+import type { AccountOrderRequest, DiscountType, InvoiceSplitSummary, OrderRecord, RestaurantTableSummary } from '../types';
 
 const ACCOUNTING_POLL_INTERVAL_MS = 5000;
 
@@ -120,6 +127,8 @@ const AccountingOrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [tablesError, setTablesError] = useState<string | null>(null);
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
+  const [sessionInvoiceSplit, setSessionInvoiceSplit] = useState<InvoiceSplitSummary | null>(null);
+  const [splitLoading, setSplitLoading] = useState(false);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasLoadedOrdersRef = useRef(false);
@@ -355,6 +364,16 @@ const AccountingOrdersPage: React.FC = () => {
       : []
   ), [orders, selectedTable]);
 
+  const splitFeatureEnabled = user?.restaurant?.feature_flags?.invoice_splitting === true;
+
+  const selectedTableSessionIds = useMemo(() => (
+    Array.from(new Set(
+      selectedTableOrders
+        .map((order) => order.table_session_id)
+        .filter((sessionId): sessionId is number => typeof sessionId === 'number')
+    ))
+  ), [selectedTableOrders]);
+
   const selectedTableDraft = useMemo(() => (
     selectedTable
       ? tableDrafts[selectedTable] || emptyAccountingDraft
@@ -422,6 +441,42 @@ const AccountingOrdersPage: React.FC = () => {
 
     return names;
   }, [selectedTableOrders]);
+
+  useEffect(() => {
+    if (!splitFeatureEnabled) {
+      setSessionInvoiceSplit(null);
+      setSplitLoading(false);
+      return;
+    }
+
+    if (selectedTableSessionIds.length !== 1) {
+      setSessionInvoiceSplit(null);
+      setSplitLoading(false);
+      return;
+    }
+
+    const [sessionId] = selectedTableSessionIds;
+    let cancelled = false;
+    setSplitLoading(true);
+
+    void fetchStaffTableSessionInvoiceSplit(sessionId)
+      .then((split) => {
+        if (cancelled) return;
+        setSessionInvoiceSplit(split);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSessionInvoiceSplit(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSplitLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTableOrders, selectedTableSessionIds, splitFeatureEnabled]);
 
   const handleFinalizeSelectedTable = async () => {
     if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
@@ -493,6 +548,16 @@ const AccountingOrdersPage: React.FC = () => {
         vatAmount: formatMoney(selectedTablePreview.vatAmount),
         total: formatMoney(selectedTablePreview.total),
       },
+      split: sessionInvoiceSplit?.enabled ? {
+        enabled: sessionInvoiceSplit.enabled,
+        mode: sessionInvoiceSplit.mode,
+        splitCount: sessionInvoiceSplit.split_count,
+        breakdown: sessionInvoiceSplit.breakdown.map((item) => ({
+          key: item.key,
+          label: item.label,
+          amount: formatMoney(Number(item.amount)),
+        })),
+      } : undefined,
     });
 
     const printUrl = `${window.location.origin}/invoice/print`;
@@ -808,6 +873,43 @@ const AccountingOrdersPage: React.FC = () => {
                     {t('accountingPage.finalizeHint', { table: selectedTable })}
                   </p>
                 </div>
+
+                {splitFeatureEnabled ? (
+                  <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted2">
+                      {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
+                    </p>
+                    {selectedTableSessionIds.length !== 1 ? (
+                      <p className="mt-3 text-sm text-muted">
+                        {t('accountingPage.splitSessionUnavailable', {
+                          defaultValue: 'Split breakdown appears when exactly one active table session is selected.',
+                        })}
+                      </p>
+                    ) : splitLoading ? (
+                      <p className="mt-3 text-sm text-muted">
+                        {t('accountingPage.loadingSplit', { defaultValue: 'Loading split breakdown...' })}
+                      </p>
+                    ) : sessionInvoiceSplit?.enabled && sessionInvoiceSplit.breakdown.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {sessionInvoiceSplit.breakdown.map((item) => (
+                          <div
+                            key={`accounting-split-${item.key}`}
+                            className="flex items-center justify-between rounded-[18px] border border-white/10 bg-black/10 px-3 py-2.5"
+                          >
+                            <span className="text-sm text-text">{item.label}</span>
+                            <span className="text-sm font-semibold text-gold2">{formatMoney(Number(item.amount))}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-muted">
+                        {t('accountingPage.noSplitConfigured', {
+                          defaultValue: 'No split settings configured yet for this table session.',
+                        })}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
 
                 <LiquidButton
                   tone="tertiary"

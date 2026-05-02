@@ -17,6 +17,19 @@ export interface PrintableInvoiceSummary {
   total: string;
 }
 
+export interface PrintableInvoiceSplitBreakdownItem {
+  key: string;
+  label: string;
+  amount: string;
+}
+
+export interface PrintableInvoiceSplit {
+  enabled: boolean;
+  mode: 'by_each_order' | 'equal' | null;
+  splitCount: number | null;
+  breakdown: PrintableInvoiceSplitBreakdownItem[];
+}
+
 export interface PrintableInvoicePayload {
   sourceTableId?: number | string;
   restaurantName: string;
@@ -26,6 +39,7 @@ export interface PrintableInvoicePayload {
   items: PrintableInvoiceItem[];
   includedOrders: string[];
   summary: PrintableInvoiceSummary;
+  split?: PrintableInvoiceSplit;
 }
 
 export const PRINTABLE_INVOICE_STORAGE_KEY = 'printable_invoice_payload';

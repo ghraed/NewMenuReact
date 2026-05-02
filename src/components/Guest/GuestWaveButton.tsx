@@ -175,6 +175,16 @@ const GuestWaveButton: React.FC = () => {
             vatAmount: `$${response.invoice_preview.summary.vat_amount}`,
             total: `$${response.invoice_preview.summary.total}`,
           },
+          split: response.invoice_preview.invoice_split ? {
+            enabled: response.invoice_preview.invoice_split.enabled,
+            mode: response.invoice_preview.invoice_split.mode,
+            splitCount: response.invoice_preview.invoice_split.split_count,
+            breakdown: response.invoice_preview.invoice_split.breakdown.map((item) => ({
+              key: item.key,
+              label: item.label,
+              amount: `$${item.amount}`,
+            })),
+          } : undefined,
         });
 
         navigate(`/menu/table/${activeTableId}/invoice`);

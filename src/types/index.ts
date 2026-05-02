@@ -7,6 +7,7 @@ export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
+export type InvoiceSplitMode = 'by_each_order' | 'equal';
 export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 
@@ -265,6 +266,21 @@ export interface TableSessionSummary {
   closed_at?: string | null;
   close_reason?: string | null;
   pin_locked_until?: string | null;
+  invoice_split_mode?: InvoiceSplitMode;
+  invoice_split_count?: number | null;
+}
+
+export interface InvoiceSplitBreakdownItem {
+  key: string;
+  label: string;
+  amount: string;
+}
+
+export interface InvoiceSplitSummary {
+  enabled: boolean;
+  mode: InvoiceSplitMode | null;
+  split_count: number | null;
+  breakdown: InvoiceSplitBreakdownItem[];
 }
 
 export interface GuestAccessSummary {

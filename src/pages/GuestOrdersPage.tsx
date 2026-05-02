@@ -6,8 +6,12 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { fetchGuestTableSessionOrders } from '../services/orderService';
-import type { OrderRecord } from '../types';
+import {
+  fetchGuestTableSessionInvoiceSplit,
+  fetchGuestTableSessionOrders,
+  updateGuestTableSessionInvoiceSplit,
+} from '../services/orderService';
+import type { InvoiceSplitMode, InvoiceSplitSummary, OrderRecord } from '../types';
 import { buildGuestMenuPath, buildGuestOrderReviewPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
@@ -27,6 +31,10 @@ const GuestOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const { restaurant, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [invoiceSplit, setInvoiceSplit] = useState<InvoiceSplitSummary | null>(null);
+  const [splitMode, setSplitMode] = useState<InvoiceSplitMode>('by_each_order');
+  const [splitCountInput, setSplitCountInput] = useState('2');
+  const [splitSaving, setSplitSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +64,7 @@ const GuestOrdersPage: React.FC = () => {
         const sessionResponse = entry.data;
         if (!sessionResponse?.table) {
           setOrders([]);
+          setInvoiceSplit(null);
           return;
         }
         if (!sessionResponse.table_session) {
@@ -66,6 +75,7 @@ const GuestOrdersPage: React.FC = () => {
           });
           clearGuestAccess();
           setOrders([]);
+          setInvoiceSplit(null);
           return;
         }
 
@@ -79,6 +89,7 @@ const GuestOrdersPage: React.FC = () => {
 
         if (!draft.guestAccessToken) {
           setOrders([]);
+          setInvoiceSplit(null);
           return;
         }
 
@@ -87,6 +98,23 @@ const GuestOrdersPage: React.FC = () => {
           draft.guestAccessToken
         );
         setOrders(nextOrders);
+
+        const splitFeatureEnabled = sessionResponse.restaurant.feature_flags?.invoice_splitting === true;
+        if (splitFeatureEnabled) {
+          const split = await fetchGuestTableSessionInvoiceSplit(
+            sessionResponse.table_session.id,
+            draft.guestAccessToken
+          );
+          setInvoiceSplit(split);
+          if (split.mode === 'equal') {
+            setSplitMode('equal');
+            setSplitCountInput(String(split.split_count ?? 2));
+          } else {
+            setSplitMode('by_each_order');
+          }
+        } else {
+          setInvoiceSplit(null);
+        }
       } catch (err: unknown) {
         const status = typeof err === 'object' && err !== null && 'response' in err
           ? (err as { response?: { status?: number } }).response?.status
@@ -97,6 +125,7 @@ const GuestOrdersPage: React.FC = () => {
         }
 
         setError(getErrorMessage(err, t('guestOrders.failedLoad')));
+        setInvoiceSplit(null);
       } finally {
         setLoading(false);
       }
@@ -104,6 +133,40 @@ const GuestOrdersPage: React.FC = () => {
 
     load();
   }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, updateDraft, t]);
+
+  const splitFeatureEnabled = guestMenuResource.data?.restaurant?.feature_flags?.invoice_splitting === true;
+
+  const saveSplit = async () => {
+    if (!draft.tableSessionId || !draft.guestAccessToken || !splitFeatureEnabled) {
+      return;
+    }
+
+    if (splitMode === 'equal') {
+      const numericSplitCount = Number(splitCountInput);
+      if (!Number.isFinite(numericSplitCount) || !Number.isInteger(numericSplitCount) || numericSplitCount < 2) {
+        setError(t('guestOrders.invalidSplitCount', { defaultValue: 'Split count must be at least 2.' }));
+        return;
+      }
+    }
+
+    setSplitSaving(true);
+    setError(null);
+    try {
+      const nextSplit = await updateGuestTableSessionInvoiceSplit(
+        draft.tableSessionId,
+        {
+          mode: splitMode,
+          split_count: splitMode === 'equal' ? Number(splitCountInput) : undefined,
+        },
+        draft.guestAccessToken
+      );
+      setInvoiceSplit(nextSplit);
+    } catch (splitError: unknown) {
+      setError(getErrorMessage(splitError, t('guestOrders.failedUpdateSplit', { defaultValue: 'Failed to update split settings.' })));
+    } finally {
+      setSplitSaving(false);
+    }
+  };
 
   const totalItems = useMemo(() => (
     orders.reduce((sum, order) => (
@@ -225,6 +288,101 @@ const GuestOrdersPage: React.FC = () => {
                 })}
               </p>
             </div>
+
+            {splitFeatureEnabled ? (
+              <div
+                className="mt-6 rounded-[32px] border p-5 sm:p-6"
+                style={{
+                  backgroundColor: 'var(--guest-panel)',
+                  borderColor: 'var(--guest-border)',
+                  boxShadow: 'var(--guest-shadow)',
+                }}
+              >
+                <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+                  {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <label className="block">
+                    <span className="mb-1 block text-sm text-[var(--guest-muted)]">
+                      {t('guestOrders.splitModeLabel', { defaultValue: 'Split mode' })}
+                    </span>
+                    <select
+                      value={splitMode}
+                      onChange={(event) => setSplitMode(event.target.value as InvoiceSplitMode)}
+                      className="w-full rounded-full border px-4 py-2.5 text-sm outline-none"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                        color: 'var(--guest-text)',
+                      }}
+                    >
+                      <option value="by_each_order">
+                        {t('guestOrders.splitModeByOrder', { defaultValue: 'By each person order' })}
+                      </option>
+                      <option value="equal">
+                        {t('guestOrders.splitModeEqual', { defaultValue: 'Split equally' })}
+                      </option>
+                    </select>
+                  </label>
+
+                  <button
+                    type="button"
+                    disabled={splitSaving}
+                    onClick={() => void saveSplit()}
+                    className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: 'var(--guest-panel-strong)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                  >
+                    {splitSaving
+                      ? t('guestOrders.savingSplit', { defaultValue: 'Saving...' })
+                      : t('guestOrders.saveSplit', { defaultValue: 'Save Split' })}
+                  </button>
+                </div>
+
+                {splitMode === 'equal' ? (
+                  <div className="mt-3">
+                    <label className="block">
+                      <span className="mb-1 block text-sm text-[var(--guest-muted)]">
+                        {t('guestOrders.splitCountLabel', { defaultValue: 'Number of splits' })}
+                      </span>
+                      <input
+                        value={splitCountInput}
+                        onChange={(event) => setSplitCountInput(event.target.value)}
+                        type="number"
+                        min="2"
+                        className="w-full rounded-full border px-4 py-2.5 text-sm outline-none"
+                        style={{
+                          backgroundColor: 'var(--guest-panel-strong)',
+                          borderColor: 'var(--guest-border)',
+                          color: 'var(--guest-text)',
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                {invoiceSplit?.enabled && invoiceSplit.breakdown.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    {invoiceSplit.breakdown.map((share) => (
+                      <div
+                        key={share.key}
+                        className="flex items-center justify-between rounded-[22px] border px-4 py-3"
+                        style={{
+                          backgroundColor: 'var(--guest-panel-strong)',
+                          borderColor: 'var(--guest-border)',
+                        }}
+                      >
+                        <p className="text-sm text-[var(--guest-text)]">{share.label}</p>
+                        <p className="text-sm font-semibold text-[var(--guest-text)]">${share.amount}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {orders.length === 0 ? (
               <div
