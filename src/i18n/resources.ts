@@ -661,6 +661,7 @@ export const resources = {
       },
       guestInvoice: {
         unavailable: 'Invoice preview is unavailable right now.',
+        saveBill: 'Save Bill',
       },
       orderReview: {
         title: 'Review Your Order',
@@ -1555,6 +1556,7 @@ export const resources = {
       },
       guestInvoice: {
         unavailable: 'معاينة الفاتورة غير متاحة الآن.',
+        saveBill: 'حفظ الفاتورة',
       },
       orderReview: {
         title: 'راجع طلبك',
