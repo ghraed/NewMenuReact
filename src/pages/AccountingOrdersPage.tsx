@@ -879,6 +879,11 @@ const AccountingOrdersPage: React.FC = () => {
                     <p className="text-xs uppercase tracking-[0.18em] text-muted2">
                       {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
                     </p>
+                    <p className="mt-2 text-xs text-muted2">
+                      {t('accountingPage.splitScopeHint', {
+                        defaultValue: 'Guest split is calculated for the full table invoice across all session orders.',
+                      })}
+                    </p>
                     {selectedTableSessionIds.length !== 1 ? (
                       <p className="mt-3 text-sm text-muted">
                         {t('accountingPage.splitSessionUnavailable', {

@@ -477,6 +477,11 @@ const GuestOrdersPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+                <p className="mb-3 text-xs text-[var(--guest-muted)]">
+                  {t('guestOrders.splitScopeHint', {
+                    defaultValue: 'Split applies to the full table invoice across all orders in this session.',
+                  })}
+                </p>
 
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <label className="block">
