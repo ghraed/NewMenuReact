@@ -25,7 +25,7 @@ export interface PrintableInvoiceSplitBreakdownItem {
 
 export interface PrintableInvoiceSplit {
   enabled: boolean;
-  mode: 'by_each_order' | 'equal' | null;
+  mode: 'none' | 'by_person_order' | 'equal' | null;
   splitCount: number | null;
   breakdown: PrintableInvoiceSplitBreakdownItem[];
 }

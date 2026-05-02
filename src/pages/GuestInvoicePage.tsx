@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import InvoiceTemplate from '../components/Invoice/InvoiceTemplate';
 import { loadPrintableInvoice } from '../utils/printableInvoice';
+import { buildGuestOrdersPath } from '../utils/guestTableRoutes';
 
 const GuestInvoicePage: React.FC = () => {
   const { t } = useTranslation();
@@ -40,7 +42,21 @@ const GuestInvoicePage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          {invoice.sourceTableId ? (
+            <Link
+              to={buildGuestOrdersPath(invoice.sourceTableId)}
+              className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 hover:-translate-y-0.5"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+                boxShadow: 'var(--guest-shadow-soft)',
+              }}
+            >
+              {t('orderReview.viewOrders')}
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={handleDownloadPdf}

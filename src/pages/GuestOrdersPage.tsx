@@ -26,14 +26,47 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+type PeopleDraftState = Record<number, Record<number, number>>;
+
+const emptyPeopleDraft = (splitCount: number): PeopleDraftState => {
+  const draft: PeopleDraftState = {};
+  for (let personIndex = 1; personIndex <= splitCount; personIndex++) {
+    draft[personIndex] = {};
+  }
+  return draft;
+};
+
+const peopleDraftFromSplit = (split: InvoiceSplitSummary | null, splitCount: number): PeopleDraftState => {
+  const draft = emptyPeopleDraft(splitCount);
+  if (!split?.people) {
+    return draft;
+  }
+
+  split.people.forEach((person) => {
+    const personDraft: Record<number, number> = {};
+    person.items.forEach((item) => {
+      if (item.quantity > 0) {
+        personDraft[item.order_item_id] = item.quantity;
+      }
+    });
+    draft[person.person_index] = personDraft;
+  });
+
+  return draft;
+};
+
 const GuestOrdersPage: React.FC = () => {
   const { table_id } = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
   const { restaurant, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
+
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [invoiceSplit, setInvoiceSplit] = useState<InvoiceSplitSummary | null>(null);
-  const [splitMode, setSplitMode] = useState<InvoiceSplitMode>('by_each_order');
+  const [splitMode, setSplitMode] = useState<InvoiceSplitMode>('none');
   const [splitCountInput, setSplitCountInput] = useState('2');
+  const [activePersonIndex, setActivePersonIndex] = useState(1);
+  const [peopleDraft, setPeopleDraft] = useState<PeopleDraftState>({});
+  const [savedPeopleDraft, setSavedPeopleDraft] = useState<PeopleDraftState>({});
   const [splitSaving, setSplitSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +81,43 @@ const GuestOrdersPage: React.FC = () => {
   });
   const restaurantName = restaurant?.name || t('guestOrders.title');
   const canLoadOrders = Boolean(draft.tableSessionId && draft.guestAccessToken);
+
+  const splitFeatureEnabled = guestMenuResource.data?.restaurant?.feature_flags?.invoice_splitting === true;
+
+  const splitCount = useMemo(() => {
+    const parsed = Number(splitCountInput);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      return 1;
+    }
+    return Math.floor(parsed);
+  }, [splitCountInput]);
+
+  const applySplitToLocalState = (split: InvoiceSplitSummary | null) => {
+    setInvoiceSplit(split);
+
+    if (!split) {
+      setSplitMode('none');
+      setSplitCountInput('2');
+      setActivePersonIndex(1);
+      setPeopleDraft({});
+      setSavedPeopleDraft({});
+      return;
+    }
+
+    const nextMode: InvoiceSplitMode = split.mode ?? 'none';
+    setSplitMode(nextMode);
+
+    const nextSplitCount = split.split_count && split.split_count > 0
+      ? split.split_count
+      : 2;
+
+    setSplitCountInput(String(nextSplitCount));
+    setActivePersonIndex((previous) => Math.min(Math.max(previous, 1), nextSplitCount));
+
+    const nextDraft = peopleDraftFromSplit(split, nextSplitCount);
+    setPeopleDraft(nextDraft);
+    setSavedPeopleDraft(nextDraft);
+  };
 
   useEffect(() => {
     if (!activeTableId) {
@@ -64,9 +134,10 @@ const GuestOrdersPage: React.FC = () => {
         const sessionResponse = entry.data;
         if (!sessionResponse?.table) {
           setOrders([]);
-          setInvoiceSplit(null);
+          applySplitToLocalState(null);
           return;
         }
+
         if (!sessionResponse.table_session) {
           updateDraft({
             tableId: sessionResponse.table.number,
@@ -75,7 +146,7 @@ const GuestOrdersPage: React.FC = () => {
           });
           clearGuestAccess();
           setOrders([]);
-          setInvoiceSplit(null);
+          applySplitToLocalState(null);
           return;
         }
 
@@ -89,7 +160,7 @@ const GuestOrdersPage: React.FC = () => {
 
         if (!draft.guestAccessToken) {
           setOrders([]);
-          setInvoiceSplit(null);
+          applySplitToLocalState(null);
           return;
         }
 
@@ -99,21 +170,15 @@ const GuestOrdersPage: React.FC = () => {
         );
         setOrders(nextOrders);
 
-        const splitFeatureEnabled = sessionResponse.restaurant.feature_flags?.invoice_splitting === true;
-        if (splitFeatureEnabled) {
+        const splitEnabled = sessionResponse.restaurant.feature_flags?.invoice_splitting === true;
+        if (splitEnabled) {
           const split = await fetchGuestTableSessionInvoiceSplit(
             sessionResponse.table_session.id,
             draft.guestAccessToken
           );
-          setInvoiceSplit(split);
-          if (split.mode === 'equal') {
-            setSplitMode('equal');
-            setSplitCountInput(String(split.split_count ?? 2));
-          } else {
-            setSplitMode('by_each_order');
-          }
+          applySplitToLocalState(split);
         } else {
-          setInvoiceSplit(null);
+          applySplitToLocalState(null);
         }
       } catch (err: unknown) {
         const status = typeof err === 'object' && err !== null && 'response' in err
@@ -125,42 +190,110 @@ const GuestOrdersPage: React.FC = () => {
         }
 
         setError(getErrorMessage(err, t('guestOrders.failedLoad')));
-        setInvoiceSplit(null);
+        applySplitToLocalState(null);
       } finally {
         setLoading(false);
       }
     };
 
-    load();
-  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, updateDraft, t]);
+    void load();
+  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, t, updateDraft]);
 
-  const splitFeatureEnabled = guestMenuResource.data?.restaurant?.feature_flags?.invoice_splitting === true;
+  const editableItems = invoiceSplit?.editable_items ?? [];
 
-  const saveSplit = async () => {
+  const getAssignedByOtherPeople = (
+    draftState: PeopleDraftState,
+    orderItemId: number,
+    currentPerson: number
+  ): number => {
+    let assigned = 0;
+    Object.entries(draftState).forEach(([personIndexRaw, personItems]) => {
+      const personIndex = Number(personIndexRaw);
+      if (personIndex === currentPerson) {
+        return;
+      }
+      assigned += personItems[orderItemId] ?? 0;
+    });
+    return assigned;
+  };
+
+  const setPersonItemQuantity = (personIndex: number, orderItemId: number, nextQuantityRaw: number) => {
+    setPeopleDraft((current) => {
+      const next = { ...current };
+      const personItems = { ...(next[personIndex] ?? {}) };
+      const editableItem = editableItems.find((item) => item.order_item_id === orderItemId);
+      const available = editableItem?.quantity ?? 0;
+      const assignedByOthers = getAssignedByOtherPeople(current, orderItemId, personIndex);
+      const maxQuantity = Math.max(available - assignedByOthers, 0);
+      const nextQuantity = Math.min(Math.max(Math.floor(nextQuantityRaw), 0), maxQuantity);
+
+      if (nextQuantity === 0) {
+        delete personItems[orderItemId];
+      } else {
+        personItems[orderItemId] = nextQuantity;
+      }
+
+      next[personIndex] = personItems;
+      return next;
+    });
+  };
+
+  const buildPeoplePayload = (splitCountValue: number) => {
+    const payload: Array<{ person_index: number; items: Array<{ order_item_id: number; quantity: number }> }> = [];
+
+    for (let personIndex = 1; personIndex <= splitCountValue; personIndex++) {
+      const personItems = peopleDraft[personIndex] ?? {};
+      payload.push({
+        person_index: personIndex,
+        items: Object.entries(personItems)
+          .map(([orderItemId, quantity]) => ({
+            order_item_id: Number(orderItemId),
+            quantity: Number(quantity),
+          }))
+          .filter((item) => item.quantity > 0),
+      });
+    }
+
+    return payload;
+  };
+
+  const saveSplit = async (saveMode?: InvoiceSplitMode) => {
     if (!draft.tableSessionId || !draft.guestAccessToken || !splitFeatureEnabled) {
       return;
     }
 
-    if (splitMode === 'equal') {
-      const numericSplitCount = Number(splitCountInput);
-      if (!Number.isFinite(numericSplitCount) || !Number.isInteger(numericSplitCount) || numericSplitCount < 2) {
+    const effectiveMode = saveMode ?? splitMode;
+
+    if (effectiveMode === 'equal') {
+      if (splitCount < 2) {
         setError(t('guestOrders.invalidSplitCount', { defaultValue: 'Split count must be at least 2.' }));
+        return;
+      }
+    }
+
+    if (effectiveMode === 'by_person_order') {
+      if (splitCount < 1) {
+        setError(t('guestOrders.invalidSplitCount', { defaultValue: 'Split count must be at least 1.' }));
         return;
       }
     }
 
     setSplitSaving(true);
     setError(null);
+
     try {
       const nextSplit = await updateGuestTableSessionInvoiceSplit(
         draft.tableSessionId,
         {
-          mode: splitMode,
-          split_count: splitMode === 'equal' ? Number(splitCountInput) : undefined,
+          mode: effectiveMode,
+          split_count: effectiveMode === 'none' ? undefined : splitCount,
+          people: effectiveMode === 'by_person_order' ? buildPeoplePayload(splitCount) : undefined,
         },
         draft.guestAccessToken
       );
-      setInvoiceSplit(nextSplit);
+
+      applySplitToLocalState(nextSplit);
+      setSplitMode(effectiveMode);
     } catch (splitError: unknown) {
       setError(getErrorMessage(splitError, t('guestOrders.failedUpdateSplit', { defaultValue: 'Failed to update split settings.' })));
     } finally {
@@ -173,6 +306,14 @@ const GuestOrdersPage: React.FC = () => {
       sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0)
     ), 0)
   ), [orders]);
+
+  const unassignedItemsPreview = useMemo(() => {
+    if (!invoiceSplit?.remaining_items) {
+      return [];
+    }
+
+    return invoiceSplit.remaining_items;
+  }, [invoiceSplit?.remaining_items]);
 
   return (
     <GuestPageShell>
@@ -298,9 +439,45 @@ const GuestOrdersPage: React.FC = () => {
                   boxShadow: 'var(--guest-shadow)',
                 }}
               >
-                <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
-                  {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
-                </p>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+                    {t('guestOrders.splitSectionTitle', { defaultValue: 'Invoice Split' })}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={splitSaving}
+                      onClick={() => {
+                        setPeopleDraft(savedPeopleDraft);
+                        setError(null);
+                      }}
+                      className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                        color: 'var(--guest-text)',
+                      }}
+                    >
+                      {t('guestOrders.undoSplit', { defaultValue: 'Undo' })}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={splitSaving}
+                      onClick={() => {
+                        void saveSplit('none');
+                      }}
+                      className="inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold"
+                      style={{
+                        backgroundColor: 'var(--guest-panel-strong)',
+                        borderColor: 'var(--guest-border)',
+                        color: 'var(--guest-text)',
+                      }}
+                    >
+                      {t('guestOrders.clearSplit', { defaultValue: 'Clear Split' })}
+                    </button>
+                  </div>
+                </div>
+
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <label className="block">
                     <span className="mb-1 block text-sm text-[var(--guest-muted)]">
@@ -316,12 +493,9 @@ const GuestOrdersPage: React.FC = () => {
                         color: 'var(--guest-text)',
                       }}
                     >
-                      <option value="by_each_order">
-                        {t('guestOrders.splitModeByOrder', { defaultValue: 'By each person order' })}
-                      </option>
-                      <option value="equal">
-                        {t('guestOrders.splitModeEqual', { defaultValue: 'Split equally' })}
-                      </option>
+                      <option value="none">{t('guestOrders.splitModeNone', { defaultValue: 'No splitting' })}</option>
+                      <option value="equal">{t('guestOrders.splitModeEqual', { defaultValue: 'Split equally' })}</option>
+                      <option value="by_person_order">{t('guestOrders.splitModeByOrder', { defaultValue: 'By each person order' })}</option>
                     </select>
                   </label>
 
@@ -342,17 +516,19 @@ const GuestOrdersPage: React.FC = () => {
                   </button>
                 </div>
 
-                {splitMode === 'equal' ? (
+                {splitMode === 'equal' || splitMode === 'by_person_order' ? (
                   <div className="mt-3">
                     <label className="block">
                       <span className="mb-1 block text-sm text-[var(--guest-muted)]">
-                        {t('guestOrders.splitCountLabel', { defaultValue: 'Number of splits' })}
+                        {splitMode === 'equal'
+                          ? t('guestOrders.splitCountLabel', { defaultValue: 'Number of splits' })
+                          : t('guestOrders.guestCountLabel', { defaultValue: 'Number of guests' })}
                       </span>
                       <input
                         value={splitCountInput}
                         onChange={(event) => setSplitCountInput(event.target.value)}
                         type="number"
-                        min="2"
+                        min={splitMode === 'equal' ? '2' : '1'}
                         className="w-full rounded-full border px-4 py-2.5 text-sm outline-none"
                         style={{
                           backgroundColor: 'var(--guest-panel-strong)',
@@ -361,6 +537,120 @@ const GuestOrdersPage: React.FC = () => {
                         }}
                       />
                     </label>
+                  </div>
+                ) : null}
+
+                {splitMode === 'by_person_order' && editableItems.length > 0 ? (
+                  <div className="mt-4 rounded-[22px] border border-[var(--guest-border)] bg-[var(--guest-panel-strong)] p-4">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {Array.from({ length: splitCount }).map((_, index) => {
+                        const personIndex = index + 1;
+                        const isActive = personIndex === activePersonIndex;
+                        return (
+                          <button
+                            key={`person-${personIndex}`}
+                            type="button"
+                            onClick={() => setActivePersonIndex(personIndex)}
+                            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                            style={{
+                              backgroundColor: isActive ? 'var(--guest-accent-soft)' : 'transparent',
+                              borderColor: 'var(--guest-border)',
+                              color: 'var(--guest-text)',
+                            }}
+                          >
+                            {t('guestOrders.personLabel', { index: personIndex, defaultValue: `Person ${personIndex}` })}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="space-y-2">
+                      {editableItems.map((item) => {
+                        const currentQuantity = peopleDraft[activePersonIndex]?.[item.order_item_id] ?? 0;
+                        const assignedByOthers = getAssignedByOtherPeople(peopleDraft, item.order_item_id, activePersonIndex);
+                        const maxQuantity = Math.max(item.quantity - assignedByOthers, 0);
+                        const remainingQuantity = Math.max(item.quantity - assignedByOthers - currentQuantity, 0);
+
+                        return (
+                          <div
+                            key={`split-item-${item.order_item_id}`}
+                            className="rounded-[18px] border px-3 py-2.5"
+                            style={{
+                              borderColor: 'var(--guest-border)',
+                              backgroundColor: 'var(--guest-panel)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-[var(--guest-text)]">{item.dish_name}</p>
+                                <p className="text-xs text-[var(--guest-muted)]">
+                                  {t('guestOrders.itemQtyPrice', {
+                                    defaultValue: 'Qty {{qty}} • ${{price}} each',
+                                    qty: item.quantity,
+                                    price: item.unit_price,
+                                  })}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setPersonItemQuantity(activePersonIndex, item.order_item_id, currentQuantity - 1)}
+                                  className="h-8 w-8 rounded-full border"
+                                  style={{ borderColor: 'var(--guest-border)', color: 'var(--guest-text)' }}
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={String(maxQuantity)}
+                                  value={String(currentQuantity)}
+                                  onChange={(event) => setPersonItemQuantity(activePersonIndex, item.order_item_id, Number(event.target.value))}
+                                  className="w-16 rounded-full border px-2 py-1 text-center text-sm"
+                                  style={{
+                                    borderColor: 'var(--guest-border)',
+                                    backgroundColor: 'var(--guest-panel-strong)',
+                                    color: 'var(--guest-text)',
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setPersonItemQuantity(activePersonIndex, item.order_item_id, currentQuantity + 1)}
+                                  className="h-8 w-8 rounded-full border"
+                                  style={{ borderColor: 'var(--guest-border)', color: 'var(--guest-text)' }}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <p className="mt-2 text-xs text-[var(--guest-muted)]">
+                              {t('guestOrders.remainingForItem', {
+                                defaultValue: 'Remaining unassigned: {{count}}',
+                                count: remainingQuantity,
+                              })}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={splitSaving}
+                        onClick={() => void saveSplit('by_person_order')}
+                        className="inline-flex rounded-full border px-4 py-2 text-sm font-semibold"
+                        style={{
+                          backgroundColor: 'var(--guest-text)',
+                          borderColor: 'var(--guest-text)',
+                          color: 'var(--guest-bg)',
+                        }}
+                      >
+                        {t('guestOrders.savePersonSplit', { defaultValue: 'Save Person' })}
+                      </button>
+                    </div>
                   </div>
                 ) : null}
 
@@ -380,6 +670,29 @@ const GuestOrdersPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                ) : null}
+
+                {splitMode === 'by_person_order' && unassignedItemsPreview.length > 0 ? (
+                  <div className="mt-4 rounded-[22px] border border-[var(--guest-border)] bg-[var(--guest-panel-strong)] p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--guest-accent)]">
+                      {t('guestOrders.unassignedItems', { defaultValue: 'Remaining Unassigned Items' })}
+                    </p>
+                    <div className="mt-2 space-y-1 text-sm text-[var(--guest-muted)]">
+                      {unassignedItemsPreview.map((item) => (
+                        <p key={`unassigned-${item.order_item_id}`}>
+                          {item.dish_name}: {item.remaining_quantity}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {splitMode === 'by_person_order' ? (
+                  <p className="mt-3 text-xs text-[var(--guest-muted)]">
+                    {invoiceSplit?.is_complete
+                      ? t('guestOrders.splitComplete', { defaultValue: 'Split is fully assigned and saved.' })
+                      : t('guestOrders.splitIncomplete', { defaultValue: 'Assign all remaining quantities and save to complete split.' })}
+                  </p>
                 ) : null}
               </div>
             ) : null}

@@ -62,6 +62,7 @@ interface TableSessionActionResponse {
     notes: string[];
     items: Array<{
       key: string;
+      order_item_id?: number;
       dish_name: string;
       dish_name_ar?: string | null;
       quantity: number;
@@ -216,7 +217,14 @@ export const fetchGuestTableSessionInvoiceSplit = async (
 
 export const updateGuestTableSessionInvoiceSplit = async (
   sessionId: number | string,
-  payload: { mode: InvoiceSplitMode; split_count?: number },
+  payload: {
+    mode: InvoiceSplitMode;
+    split_count?: number;
+    people?: Array<{
+      person_index: number;
+      items: Array<{ order_item_id: number; quantity: number }>;
+    }>;
+  },
   guestAccessToken?: string | null
 ): Promise<InvoiceSplitSummary> => {
   const response = await api.patch<InvoiceSplitResponse>(`/table-session/${sessionId}/invoice-split`, payload, {

@@ -889,6 +889,12 @@ const AccountingOrdersPage: React.FC = () => {
                       <p className="mt-3 text-sm text-muted">
                         {t('accountingPage.loadingSplit', { defaultValue: 'Loading split breakdown...' })}
                       </p>
+                    ) : sessionInvoiceSplit?.mode === 'by_person_order' && sessionInvoiceSplit.is_complete === false ? (
+                      <p className="mt-3 text-sm text-muted">
+                        {t('accountingPage.splitIncompleteGuest', {
+                          defaultValue: 'Guest split is not fully saved yet. Accountant view updates after all items are assigned.',
+                        })}
+                      </p>
                     ) : sessionInvoiceSplit?.enabled && sessionInvoiceSplit.breakdown.length > 0 ? (
                       <div className="mt-3 space-y-2">
                         {sessionInvoiceSplit.breakdown.map((item) => (

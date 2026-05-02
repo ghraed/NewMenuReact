@@ -7,7 +7,7 @@ export type DiscountType = 'fixed' | 'percentage';
 export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
-export type InvoiceSplitMode = 'by_each_order' | 'equal';
+export type InvoiceSplitMode = 'none' | 'equal' | 'by_person_order';
 export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 
@@ -276,11 +276,40 @@ export interface InvoiceSplitBreakdownItem {
   amount: string;
 }
 
+export interface InvoiceSplitPersonItem {
+  order_item_id: number;
+  dish_name: string;
+  quantity: number;
+  unit_price: string;
+  line_subtotal: string;
+}
+
+export interface InvoiceSplitPerson {
+  person_index: number;
+  label: string;
+  total: string;
+  items: InvoiceSplitPersonItem[];
+}
+
+export interface InvoiceSplitEditableItem {
+  order_item_id: number;
+  key: string;
+  dish_name: string;
+  quantity: number;
+  unit_price: string;
+  line_subtotal: string;
+  remaining_quantity?: number;
+}
+
 export interface InvoiceSplitSummary {
   enabled: boolean;
   mode: InvoiceSplitMode | null;
   split_count: number | null;
   breakdown: InvoiceSplitBreakdownItem[];
+  people?: InvoiceSplitPerson[];
+  editable_items?: InvoiceSplitEditableItem[];
+  remaining_items?: InvoiceSplitEditableItem[];
+  is_complete?: boolean;
 }
 
 export interface GuestAccessSummary {
