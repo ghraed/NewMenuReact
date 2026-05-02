@@ -237,26 +237,7 @@ const GuestWaveButton: React.FC = () => {
               boxShadow: 'var(--guest-shadow-soft)',
             }}
           >
-            <div className="flex items-start gap-2 p-2.5">
-              <div
-                className="flex flex-col items-start gap-2 rounded-full border px-3 py-2"
-                style={{
-                  backgroundColor: 'rgb(255 255 255 / 52%)',
-                  borderColor: 'rgb(255 255 255 / 32%)',
-                }}
-              >
-                <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">BootChat</span>
-                {canRequestBill ? (
-                  <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">
-                    {t('guestAccess.requestBill')}
-                  </span>
-                ) : null}
-                <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">
-                  {t('cart.itemsInCart', { count: totalItems })}
-                </span>
-              </div>
-
-              <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-2 p-2.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -330,7 +311,6 @@ const GuestWaveButton: React.FC = () => {
                     </span>
                   ) : null}
                 </button>
-              </div>
             </div>
           </div>
 
