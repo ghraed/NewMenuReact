@@ -2,7 +2,6 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import { useGuestTheme } from '../../hooks/useGuestTheme';
 import { getGuestThemeStyle } from './guestTheme';
-import GuestCartShortcut from './GuestCartShortcut';
 import GuestWaveButton from './GuestWaveButton';
 
 interface GuestPageShellProps {
@@ -23,7 +22,6 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
     >
       <div className="relative z-10">{children}</div>
       <GuestWaveButton />
-      <GuestCartShortcut />
     </div>
   );
 };

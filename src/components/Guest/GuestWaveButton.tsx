@@ -6,6 +6,7 @@ import { useOrderCart } from '../../contexts/useOrderCart';
 import { callGuestTableWaiter, requestGuestTableBill } from '../../services/orderService';
 import { savePrintableInvoice } from '../../utils/printableInvoice';
 import { useGuestMenuResource } from '../../contexts/GuestMenuResourceContext';
+import { buildGuestOrderReviewPath } from '../../utils/guestTableRoutes';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -23,9 +24,10 @@ const GuestWaveButton: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
-  const { totalItems, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
+  const { totalItems, subtotal, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
   const [activeAction, setActiveAction] = useState<'waiter' | 'bill' | null>(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [canCallWaiter, setCanCallWaiter] = useState(false);
   const [canRequestBill, setCanRequestBill] = useState(false);
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
@@ -41,10 +43,16 @@ const GuestWaveButton: React.FC = () => {
     ttlMs: 10_000,
   });
 
-  const wrapperClassName = useMemo(() => (
+  const actionWrapperClassName = useMemo(() => (
     hasCartShortcut
       ? 'pointer-events-none fixed inset-x-4 bottom-20 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-24 sm:justify-end'
       : 'pointer-events-none fixed inset-x-4 bottom-4 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end'
+  ), [hasCartShortcut]);
+
+  const waveWrapperClassName = useMemo(() => (
+    hasCartShortcut
+      ? 'pointer-events-none fixed bottom-20 left-4 z-40 sm:bottom-24 sm:left-6'
+      : 'pointer-events-none fixed bottom-4 left-4 z-40 sm:bottom-6 sm:left-6'
   ), [hasCartShortcut]);
 
   const ensureSessionId = async (): Promise<number | null> => {
@@ -194,42 +202,119 @@ const GuestWaveButton: React.FC = () => {
 
   return (
     <>
-      <div className={wrapperClassName}>
-        <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
-          {canCallWaiter ? (
-            <button
-              type="button"
-              onClick={() => handleProtectedAction('waiter')}
-              disabled={activeAction !== null}
-              className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{
-                backgroundColor: 'rgb(212 175 55 / 80%)',
-                borderColor: 'var(--guest-border)',
-                color: 'var(--guest-text)',
-                boxShadow: 'var(--guest-shadow-soft)',
-              }}
-            >
-              <span aria-hidden="true" className="text-base leading-none">👋</span>
-              <span>{activeAction === 'waiter' ? t('wave.buttonSending') : t('wave.buttonIdle')}</span>
-            </button>
-          ) : null}
+      {canCallWaiter ? (
+        <div className={waveWrapperClassName}>
+          <button
+            type="button"
+            onClick={() => handleProtectedAction('waiter')}
+            disabled={activeAction !== null}
+            className="pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full border text-lg transition duration-300 hover:-translate-y-0.5 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              backgroundColor: 'rgb(212 175 55 / 85%)',
+              borderColor: 'var(--guest-border)',
+              color: 'var(--guest-text)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+            aria-label={activeAction === 'waiter' ? t('wave.buttonSending') : t('wave.buttonIdle')}
+          >
+            <span aria-hidden="true" className="leading-none">👋</span>
+          </button>
+        </div>
+      ) : null}
 
-          {canRequestBill ? (
-            <button
-              type="button"
-              onClick={() => handleProtectedAction('bill')}
-              disabled={activeAction !== null}
-              className="inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-              style={{
-                backgroundColor: 'var(--guest-panel)',
-                borderColor: 'var(--guest-border)',
-                color: 'var(--guest-text)',
-                boxShadow: 'var(--guest-shadow-soft)',
-              }}
+      <div className={actionWrapperClassName}>
+        <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
+          <div
+            className={[
+              'w-[min(88vw,320px)] overflow-hidden rounded-2xl border transition-all duration-300 ease-out sm:w-72',
+              isActionsOpen ? 'max-h-72 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2 pointer-events-none',
+            ].join(' ')}
+            style={{
+              backgroundColor: 'rgb(255 255 255 / 38%)',
+              borderColor: 'rgb(255 255 255 / 30%)',
+              backdropFilter: 'blur(14px)',
+              WebkitBackdropFilter: 'blur(14px)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+          >
+            <div className="space-y-2 p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new Event('guest-chatbot:open'));
+                  setIsActionsOpen(false);
+                }}
+                className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5"
+                style={{
+                  backgroundColor: 'rgb(255 255 255 / 62%)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-text)',
+                }}
+              >
+                <span>Bootchat</span>
+                <span aria-hidden="true">💬</span>
+              </button>
+
+              {canRequestBill ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleProtectedAction('bill');
+                    setIsActionsOpen(false);
+                  }}
+                  disabled={activeAction !== null}
+                  className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    backgroundColor: 'rgb(255 255 255 / 62%)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-text)',
+                  }}
+                >
+                  <span>{activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}</span>
+                  <span aria-hidden="true">🧾</span>
+                </button>
+              ) : null}
+
+              {hasCartShortcut ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate(buildGuestOrderReviewPath(activeTableId));
+                    setIsActionsOpen(false);
+                  }}
+                  className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5"
+                  style={{
+                    backgroundColor: 'rgb(255 255 255 / 62%)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-text)',
+                  }}
+                >
+                  <span>{t('cart.itemsInCart', { count: totalItems })}</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsActionsOpen((open) => !open)}
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full border text-2xl font-semibold transition duration-300 hover:-translate-y-0.5 hover:scale-105"
+            style={{
+              backgroundColor: 'rgb(15 23 42 / 92%)',
+              borderColor: 'rgb(255 255 255 / 30%)',
+              color: '#fff',
+              boxShadow: 'var(--guest-shadow)',
+            }}
+            aria-label={isActionsOpen ? 'Close quick actions' : 'Open quick actions'}
+          >
+            <span
+              className="inline-block transition-transform duration-300"
+              style={{ transform: isActionsOpen ? 'rotate(45deg)' : 'rotate(0deg)' }}
             >
-              <span>{activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}</span>
-            </button>
-          ) : null}
+              +
+            </span>
+          </button>
         </div>
       </div>
 

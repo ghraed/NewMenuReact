@@ -584,6 +584,18 @@ const ChatBot: React.FC = () => {
   }, [isOpen]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const openFromGuestActions = () => setIsOpen(true);
+    window.addEventListener('guest-chatbot:open', openFromGuestActions);
+    return () => {
+      window.removeEventListener('guest-chatbot:open', openFromGuestActions);
+    };
+  }, []);
+
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
       chatRequestAbortRef.current?.abort();
@@ -1194,7 +1206,7 @@ const ChatBot: React.FC = () => {
             </form>
           </div>
         </div>
-      ) : (
+      ) : isGuestMenuRoute ? null : (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
