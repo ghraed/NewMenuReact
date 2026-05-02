@@ -479,6 +479,18 @@ export interface FinanceInvoice {
   items: FinanceInvoiceItem[];
 }
 
+export interface FinanceInvoiceDetails extends FinanceInvoice {
+  table_reference?: string | null;
+  waiter_name?: string | null;
+  waiter?: OrderActorSummary | null;
+  discount_type?: DiscountType | null;
+  discount_value?: string;
+  discount_amount?: string;
+  taxable_subtotal?: string;
+  vat_rate?: string;
+  vat_amount?: string;
+}
+
 export interface FinanceRevenuePoint {
   bucket: string;
   label: string;

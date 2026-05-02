@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   BarElement,
   CategoryScale,
@@ -74,6 +75,7 @@ const parseNonNegativeNumber = (value: string): number | null => {
 };
 
 const AdminFinanceDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const currency = user?.restaurant?.currency ?? 'USD';
 
@@ -592,7 +594,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
                         </td>
                       </tr>
                     ) : invoices.map((invoice) => (
-                      <tr key={invoice.id} className="border-t border-stroke/70 bg-bg1/45 transition hover:bg-bg1/62">
+                      <tr
+                        key={invoice.id}
+                        className="cursor-pointer border-t border-stroke/70 bg-bg1/45 transition hover:bg-bg1/62"
+                        onClick={() => navigate(`/admin/finance/invoices/${invoice.id}`)}
+                      >
                         <td className="px-4 py-4">
                           <p className="font-semibold text-text">{invoice.invoice_number}</p>
                           {invoice.notes ? (
@@ -609,7 +615,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
                         <td className="px-4 py-4">
                           <select
                             value={invoice.status}
+                            onClick={(event) => event.stopPropagation()}
                             onChange={(event) => {
+                              event.stopPropagation();
                               const nextStatus = event.target.value as FinanceInvoiceStatus;
                               void handleStatusUpdate(invoice.id, nextStatus);
                             }}

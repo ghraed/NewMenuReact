@@ -1,5 +1,5 @@
 import api from './api';
-import type { FinanceInvoice, FinanceInvoiceStatus, FinanceRevenuePoint } from '../types';
+import type { FinanceInvoice, FinanceInvoiceDetails, FinanceInvoiceStatus, FinanceRevenuePoint } from '../types';
 
 export interface InvoiceListFilters {
   date_from?: string;
@@ -80,6 +80,11 @@ export const createInvoice = async (payload: CreateInvoicePayload): Promise<Fina
 
 export const updateInvoice = async (invoiceId: number, payload: UpdateInvoicePayload): Promise<FinanceInvoice> => {
   const response = await api.patch<InvoiceMutationResponse>(`/admin/finance/invoices/${invoiceId}`, payload);
+  return response.data.invoice;
+};
+
+export const fetchInvoiceById = async (invoiceId: number | string): Promise<FinanceInvoiceDetails> => {
+  const response = await api.get<{ invoice: FinanceInvoiceDetails }>(`/admin/finance/invoices/${invoiceId}`);
   return response.data.invoice;
 };
 
