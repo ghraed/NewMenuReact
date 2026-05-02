@@ -96,6 +96,15 @@ const sortByRecommendationPriority = (list: Dish[]): Dish[] => {
   return withIndex.map((entry) => entry.dish);
 };
 
+const pickProfitableRelatedDishes = (list: Dish[]): Dish[] => {
+  const profitableRelated = list.filter((candidate) => candidate.is_profitable === true);
+  if (profitableRelated.length > 0) {
+    return sortByRecommendationPriority(profitableRelated);
+  }
+
+  return sortByRecommendationPriority(list);
+};
+
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
@@ -359,7 +368,7 @@ const GuestDishListPage: React.FC = () => {
 
     const relatedMatchesRaw = takeOrderable(detailDish?.related_dishes || sourceDish.related_dishes || []);
     const relatedMatches = aiRecommendationsEnabled
-      ? sortByRecommendationPriority(relatedMatchesRaw)
+      ? pickProfitableRelatedDishes(relatedMatchesRaw)
       : relatedMatchesRaw;
 
     if (relatedMatches.length > 0) {

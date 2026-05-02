@@ -41,6 +41,15 @@ const sortByRecommendationPriority = (list: Dish[]): Dish[] => {
   return withIndex.map((entry) => entry.dish);
 };
 
+const pickProfitableRelatedDishes = (list: Dish[]): Dish[] => {
+  const profitableRelated = list.filter((candidate) => candidate.is_profitable === true);
+  if (profitableRelated.length > 0) {
+    return sortByRecommendationPriority(profitableRelated);
+  }
+
+  return sortByRecommendationPriority(list);
+};
+
 const DishDetailView: React.FC<DishDetailViewProps> = ({
   dish,
   tableId,
@@ -65,7 +74,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
     ? sortByRecommendationPriority(dish.suggested_dishes || [])
     : [];
   const relatedDishes = aiRecommendationsEnabled
-    ? sortByRecommendationPriority(dish.related_dishes || [])
+    ? pickProfitableRelatedDishes(dish.related_dishes || [])
     : [];
   const sections = [
     { title: t('dishDetail.description'), content: dish.description },
