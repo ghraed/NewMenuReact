@@ -24,7 +24,7 @@ const GuestWaveButton: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
-  const { totalItems, subtotal, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
+  const { totalItems, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
   const [activeAction, setActiveAction] = useState<'waiter' | 'bill' | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
@@ -45,8 +45,8 @@ const GuestWaveButton: React.FC = () => {
 
   const actionWrapperClassName = useMemo(() => (
     hasCartShortcut
-      ? 'pointer-events-none fixed inset-x-4 bottom-20 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-24 sm:justify-end'
-      : 'pointer-events-none fixed inset-x-4 bottom-4 z-40 flex justify-center sm:inset-x-auto sm:right-6 sm:bottom-6 sm:justify-end'
+      ? 'pointer-events-none fixed bottom-20 right-4 z-40 sm:bottom-24 sm:right-6'
+      : 'pointer-events-none fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6'
   ), [hasCartShortcut]);
 
   const waveWrapperClassName = useMemo(() => (
@@ -226,7 +226,7 @@ const GuestWaveButton: React.FC = () => {
         <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
           <div
             className={[
-              'w-[min(88vw,320px)] overflow-hidden rounded-2xl border transition-all duration-300 ease-out sm:w-72',
+              'overflow-hidden rounded-2xl border transition-all duration-300 ease-out',
               isActionsOpen ? 'max-h-72 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2 pointer-events-none',
             ].join(' ')}
             style={{
@@ -237,22 +237,24 @@ const GuestWaveButton: React.FC = () => {
               boxShadow: 'var(--guest-shadow-soft)',
             }}
           >
-            <div className="space-y-2 p-3">
+            <div className="flex items-center gap-2 p-2.5">
               <button
                 type="button"
                 onClick={() => {
                   window.dispatchEvent(new Event('guest-chatbot:open'));
                   setIsActionsOpen(false);
                 }}
-                className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5"
                 style={{
                   backgroundColor: 'rgb(255 255 255 / 62%)',
                   borderColor: 'var(--guest-border)',
                   color: 'var(--guest-text)',
                 }}
+                aria-label="Open BootChat"
               >
-                <span>Bootchat</span>
-                <span aria-hidden="true">💬</span>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-7 5 2.8-2.2c.3-.2.7-.3 1-.3H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v6a3 3 0 0 0 3 3v3Z" />
+                </svg>
               </button>
 
               {canRequestBill ? (
@@ -263,36 +265,52 @@ const GuestWaveButton: React.FC = () => {
                     setIsActionsOpen(false);
                   }}
                   disabled={activeAction !== null}
-                  className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                   style={{
                     backgroundColor: 'rgb(255 255 255 / 62%)',
                     borderColor: 'var(--guest-border)',
                     color: 'var(--guest-text)',
                   }}
+                  aria-label={activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}
                 >
-                  <span>{activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}</span>
-                  <span aria-hidden="true">🧾</span>
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10v18l-2.25-1.6L12 21l-2.75-1.6L7 21V3Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
+                  </svg>
                 </button>
               ) : null}
 
-              {hasCartShortcut ? (
-                <button
-                  type="button"
-                  onClick={() => {
+              <button
+                type="button"
+                onClick={() => {
+                  if (hasCartShortcut) {
                     navigate(buildGuestOrderReviewPath(activeTableId));
-                    setIsActionsOpen(false);
-                  }}
-                  className="inline-flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition duration-200 hover:translate-x-0.5"
-                  style={{
-                    backgroundColor: 'rgb(255 255 255 / 62%)',
-                    borderColor: 'var(--guest-border)',
-                    color: 'var(--guest-text)',
-                  }}
-                >
-                  <span>{t('cart.itemsInCart', { count: totalItems })}</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </button>
-              ) : null}
+                  }
+                  setIsActionsOpen(false);
+                }}
+                disabled={!hasCartShortcut}
+                className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  backgroundColor: 'rgb(255 255 255 / 62%)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-text)',
+                }}
+                aria-label={t('cart.itemsInCart', { count: totalItems })}
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H7" />
+                  <circle cx="10" cy="19" r="1.4" />
+                  <circle cx="17" cy="19" r="1.4" />
+                </svg>
+                {totalItems > 0 ? (
+                  <span
+                    className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                    style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
+                  >
+                    {totalItems > 99 ? '99+' : totalItems}
+                  </span>
+                ) : null}
+              </button>
             </div>
           </div>
 
