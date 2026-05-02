@@ -112,7 +112,6 @@ const AccountingOrdersPage: React.FC = () => {
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
   const [tables, setTables] = useState<RestaurantTableSummary[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
-  const [invoiceTable, setInvoiceTable] = useState('');
   const [visibleInvoiceTable, setVisibleInvoiceTable] = useState('');
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
@@ -372,7 +371,7 @@ const AccountingOrdersPage: React.FC = () => {
       : null
   ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
 
-  const isViewingSelectedInvoice = selectedTable !== '' && invoiceTable === selectedTable;
+  const isViewingSelectedInvoice = selectedTable !== '' && selectedTableOrders.length > 0;
   const isShowingSelectedInvoicePreview = isViewingSelectedInvoice && visibleInvoiceTable === selectedTable;
 
   const selectedTableLineItems = useMemo(() => {
@@ -456,7 +455,6 @@ const AccountingOrdersPage: React.FC = () => {
         'secondary',
         4200
       );
-      setInvoiceTable('');
       setVisibleInvoiceTable('');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('accountingPage.failedFinalize', { table: selectedTable })));
@@ -553,7 +551,6 @@ const AccountingOrdersPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedTable('');
-                    setInvoiceTable('');
                     setVisibleInvoiceTable('');
                     setTableSearchQuery('');
                     setIsTableMenuOpen(false);
@@ -583,9 +580,6 @@ const AccountingOrdersPage: React.FC = () => {
                         type="button"
                         onClick={() => {
                           setSelectedTable(table.name);
-                          if (invoiceTable !== table.name) {
-                            setInvoiceTable('');
-                          }
                           if (visibleInvoiceTable !== table.name) {
                             setVisibleInvoiceTable('');
                           }
@@ -637,18 +631,6 @@ const AccountingOrdersPage: React.FC = () => {
                 <p className="text-sm text-muted">{t('accountingPage.ordersInQueue', { count: selectedTableStats.orderCount })}</p>
                 <p className="mt-1 text-lg font-semibold text-text">${selectedTableStats.subtotal.toFixed(2)}</p>
               </div>
-              <LiquidButton
-                tone="primary"
-                onClick={() => {
-                  setInvoiceTable(selectedTable);
-                  if (visibleInvoiceTable !== selectedTable) {
-                    setVisibleInvoiceTable('');
-                  }
-                }}
-                disabled={selectedTableStats.orderCount === 0}
-              >
-                {isViewingSelectedInvoice ? t('accountingPage.invoiceReady') : t('accountingPage.createInvoice')}
-              </LiquidButton>
             </div>
           </div>
         </GlassCard>
@@ -676,16 +658,6 @@ const AccountingOrdersPage: React.FC = () => {
           </h3>
           <p className="text-muted">
             {t('accountingPage.noOrdersHint')}
-          </p>
-        </div>
-      ) : null}
-
-      {!loading && selectedTable && filteredOrders.length > 0 && !isViewingSelectedInvoice ? (
-        <div className="py-12 text-center">
-          <div className="mb-4 text-5xl">🧾</div>
-          <h3 className="mb-2 text-xl font-medium text-text">{t('accountingPage.readyToCreateInvoice', { table: selectedTable })}</h3>
-          <p className="text-muted">
-            {t('accountingPage.readyToCreateInvoiceHint')}
           </p>
         </div>
       ) : null}
