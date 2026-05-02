@@ -8,55 +8,16 @@ const GuestInvoicePage: React.FC = () => {
   const { t } = useTranslation();
   const invoice = useMemo(() => loadPrintableInvoice(), []);
 
-  const handleSaveBill = () => {
+  const handleDownloadPdf = () => {
     if (!invoice || typeof window === 'undefined') {
       return;
     }
 
-    const lines: string[] = [
-      invoice.restaurantName,
-      t('invoice.tableTitle', { table: invoice.tableName }),
-      `${t('invoice.preview')}: ${invoice.generatedAt}`,
-      '',
-      t('accountingPage.invoiceItems'),
-      ...invoice.items.map((item) => (
-        `${item.quantity} x ${item.dishName}  |  ${item.unitPrice}  |  ${item.lineSubtotal}`
-      )),
-      '',
-      t('accountingPage.invoiceSummary'),
-      `Subtotal: ${invoice.summary.subtotal}`,
-      `${invoice.summary.discountLabel}: - ${invoice.summary.discountAmount}`,
-      `Taxable: ${invoice.summary.taxableSubtotal}`,
-      `${invoice.summary.vatLabel}: + ${invoice.summary.vatAmount}`,
-      `Total: ${invoice.summary.total}`,
-    ];
-
-    if (invoice.notes.length > 0) {
-      lines.push('', t('invoice.notes'), ...invoice.notes.map((note) => `- ${note}`));
+    const printUrl = `${window.location.origin}/invoice/print`;
+    const printWindow = window.open(printUrl, '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      window.location.assign(printUrl);
     }
-
-    if (invoice.includedOrders.length > 0) {
-      lines.push('', t('invoice.includedOrders'), ...invoice.includedOrders.map((order) => `- ${order}`));
-    }
-
-    const fileContent = lines.join('\n');
-    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const safeRestaurant = invoice.restaurantName.replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '').toLowerCase() || 'restaurant';
-    const safeTable = String(invoice.tableName).replace(/[^a-z0-9]+/gi, '-').replace(/(^-|-$)/g, '').toLowerCase() || 'table';
-    const fileName = `${safeRestaurant}-${safeTable}-bill.txt`;
-
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.rel = 'noopener';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-
-    window.setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 1000);
   };
 
   if (!invoice) {
@@ -82,7 +43,7 @@ const GuestInvoicePage: React.FC = () => {
         <div className="mb-4 flex justify-end">
           <button
             type="button"
-            onClick={handleSaveBill}
+            onClick={handleDownloadPdf}
             className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition duration-200 hover:-translate-y-0.5"
             style={{
               backgroundColor: 'var(--guest-panel)',
@@ -91,7 +52,7 @@ const GuestInvoicePage: React.FC = () => {
               boxShadow: 'var(--guest-shadow-soft)',
             }}
           >
-            {t('guestInvoice.saveBill', { defaultValue: 'Save Bill' })}
+            {t('guestInvoice.downloadPdf', { defaultValue: 'Download PDF' })}
           </button>
         </div>
         <InvoiceTemplate invoice={invoice} variant="guest" />
