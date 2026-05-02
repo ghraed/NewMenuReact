@@ -464,7 +464,7 @@ const AccountingOrdersPage: React.FC = () => {
   };
 
   const handlePrintInvoice = () => {
-    if (typeof window === 'undefined' || !isShowingSelectedInvoicePreview || !selectedTablePreview) {
+    if (typeof window === 'undefined' || !selectedTablePreview || !selectedTable || selectedTableOrders.length === 0) {
       return;
     }
 
@@ -822,7 +822,7 @@ const AccountingOrdersPage: React.FC = () => {
                 <LiquidButton
                   tone="secondary"
                   onClick={handlePrintInvoice}
-                  disabled={!isShowingSelectedInvoicePreview || processingTarget === `table:${selectedTable}`}
+                  disabled={processingTarget === `table:${selectedTable}`}
                 >
                   {t('accountingPage.printInvoice')}
                 </LiquidButton>
