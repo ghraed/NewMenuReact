@@ -42,8 +42,10 @@ export const resolveAssetUrl = (url?: string | null): string | undefined => {
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);
-      const parsedApiOrigin = new URL(apiOrigin);
-      if (parsed.origin === apiOrigin || parsed.hostname === parsedApiOrigin.hostname) {
+      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+      // Only collapse to a relative URL when the asset is truly same-origin with the current page.
+      // Keep absolute URLs for cross-origin frontend deployments (e.g. app on another domain/subdomain).
+      if (currentOrigin && parsed.origin === currentOrigin) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
       }
     } catch {
