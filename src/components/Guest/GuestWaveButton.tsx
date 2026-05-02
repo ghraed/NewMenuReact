@@ -237,80 +237,100 @@ const GuestWaveButton: React.FC = () => {
               boxShadow: 'var(--guest-shadow-soft)',
             }}
           >
-            <div className="flex flex-col items-center gap-2 p-2.5">
-              <button
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new Event('guest-chatbot:open'));
-                  setIsActionsOpen(false);
-                }}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5"
+            <div className="flex items-start gap-2 p-2.5">
+              <div
+                className="flex flex-col items-start gap-2 rounded-full border px-3 py-2"
                 style={{
-                  backgroundColor: 'rgb(255 255 255 / 62%)',
-                  borderColor: 'var(--guest-border)',
-                  color: 'var(--guest-text)',
+                  backgroundColor: 'rgb(255 255 255 / 52%)',
+                  borderColor: 'rgb(255 255 255 / 32%)',
                 }}
-                aria-label="Open BootChat"
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-7 5 2.8-2.2c.3-.2.7-.3 1-.3H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v6a3 3 0 0 0 3 3v3Z" />
-                </svg>
-              </button>
+                <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">BootChat</span>
+                {canRequestBill ? (
+                  <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">
+                    {t('guestAccess.requestBill')}
+                  </span>
+                ) : null}
+                <span className="inline-flex h-12 items-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--guest-text)]">
+                  {t('cart.itemsInCart', { count: totalItems })}
+                </span>
+              </div>
 
-              {canRequestBill ? (
+              <div className="flex flex-col items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    void handleProtectedAction('bill');
+                    window.dispatchEvent(new Event('guest-chatbot:open'));
                     setIsActionsOpen(false);
                   }}
-                  disabled={activeAction !== null}
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5"
                   style={{
                     backgroundColor: 'rgb(255 255 255 / 62%)',
                     borderColor: 'var(--guest-border)',
                     color: 'var(--guest-text)',
                   }}
-                  aria-label={activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}
+                  aria-label="Open BootChat"
                 >
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10v18l-2.25-1.6L12 21l-2.75-1.6L7 21V3Z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h8M8 14h5m-7 5 2.8-2.2c.3-.2.7-.3 1-.3H18a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H6A3 3 0 0 0 3 7v6a3 3 0 0 0 3 3v3Z" />
                   </svg>
                 </button>
-              ) : null}
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (hasCartShortcut) {
-                    navigate(buildGuestOrderReviewPath(activeTableId));
-                  }
-                  setIsActionsOpen(false);
-                }}
-                disabled={!hasCartShortcut}
-                className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                style={{
-                  backgroundColor: 'rgb(255 255 255 / 62%)',
-                  borderColor: 'var(--guest-border)',
-                  color: 'var(--guest-text)',
-                }}
-                aria-label={t('cart.itemsInCart', { count: totalItems })}
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H7" />
-                  <circle cx="10" cy="19" r="1.4" />
-                  <circle cx="17" cy="19" r="1.4" />
-                </svg>
-                {totalItems > 0 ? (
-                  <span
-                    className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
-                    style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
+                {canRequestBill ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleProtectedAction('bill');
+                      setIsActionsOpen(false);
+                    }}
+                    disabled={activeAction !== null}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: 'rgb(255 255 255 / 62%)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                    aria-label={activeAction === 'bill' ? t('guestAccess.requestingBill') : t('guestAccess.requestBill')}
                   >
-                    {totalItems > 99 ? '99+' : totalItems}
-                  </span>
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 3h10v18l-2.25-1.6L12 21l-2.75-1.6L7 21V3Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 8h6M9 12h6M9 16h4" />
+                    </svg>
+                  </button>
                 ) : null}
-              </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (hasCartShortcut) {
+                      navigate(buildGuestOrderReviewPath(activeTableId));
+                    }
+                    setIsActionsOpen(false);
+                  }}
+                  disabled={!hasCartShortcut}
+                  className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    backgroundColor: 'rgb(255 255 255 / 62%)',
+                    borderColor: 'var(--guest-border)',
+                    color: 'var(--guest-text)',
+                  }}
+                  aria-label={t('cart.itemsInCart', { count: totalItems })}
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H7" />
+                    <circle cx="10" cy="19" r="1.4" />
+                    <circle cx="17" cy="19" r="1.4" />
+                  </svg>
+                  {totalItems > 0 ? (
+                    <span
+                      className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                      style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
+                    >
+                      {totalItems > 99 ? '99+' : totalItems}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
             </div>
           </div>
 
