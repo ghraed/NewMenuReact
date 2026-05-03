@@ -110,11 +110,12 @@ const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { addDish, draft, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
+  const { addDish, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
-  const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
+  const [restaurantName, setRestaurantName] = useState(restaurant?.name || t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
-  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(null);
+  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(restaurant?.logo_url ?? null);
+  const [restaurantShortDescription, setRestaurantShortDescription] = useState<string>('');
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
   const [tableOrderingEnabled, setTableOrderingEnabled] = useState(true);
@@ -192,6 +193,7 @@ const GuestDishListPage: React.FC = () => {
     setRestaurantName(response.restaurant.name);
     setRestaurantSlug(response.restaurant.slug);
     setRestaurantLogoUrl(response.restaurant.logo_url ?? null);
+    setRestaurantShortDescription((response.restaurant.profile?.short_description || '').trim());
     setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
     setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
     setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
@@ -492,13 +494,10 @@ const GuestDishListPage: React.FC = () => {
             fallbackClassName="text-lg sm:text-xl"
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
-              {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
-            </p>
             <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
-            <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">
-              {t('menuList.brandSubtitle', { defaultValue: 'Your live menu, branded for your restaurant.' })}
-            </p>
+            {restaurantShortDescription ? (
+              <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">{restaurantShortDescription}</p>
+            ) : null}
           </div>
         </div>
 

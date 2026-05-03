@@ -81,6 +81,8 @@ const GuestOrdersPage: React.FC = () => {
     ttlMs: 10_000,
   });
   const restaurantName = restaurant?.name || t('guestOrders.title');
+  const restaurantLogoUrl = guestMenuResource.data?.restaurant?.logo_url ?? restaurant?.logo_url ?? null;
+  const restaurantShortDescription = (guestMenuResource.data?.restaurant?.profile?.short_description || '').trim();
   const canLoadOrders = Boolean(draft.tableSessionId && draft.guestAccessToken);
 
   const splitFeatureEnabled = guestMenuResource.data?.restaurant?.feature_flags?.invoice_splitting === true;
@@ -329,15 +331,15 @@ const GuestOrdersPage: React.FC = () => {
         >
           <RestaurantBrandMark
             name={restaurantName}
-            logoUrl={restaurant?.logo_url}
+            logoUrl={restaurantLogoUrl}
             className="h-14 w-14 sm:h-16 sm:w-16"
             fallbackClassName="text-lg sm:text-xl"
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
-              {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
-            </p>
             <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
+            {restaurantShortDescription ? (
+              <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">{restaurantShortDescription}</p>
+            ) : null}
           </div>
         </section>
 

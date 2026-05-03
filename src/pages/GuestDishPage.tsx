@@ -20,11 +20,12 @@ import {
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
   const { t } = useTranslation();
-  const { addDish, draft, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
+  const { addDish, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
   const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
-  const [restaurantName, setRestaurantName] = useState<string>(formatRestaurantLabel(restaurant_slug));
-  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(null);
+  const [restaurantName, setRestaurantName] = useState<string>(restaurant?.name || formatRestaurantLabel(restaurant_slug));
+  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(restaurant?.logo_url ?? null);
+  const [restaurantShortDescription, setRestaurantShortDescription] = useState<string>('');
   const [resolvedTableId, setResolvedTableId] = useState<number | undefined>(
     table_id ? Number(table_id) : undefined
   );
@@ -51,6 +52,7 @@ const GuestDishPage: React.FC = () => {
           setResolvedRestaurantSlug(response.restaurant.slug);
           setRestaurantName(response.restaurant.name || formatRestaurantLabel(response.restaurant.slug));
           setRestaurantLogoUrl(response.restaurant.logo_url ?? null);
+          setRestaurantShortDescription((response.restaurant.profile?.short_description || '').trim());
           setResolvedTableId(response.table.id);
           setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
           setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
@@ -92,6 +94,7 @@ const GuestDishPage: React.FC = () => {
                 || formatRestaurantLabel(response.data?.restaurant?.slug || candidateSlug)
               );
               setRestaurantLogoUrl(response.data?.restaurant?.logo_url ?? null);
+              setRestaurantShortDescription((response.data?.restaurant?.profile?.short_description || '').trim());
               setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
               setTableOrderingEnabled(response.data?.restaurant?.feature_flags?.table_ordering !== false);
               loaded = true;
@@ -116,6 +119,7 @@ const GuestDishPage: React.FC = () => {
             || formatRestaurantLabel(response.data?.restaurant?.slug || undefined)
           );
           setRestaurantLogoUrl(response.data?.restaurant?.logo_url ?? null);
+          setRestaurantShortDescription((response.data?.restaurant?.profile?.short_description || '').trim());
           setAiRecommendationsEnabled(response.data?.restaurant?.feature_flags?.ai_recommendations !== false);
           setTableOrderingEnabled(response.data?.restaurant?.feature_flags?.table_ordering !== false);
           loaded = true;
@@ -153,10 +157,10 @@ const GuestDishPage: React.FC = () => {
             fallbackClassName="text-lg sm:text-xl"
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
-              {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
-            </p>
             <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
+            {restaurantShortDescription ? (
+              <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">{restaurantShortDescription}</p>
+            ) : null}
           </div>
         </section>
 
