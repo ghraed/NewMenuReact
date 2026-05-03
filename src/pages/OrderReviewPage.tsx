@@ -5,6 +5,7 @@ import GuestPageShell from '../components/Guest/GuestPageShell';
 import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import GuestInfoSection from '../components/Guest/GuestInfoSection';
+import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { createGuestTableSessionOrder } from '../services/orderService';
 import type { OrderRecord } from '../types';
@@ -150,6 +151,28 @@ const OrderReviewPage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-5xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        <section
+          className="mb-6 flex flex-wrap items-center gap-4 rounded-[28px] border px-4 py-4 sm:px-5"
+          style={{
+            backgroundColor: 'var(--guest-panel)',
+            borderColor: 'var(--guest-border)',
+            boxShadow: 'var(--guest-shadow-soft)',
+          }}
+        >
+          <RestaurantBrandMark
+            name={restaurantName}
+            logoUrl={restaurant?.logo_url}
+            className="h-14 w-14 sm:h-16 sm:w-16"
+            fallbackClassName="text-lg sm:text-xl"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
+              {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
+            </p>
+            <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
+          </div>
+        </section>
+
         {activeTableId ? (
           <div className="mb-6">
             <GuestTableAccessPanel

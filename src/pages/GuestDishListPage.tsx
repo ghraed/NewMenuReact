@@ -477,6 +477,31 @@ const GuestDishListPage: React.FC = () => {
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
+        <div
+          className="mb-6 flex flex-wrap items-center gap-4 rounded-[28px] border px-4 py-4 sm:px-5"
+          style={{
+            backgroundColor: 'var(--guest-panel)',
+            borderColor: 'var(--guest-border)',
+            boxShadow: 'var(--guest-shadow-soft)',
+          }}
+        >
+          <RestaurantBrandMark
+            name={restaurantName}
+            logoUrl={restaurantLogoUrl}
+            className="h-14 w-14 sm:h-16 sm:w-16"
+            fallbackClassName="text-lg sm:text-xl"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
+              {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
+            </p>
+            <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
+            <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">
+              {t('menuList.brandSubtitle', { defaultValue: 'Your live menu, branded for your restaurant.' })}
+            </p>
+          </div>
+        </div>
+
         {table_id ? (
           <div className="mb-6">
             <GuestTableAccessPanel
@@ -487,31 +512,6 @@ const GuestDishListPage: React.FC = () => {
         ) : null}
 
         <section aria-labelledby="dish-gallery-heading">
-          <div
-            className="mb-6 flex flex-wrap items-center gap-4 rounded-[28px] border px-4 py-4 sm:px-5"
-            style={{
-              backgroundColor: 'var(--guest-panel)',
-              borderColor: 'var(--guest-border)',
-              boxShadow: 'var(--guest-shadow-soft)',
-            }}
-          >
-            <RestaurantBrandMark
-              name={restaurantName}
-              logoUrl={restaurantLogoUrl}
-              className="h-14 w-14 sm:h-16 sm:w-16"
-              fallbackClassName="text-lg sm:text-xl"
-            />
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
-                {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
-              </p>
-              <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
-              <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">
-                {t('menuList.brandSubtitle', { defaultValue: 'Your live menu, branded for your restaurant.' })}
-              </p>
-            </div>
-          </div>
-
           <SectionHeading
             titleId="dish-gallery-heading"
             eyebrow={t('menuList.dishGallery')}
