@@ -43,6 +43,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         ]
       : [
           { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
+          { path: '/admin/profile', label: t('adminDashboard.profileTitle'), icon: '🏷️' },
           { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️', requiredFeatures: ['room_plan_editor'] },
           { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
           { path: '/admin/finance', label: 'Finance', icon: '📈', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },

@@ -19,6 +19,7 @@ import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminRestaurantProfilePage = React.lazy(() => import('./pages/AdminRestaurantProfilePage'));
 const CreateDishPage = React.lazy(() => import('./pages/CreateDishPage'));
 const EditDishPage = React.lazy(() => import('./pages/EditDishPage'));
 const IngredientLibrary = React.lazy(() => import('./pages/IngredientLibrary'));
@@ -115,6 +116,15 @@ const AppRoutes: React.FC = () => {
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
               {lazyRoute(<AdminDashboard />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/profile"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']}>
+              {lazyRoute(<AdminRestaurantProfilePage />)}
             </ProtectedRoute>
           )}
         />
