@@ -11,6 +11,7 @@ import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import GuestPageShell from '../components/Guest/GuestPageShell';
 import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
+import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { fetchGuestTableDish } from '../services/orderService';
 import { getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
@@ -113,6 +114,7 @@ const GuestDishListPage: React.FC = () => {
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
+  const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
   const [tableOrderingEnabled, setTableOrderingEnabled] = useState(true);
@@ -189,6 +191,7 @@ const GuestDishListPage: React.FC = () => {
 
     setRestaurantName(response.restaurant.name);
     setRestaurantSlug(response.restaurant.slug);
+    setRestaurantLogoUrl(response.restaurant.logo_url ?? null);
     setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
     setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
     setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
@@ -484,6 +487,31 @@ const GuestDishListPage: React.FC = () => {
         ) : null}
 
         <section aria-labelledby="dish-gallery-heading">
+          <div
+            className="mb-6 flex flex-wrap items-center gap-4 rounded-[28px] border px-4 py-4 sm:px-5"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              boxShadow: 'var(--guest-shadow-soft)',
+            }}
+          >
+            <RestaurantBrandMark
+              name={restaurantName}
+              logoUrl={restaurantLogoUrl}
+              className="h-14 w-14 sm:h-16 sm:w-16"
+              fallbackClassName="text-lg sm:text-xl"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--guest-accent)]">
+                {t('menuList.brandEyebrow', { defaultValue: 'Restaurant' })}
+              </p>
+              <h2 className="truncate text-xl font-semibold text-[var(--guest-text)] sm:text-2xl">{restaurantName}</h2>
+              <p className="truncate text-xs text-[var(--guest-muted)] sm:text-sm">
+                {t('menuList.brandSubtitle', { defaultValue: 'Your live menu, branded for your restaurant.' })}
+              </p>
+            </div>
+          </div>
+
           <SectionHeading
             titleId="dish-gallery-heading"
             eyebrow={t('menuList.dishGallery')}
@@ -800,6 +828,7 @@ const GuestDishListPage: React.FC = () => {
                       restaurant: {
                         name: restaurantName,
                         slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
+                        logo_url: restaurantLogoUrl,
                       },
                     }) : undefined}
                     cartQuantity={getDishQuantity(dish.id)}
@@ -828,6 +857,7 @@ const GuestDishListPage: React.FC = () => {
                     restaurant: {
                       name: restaurantName,
                       slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
+                      logo_url: restaurantLogoUrl,
                     },
                   }) : undefined}
                   cartQuantity={getDishQuantity(dish.id)}

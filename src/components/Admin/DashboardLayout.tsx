@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
 import { areFeaturesEnabled } from '../../utils/features';
+import RestaurantBrandMark from '../Common/RestaurantBrandMark';
 import {
   GlassBoard,
   GlassIconButton,
@@ -87,7 +88,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <GlassBoard className="mb-6 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-full border border-gold/30 bg-gold/10 p-2 text-lg">🍽️</div>
+              <RestaurantBrandMark
+                name={user?.restaurant?.name}
+                logoUrl={user?.restaurant?.logo_url}
+                className="h-11 w-11"
+                fallbackClassName="text-base"
+              />
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('admin.controlRoom')}</p>
                 <h1 className="text-2xl font-semibold text-text">
@@ -95,6 +101,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                     : user?.role === 'staff' ? t('admin.staffTitle')
                       : t('admin.adminTitle')}
                 </h1>
+                <p className="text-xs text-muted">{user?.restaurant?.name || t('admin.dashboard')}</p>
               </div>
             </div>
 

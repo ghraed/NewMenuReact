@@ -11,6 +11,25 @@ export type InvoiceSplitMode = 'none' | 'equal' | 'by_person_order';
 export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 
+export interface RestaurantProfile {
+  legal_business_name?: string | null;
+  cuisine_specialty?: string | null;
+  primary_phone?: string | null;
+  whatsapp_phone?: string | null;
+  contact_email?: string | null;
+  website_url?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  tax_registration_number?: string | null;
+  vat_registration_number?: string | null;
+  service_hours?: string | null;
+  short_description?: string | null;
+}
+
 export interface StaffMember {
   id: number;
   name: string;
@@ -92,9 +111,11 @@ export interface RestaurantSummary {
   id: number;
   name: string;
   slug: string;
+  logo_url?: string | null;
   currency?: CurrencyCode | null;
   dollar_rate?: number | null;
   max_tables?: number;
+  profile?: RestaurantProfile | null;
   feature_flags?: Record<string, boolean>;
 }
 
@@ -217,6 +238,7 @@ export interface OrderCartRestaurant {
   id?: number;
   name?: string;
   slug: string;
+  logo_url?: string | null;
   feature_flags?: Record<string, boolean>;
 }
 
