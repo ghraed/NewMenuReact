@@ -107,6 +107,36 @@ export interface Dish {
   deleted_at?: string | null;
 }
 
+export interface GuestDishIndexIngredient {
+  name: string;
+  name_ar?: string | null;
+}
+
+export interface GuestDishIndexEntry {
+  id: number;
+  uuid: string;
+  name: string;
+  name_ar?: string | null;
+  description: string;
+  description_ar?: string | null;
+  category: string;
+  category_ar?: string | null;
+  is_anchor?: boolean;
+  is_profitable?: boolean;
+  is_orderable?: boolean;
+  is_out_of_stock?: boolean;
+  image_url?: string | null;
+  ingredients?: GuestDishIndexIngredient[];
+}
+
+export interface GuestDishesMeta {
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+  next_offset: number | null;
+}
+
 export interface RestaurantSummary {
   id: number;
   name: string;
@@ -356,7 +386,10 @@ export interface GuestTableMenuResponse {
   table_session: TableSessionSummary | null;
   guest_access: GuestAccessSummary;
   protected_actions: GuestProtectedActions;
-  dishes: Dish[];
+  dishes?: Dish[];
+  dish_index?: GuestDishIndexEntry[];
+  dishes_page?: Dish[];
+  dishes_meta?: GuestDishesMeta;
 }
 
 export interface GuestTableDishResponse {

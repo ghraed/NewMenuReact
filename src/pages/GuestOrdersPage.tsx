@@ -76,6 +76,7 @@ const GuestOrdersPage: React.FC = () => {
   const guestMenuResource = useGuestMenuResource({
     tableId: activeTableId,
     guestAccessToken: draft.guestAccessToken,
+    includeDishes: 'none',
   }, {
     enabled: Boolean(activeTableId),
     ttlMs: 10_000,

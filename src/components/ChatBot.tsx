@@ -559,6 +559,8 @@ const ChatBot: React.FC = () => {
     restaurantSlug: chatContext.table_id ? null : chatContext.restaurant_slug ?? null,
     guestAccessToken: draft.guestAccessToken,
     language: i18n.resolvedLanguage,
+    includeDishes: 'none',
+    includeIndex: true,
   }, {
     enabled: isOpen && isGuestMenuRoute,
     ttlMs: 10_000,
@@ -650,7 +652,10 @@ const ChatBot: React.FC = () => {
         const entry = guestMenuResource.data
           ? { data: guestMenuResource.data }
           : await guestMenuResource.ensure();
-        const dishes = entry.data?.dishes ?? [];
+        const indexedDishes = entry.data?.dish_index ?? [];
+        const dishes = indexedDishes.length > 0
+          ? indexedDishes
+          : (entry.data?.dishes ?? []);
         const featureFlags = entry.data?.restaurant?.feature_flags;
 
         if (cancelled) {
@@ -680,11 +685,7 @@ const ChatBot: React.FC = () => {
               id: dish.id,
               name: variant.trim(),
               normalized,
-              imageUrl: resolveAssetUrl(
-                dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url
-                || dish.image_url
-                || dish.dish_ingredients?.find((row) => row.ingredient?.file_url)?.ingredient?.file_url
-              ),
+              imageUrl: resolveAssetUrl(dish.image_url || null),
             });
           });
         });

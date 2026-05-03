@@ -3,6 +3,8 @@ import type {
   ActiveTableSessionRecord,
   AccountOrderRequest,
   CreateGuestOrderRequest,
+  GuestDishIndexEntry,
+  GuestDishesMeta,
   GuestTableDishResponse,
   GuestTableMenuResponse,
   InvoiceSplitMode,
@@ -45,6 +47,21 @@ interface PublishedDishesResponse {
 interface GuestTablesResponse {
   restaurant: RestaurantSummary;
   tables: RestaurantTableSummary[];
+}
+
+export interface GuestMenuFetchOptions {
+  include_dishes?: 'all' | 'page' | 'none';
+  limit?: number;
+  offset?: number;
+  include_index?: boolean;
+}
+
+export interface GuestMenuListResponse {
+  restaurant: RestaurantSummary;
+  dishes?: GuestTableMenuResponse['dishes'];
+  dish_index?: GuestDishIndexEntry[];
+  dishes_page?: GuestTableMenuResponse['dishes_page'];
+  dishes_meta?: GuestDishesMeta;
 }
 
 interface WaveResponse {
@@ -137,9 +154,16 @@ export const fetchGuestTables = async (restaurantSlug: string): Promise<GuestTab
 
 export const fetchGuestTableMenu = async (
   tableId: number | string,
-  guestAccessToken?: string | null
+  guestAccessToken?: string | null,
+  options?: GuestMenuFetchOptions
 ): Promise<GuestTableMenuResponse> => {
   const response = await api.get<GuestTableMenuResponse>(`/menu/table/${tableId}`, {
+    params: {
+      include_dishes: options?.include_dishes,
+      limit: options?.limit,
+      offset: options?.offset,
+      include_index: options?.include_index ? 1 : undefined,
+    },
     headers: buildGuestAccessHeaders(guestAccessToken),
   });
   return response.data;

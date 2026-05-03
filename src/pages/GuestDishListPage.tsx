@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-import type { Dish, RestaurantSummary } from '../types';
+import type { Dish, GuestDishIndexEntry, RestaurantSummary } from '../types';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import DishCard from '../components/Guest/DishCard';
 import DishTags from '../components/Guest/DishTags';
@@ -13,18 +13,14 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { fetchGuestTableDish } from '../services/orderService';
+import { fetchGuestTableDish, fetchGuestTableMenu } from '../services/orderService';
+import type { GuestMenuFetchOptions, GuestMenuListResponse } from '../services/orderService';
 import { getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
-
-interface GuestListResponse {
-  restaurant: RestaurantSummary;
-  dishes: Dish[];
-}
 
 type IngredientFilterMode = 'show' | 'hide' | 'highlight';
 
@@ -51,9 +47,39 @@ const getDishIngredients = (dish: Dish) => {
     });
 };
 
+const getIndexIngredients = (
+  dish: GuestDishIndexEntry,
+  language?: string
+): Array<{ name: string; name_ar?: string | null }> => {
+  return (dish.ingredients || [])
+    .filter((ingredient) => normalizeIngredientName(getIngredientDisplayName(ingredient, language)) !== '');
+};
+
+const deriveIndexFromDishes = (dishes: Dish[]): GuestDishIndexEntry[] => {
+  return dishes.map((dish) => ({
+    id: dish.id,
+    uuid: dish.uuid,
+    name: dish.name,
+    name_ar: dish.name_ar ?? null,
+    description: dish.description,
+    description_ar: dish.description_ar ?? null,
+    category: dish.category,
+    category_ar: dish.category_ar ?? null,
+    is_anchor: dish.is_anchor ?? false,
+    is_profitable: dish.is_profitable ?? false,
+    is_orderable: dish.is_orderable,
+    is_out_of_stock: dish.is_out_of_stock,
+    image_url: dish.image_url ?? null,
+    ingredients: getDishIngredients(dish).map((ingredient) => ({
+      name: ingredient.name,
+      name_ar: ingredient.name_ar ?? null,
+    })),
+  }));
+};
+
 const applyRestaurantCurrencyToDishes = (
   list: Dish[],
-  restaurant: GuestListResponse['restaurant']
+  restaurant: RestaurantSummary
 ): Dish[] => {
   const storedSettings = readGuestCurrencySettings();
   const restaurantCurrency = normalizeCurrency(storedSettings?.currency || restaurant.currency);
@@ -116,7 +142,12 @@ const GuestDishListPage: React.FC = () => {
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
   const [restaurantLogoUrl, setRestaurantLogoUrl] = useState<string | null>(restaurant?.logo_url ?? null);
   const [restaurantShortDescription, setRestaurantShortDescription] = useState<string>('');
-  const [dishes, setDishes] = useState<Dish[]>([]);
+  const [dishIndex, setDishIndex] = useState<GuestDishIndexEntry[]>([]);
+  const [cardDishesById, setCardDishesById] = useState<Record<number, Dish>>({});
+  const [loadedPageDishIds, setLoadedPageDishIds] = useState<number[]>([]);
+  const [hasMorePages, setHasMorePages] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [aiRecommendationsEnabled, setAiRecommendationsEnabled] = useState(true);
   const [tableOrderingEnabled, setTableOrderingEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -131,6 +162,8 @@ const GuestDishListPage: React.FC = () => {
   const [relatedPopupLoading, setRelatedPopupLoading] = useState(false);
   const [relatedPopupError, setRelatedPopupError] = useState<string | null>(null);
   const [relatedPopupDishes, setRelatedPopupDishes] = useState<Dish[]>([]);
+  const loadMoreAnchorRef = useRef<HTMLDivElement | null>(null);
+  const pageRequestInFlightRef = useRef(false);
   const resourceRequestKeyRef = useRef<string | null>(null);
 
   const candidateSlug = restaurant_slug?.trim() || null;
@@ -140,9 +173,118 @@ const GuestDishListPage: React.FC = () => {
       restaurantSlug: table_id ? null : candidateSlug,
       guestAccessToken: draft.guestAccessToken,
       language: i18n.resolvedLanguage,
+      includeDishes: 'page',
+      limit: 20,
+      offset: 0,
+      includeIndex: true,
     },
     { enabled: true, ttlMs: 10_000 }
   );
+
+  const upsertCardDishes = useCallback((incoming: Dish[], sourceRestaurant: RestaurantSummary) => {
+    if (incoming.length === 0) {
+      return 0;
+    }
+
+    const normalizedIncoming = applyRestaurantCurrencyToDishes(incoming, sourceRestaurant);
+    let newlyAddedCount = 0;
+
+    setCardDishesById((current) => {
+      const next = { ...current };
+
+      normalizedIncoming.forEach((dish) => {
+        if (!next[dish.id]) {
+          newlyAddedCount += 1;
+        }
+        next[dish.id] = dish;
+      });
+
+      return next;
+    });
+
+    setLoadedPageDishIds((current) => {
+      const existing = new Set(current);
+      const appended = [...current];
+
+      normalizedIncoming.forEach((dish) => {
+        if (!existing.has(dish.id)) {
+          appended.push(dish.id);
+          existing.add(dish.id);
+        }
+      });
+
+      return appended;
+    });
+
+    return newlyAddedCount;
+  }, []);
+
+  const fetchDishPage = useCallback(async (
+    options: GuestMenuFetchOptions
+  ): Promise<GuestMenuListResponse | null> => {
+    if (table_id) {
+      const response = await fetchGuestTableMenu(table_id, draft.guestAccessToken, options);
+      return {
+        restaurant: response.restaurant,
+        dishes: response.dishes,
+        dish_index: response.dish_index,
+        dishes_page: response.dishes_page,
+        dishes_meta: response.dishes_meta,
+      };
+    }
+
+    const endpoint = candidateSlug ? `/menu/${candidateSlug}/dishes` : '/menu/dishes';
+    const response = await api.get<GuestMenuListResponse>(endpoint, {
+      params: {
+        include_dishes: options.include_dishes,
+        limit: options.limit,
+        offset: options.offset,
+        include_index: options.include_index ? 1 : undefined,
+      },
+    });
+
+    return response.data;
+  }, [candidateSlug, draft.guestAccessToken, table_id]);
+
+  const loadNextDishPage = useCallback(async () => {
+    if (pageRequestInFlightRef.current || loadingMore || !hasMorePages || nextOffset === null) {
+      return;
+    }
+
+    pageRequestInFlightRef.current = true;
+    setLoadingMore(true);
+
+    try {
+      const response = await fetchDishPage({
+        include_dishes: 'page',
+        limit: 10,
+        offset: nextOffset,
+        include_index: false,
+      });
+
+      if (!response || !response.restaurant) {
+        return;
+      }
+
+      const pageDishes = response.dishes_page || response.dishes || [];
+      upsertCardDishes(pageDishes, response.restaurant);
+
+      if (response.dishes_meta) {
+        setHasMorePages(response.dishes_meta.has_more);
+        setNextOffset(response.dishes_meta.next_offset);
+      } else if (pageDishes.length < 10) {
+        setHasMorePages(false);
+        setNextOffset(null);
+      } else {
+        setNextOffset((current) => (current === null ? null : current + 10));
+      }
+    } catch (nextError) {
+      console.error(nextError);
+    } finally {
+      pageRequestInFlightRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [fetchDishPage, hasMorePages, loadingMore, nextOffset, upsertCardDishes]);
 
   useEffect(() => {
     if (!guestResource.enabled || !guestResource.key) {
@@ -196,7 +338,22 @@ const GuestDishListPage: React.FC = () => {
     setRestaurantShortDescription((response.restaurant.profile?.short_description || '').trim());
     setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
     setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
-    setDishes(applyRestaurantCurrencyToDishes(response.dishes, response.restaurant));
+    const initialPageDishes = response.dishes || [];
+    setDishIndex((response.dish_index && response.dish_index.length > 0)
+      ? response.dish_index
+      : deriveIndexFromDishes(initialPageDishes));
+    setCardDishesById({});
+    setLoadedPageDishIds([]);
+    upsertCardDishes(initialPageDishes, response.restaurant);
+
+    if (response.dishes_meta) {
+      setHasMorePages(response.dishes_meta.has_more);
+      setNextOffset(response.dishes_meta.next_offset);
+    } else {
+      setHasMorePages(false);
+      setNextOffset(null);
+    }
+
     setError(null);
   }, [
     guestResource.data,
@@ -206,6 +363,7 @@ const GuestDishListPage: React.FC = () => {
     setGuestContext,
     updateDraft,
     clearGuestAccess,
+    upsertCardDishes,
   ]);
 
   useEffect(() => {
@@ -234,16 +392,23 @@ const GuestDishListPage: React.FC = () => {
     };
   }, []);
 
+  const hydratedDishes = useMemo(
+    () => loadedPageDishIds
+      .map((id) => cardDishesById[id])
+      .filter((dish): dish is Dish => Boolean(dish)),
+    [cardDishesById, loadedPageDishIds]
+  );
+
   const categories = useMemo(() => {
-    const values = Array.from(new Set(dishes.map((dish) => translateCategoryLabel(dish.category, dish.category_ar)).filter(Boolean)));
+    const values = Array.from(new Set(dishIndex.map((dish) => translateCategoryLabel(dish.category, dish.category_ar)).filter(Boolean)));
     return [t('menuList.allCategories'), ...values];
-  }, [dishes, t]);
+  }, [dishIndex, t]);
 
   const allIngredients = useMemo(() => {
     const values = new Map<string, string>();
 
-    dishes.forEach((dish) => {
-      getDishIngredients(dish).forEach((ingredient) => {
+    dishIndex.forEach((dish) => {
+      getIndexIngredients(dish, i18n.resolvedLanguage).forEach((ingredient) => {
         const translatedIngredient = getIngredientDisplayName(ingredient, i18n.resolvedLanguage);
         const normalized = normalizeIngredientName(translatedIngredient);
 
@@ -258,7 +423,7 @@ const GuestDishListPage: React.FC = () => {
     return Array.from(values.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [dishes, i18n.resolvedLanguage]);
+  }, [dishIndex, i18n.resolvedLanguage]);
 
   const filteredIngredientOptions = useMemo(() => {
     const normalizedSearch = normalizeIngredientName(ingredientSearch);
@@ -287,8 +452,8 @@ const GuestDishListPage: React.FC = () => {
       return ids;
     }
 
-    dishes.forEach((dish) => {
-      const dishIngredients = getDishIngredients(dish)
+    dishIndex.forEach((dish) => {
+      const dishIngredients = getIndexIngredients(dish, i18n.resolvedLanguage)
         .map((ingredient) => getIngredientDisplayName(ingredient, i18n.resolvedLanguage))
         .map((ingredient) => normalizeIngredientName(ingredient));
       const hasMatchingIngredient = selectedIngredients.some((ingredient) => dishIngredients.includes(ingredient));
@@ -299,14 +464,18 @@ const GuestDishListPage: React.FC = () => {
     });
 
     return ids;
-  }, [dishes, selectedIngredients, i18n.resolvedLanguage]);
+  }, [dishIndex, selectedIngredients, i18n.resolvedLanguage]);
 
-  const filteredDishes = useMemo(() => {
-    return dishes.filter((dish) => {
+  const filteredDishIds = useMemo(() => {
+    return dishIndex
+      .filter((dish) => {
       const categoryMatch = category === t('menuList.allCategories') || translateCategoryLabel(dish.category, dish.category_ar) === category;
+      const normalizedSearch = search.toLowerCase();
       const searchMatch =
-        dish.name.toLowerCase().includes(search.toLowerCase()) ||
-        dish.description.toLowerCase().includes(search.toLowerCase());
+        dish.name.toLowerCase().includes(normalizedSearch) ||
+        (dish.name_ar || '').toLowerCase().includes(normalizedSearch) ||
+        dish.description.toLowerCase().includes(normalizedSearch) ||
+        (dish.description_ar || '').toLowerCase().includes(normalizedSearch);
       const ingredientMatch = selectedIngredients.length === 0
         || (
           ingredientFilterMode === 'show'
@@ -317,23 +486,31 @@ const GuestDishListPage: React.FC = () => {
         );
 
       return categoryMatch && searchMatch && ingredientMatch;
-    });
-  }, [dishes, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, t]);
+    })
+      .map((dish) => dish.id);
+  }, [dishIndex, category, search, selectedIngredients, ingredientFilterMode, matchingDishIds, t]);
+
+  const visibleFilteredDishes = useMemo(
+    () => filteredDishIds
+      .map((dishId) => cardDishesById[dishId])
+      .filter((dish): dish is Dish => Boolean(dish)),
+    [filteredDishIds, cardDishesById]
+  );
 
   const anchorDishes = useMemo(
-    () => filteredDishes.filter((dish) => dish.is_anchor === true),
-    [filteredDishes]
+    () => visibleFilteredDishes.filter((dish) => dish.is_anchor === true),
+    [visibleFilteredDishes]
   );
 
   const regularDishes = useMemo(
-    () => filteredDishes.filter((dish) => dish.is_anchor !== true),
-    [filteredDishes]
+    () => visibleFilteredDishes.filter((dish) => dish.is_anchor !== true),
+    [visibleFilteredDishes]
   );
 
   const dishLookup = useMemo(() => {
     const map = new Map<number, Dish>();
 
-    dishes.forEach((dish) => {
+    hydratedDishes.forEach((dish) => {
       map.set(dish.id, dish);
 
       (dish.related_dishes || []).forEach((candidate) => {
@@ -350,7 +527,7 @@ const GuestDishListPage: React.FC = () => {
     });
 
     return map;
-  }, [dishes]);
+  }, [hydratedDishes]);
 
   const getOrderableRelatedDishes = useCallback((sourceDish: Dish, detailDish?: Dish | null) => {
     const seen = new Set<number>();
@@ -380,7 +557,7 @@ const GuestDishListPage: React.FC = () => {
       return relatedMatches;
     }
 
-    const sameCategoryFallback = dishes.filter((candidate) => {
+    const sameCategoryFallback = hydratedDishes.filter((candidate) => {
       if (candidate.id === sourceDish.id || seen.has(candidate.id)) {
         return false;
       }
@@ -409,9 +586,50 @@ const GuestDishListPage: React.FC = () => {
     return aiRecommendationsEnabled
       ? sortByRecommendationPriority(sameCategoryFallback)
       : sameCategoryFallback;
-  }, [dishLookup, dishes, aiRecommendationsEnabled]);
+  }, [dishLookup, hydratedDishes, aiRecommendationsEnabled]);
 
-  const relatedPopupSourceDish = relatedPopupDishId ? dishes.find((dish) => dish.id === relatedPopupDishId) || null : null;
+  const relatedPopupSourceDish = relatedPopupDishId ? cardDishesById[relatedPopupDishId] || null : null;
+  const missingFilteredDishCount = filteredDishIds.reduce(
+    (count, dishId) => (cardDishesById[dishId] ? count : count + 1),
+    0
+  );
+
+  useEffect(() => {
+    if (loading || error || loadingMore || !hasMorePages) {
+      return;
+    }
+
+    if (missingFilteredDishCount <= 0) {
+      return;
+    }
+
+    void loadNextDishPage();
+  }, [error, hasMorePages, loadNextDishPage, loading, loadingMore, missingFilteredDishCount]);
+
+  useEffect(() => {
+    if (!loadMoreAnchorRef.current || loading || error || loadingMore || !hasMorePages) {
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      return;
+    }
+
+    const anchor = loadMoreAnchorRef.current;
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          void loadNextDishPage();
+        }
+      });
+    }, { rootMargin: '200px 0px 240px 0px' });
+
+    observer.observe(anchor);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [error, hasMorePages, loadNextDishPage, loading, loadingMore]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -524,7 +742,7 @@ const GuestDishListPage: React.FC = () => {
                   color: 'var(--guest-muted)',
                 }}
               >
-                {t('menuList.dishesCount', { count: filteredDishes.length })}
+                {t('menuList.dishesCount', { count: filteredDishIds.length })}
               </span>
             )}
           />
@@ -794,7 +1012,7 @@ const GuestDishListPage: React.FC = () => {
             </div>
           ) : null}
 
-          {!loading && !error && filteredDishes.length === 0 ? (
+          {!loading && !error && filteredDishIds.length === 0 ? (
             <div
               className="mt-6 rounded-[28px] border p-6 text-center text-sm"
               style={{
@@ -872,6 +1090,23 @@ const GuestDishListPage: React.FC = () => {
                 />
               ))}
             </div>
+          ) : null}
+
+          {!loading && !error && loadingMore ? (
+            <div
+              className="mt-6 rounded-[28px] border px-6 py-6 text-center"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                boxShadow: 'var(--guest-shadow-soft)',
+              }}
+            >
+              <LoadingSpinner inline text={t('menuList.loadingMenu')} />
+            </div>
+          ) : null}
+
+          {!loading && !error && hasMorePages ? (
+            <div ref={loadMoreAnchorRef} className="h-2 w-full" aria-hidden="true" />
           ) : null}
         </section>
 

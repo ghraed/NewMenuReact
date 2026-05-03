@@ -49,6 +49,7 @@ const OrderReviewPage: React.FC = () => {
   const guestMenuResource = useGuestMenuResource({
     tableId: activeTableId,
     guestAccessToken: draft.guestAccessToken,
+    includeDishes: 'none',
   }, {
     enabled: Boolean(activeTableId) && !submittedOrder,
     ttlMs: 10_000,
