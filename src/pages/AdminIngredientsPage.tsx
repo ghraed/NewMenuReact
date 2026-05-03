@@ -19,6 +19,7 @@ interface IngredientPayload {
   unit: IngredientStockUnit;
   current_quantity: string;
   low_stock_threshold: string;
+  target_quantity: string;
   is_active: boolean;
 }
 
@@ -30,6 +31,12 @@ interface InventoryActionState {
   quantity: string;
   reference: string;
   notes: string;
+}
+interface RestockDraftRow {
+  ingredientId: number;
+  name: string;
+  unit: IngredientStockUnit;
+  quantity: string;
 }
 
 interface ImportGlobalIngredientsResponse {
@@ -49,6 +56,7 @@ const defaultIngredientPayload: IngredientPayload = {
   unit: 'piece',
   current_quantity: '0.000',
   low_stock_threshold: '0.000',
+  target_quantity: '0.000',
   is_active: true,
 };
 
@@ -124,6 +132,8 @@ const AdminIngredientsPage: React.FC = () => {
   const [hideAlreadyAddedGlobals, setHideAlreadyAddedGlobals] = useState(true);
   const [selectedGlobalIngredientIds, setSelectedGlobalIngredientIds] = useState<number[]>([]);
   const [importingGlobalIngredients, setImportingGlobalIngredients] = useState(false);
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
+  const [restockDraftRows, setRestockDraftRows] = useState<RestockDraftRow[]>([]);
 
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
@@ -174,6 +184,28 @@ const AdminIngredientsPage: React.FC = () => {
     [ingredients]
   );
 
+  const reorderRows = useMemo(() => (
+    ingredients
+      .map((ingredient) => {
+        const current = Number.parseFloat(ingredient.current_quantity || '0');
+        const target = Number.parseFloat(
+          ingredient.target_quantity
+          ?? ingredient.low_stock_threshold
+          ?? '0'
+        );
+        const missing = Math.max(target - current, 0);
+
+        return {
+          ingredient,
+          current,
+          target,
+          missing,
+        };
+      })
+      .filter((row) => row.missing > 0)
+      .sort((a, b) => b.missing - a.missing)
+  ), [ingredients]);
+
   const formatIngredientName = useCallback(
     (name?: string, nameArabic?: string | null) => getIngredientDisplayName(
       { name, name_ar: nameArabic },
@@ -198,6 +230,7 @@ const AdminIngredientsPage: React.FC = () => {
       unit: ingredient.unit,
       current_quantity: ingredient.current_quantity,
       low_stock_threshold: ingredient.low_stock_threshold,
+      target_quantity: ingredient.target_quantity ?? ingredient.low_stock_threshold ?? '0.000',
       is_active: ingredient.is_active,
     });
   };
@@ -218,6 +251,7 @@ const AdminIngredientsPage: React.FC = () => {
           name,
           unit: formPayload.unit,
           low_stock_threshold: formPayload.low_stock_threshold,
+          target_quantity: formPayload.target_quantity,
           is_active: formPayload.is_active,
         });
 
@@ -234,6 +268,7 @@ const AdminIngredientsPage: React.FC = () => {
           unit: formPayload.unit,
           current_quantity: formPayload.current_quantity,
           low_stock_threshold: formPayload.low_stock_threshold,
+          target_quantity: formPayload.target_quantity,
           is_active: formPayload.is_active,
         });
 
@@ -272,10 +307,17 @@ const AdminIngredientsPage: React.FC = () => {
     }
   };
 
-  const handleOpenAction = (ingredientId: number, type: InventoryActionType) => {
+  const handleOpenAction = (
+    ingredientId: number,
+    type: InventoryActionType,
+    preset?: Partial<Pick<InventoryActionState, 'quantity' | 'reference' | 'notes'>>
+  ) => {
     setActionState({
       ...defaultActionState(type),
       ingredientId,
+      quantity: preset?.quantity ?? '',
+      reference: preset?.reference ?? '',
+      notes: preset?.notes ?? '',
     });
   };
 
@@ -530,6 +572,25 @@ const AdminIngredientsPage: React.FC = () => {
     }
   };
 
+  const handleCreateRestockDraft = () => {
+    const nextDraftRows = reorderRows.map(({ ingredient, missing }) => ({
+      ingredientId: ingredient.id,
+      name: formatIngredientName(ingredient.name, ingredient.name_ar),
+      unit: ingredient.unit,
+      quantity: missing.toFixed(3),
+    }));
+    setRestockDraftRows(nextDraftRows);
+  };
+
+  const handleUseDraftRow = (row: RestockDraftRow) => {
+    setReorderModalOpen(false);
+    handleOpenAction(row.ingredientId, 'restock', {
+      quantity: row.quantity,
+      reference: 'AUTO_REORDER_DRAFT',
+      notes: t('inventoryIngredients.reorder.autoDraftNote'),
+    });
+  };
+
   return (
     <DashboardLayout title={t('inventoryIngredients.pageTitle')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -542,6 +603,9 @@ const AdminIngredientsPage: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <LiquidButton tone="tertiary" onClick={fetchIngredients} disabled={loading}>
             {loading ? t('common.loading') : t('inventoryIngredients.refresh')}
+          </LiquidButton>
+          <LiquidButton tone="secondary" onClick={() => setReorderModalOpen(true)} disabled={loading || ingredients.length === 0}>
+            {t('inventoryIngredients.reorder.showMissing')}
           </LiquidButton>
           <LiquidButton tone="primary" onClick={() => void handleOpenGlobalImportModal()} disabled={loading}>
             {t('inventoryIngredients.importGlobal.open')}
@@ -637,6 +701,19 @@ const AdminIngredientsPage: React.FC = () => {
               min="0"
               value={formPayload.low_stock_threshold}
               onChange={(event) => setFormPayload((current) => ({ ...current, low_stock_threshold: event.target.value }))}
+              disabled={savingIngredient}
+            />
+
+            <label htmlFor="inventory-target-quantity" className="mt-2 text-sm font-medium text-text">
+              {t('inventoryIngredients.fields.targetQuantity')}
+            </label>
+            <GlassInput
+              id="inventory-target-quantity"
+              type="number"
+              step="0.001"
+              min="0"
+              value={formPayload.target_quantity}
+              onChange={(event) => setFormPayload((current) => ({ ...current, target_quantity: event.target.value }))}
               disabled={savingIngredient}
             />
 
@@ -759,6 +836,12 @@ const AdminIngredientsPage: React.FC = () => {
                         {t('inventoryIngredients.stockLine', {
                           current: ingredient.current_quantity,
                           threshold: ingredient.low_stock_threshold,
+                          unit: ingredient.unit,
+                        })}
+                      </p>
+                      <p className="mt-1 text-sm text-muted2">
+                        {t('inventoryIngredients.targetLine', {
+                          target: ingredient.target_quantity ?? ingredient.low_stock_threshold,
                           unit: ingredient.unit,
                         })}
                       </p>
@@ -969,6 +1052,80 @@ const AdminIngredientsPage: React.FC = () => {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {reorderModalOpen ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-3xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
+                <h3 className="mt-2 text-xl font-semibold text-text">{t('inventoryIngredients.reorder.title')}</h3>
+                <p className="mt-2 text-sm text-muted">{t('inventoryIngredients.reorder.description')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <LiquidButton
+                  tone="secondary"
+                  onClick={handleCreateRestockDraft}
+                  disabled={reorderRows.length === 0}
+                >
+                  {t('inventoryIngredients.reorder.createDraft')}
+                </LiquidButton>
+                <LiquidButton tone="tertiary" onClick={() => setReorderModalOpen(false)}>
+                  {t('common.close')}
+                </LiquidButton>
+              </div>
+            </div>
+
+            {reorderRows.length === 0 ? (
+              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+                {t('inventoryIngredients.reorder.noneMissing')}
+              </div>
+            ) : (
+              <div className="mt-5 max-h-[55vh] space-y-3 overflow-y-auto pr-1">
+                {reorderRows.map(({ ingredient, missing, target, current }) => (
+                  <div key={ingredient.id} className="rounded-[20px] border border-white/12 bg-white/6 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="text-sm font-semibold text-text">{formatIngredientName(ingredient.name, ingredient.name_ar)}</p>
+                      <span className="rounded-full border border-spicy/35 bg-spicy/10 px-2 py-0.5 text-xs font-medium text-spicy">
+                        {t('inventoryIngredients.reorder.missingAmount', { missing: missing.toFixed(3), unit: ingredient.unit })}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted2">
+                      {t('inventoryIngredients.reorder.detailLine', {
+                        target: target.toFixed(3),
+                        current: current.toFixed(3),
+                        unit: ingredient.unit,
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {restockDraftRows.length > 0 ? (
+              <div className="mt-5 rounded-[20px] border border-gold/35 bg-gold/10 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-text">{t('inventoryIngredients.reorder.draftTitle')}</p>
+                  <p className="text-xs text-muted2">{t('inventoryIngredients.reorder.draftHint')}</p>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {restockDraftRows.map((row) => (
+                    <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-black/10 px-3 py-2">
+                      <p className="text-sm text-text">
+                        {row.name} • {row.quantity} {row.unit}
+                      </p>
+                      <LiquidButton tone="primary" className="px-3 py-1.5 text-xs" onClick={() => handleUseDraftRow(row)}>
+                        {t('inventoryIngredients.reorder.useDraft')}
+                      </LiquidButton>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

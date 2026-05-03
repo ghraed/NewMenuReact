@@ -166,6 +166,7 @@ export interface InventoryIngredient {
   unit: IngredientStockUnit;
   current_quantity: string;
   low_stock_threshold: string;
+  target_quantity?: string | null;
   is_active: boolean;
   is_low_stock: boolean;
   created_at: string | null;
