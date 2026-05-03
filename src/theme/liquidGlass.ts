@@ -16,7 +16,13 @@ export const glassControl =
   'bg-bg1 border border-stroke shadow-lux2';
 
 export const glassSurfaceHover =
-  '';
+  [
+    'motion-safe:hover:-translate-y-0.5',
+    'motion-safe:hover:scale-[1.003]',
+    'motion-safe:hover:border-[#d4af37]/45',
+    'motion-safe:hover:bg-[rgba(25,25,28,0.98)]',
+    'motion-safe:hover:shadow-[0_20px_52px_rgba(0,0,0,0.42),0_0_0_1px_rgba(212,175,55,0.12)]',
+  ].join(' ');
 
 export const glassControlHover =
   'enabled:hover:border-white/24 enabled:hover:text-text enabled:hover:shadow-[0_14px_30px_rgba(0,0,0,0.28)]';
