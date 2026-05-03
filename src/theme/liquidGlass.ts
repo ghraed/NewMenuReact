@@ -16,7 +16,7 @@ export const glassControl =
   'bg-bg1 border border-stroke shadow-lux2';
 
 export const glassSurfaceHover =
-  'motion-safe:hover:border-white/18 motion-safe:hover:bg-bg1/95 motion-safe:hover:shadow-[0_26px_64px_rgba(0,0,0,0.44)]';
+  '';
 
 export const glassControlHover =
   'enabled:hover:border-white/24 enabled:hover:text-text enabled:hover:shadow-[0_14px_30px_rgba(0,0,0,0.28)]';
