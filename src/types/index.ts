@@ -554,6 +554,88 @@ export interface FinanceRevenuePoint {
   invoice_count: number;
 }
 
+export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
+export type PayrollSummaryMode = 'approved_paid' | 'all';
+export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface PayrollEmployeeSummary {
+  id: number;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  role: UserRole;
+}
+
+export interface PayrollEntry {
+  id: number;
+  user_id: number;
+  employee: PayrollEmployeeSummary | null;
+  base_amount_cents: number;
+  overtime_amount_cents: number;
+  bonus_amount_cents: number;
+  deduction_amount_cents: number;
+  tax_amount_cents: number;
+  net_amount_cents: number;
+  currency: string;
+  notes?: string | null;
+}
+
+export interface PayrollPeriodTotals {
+  gross_pay: number;
+  deductions: number;
+  tax: number;
+  net_pay: number;
+  employee_count: number;
+}
+
+export interface PayrollPeriod {
+  id: number;
+  restaurant_id: number;
+  period_start: string;
+  period_end: string;
+  status: PayrollPeriodStatus;
+  approved_at?: string | null;
+  paid_at?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  processed_by?: PayrollEmployeeSummary | null;
+  entries: PayrollEntry[];
+  totals: PayrollPeriodTotals;
+}
+
+export interface PayrollSummaryTotals {
+  gross_pay: number;
+  deductions: number;
+  tax: number;
+  net_pay: number;
+  employee_count: number;
+}
+
+export interface PayrollSummaryResponse {
+  date_from: string;
+  date_to: string;
+  mode: {
+    period_status: PayrollSummaryMode;
+  };
+  totals: PayrollSummaryTotals;
+}
+
+export interface StaffShift {
+  id: number;
+  restaurant_id: number;
+  user_id: number;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  position?: string | null;
+  status: StaffShiftStatus;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  employee?: PayrollEmployeeSummary | null;
+}
+
 export interface TableWaveRecord {
   id: number;
   uuid: string;

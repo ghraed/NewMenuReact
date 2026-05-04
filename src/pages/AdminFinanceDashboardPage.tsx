@@ -22,7 +22,9 @@ import {
   updateInvoice,
   type CreateInvoiceItemInput,
 } from '../services/invoiceService';
-import type { FinanceInvoice, FinanceInvoiceStatus } from '../types';
+import { fetchPayrollPeriods, fetchPayrollSummary } from '../services/payrollService';
+import { fetchStaffSchedules } from '../services/staffScheduleService';
+import type { FinanceInvoice, FinanceInvoiceStatus, PayrollSummaryTotals } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
@@ -89,6 +91,16 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [chartInvoiceCounts, setChartInvoiceCounts] = useState<number[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalInvoicesInRange, setTotalInvoicesInRange] = useState(0);
+  const [payrollTotals, setPayrollTotals] = useState<PayrollSummaryTotals>({
+    gross_pay: 0,
+    deductions: 0,
+    tax: 0,
+    net_pay: 0,
+    employee_count: 0,
+  });
+  const [payrollPeriodCount, setPayrollPeriodCount] = useState(0);
+  const [scheduledShiftsCount, setScheduledShiftsCount] = useState(0);
+  const [operationsLoading, setOperationsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusSavingInvoiceId, setStatusSavingInvoiceId] = useState<number | null>(null);
@@ -105,6 +117,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
+    setOperationsLoading(true);
     setError(null);
 
     try {
@@ -128,9 +141,47 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setChartInvoiceCounts(trendResponse.points.map((point) => point.invoice_count));
       setTotalRevenue(trendResponse.totals.revenue);
       setTotalInvoicesInRange(trendResponse.totals.invoice_count);
+
+      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult] = await Promise.allSettled([
+        fetchPayrollSummary({
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+          period_status: 'approved_paid',
+        }),
+        fetchPayrollPeriods(),
+        fetchStaffSchedules({
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+        }),
+      ]);
+
+      if (payrollSummaryResult.status === 'fulfilled') {
+        setPayrollTotals(payrollSummaryResult.value.totals);
+      } else {
+        setPayrollTotals({
+          gross_pay: 0,
+          deductions: 0,
+          tax: 0,
+          net_pay: 0,
+          employee_count: 0,
+        });
+      }
+
+      if (payrollPeriodsResult.status === 'fulfilled') {
+        setPayrollPeriodCount(payrollPeriodsResult.value.length);
+      } else {
+        setPayrollPeriodCount(0);
+      }
+
+      if (shiftsResult.status === 'fulfilled') {
+        setScheduledShiftsCount(shiftsResult.value.filter((shift) => shift.status === 'scheduled').length);
+      } else {
+        setScheduledShiftsCount(0);
+      }
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError, 'Failed to load finance dashboard data.'));
     } finally {
+      setOperationsLoading(false);
       setLoading(false);
     }
   }, [dateFrom, dateTo, range, statusFilter]);
@@ -342,6 +393,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
                 <p className="mt-1 text-xl font-semibold text-text">{totalInvoicesInRange}</p>
               </div>
+              <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Net Payroll</p>
+                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(payrollTotals.net_pay, currency)}</p>
+              </div>
             </div>
           </div>
         </motion.section>
@@ -434,6 +489,36 @@ const AdminFinanceDashboardPage: React.FC = () => {
               >
                 Clear Filters
               </LiquidButton>
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-text">Operations Snapshot</h3>
+                <p className="mt-1 text-sm text-muted">Payroll and staffing metrics for the selected date range.</p>
+              </div>
+              <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
+                {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
+              </LiquidButton>
+            </div>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Payroll</p>
+                <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(payrollTotals.gross_pay, currency)}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
+                <p className="mt-1 text-base font-semibold text-text">{payrollTotals.employee_count}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll Periods</p>
+                <p className="mt-1 text-base font-semibold text-text">{payrollPeriodCount}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Scheduled Shifts</p>
+                <p className="mt-1 text-base font-semibold text-text">{scheduledShiftsCount}</p>
+              </div>
             </div>
           </GlassCard>
         </motion.section>
