@@ -20,6 +20,7 @@ import {
 } from '../services/orderService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
+import { calculateInvoicePreview } from '../utils/financeMath';
 import type { AccountOrderRequest, DiscountType, InvoiceSplitSummary, OrderRecord, RestaurantTableSummary } from '../types';
 
 const ACCOUNTING_POLL_INTERVAL_MS = 5000;
@@ -40,65 +41,7 @@ const emptyAccountingDraft = {
   discountValue: string;
 };
 
-type InvoicePreview = {
-  subtotal: number;
-  discountType: '' | DiscountType;
-  discountValue: number;
-  discountAmount: number;
-  taxableSubtotal: number;
-  vatRate: number;
-  vatAmount: number;
-  total: number;
-};
-
-const parseDraftNumber = (value: string): number => {
-  const parsed = Number(value);
-
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const toCents = (value: number | string): number => Math.round(Number(value || 0) * 100);
-
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
-
-const calculateInvoicePreview = (
-  subtotalSource: number | string,
-  draft: { vatRate: string; discountType: '' | DiscountType; discountValue: string }
-): InvoicePreview => {
-  const subtotalCents = toCents(subtotalSource);
-  const vatRate = Math.max(parseDraftNumber(draft.vatRate), 0);
-  const rawDiscountValue = Math.max(parseDraftNumber(draft.discountValue), 0);
-  const discountValue = draft.discountType === 'percentage'
-    ? Math.min(rawDiscountValue, 100)
-    : rawDiscountValue;
-
-  let discountAmountCents = 0;
-
-  if (draft.discountType === 'percentage' && discountValue > 0) {
-    discountAmountCents = Math.round(subtotalCents * discountValue / 100);
-  }
-
-  if (draft.discountType === 'fixed' && discountValue > 0) {
-    discountAmountCents = toCents(discountValue);
-  }
-
-  discountAmountCents = Math.min(discountAmountCents, subtotalCents);
-
-  const taxableSubtotalCents = Math.max(subtotalCents - discountAmountCents, 0);
-  const vatAmountCents = Math.round(taxableSubtotalCents * vatRate / 100);
-  const totalCents = taxableSubtotalCents + vatAmountCents;
-
-  return {
-    subtotal: subtotalCents / 100,
-    discountType: draft.discountType,
-    discountValue,
-    discountAmount: discountAmountCents / 100,
-    taxableSubtotal: taxableSubtotalCents / 100,
-    vatRate,
-    vatAmount: vatAmountCents / 100,
-    total: totalCents / 100,
-  };
-};
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -386,7 +329,12 @@ const AccountingOrdersPage: React.FC = () => {
 
   const selectedTablePreview = useMemo(() => (
     selectedTable
-      ? calculateInvoicePreview(selectedTableInvoiceSubtotal, selectedTableDraft)
+      ? calculateInvoicePreview({
+          subtotal: selectedTableInvoiceSubtotal,
+          discountType: selectedTableDraft.discountType,
+          discountValue: selectedTableDraft.discountValue,
+          vatRate: selectedTableDraft.vatRate,
+        })
       : null
   ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
 

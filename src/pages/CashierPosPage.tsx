@@ -3,6 +3,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { fetchGuestTables, fetchPublishedDishes, quickPosCheckout } from '../services/orderService';
+import { calculateCashSettlement, calculateInvoicePreview, parseFiniteNumber } from '../utils/financeMath';
 import type { PosPaymentMethod, PublishedDishSummary } from '../types';
 
 interface PosCartItem {
@@ -24,11 +25,6 @@ interface HeldPosOrder {
 }
 
 const QUICK_TABLE_OPTIONS = ['POS-WALK-IN', 'PICKUP', 'DELIVERY'];
-
-const parseNumber = (value: string): number => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
 
 const toMoney = (value: number): string => `$${value.toFixed(2)}`;
 
@@ -109,30 +105,20 @@ const CashierPosPage: React.FC = () => {
     [cartItems]
   );
 
-  const discountAmount = useMemo(() => {
-    const rawValue = Math.max(parseNumber(discountValue), 0);
-    if (discountType === 'percentage') {
-      const percentage = Math.min(rawValue, 100);
-      return subtotal * (percentage / 100);
-    }
-    if (discountType === 'fixed') {
-      return Math.min(rawValue, subtotal);
-    }
-    return 0;
-  }, [discountType, discountValue, subtotal]);
+  const invoicePreview = useMemo(() => calculateInvoicePreview({
+    subtotal,
+    discountType,
+    discountValue,
+    vatRate,
+  }), [subtotal, discountType, discountValue, vatRate]);
 
-  const taxableSubtotal = useMemo(() => Math.max(subtotal - discountAmount, 0), [subtotal, discountAmount]);
-  const vatAmount = useMemo(() => taxableSubtotal * (Math.max(parseNumber(vatRate), 0) / 100), [taxableSubtotal, vatRate]);
-  const total = useMemo(() => taxableSubtotal + vatAmount, [taxableSubtotal, vatAmount]);
-  const receivedAmount = useMemo(() => parseNumber(amountReceived), [amountReceived]);
-  const changeDue = useMemo(
-    () => (paymentMethod === 'cash' ? Math.max(receivedAmount - total, 0) : 0),
-    [paymentMethod, receivedAmount, total]
+  const { discountAmount, vatAmount, total } = invoicePreview;
+
+  const settlement = useMemo(
+    () => calculateCashSettlement(total, amountReceived, paymentMethod),
+    [total, amountReceived, paymentMethod]
   );
-  const remainingDue = useMemo(
-    () => (paymentMethod === 'cash' ? Math.max(total - receivedAmount, 0) : 0),
-    [paymentMethod, receivedAmount, total]
-  );
+  const { receivedAmount, changeDue, remainingDue } = settlement;
 
   const addDish = (dish: PublishedDishSummary): void => {
     setCartItems((current) => {
@@ -227,9 +213,9 @@ const CashierPosPage: React.FC = () => {
           dish_id: item.dish.id,
           quantity: item.quantity,
         })),
-        vat_rate: parseNumber(vatRate),
+        vat_rate: parseFiniteNumber(vatRate),
         discount_type: discountType || undefined,
-        discount_value: parseNumber(discountValue),
+        discount_value: parseFiniteNumber(discountValue),
         payment_method: paymentMethod,
         amount_received: paymentMethod === 'cash' ? receivedAmount : undefined,
       });
