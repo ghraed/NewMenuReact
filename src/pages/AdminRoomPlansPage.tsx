@@ -192,7 +192,7 @@ const AdminRoomPlansPage: React.FC = () => {
     return changed ? constrained : sourceItems;
   }, [constrainItemToPlan, selectedPlan]);
 
-  const loadRoomPlans = async () => {
+  const loadRoomPlans = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -212,11 +212,11 @@ const AdminRoomPlansPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPlanId]);
 
   useEffect(() => {
     void loadRoomPlans();
-  }, []);
+  }, [loadRoomPlans]);
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -268,7 +268,7 @@ const AdminRoomPlansPage: React.FC = () => {
     setUploadedBorderPoints([]);
     setBorderPoints([]);
     setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
-  }, [selectedPlan?.id, selectedPlan?.width, selectedPlan?.height, selectedPlan?.background_image_url]);
+  }, [selectedPlan]);
 
   useEffect(() => {
     if (!selectedPlan) return;

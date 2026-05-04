@@ -60,7 +60,7 @@ const AdminStaffPage: React.FC = () => {
   const [savingStaffId, setSavingStaffId] = useState<number | null>(null);
   const [savingManualCount, setSavingManualCount] = useState(false);
 
-  const tables = management?.active_tables ?? [];
+  const tables = useMemo(() => management?.active_tables ?? [], [management?.active_tables]);
   const manualModeRequiresCount = management?.mode === 'MANUAL' && !management?.manual_table_count;
   const tableNameById = useMemo(() => new Map(tables.map((table) => [table.id, table.name])), [tables]);
 
@@ -358,4 +358,3 @@ const AdminStaffPage: React.FC = () => {
 };
 
 export default AdminStaffPage;
-

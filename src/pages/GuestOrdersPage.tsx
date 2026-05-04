@@ -201,7 +201,7 @@ const GuestOrdersPage: React.FC = () => {
     };
 
     void load();
-  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, setGuestContext, t, updateDraft]);
+  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, guestMenuResource, setGuestContext, t, updateDraft]);
 
   const editableItems = invoiceSplit?.editable_items ?? [];
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   fetchAdminReservations,
@@ -19,7 +19,7 @@ const AdminReservationsPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [statusBusyId, setStatusBusyId] = useState<number | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -39,11 +39,11 @@ const AdminReservationsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [reservationDate, roomPlanId]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   const filteredReservations = useMemo(() => reservations, [reservations]);
 

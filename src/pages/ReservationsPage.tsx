@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 import {
   createPublicReservation,
@@ -47,7 +47,7 @@ const ReservationsPage: React.FC = () => {
     [availability]
   );
 
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     setLoading(true);
     setError(null);
     setFeatureUnavailable(false);
@@ -67,11 +67,11 @@ const ReservationsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadPlans();
-  }, []);
+  }, [loadPlans]);
 
   useEffect(() => {
     const loadPlan = async () => {

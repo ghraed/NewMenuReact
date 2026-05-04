@@ -709,6 +709,7 @@ const ChatBot: React.FC = () => {
       cancelled = true;
     };
   }, [
+    guestMenuResource,
     guestMenuResource.data,
     isOpen,
     location.pathname,

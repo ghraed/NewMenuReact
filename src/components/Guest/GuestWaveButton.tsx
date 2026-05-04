@@ -127,7 +127,7 @@ const GuestWaveButton: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTableId, draft.guestAccessVerified, guestMenuResource.data?.protected_actions]);
+  }, [activeTableId, draft.guestAccessVerified, guestMenuResource, guestMenuResource.data?.protected_actions]);
 
   const handleProtectedAction = async (action: 'waiter' | 'bill') => {
     if ((action === 'waiter' && !canCallWaiter) || (action === 'bill' && !canRequestBill)) {

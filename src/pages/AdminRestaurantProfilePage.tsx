@@ -114,8 +114,7 @@ const AdminRestaurantProfilePage: React.FC = () => {
           const candidateUrl = normalizedWebsite.startsWith('http')
             ? normalizedWebsite
             : `https://${normalizedWebsite}`;
-          // eslint-disable-next-line no-new
-          new URL(candidateUrl);
+          void new URL(candidateUrl);
         }
       } catch {
         setRestaurantError(t('adminDashboard.invalidWebsiteUrl'));

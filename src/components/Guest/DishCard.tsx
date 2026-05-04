@@ -60,13 +60,13 @@ const DishCard: React.FC<DishCardProps> = ({
   cartQuantity = 0,
   isIngredientAlert = false,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(
     () => typeof window === 'undefined' || !('IntersectionObserver' in window)
   );
   const [showDollarRate, setShowDollarRate] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
-  const tags = useMemo(() => getDishTags(dish), [dish, i18n.resolvedLanguage]);
+  const tags = useMemo(() => getDishTags(dish), [dish]);
   const currency = normalizeCurrency(dish.currency);
   const originalCurrency = normalizeCurrency(dish.original_currency || dish.currency);
   const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);

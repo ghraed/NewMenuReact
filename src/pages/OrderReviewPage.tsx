@@ -107,7 +107,7 @@ const OrderReviewPage: React.FC = () => {
       .finally(() => {
         setSessionLoading(false);
       });
-  }, [activeTableId, submittedOrder, setGuestContext, updateDraft, clearGuestAccess, t]);
+  }, [activeTableId, submittedOrder, guestMenuResource, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
