@@ -22,10 +22,18 @@ import {
   updateInvoice,
   type CreateInvoiceItemInput,
 } from '../services/invoiceService';
+import { fetchProfitAndLossSummary, fetchTaxSummary } from '../services/financeReportingService';
 import { fetchPayrollPeriods, fetchPayrollSummary } from '../services/payrollService';
 import { fetchStaffSchedules } from '../services/staffScheduleService';
-import type { FinanceInvoice, FinanceInvoiceStatus, PayrollSummaryTotals } from '../types';
+import type {
+  FinanceInvoice,
+  FinanceInvoiceStatus,
+  FinanceProfitAndLossSummary,
+  FinanceTaxSummary,
+  PayrollSummaryTotals,
+} from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
+import { buildFinanceReportCsv, validateFinanceDateRange } from '../utils/financeReporting';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -43,6 +51,34 @@ interface DraftInvoiceItem {
   quantity: string;
   unit_price: string;
 }
+
+const emptyPayrollTotals = (): PayrollSummaryTotals => ({
+  gross_pay: 0,
+  deductions: 0,
+  tax: 0,
+  net_pay: 0,
+  employee_count: 0,
+});
+
+const emptyPnl = (): FinanceProfitAndLossSummary => ({
+  date_from: '',
+  date_to: '',
+  group_by: 'monthly',
+  revenue: 0,
+  cogs: 0,
+  gross_profit: 0,
+  operating_expenses: 0,
+  net_profit: 0,
+});
+
+const emptyTax = (): FinanceTaxSummary => ({
+  date_from: '',
+  date_to: '',
+  taxable_sales: 0,
+  output_vat: 0,
+  input_vat: 0,
+  net_vat_payable: 0,
+});
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   const maybeAxios = error as { response?: { data?: { message?: string } } };
@@ -91,13 +127,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [chartInvoiceCounts, setChartInvoiceCounts] = useState<number[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalInvoicesInRange, setTotalInvoicesInRange] = useState(0);
-  const [payrollTotals, setPayrollTotals] = useState<PayrollSummaryTotals>({
-    gross_pay: 0,
-    deductions: 0,
-    tax: 0,
-    net_pay: 0,
-    employee_count: 0,
-  });
+  const [payrollTotals, setPayrollTotals] = useState<PayrollSummaryTotals>(emptyPayrollTotals);
+  const [pnlSummary, setPnlSummary] = useState<FinanceProfitAndLossSummary>(emptyPnl);
+  const [taxSummary, setTaxSummary] = useState<FinanceTaxSummary>(emptyTax);
   const [payrollPeriodCount, setPayrollPeriodCount] = useState(0);
   const [scheduledShiftsCount, setScheduledShiftsCount] = useState(0);
   const [operationsLoading, setOperationsLoading] = useState(true);
@@ -119,6 +151,14 @@ const AdminFinanceDashboardPage: React.FC = () => {
     setLoading(true);
     setOperationsLoading(true);
     setError(null);
+
+    const dateRangeError = validateFinanceDateRange(dateFrom, dateTo);
+    if (dateRangeError) {
+      setError(dateRangeError);
+      setLoading(false);
+      setOperationsLoading(false);
+      return;
+    }
 
     try {
       const [invoiceResponse, trendResponse] = await Promise.all([
@@ -142,7 +182,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setTotalRevenue(trendResponse.totals.revenue);
       setTotalInvoicesInRange(trendResponse.totals.invoice_count);
 
-      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult] = await Promise.allSettled([
+      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, pnlResult, taxResult] = await Promise.allSettled([
         fetchPayrollSummary({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
@@ -153,18 +193,21 @@ const AdminFinanceDashboardPage: React.FC = () => {
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
         }),
+        fetchProfitAndLossSummary({
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+          group_by: range,
+        }),
+        fetchTaxSummary({
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+        }),
       ]);
 
       if (payrollSummaryResult.status === 'fulfilled') {
         setPayrollTotals(payrollSummaryResult.value.totals);
       } else {
-        setPayrollTotals({
-          gross_pay: 0,
-          deductions: 0,
-          tax: 0,
-          net_pay: 0,
-          employee_count: 0,
-        });
+        setPayrollTotals(emptyPayrollTotals());
       }
 
       if (payrollPeriodsResult.status === 'fulfilled') {
@@ -177,6 +220,18 @@ const AdminFinanceDashboardPage: React.FC = () => {
         setScheduledShiftsCount(shiftsResult.value.filter((shift) => shift.status === 'scheduled').length);
       } else {
         setScheduledShiftsCount(0);
+      }
+
+      if (pnlResult.status === 'fulfilled') {
+        setPnlSummary(pnlResult.value);
+      } else {
+        setPnlSummary(emptyPnl());
+      }
+
+      if (taxResult.status === 'fulfilled') {
+        setTaxSummary(taxResult.value);
+      } else {
+        setTaxSummary(emptyTax());
       }
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError, 'Failed to load finance dashboard data.'));
@@ -363,6 +418,27 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
   };
 
+  const handleDownloadFinanceReport = () => {
+    const csv = buildFinanceReportCsv({
+      currency,
+      dateFrom,
+      dateTo,
+      pnl: pnlSummary,
+      tax: taxSummary,
+      payroll: payrollTotals,
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const objectUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = `finance-report-${dateFrom || 'all'}-${dateTo || 'all'}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(objectUrl);
+  };
+
   return (
     <DashboardLayout title="Finance Dashboard">
       <div className="space-y-6">
@@ -508,6 +584,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
                   {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
                 </LiquidButton>
+                <LiquidButton type="button" tone="tertiary" onClick={handleDownloadFinanceReport}>
+                  Download Finance CSV
+                </LiquidButton>
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-4">
@@ -529,6 +608,70 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
             </div>
           </GlassCard>
+
+          <div className="grid gap-5 xl:grid-cols-2">
+            <GlassCard>
+              <div className="mb-3">
+                <h3 className="text-lg font-semibold text-text">Profit &amp; Loss</h3>
+                <p className="mt-1 text-sm text-muted">Period performance by revenue, costs, and net outcome.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Revenue</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(pnlSummary.revenue, currency)}</p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">COGS</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(pnlSummary.cogs, currency)}</p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Profit</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    {formatPriceWithCurrency(pnlSummary.gross_profit, currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Operating Expenses</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    {formatPriceWithCurrency(pnlSummary.operating_expenses, currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3 sm:col-span-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Profit</p>
+                  <p className="mt-1 text-lg font-semibold text-text">{formatPriceWithCurrency(pnlSummary.net_profit, currency)}</p>
+                </div>
+              </div>
+            </GlassCard>
+
+            <GlassCard>
+              <div className="mb-3">
+                <h3 className="text-lg font-semibold text-text">Tax Summary</h3>
+                <p className="mt-1 text-sm text-muted">VAT position based on current filter date range.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Taxable Sales</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    {formatPriceWithCurrency(taxSummary.taxable_sales, currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Output VAT</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(taxSummary.output_vat, currency)}</p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Input VAT</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(taxSummary.input_vat, currency)}</p>
+                </div>
+                <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net VAT Payable</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    {formatPriceWithCurrency(taxSummary.net_vat_payable, currency)}
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
         </motion.section>
 
         <motion.section

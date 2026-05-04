@@ -30,6 +30,12 @@ vi.mock('../../src/services/staffService', () => ({
   fetchStaffMembers: mockedStaffService.fetchStaffMembers,
 }));
 
+vi.mock('../../src/contexts/useAuth', () => ({
+  useAuth: () => ({
+    user: { restaurant: { currency: 'USD' } },
+  }),
+}));
+
 describe('AdminPayrollManagementPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -160,5 +166,22 @@ describe('AdminPayrollManagementPage', () => {
     await waitFor(() => {
       expect(mockedPayrollService.updatePayrollPeriod).toHaveBeenCalledWith(1, { status: 'approved' });
     });
+  });
+
+  it('blocks saving entries when net pay would be negative', async () => {
+    render(<AdminPayrollManagementPage />);
+
+    await screen.findByText('Periods & Entries');
+
+    const mayaRow = screen.getByText('Maya').closest('tr');
+    expect(mayaRow).not.toBeNull();
+    const inputs = within(mayaRow as HTMLElement).getAllByRole('spinbutton');
+    fireEvent.change(inputs[0], { target: { value: '10.00' } }); // base
+    fireEvent.change(inputs[3], { target: { value: '50.00' } }); // deduction
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Entries' }));
+
+    await screen.findByText(/Net pay cannot be negative for Maya/i);
+    expect(mockedPayrollService.upsertPayrollEntries).not.toHaveBeenCalled();
   });
 });

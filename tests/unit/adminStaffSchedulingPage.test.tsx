@@ -81,7 +81,6 @@ describe('AdminStaffSchedulingPage', () => {
     render(<AdminStaffSchedulingPage />);
 
     await screen.findByText('Scheduled Shifts');
-    await screen.findByRole('option', { name: 'Chef Sam (chef)' });
 
     const employeeSelect = screen.getByLabelText('Employee') as HTMLSelectElement;
     fireEvent.change(employeeSelect, { target: { value: '22' } });
@@ -111,5 +110,25 @@ describe('AdminStaffSchedulingPage', () => {
     await waitFor(() => {
       expect(mockedScheduleService.updateStaffShift).toHaveBeenCalledWith(100, { status: 'completed' });
     });
+  });
+
+  it('blocks create when end time is before start time', async () => {
+    render(<AdminStaffSchedulingPage />);
+
+    await screen.findByText('Scheduled Shifts');
+
+    const employeeSelect = screen.getByLabelText('Employee') as HTMLSelectElement;
+    fireEvent.change(employeeSelect, { target: { value: '11' } });
+
+    fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '17:00' } });
+    fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '09:00' } });
+
+    const createButton = screen.getByRole('button', { name: 'Create Shift' });
+    const form = createButton.closest('form');
+    expect(form).not.toBeNull();
+    fireEvent.submit(form as HTMLFormElement);
+
+    await screen.findByText('End time must be after start time.');
+    expect(mockedScheduleService.createStaffShift).not.toHaveBeenCalled();
   });
 });

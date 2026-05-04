@@ -38,6 +38,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [shifts, setShifts] = useState<StaffShift[]>([]);
   const [dateFrom, setDateFrom] = useState(today.slice(0, 8) + '01');
   const [dateTo, setDateTo] = useState(today);
+  const [staffFilterId, setStaffFilterId] = useState<number | ''>('');
   const [employeeId, setEmployeeId] = useState<number | ''>('');
   const [shiftDate, setShiftDate] = useState(today);
   const [startTime, setStartTime] = useState('09:00');
@@ -65,6 +66,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
         fetchStaffSchedules({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
+          user_id: typeof staffFilterId === 'number' ? staffFilterId : undefined,
         }),
       ]);
 
@@ -79,7 +81,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, employeeId]);
+  }, [dateFrom, dateTo, employeeId, staffFilterId]);
 
   useEffect(() => {
     void loadPageData();
@@ -97,6 +99,11 @@ const AdminStaffSchedulingPage: React.FC = () => {
 
     if (employeeId === '') {
       setError('Please select an employee.');
+      return;
+    }
+
+    if (startTime >= endTime) {
+      setError('End time must be after start time.');
       return;
     }
 
@@ -260,6 +267,27 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 onChange={(event) => setDateTo(event.target.value)}
                 className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
               />
+            </label>
+          </div>
+
+          <div className="mb-4">
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee Filter</span>
+              <select
+                value={staffFilterId}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setStaffFilterId(next === '' ? '' : Number(next));
+                }}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="">All employees</option>
+                {scheduleEligibleStaff.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} ({member.role})
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 

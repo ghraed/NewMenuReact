@@ -554,6 +554,28 @@ export interface FinanceRevenuePoint {
   invoice_count: number;
 }
 
+export type FinancePnlGroupBy = 'daily' | 'monthly' | 'yearly';
+
+export interface FinanceProfitAndLossSummary {
+  date_from: string;
+  date_to: string;
+  group_by: FinancePnlGroupBy;
+  revenue: number;
+  cogs: number;
+  gross_profit: number;
+  operating_expenses: number;
+  net_profit: number;
+}
+
+export interface FinanceTaxSummary {
+  date_from: string;
+  date_to: string;
+  taxable_sales: number;
+  output_vat: number;
+  input_vat: number;
+  net_vat_payable: number;
+}
+
 export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
 export type PayrollSummaryMode = 'approved_paid' | 'all';
 export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { useAuth } from '../contexts/useAuth';
 import {
   createPayrollPeriod,
   fetchPayrollPeriods,
@@ -68,6 +69,9 @@ const PayrollStatusChip: React.FC<{ status: PayrollPeriodStatus }> = ({ status }
 };
 
 const AdminPayrollManagementPage: React.FC = () => {
+  const { user } = useAuth();
+  const currency = user?.restaurant?.currency ?? 'USD';
+
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<number | ''>('');
@@ -169,6 +173,12 @@ const AdminPayrollManagementPage: React.FC = () => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (periodStart > periodEnd) {
+      setError('Period end date must be on or after start date.');
+      return;
+    }
+
     setCreatingPeriod(true);
 
     try {
@@ -261,6 +271,22 @@ const AdminPayrollManagementPage: React.FC = () => {
   const handleSaveEntries = async () => {
     if (!selectedPeriod) {
       setError('Select a payroll period first.');
+      return;
+    }
+
+    if (summaryDateFrom > summaryDateTo) {
+      setError('Summary end date must be on or after start date.');
+      return;
+    }
+
+    const invalidNetEntry = currentEntriesPayload.find((entry) => (
+      (entry.base_amount_cents + (entry.overtime_amount_cents ?? 0) + (entry.bonus_amount_cents ?? 0)
+      - (entry.deduction_amount_cents ?? 0) - (entry.tax_amount_cents ?? 0)) < 0
+    ));
+
+    if (invalidNetEntry) {
+      const name = eligibleStaff.find((staff) => staff.id === invalidNetEntry.user_id)?.name ?? `#${invalidNetEntry.user_id}`;
+      setError(`Net pay cannot be negative for ${name}. Reduce deductions/tax or increase base pay.`);
       return;
     }
 
@@ -371,7 +397,7 @@ const AdminPayrollManagementPage: React.FC = () => {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-stroke bg-bg1/55 p-4">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Payroll</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, 'USD')}</p>
+                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, currency)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/55 p-4">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
@@ -447,7 +473,7 @@ const AdminPayrollManagementPage: React.FC = () => {
 
               <div className="mb-4 rounded-2xl border border-stroke bg-bg1/50 p-4 text-sm text-muted">
                 Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, 'USD')}</span>
-                {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, 'USD')}</span>
+                {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, currency)}</span>
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-stroke">
@@ -460,13 +486,14 @@ const AdminPayrollManagementPage: React.FC = () => {
                       <th className="px-3 py-3">Bonus</th>
                       <th className="px-3 py-3">Deduction</th>
                       <th className="px-3 py-3">Tax</th>
+                      <th className="px-3 py-3">Net</th>
                       <th className="px-3 py-3">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {eligibleStaff.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-muted">No staff members found.</td>
+                        <td colSpan={8} className="px-3 py-6 text-center text-muted">No staff members found.</td>
                       </tr>
                     ) : eligibleStaff.map((staff) => {
                       const draft = entryDrafts[staff.id] ?? {
@@ -489,6 +516,13 @@ const AdminPayrollManagementPage: React.FC = () => {
                           <td className="px-3 py-3"><input value={draft.bonus} onChange={(event) => setEntryValue(staff.id, 'bonus', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.deduction} onChange={(event) => setEntryValue(staff.id, 'deduction', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.tax} onChange={(event) => setEntryValue(staff.id, 'tax', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
+                          <td className="px-3 py-3 text-sm font-semibold text-text">
+                            {formatPriceWithCurrency(
+                              (moneyStringToCents(draft.base) + moneyStringToCents(draft.overtime) + moneyStringToCents(draft.bonus)
+                                - moneyStringToCents(draft.deduction) - moneyStringToCents(draft.tax)) / 100,
+                              currency
+                            )}
+                          </td>
                           <td className="px-3 py-3"><input value={draft.notes} onChange={(event) => setEntryValue(staff.id, 'notes', event.target.value)} type="text" placeholder="Optional" className="w-56 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                         </tr>
                       );
