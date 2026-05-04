@@ -39,6 +39,8 @@ const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const AdminCurrencyPage = React.lazy(() => import('./pages/AdminCurrencyPage'));
 const AdminFinanceDashboardPage = React.lazy(() => import('./pages/AdminFinanceDashboardPage'));
 const AdminFinanceInvoiceDetailsPage = React.lazy(() => import('./pages/AdminFinanceInvoiceDetailsPage'));
+const AdminPayrollManagementPage = React.lazy(() => import('./pages/AdminPayrollManagementPage'));
+const AdminStaffSchedulingPage = React.lazy(() => import('./pages/AdminStaffSchedulingPage'));
 const AdminRoomPlansPage = React.lazy(() => import('./pages/AdminRoomPlansPage'));
 const AdminReservationsPage = React.lazy(() => import('./pages/AdminReservationsPage'));
 const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
@@ -260,6 +262,24 @@ const AppRoutes: React.FC = () => {
           element={(
             <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
               {lazyRoute(<AdminFinanceInvoiceDetailsPage />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/finance/payroll"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['payroll_management']}>
+              {lazyRoute(<AdminPayrollManagementPage />)}
+            </ProtectedRoute>
+          )}
+        />
+
+        <Route
+          path="/admin/staff/scheduling"
+          element={(
+            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['staff_scheduling']}>
+              {lazyRoute(<AdminStaffSchedulingPage />)}
             </ProtectedRoute>
           )}
         />

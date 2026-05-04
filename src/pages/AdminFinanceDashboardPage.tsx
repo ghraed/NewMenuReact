@@ -498,9 +498,17 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <h3 className="text-lg font-semibold text-text">Operations Snapshot</h3>
                 <p className="mt-1 text-sm text-muted">Payroll and staffing metrics for the selected date range.</p>
               </div>
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
-                {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
-              </LiquidButton>
+              <div className="flex flex-wrap gap-2">
+                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/finance/payroll')}>
+                  Open Payroll
+                </LiquidButton>
+                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/staff/scheduling')}>
+                  Open Schedule
+                </LiquidButton>
+                <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
+                  {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
+                </LiquidButton>
+              </div>
             </div>
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
