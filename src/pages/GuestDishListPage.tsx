@@ -292,17 +292,19 @@ const GuestDishListPage: React.FC = () => {
       return;
     }
 
-    if (resourceRequestKeyRef.current === guestResource.key && guestResource.loading) {
+    // Only bootstrap once per resource key. Re-renders should not re-trigger menu loading.
+    if (resourceRequestKeyRef.current === guestResource.key) {
       return;
     }
 
     resourceRequestKeyRef.current = guestResource.key;
     setLoading(true);
     setError(null);
+
     void guestResource.ensure()
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  }, [guestResource, guestResource.enabled, guestResource.key, guestResource.loading]);
+  }, [guestResource.enabled, guestResource.key]);
 
   useEffect(() => {
     if (!guestResource.data) {
@@ -589,22 +591,6 @@ const GuestDishListPage: React.FC = () => {
   }, [dishLookup, hydratedDishes, aiRecommendationsEnabled]);
 
   const relatedPopupSourceDish = relatedPopupDishId ? cardDishesById[relatedPopupDishId] || null : null;
-  const missingFilteredDishCount = filteredDishIds.reduce(
-    (count, dishId) => (cardDishesById[dishId] ? count : count + 1),
-    0
-  );
-
-  useEffect(() => {
-    if (loading || error || loadingMore || !hasMorePages) {
-      return;
-    }
-
-    if (missingFilteredDishCount <= 0) {
-      return;
-    }
-
-    void loadNextDishPage();
-  }, [error, hasMorePages, loadNextDishPage, loading, loadingMore, missingFilteredDishCount]);
 
   useEffect(() => {
     if (!loadMoreAnchorRef.current || loading || error || loadingMore || !hasMorePages) {
