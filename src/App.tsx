@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -99,11 +99,12 @@ const lazyRoute = (element: React.ReactNode) => (
 
 const AppRoutes: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
 
   return (
     <AppThemeShell>
       <RouteErrorBoundary>
-        <Routes key={i18n.resolvedLanguage}>
+        <Routes key={`${i18n.resolvedLanguage}:${location.pathname}`}>
         <Route path="/" element={<GuestDishListPage />} />
         <Route path="/menu" element={<GuestDishListPage />} />
         <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
