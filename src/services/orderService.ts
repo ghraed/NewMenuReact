@@ -130,21 +130,12 @@ interface ActiveTableSessionsResponse {
   table_sessions: ActiveTableSessionRecord[];
 }
 
-const isRouteMissing404 = (error: unknown): boolean => {
+const isNotFound404 = (error: unknown): boolean => {
   if (!axios.isAxiosError(error)) {
     return false;
   }
 
-  if (error.response?.status !== 404) {
-    return false;
-  }
-
-  const contentTypeHeader = error.response?.headers?.['content-type'];
-  const contentType = Array.isArray(contentTypeHeader)
-    ? contentTypeHeader.join(';')
-    : String(contentTypeHeader || '');
-
-  return contentType.toLowerCase().includes('text/html');
+  return error.response?.status === 404;
 };
 
 const toFallbackTableSummary = (tableId: number | string) => {
@@ -215,7 +206,7 @@ export const fetchGuestTableMenu = async (
     });
     return response.data;
   } catch (error) {
-    if (!isRouteMissing404(error)) {
+    if (!isNotFound404(error)) {
       throw error;
     }
 
@@ -257,7 +248,7 @@ export const fetchGuestTableDish = async (
 
     return response.data;
   } catch (error) {
-    if (!isRouteMissing404(error)) {
+    if (!isNotFound404(error)) {
       throw error;
     }
 
