@@ -51,6 +51,7 @@ interface ImportGlobalIngredientsResponse {
 }
 
 type GlobalImportStatus = 'already_added' | 'will_link' | 'new';
+type ReorderModalView = 'missing' | 'draft';
 
 const defaultIngredientPayload: IngredientPayload = {
   name: '',
@@ -134,6 +135,7 @@ const AdminIngredientsPage: React.FC = () => {
   const [selectedGlobalIngredientIds, setSelectedGlobalIngredientIds] = useState<number[]>([]);
   const [importingGlobalIngredients, setImportingGlobalIngredients] = useState(false);
   const [reorderModalOpen, setReorderModalOpen] = useState(false);
+  const [reorderModalView, setReorderModalView] = useState<ReorderModalView>('missing');
   const [restockDraftRows, setRestockDraftRows] = useState<RestockDraftRow[]>([]);
 
   const fetchIngredients = useCallback(async () => {
@@ -581,10 +583,21 @@ const AdminIngredientsPage: React.FC = () => {
       quantity: missing.toFixed(3),
     }));
     setRestockDraftRows(nextDraftRows);
+    setReorderModalView('draft');
+  };
+
+  const handleOpenReorderModal = () => {
+    setReorderModalView('missing');
+    setReorderModalOpen(true);
+  };
+
+  const handleCloseReorderModal = () => {
+    setReorderModalOpen(false);
+    setReorderModalView('missing');
   };
 
   const handleUseDraftRow = (row: RestockDraftRow) => {
-    setReorderModalOpen(false);
+    handleCloseReorderModal();
     handleOpenAction(row.ingredientId, 'restock', {
       quantity: row.quantity,
       reference: 'AUTO_REORDER_DRAFT',
@@ -607,7 +620,7 @@ const AdminIngredientsPage: React.FC = () => {
           <LiquidButton tone="tertiary" onClick={fetchIngredients} disabled={loading}>
             {loading ? t('common.loading') : t('inventoryIngredients.refresh')}
           </LiquidButton>
-          <LiquidButton tone="secondary" onClick={() => setReorderModalOpen(true)} disabled={loading || ingredients.length === 0}>
+          <LiquidButton tone="secondary" onClick={handleOpenReorderModal} disabled={loading || ingredients.length === 0}>
             {t('inventoryIngredients.reorder.showMissing')}
           </LiquidButton>
           <LiquidButton tone="primary" onClick={() => void handleOpenGlobalImportModal()} disabled={loading}>
@@ -1062,32 +1075,41 @@ const AdminIngredientsPage: React.FC = () => {
 
       {reorderModalOpen && canPortal ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
-          <div className="mx-auto my-4 w-full max-w-3xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-stroke bg-bg0 p-5 shadow-lux2 sm:p-6">
+            <div className="sticky top-0 z-10 bg-bg0 pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
-                <h3 className="mt-2 text-xl font-semibold text-text">{t('inventoryIngredients.reorder.title')}</h3>
-                <p className="mt-2 text-sm text-muted">{t('inventoryIngredients.reorder.description')}</p>
+                <h3 className="mt-2 text-xl font-semibold text-text">
+                  {reorderModalView === 'draft' ? t('inventoryIngredients.reorder.draftTitle') : t('inventoryIngredients.reorder.title')}
+                </h3>
+                <p className="mt-2 text-sm text-muted">
+                  {reorderModalView === 'draft' ? t('inventoryIngredients.reorder.draftHint') : t('inventoryIngredients.reorder.description')}
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <LiquidButton
-                  tone="secondary"
-                  onClick={handleCreateRestockDraft}
-                  disabled={reorderRows.length === 0}
-                >
-                  {t('inventoryIngredients.reorder.createDraft')}
-                </LiquidButton>
-                <LiquidButton tone="tertiary" onClick={() => setReorderModalOpen(false)}>
+                {reorderModalView === 'missing' ? (
+                  <LiquidButton
+                    tone="secondary"
+                    onClick={handleCreateRestockDraft}
+                    disabled={reorderRows.length === 0}
+                  >
+                    {t('inventoryIngredients.reorder.createDraft')}
+                  </LiquidButton>
+                ) : null}
+                <LiquidButton tone="tertiary" onClick={handleCloseReorderModal}>
                   {t('common.close')}
                 </LiquidButton>
               </div>
             </div>
+            </div>
 
-            {reorderRows.length === 0 ? (
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {reorderModalView === 'missing' && reorderRows.length === 0 ? (
               <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
                 {t('inventoryIngredients.reorder.noneMissing')}
               </div>
-            ) : (
+            ) : reorderModalView === 'missing' ? (
               <div className="mt-5 max-h-[55vh] space-y-3 overflow-y-auto pr-1">
                 {reorderRows.map(({ ingredient, missing, target, current }) => (
                   <div key={ingredient.id} className="rounded-[20px] border border-white/12 bg-white/6 p-4">
@@ -1107,15 +1129,10 @@ const AdminIngredientsPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-            )}
+            ) : null}
 
-            {restockDraftRows.length > 0 ? (
+            {reorderModalView === 'draft' ? (
               <div className="mt-5 rounded-[20px] border border-gold/35 bg-gold/10 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-text">{t('inventoryIngredients.reorder.draftTitle')}</p>
-                  <p className="text-xs text-muted2">{t('inventoryIngredients.reorder.draftHint')}</p>
-                </div>
-
                 <div className="mt-3 space-y-2">
                   {restockDraftRows.map((row) => (
                     <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-black/10 px-3 py-2">
@@ -1130,6 +1147,7 @@ const AdminIngredientsPage: React.FC = () => {
                 </div>
               </div>
             ) : null}
+            </div>
           </div>
         </div>,
         document.body
