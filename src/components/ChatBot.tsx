@@ -1220,7 +1220,7 @@ const ChatBot: React.FC = () => {
       )}
 
       {dishPreview ? (
-        <div className="fixed inset-0 z-[1100] flex items-end justify-center bg-slate-900/60 p-4 sm:items-center">
+        <div className="fixed inset-0 z-[2147483647] flex items-end justify-center bg-slate-900/60 p-4 sm:items-center">
           <button
             type="button"
             aria-label="Close preview"

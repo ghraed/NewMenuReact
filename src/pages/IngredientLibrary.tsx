@@ -347,7 +347,7 @@ const IngredientLibrary: React.FC = () => {
       )}
 
       {formOpen ? (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/45 p-4">
+        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-md rounded-[28px] border border-stroke bg-bg1 p-5 shadow-lux2">
             <h3 className="text-lg font-semibold text-text">{editingId === null ? 'Add Ingredient' : 'Edit Ingredient'}</h3>
             <div className="mt-4 space-y-3">

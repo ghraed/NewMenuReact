@@ -132,8 +132,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </div>
         </GlassBoard>
 
-        <div className="sticky top-4 z-20 mb-6 hidden lg:block">
-          <GlassBoard className="p-3">
+        <div className="mb-6 hidden lg:block">
+          <div className="h-[92px]" aria-hidden="true" />
+          <div className="fixed left-1/2 top-4 z-10 w-[min(100%-3rem,78rem)] -translate-x-1/2">
+            <GlassBoard className="p-3">
             <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
               {t('admin.navigation')}
             </div>
@@ -161,7 +163,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 );
               })}
             </ul>
-          </GlassBoard>
+            </GlassBoard>
+          </div>
         </div>
 
         <AnimatePresence>
