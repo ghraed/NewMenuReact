@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
@@ -1221,9 +1222,10 @@ const StaffOrdersPage: React.FC = () => {
         onSaveAndConfirm={handleSaveAndConfirmEditedOrder}
       />
 
-      {tableUrlPopup ? (
-        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/55 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-bg1 p-5">
+      {tableUrlPopup && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
+          <div className="flex min-h-full items-center justify-center">
+            <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-bg1 p-5">
             <h3 className="text-lg font-semibold text-text">Guest Table URL</h3>
             <p className="mt-1 text-sm text-muted">{tableUrlPopup.label}</p>
             <div className="mt-4 break-all rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-text">
@@ -1245,9 +1247,10 @@ const StaffOrdersPage: React.FC = () => {
                 Close
               </LiquidButton>
             </div>
+            </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
 
       <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>

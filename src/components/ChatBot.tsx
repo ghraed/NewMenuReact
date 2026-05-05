@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../contexts/useOrderCart';
@@ -1219,8 +1220,9 @@ const ChatBot: React.FC = () => {
         </button>
       )}
 
-      {dishPreview ? (
-        <div className="fixed inset-0 z-[2147483647] flex items-end justify-center bg-slate-900/60 p-4 sm:items-center">
+      {dishPreview && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-slate-900/60 p-4">
+          <div className="flex min-h-full items-end justify-center sm:items-center">
           <button
             type="button"
             aria-label="Close preview"
@@ -1249,8 +1251,9 @@ const ChatBot: React.FC = () => {
               </a>
             </div>
           </div>
+          </div>
         </div>
-      ) : null}
+      , document.body) : null}
     </div>
   );
 };
