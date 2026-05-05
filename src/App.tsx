@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OwnerAuthProvider } from './contexts/OwnerAuthContext';
@@ -19,7 +20,6 @@ import LoadingSpinner from './components/Common/LoadingSpinner';
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
-const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const AdminRestaurantProfilePage = React.lazy(() => import('./pages/AdminRestaurantProfilePage'));
 const CreateDishPage = React.lazy(() => import('./pages/CreateDishPage'));
 const EditDishPage = React.lazy(() => import('./pages/EditDishPage'));
@@ -148,7 +148,7 @@ const AppRoutes: React.FC = () => {
           path="/admin/dashboard"
           element={(
             <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<AdminDashboard />)}
+              <AdminDashboard />
             </ProtectedRoute>
           )}
         />
