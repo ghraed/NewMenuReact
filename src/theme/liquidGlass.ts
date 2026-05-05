@@ -18,7 +18,7 @@ export const glassControl =
 export const glassSurfaceHover =
   [
     'motion-safe:hover:-translate-y-0.5',
-    'motion-safe:hover:scale-[1.003]',
+    'motion-safe:hover:scale-[1.0003]',
     'motion-safe:hover:border-white/18',
     'motion-safe:hover:bg-bg1/95',
     'motion-safe:hover:shadow-[0_20px_52px_rgba(0,0,0,0.42)]',
