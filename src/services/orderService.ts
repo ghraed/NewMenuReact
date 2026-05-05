@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 import type {
   ActiveTableSessionRecord,
   AccountOrderRequest,
@@ -129,6 +130,51 @@ interface ActiveTableSessionsResponse {
   table_sessions: ActiveTableSessionRecord[];
 }
 
+const isRouteMissing404 = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  if (error.response?.status !== 404) {
+    return false;
+  }
+
+  const contentTypeHeader = error.response?.headers?.['content-type'];
+  const contentType = Array.isArray(contentTypeHeader)
+    ? contentTypeHeader.join(';')
+    : String(contentTypeHeader || '');
+
+  return contentType.toLowerCase().includes('text/html');
+};
+
+const toFallbackTableSummary = (tableId: number | string) => {
+  const numericTableId = Number(tableId);
+  const normalizedId = Number.isFinite(numericTableId) && numericTableId > 0
+    ? numericTableId
+    : 0;
+
+  return {
+    id: normalizedId,
+    number: normalizedId,
+    name: normalizedId > 0 ? `Table ${normalizedId}` : 'Table',
+  };
+};
+
+const defaultGuestAccess = (guestAccessToken?: string | null) => ({
+  verified: false,
+  token: guestAccessToken || undefined,
+  joined_at: null,
+  last_seen_at: null,
+  expires_at: null,
+});
+
+const defaultProtectedActions = {
+  ordering_unlocked: false,
+  can_place_order: false,
+  can_call_waiter: false,
+  can_request_bill: false,
+};
+
 const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRequest => {
   const nextPayload: AccountOrderRequest = {};
 
@@ -157,16 +203,43 @@ export const fetchGuestTableMenu = async (
   guestAccessToken?: string | null,
   options?: GuestMenuFetchOptions
 ): Promise<GuestTableMenuResponse> => {
-  const response = await api.get<GuestTableMenuResponse>(`/menu/table/${tableId}`, {
-    params: {
-      include_dishes: options?.include_dishes,
-      limit: options?.limit,
-      offset: options?.offset,
-      include_index: options?.include_index ? 1 : undefined,
-    },
-    headers: buildGuestAccessHeaders(guestAccessToken),
-  });
-  return response.data;
+  try {
+    const response = await api.get<GuestTableMenuResponse>(`/menu/table/${tableId}`, {
+      params: {
+        include_dishes: options?.include_dishes,
+        limit: options?.limit,
+        offset: options?.offset,
+        include_index: options?.include_index ? 1 : undefined,
+      },
+      headers: buildGuestAccessHeaders(guestAccessToken),
+    });
+    return response.data;
+  } catch (error) {
+    if (!isRouteMissing404(error)) {
+      throw error;
+    }
+
+    const fallbackResponse = await api.get<GuestMenuListResponse>('/menu/dishes', {
+      params: {
+        include_dishes: options?.include_dishes,
+        limit: options?.limit,
+        offset: options?.offset,
+        include_index: options?.include_index ? 1 : undefined,
+      },
+    });
+
+    return {
+      restaurant: fallbackResponse.data.restaurant,
+      table: toFallbackTableSummary(tableId),
+      table_session: null,
+      guest_access: defaultGuestAccess(guestAccessToken),
+      protected_actions: defaultProtectedActions,
+      dishes: fallbackResponse.data.dishes,
+      dish_index: fallbackResponse.data.dish_index,
+      dishes_page: fallbackResponse.data.dishes_page,
+      dishes_meta: fallbackResponse.data.dishes_meta,
+    };
+  }
 };
 
 export const fetchGuestTableDish = async (
@@ -174,14 +247,35 @@ export const fetchGuestTableDish = async (
   dishId: number | string,
   guestAccessToken?: string | null
 ): Promise<GuestTableDishResponse> => {
-  const response = await api.get<GuestTableDishResponse>(`/menu/table/${tableId}/dish/${dishId}`, {
-    headers: {
-      'ngrok-skip-browser-warning': 'true',
-      ...buildGuestAccessHeaders(guestAccessToken),
-    },
-  });
+  try {
+    const response = await api.get<GuestTableDishResponse>(`/menu/table/${tableId}/dish/${dishId}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+        ...buildGuestAccessHeaders(guestAccessToken),
+      },
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    if (!isRouteMissing404(error)) {
+      throw error;
+    }
+
+    const fallbackResponse = await api.get<{ dish: GuestTableDishResponse['dish']; restaurant: GuestTableDishResponse['restaurant'] }>(`/menu/dish/${dishId}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+
+    return {
+      restaurant: fallbackResponse.data.restaurant,
+      table: toFallbackTableSummary(tableId),
+      table_session: null,
+      guest_access: defaultGuestAccess(guestAccessToken),
+      protected_actions: defaultProtectedActions,
+      dish: fallbackResponse.data.dish,
+    };
+  }
 };
 
 export const verifyGuestTablePin = async (
