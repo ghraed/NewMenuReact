@@ -950,7 +950,7 @@ const AdminIngredientsPage: React.FC = () => {
 
       {globalImportModalOpen && canPortal ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
-          <div className="mx-auto my-4 w-full max-w-5xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <div className="mx-auto my-4 w-full max-w-5xl rounded-[28px] border border-stroke bg-panel p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.importGlobal.eyebrow')}</p>
@@ -1075,8 +1075,8 @@ const AdminIngredientsPage: React.FC = () => {
 
       {reorderModalOpen && canPortal ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
-          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
-            <div className="sticky top-0 z-10 bg-bg1 pb-3">
+          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-stroke bg-panel p-5 shadow-lux2 sm:p-6">
+            <div className="sticky top-0 z-10 bg-panel pb-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
