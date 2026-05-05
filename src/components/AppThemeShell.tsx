@@ -52,6 +52,26 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    // Portaled UI (modals/popups mounted in document.body) cannot inherit CSS vars
+    // from this component wrapper, so mirror theme vars onto :root as source of truth.
+    const root = document.documentElement;
+    const vars = getAppThemeStyle(theme) as Record<string, string>;
+
+    Object.entries(vars).forEach(([key, value]) => {
+      if (!key.startsWith('--') || typeof value !== 'string') {
+        return;
+      }
+      root.style.setProperty(key, value);
+    });
+
+    root.style.colorScheme = theme;
+  }, [theme]);
+
   const handleThemeToggle = () => {
     if (typeof window === 'undefined') {
       toggleTheme();
