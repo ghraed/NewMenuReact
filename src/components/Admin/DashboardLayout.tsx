@@ -132,8 +132,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </div>
         </GlassBoard>
 
-        <div className="mb-6 hidden lg:block">
-          <GlassBoard className="sticky top-4 z-40 p-3">
+        <div className="sticky top-4 z-20 mb-6 hidden lg:block">
+          <GlassBoard className="p-3">
             <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
               {t('admin.navigation')}
             </div>
@@ -153,7 +153,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                       }`}
                     >
                       <span>{item.icon}</span>
-                      <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
                         {item.label}
                       </span>
                     </Link>
