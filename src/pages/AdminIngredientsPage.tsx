@@ -1074,9 +1074,9 @@ const AdminIngredientsPage: React.FC = () => {
       ) : null}
 
       {reorderModalOpen && canPortal ? createPortal(
-        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
-          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-stroke bg-bg0 p-5 shadow-lux2 sm:p-6">
-            <div className="sticky top-0 z-10 bg-bg0 pb-3">
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
+          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
+            <div className="sticky top-0 z-10 bg-bg1 pb-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
@@ -1132,10 +1132,10 @@ const AdminIngredientsPage: React.FC = () => {
             ) : null}
 
             {reorderModalView === 'draft' ? (
-              <div className="mt-5 rounded-[20px] border border-gold/35 bg-gold/10 p-4">
+              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-4">
                 <div className="mt-3 space-y-2">
                   {restockDraftRows.map((row) => (
-                    <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-black/10 px-3 py-2">
+                    <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-white/[0.03] px-3 py-2">
                       <p className="text-sm text-text">
                         {row.name} • {row.quantity} {row.unit}
                       </p>
