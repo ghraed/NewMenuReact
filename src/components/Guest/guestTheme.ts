@@ -36,6 +36,9 @@ const darkThemeVars = {
 const lightAppVars = {
   '--color-bg0': '246 242 235',
   '--color-bg1': '252 250 245',
+  '--color-modal-surface': '252 250 245',
+  '--color-modal-row': '255 255 255',
+  '--color-modal-stroke': '26 26 26',
   '--color-gold': '184 154 94',
   '--color-gold2': '184 154 94',
   '--color-sage': '123 163 141',
@@ -47,6 +50,9 @@ const lightAppVars = {
 const darkAppVars = {
   '--color-bg0': '11 11 12',
   '--color-bg1': '18 18 20',
+  '--color-modal-surface': '18 18 20',
+  '--color-modal-row': '24 28 38',
+  '--color-modal-stroke': '255 255 255',
   '--color-gold': '212 175 55',
   '--color-gold2': '212 175 55',
   '--color-sage': '143 214 180',

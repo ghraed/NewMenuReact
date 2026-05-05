@@ -223,8 +223,8 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   const content = (
     <div className="fixed inset-0 z-[2147483646] overflow-y-auto bg-black/60 backdrop-blur-[2px]">
       <div className="flex min-h-full items-stretch justify-center sm:p-6">
-        <div className="flex min-h-screen w-full flex-col bg-bg1 text-text sm:h-full sm:min-h-0 sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl sm:rounded-[32px] sm:border sm:border-stroke sm:shadow-[0_32px_80px_rgba(0,0,0,0.5)]">
-          <div className="z-20 border-b border-white/10 bg-bg1/95 px-4 py-4 backdrop-blur-xl sm:sticky sm:top-0 sm:px-6">
+        <div className="flex min-h-screen w-full flex-col bg-modalSurface text-text sm:h-full sm:min-h-0 sm:max-h-[calc(100vh-3rem)] sm:max-w-4xl sm:rounded-[32px] sm:border sm:border-modalStroke sm:shadow-[0_32px_80px_rgba(0,0,0,0.5)]">
+          <div className="z-20 border-b border-modalStroke bg-modalSurface px-4 py-4 sm:sticky sm:top-0 sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Edit Order</p>
@@ -255,18 +255,18 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Items</p>
                 <p className="mt-2 text-xl font-semibold text-text">{totalQuantity}</p>
               </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="rounded-[22px] border border-modalStroke bg-modalRow px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted2">Lines</p>
                 <p className="mt-2 text-xl font-semibold text-text">{draftItems.length}</p>
               </div>
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="rounded-[22px] border border-modalStroke bg-modalRow px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-muted2">Subtotal</p>
                 <p className="mt-2 text-xl font-semibold text-text">{formatMoney(subtotal)}</p>
               </div>
             </div>
 
             {order.notes ? (
-              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-muted">
+              <div className="mt-4 rounded-[22px] border border-modalStroke bg-modalRow px-4 py-3 text-sm text-muted">
                 {order.notes}
               </div>
             ) : null}
@@ -286,7 +286,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                     Add at least one dish before saving this order.
                   </div>
                 ) : draftItems.map((item) => (
-                  <div key={item.dish_id} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                  <div key={item.dish_id} className="rounded-[24px] border border-modalStroke bg-modalRow p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold text-text">{item.dish_name}</p>
@@ -310,7 +310,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                         >
                           −
                         </button>
-                        <div className="min-w-[68px] rounded-full border border-white/10 bg-black/10 px-4 py-2 text-center text-lg font-semibold text-text">
+                        <div className="min-w-[68px] rounded-full border border-modalStroke bg-modalSurface px-4 py-2 text-center text-lg font-semibold text-text">
                           {item.quantity}
                         </div>
                         <button
@@ -353,7 +353,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
               </div>
 
               {isAddSectionOpen ? (
-                <div className="mt-4 rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
+                <div className="mt-4 rounded-[26px] border border-modalStroke bg-modalRow p-4">
                   <GlassInput
                     ref={searchInputRef}
                     type="search"
@@ -378,7 +378,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                   </div>
 
                   {dishesLoading ? (
-                    <div className="mt-4 rounded-[22px] border border-white/10 bg-black/10 px-4 py-4 text-sm text-muted">
+                    <div className="mt-4 rounded-[22px] border border-modalStroke bg-modalSurface px-4 py-4 text-sm text-muted">
                       Loading published dishes...
                     </div>
                   ) : null}
@@ -392,7 +392,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                   {!dishesLoading && !dishesError ? (
                     <div className="mt-4 space-y-3">
                       {filteredDishes.length === 0 ? (
-                        <div className="rounded-[22px] border border-white/10 bg-black/10 px-4 py-4 text-sm text-muted">
+                        <div className="rounded-[22px] border border-modalStroke bg-modalSurface px-4 py-4 text-sm text-muted">
                           No published dishes match this filter.
                         </div>
                       ) : filteredDishes.map((dish) => {
@@ -406,8 +406,8 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
                             onClick={() => addDish(dish)}
                             disabled={isOutOfStock}
                             className={cx(
-                              'flex w-full items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/10 px-4 py-4 text-left transition',
-                              isOutOfStock ? 'cursor-not-allowed opacity-65' : 'hover:border-white/20 hover:bg-white/[0.06]'
+                              'flex w-full items-center justify-between gap-3 rounded-[22px] border border-modalStroke bg-modalSurface px-4 py-4 text-left transition',
+                              isOutOfStock ? 'cursor-not-allowed opacity-65' : 'hover:border-white/20 hover:bg-modalRow'
                             )}
                           >
                             <div className="min-w-0">
@@ -439,7 +439,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
             </div>
           </div>
 
-          <div className="z-20 border-t border-white/10 bg-bg1/95 px-4 py-4 backdrop-blur-xl sm:sticky sm:bottom-0 sm:px-6">
+          <div className="z-20 border-t border-modalStroke bg-modalSurface px-4 py-4 sm:sticky sm:bottom-0 sm:px-6">
             <div className="grid gap-3 sm:grid-cols-3">
               <LiquidButton
                 tone="tertiary"

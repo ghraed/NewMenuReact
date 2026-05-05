@@ -1225,10 +1225,10 @@ const StaffOrdersPage: React.FC = () => {
       {tableUrlPopup && typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
           <div className="flex min-h-full items-center justify-center">
-            <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-bg1 p-5">
+            <div className="w-full max-w-lg rounded-2xl border border-modalStroke bg-modalSurface p-5">
             <h3 className="text-lg font-semibold text-text">Guest Table URL</h3>
             <p className="mt-1 text-sm text-muted">{tableUrlPopup.label}</p>
-            <div className="mt-4 break-all rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-text">
+            <div className="mt-4 break-all rounded-xl border border-modalStroke bg-modalRow p-3 text-sm text-text">
               {tableUrlPopup.url}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">

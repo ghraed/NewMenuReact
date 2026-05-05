@@ -1,6 +1,9 @@
 :root {
   --color-bg0: 5 8 19;
   --color-bg1: 10 16 32;
+  --color-modal-surface: 10 16 32;
+  --color-modal-row: 18 24 40;
+  --color-modal-stroke: 255 255 255;
   --color-gold: 215 180 106;
   --color-gold2: 243 215 154;
   --color-sage: 143 214 180;

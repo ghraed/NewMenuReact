@@ -349,7 +349,7 @@ const IngredientLibrary: React.FC = () => {
 
       {formOpen && typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/45 p-4">
-          <div className="mx-auto my-4 w-full max-w-md rounded-[28px] border border-stroke bg-bg1 p-5 shadow-lux2 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <div className="mx-auto my-4 w-full max-w-md rounded-[28px] border border-modalStroke bg-modalSurface p-5 shadow-lux2 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h3 className="text-lg font-semibold text-text">{editingId === null ? 'Add Ingredient' : 'Edit Ingredient'}</h3>
             <div className="mt-4 space-y-3">
               <GlassInput

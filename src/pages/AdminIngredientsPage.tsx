@@ -950,7 +950,7 @@ const AdminIngredientsPage: React.FC = () => {
 
       {globalImportModalOpen && canPortal ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
-          <div className="mx-auto my-4 w-full max-w-5xl rounded-[28px] border border-stroke bg-panel p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
+          <div className="mx-auto my-4 w-full max-w-5xl rounded-[28px] border border-modalStroke bg-modalSurface p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.importGlobal.eyebrow')}</p>
@@ -975,7 +975,7 @@ const AdminIngredientsPage: React.FC = () => {
                 leftSlot={<span>⌕</span>}
                 disabled={globalIngredientsLoading || importingGlobalIngredients}
               />
-              <label className="inline-flex items-center gap-2 rounded-[16px] border border-white/12 bg-white/6 px-3 py-2 text-sm text-text">
+              <label className="inline-flex items-center gap-2 rounded-[16px] border border-modalStroke bg-modalRow px-3 py-2 text-sm text-text">
                 <input
                   type="checkbox"
                   checked={hideAlreadyAddedGlobals}
@@ -993,7 +993,7 @@ const AdminIngredientsPage: React.FC = () => {
               </LiquidButton>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/12 bg-white/6 px-4 py-3 text-sm text-muted">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-modalStroke bg-modalRow px-4 py-3 text-sm text-muted">
               <p>{t('inventoryIngredients.importGlobal.selectedCount', { count: selectedGlobalIngredientsCount })}</p>
               <LiquidButton
                 tone="primary"
@@ -1007,11 +1007,11 @@ const AdminIngredientsPage: React.FC = () => {
             </div>
 
             {globalIngredientsLoading ? (
-              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+              <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-6 text-center text-sm text-muted">
                 {t('inventoryIngredients.importGlobal.loading')}
               </div>
             ) : filteredGlobalImportRows.length === 0 ? (
-              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+              <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-6 text-center text-sm text-muted">
                 {t('inventoryIngredients.importGlobal.empty')}
               </div>
             ) : (
@@ -1026,7 +1026,7 @@ const AdminIngredientsPage: React.FC = () => {
                       : 'border-gold/40 bg-gold/12 text-gold2';
 
                   return (
-                    <div key={globalIngredient.id} className="rounded-[20px] border border-white/12 bg-white/6 p-4">
+                    <div key={globalIngredient.id} className="rounded-[20px] border border-modalStroke bg-modalRow p-4">
                       <div className="flex items-start gap-3">
                         <input
                           type="checkbox"
@@ -1075,8 +1075,8 @@ const AdminIngredientsPage: React.FC = () => {
 
       {reorderModalOpen && canPortal ? createPortal(
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
-          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-stroke bg-panel p-5 shadow-lux2 sm:p-6">
-            <div className="sticky top-0 z-10 bg-panel pb-3">
+          <div className="mx-auto my-4 flex w-full max-w-3xl max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[28px] border border-modalStroke bg-modalSurface p-5 shadow-lux2 sm:p-6">
+            <div className="sticky top-0 z-10 bg-modalSurface pb-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
@@ -1106,13 +1106,13 @@ const AdminIngredientsPage: React.FC = () => {
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {reorderModalView === 'missing' && reorderRows.length === 0 ? (
-              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-6 text-center text-sm text-muted">
+              <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-6 text-center text-sm text-muted">
                 {t('inventoryIngredients.reorder.noneMissing')}
               </div>
             ) : reorderModalView === 'missing' ? (
               <div className="mt-5 max-h-[55vh] space-y-3 overflow-y-auto pr-1">
                 {reorderRows.map(({ ingredient, missing, target, current }) => (
-                  <div key={ingredient.id} className="rounded-[20px] border border-white/12 bg-white/6 p-4">
+                  <div key={ingredient.id} className="rounded-[20px] border border-modalStroke bg-modalRow p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="text-sm font-semibold text-text">{formatIngredientName(ingredient.name, ingredient.name_ar)}</p>
                       <span className="rounded-full border border-spicy/35 bg-spicy/10 px-2 py-0.5 text-xs font-medium text-spicy">
@@ -1132,10 +1132,10 @@ const AdminIngredientsPage: React.FC = () => {
             ) : null}
 
             {reorderModalView === 'draft' ? (
-              <div className="mt-5 rounded-[20px] border border-white/12 bg-white/6 p-4">
+              <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-4">
                 <div className="mt-3 space-y-2">
                   {restockDraftRows.map((row) => (
-                    <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <div key={row.ingredientId} className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] border border-modalStroke bg-modalSurface px-3 py-2">
                       <p className="text-sm text-text">
                         {row.name} • {row.quantity} {row.unit}
                       </p>

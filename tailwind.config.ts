@@ -7,6 +7,9 @@ const config: Config = {
       colors: {
         bg0: 'rgb(var(--color-bg0) / <alpha-value>)',
         bg1: 'rgb(var(--color-bg1) / <alpha-value>)',
+        modalSurface: 'rgb(var(--color-modal-surface) / 0.96)',
+        modalRow: 'rgb(var(--color-modal-row) / 0.9)',
+        modalStroke: 'rgb(var(--color-modal-stroke) / 0.16)',
         gold: 'rgb(var(--color-gold) / <alpha-value>)',
         gold2: 'rgb(var(--color-gold2) / <alpha-value>)',
         sage: 'rgb(var(--color-sage) / <alpha-value>)',
