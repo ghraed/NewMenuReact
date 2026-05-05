@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
 import NotFoundView from './components/Common/NotFoundView';
 import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
+import LoadingSpinner from './components/Common/LoadingSpinner';
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
@@ -61,8 +62,37 @@ const OwnerHomeRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? '/owner/dashboard' : '/owner/login'} replace />;
 };
 
+class RouteErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    // Keep this visible in production logs for blank-screen debugging.
+    console.error('Route render error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <NotFoundView
+          title="Something went wrong"
+          message="A page error occurred. Please refresh once. If it keeps happening, clear site data and login again."
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const lazyRoute = (element: React.ReactNode) => (
-  <Suspense fallback={null}>
+  <Suspense fallback={<LoadingSpinner fullPage text="Loading page..." />}>
     {element}
   </Suspense>
 );
@@ -72,7 +102,8 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AppThemeShell>
-      <Routes key={i18n.resolvedLanguage}>
+      <RouteErrorBoundary>
+        <Routes key={i18n.resolvedLanguage}>
         <Route path="/" element={<GuestDishListPage />} />
         <Route path="/menu" element={<GuestDishListPage />} />
         <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
@@ -316,7 +347,8 @@ const AppRoutes: React.FC = () => {
           path="*"
           element={<NotFoundView title={t('app.brand')} message={t('app.visit')} />}
         />
-      </Routes>
+        </Routes>
+      </RouteErrorBoundary>
     </AppThemeShell>
   );
 };
