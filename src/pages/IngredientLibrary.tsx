@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
@@ -346,9 +347,9 @@ const IngredientLibrary: React.FC = () => {
         </>
       )}
 
-      {formOpen ? (
-        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-stroke bg-bg1 p-5 shadow-lux2">
+      {formOpen && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/45 p-4">
+          <div className="mx-auto my-4 w-full max-w-md rounded-[28px] border border-stroke bg-bg1 p-5 shadow-lux2 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h3 className="text-lg font-semibold text-text">{editingId === null ? 'Add Ingredient' : 'Edit Ingredient'}</h3>
             <div className="mt-4 space-y-3">
               <GlassInput
@@ -371,7 +372,8 @@ const IngredientLibrary: React.FC = () => {
               </LiquidButton>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
       <GlassToast toast={toast} onClose={dismiss} />

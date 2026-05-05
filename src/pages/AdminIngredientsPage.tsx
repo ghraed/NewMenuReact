@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
@@ -591,6 +592,8 @@ const AdminIngredientsPage: React.FC = () => {
     });
   };
 
+  const canPortal = typeof document !== 'undefined';
+
   return (
     <DashboardLayout title={t('inventoryIngredients.pageTitle')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -932,9 +935,9 @@ const AdminIngredientsPage: React.FC = () => {
         )}
       </GlassCard>
 
-      {globalImportModalOpen ? (
-        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-5xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
+      {globalImportModalOpen && canPortal ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
+          <div className="mx-auto my-4 w-full max-w-5xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.importGlobal.eyebrow')}</p>
@@ -1053,12 +1056,13 @@ const AdminIngredientsPage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
-      {reorderModalOpen ? (
-        <div className="fixed inset-0 z-[2147483647] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6">
+      {reorderModalOpen && canPortal ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/50 p-4">
+          <div className="mx-auto my-4 w-full max-w-3xl rounded-[28px] border border-white/15 bg-bg1 p-5 shadow-lux2 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.eyebrow')}</p>
@@ -1127,7 +1131,8 @@ const AdminIngredientsPage: React.FC = () => {
               </div>
             ) : null}
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
       <GlassToast toast={toast} onClose={dismiss} />
