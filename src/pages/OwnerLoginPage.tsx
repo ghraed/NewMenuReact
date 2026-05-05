@@ -31,6 +31,10 @@ const OwnerLoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      if (typeof window !== 'undefined') {
+        window.location.replace('/owner/dashboard');
+        return;
+      }
       navigate('/owner/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -43,6 +47,10 @@ const OwnerLoginPage: React.FC = () => {
     try {
       await login(email.trim(), password);
       showToast('Welcome back, owner.', 'primary');
+      if (typeof window !== 'undefined') {
+        window.location.replace('/owner/dashboard');
+        return;
+      }
       navigate('/owner/dashboard', { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Owner login failed. Please check your credentials.'));

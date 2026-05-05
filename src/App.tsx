@@ -23,6 +23,8 @@ import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
 import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
 import AdminRoomPlansPage from './pages/AdminRoomPlansPage';
 import AdminReservationsPage from './pages/AdminReservationsPage';
+import OwnerLoginPage from './pages/OwnerLoginPage';
+import OwnerDashboardPage from './pages/OwnerDashboardPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { OwnerAuthProvider } from './contexts/OwnerAuthContext';
@@ -47,8 +49,6 @@ const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
-const OwnerLoginPage = React.lazy(() => import('./pages/OwnerLoginPage'));
-const OwnerDashboardPage = React.lazy(() => import('./pages/OwnerDashboardPage'));
 
 const RoleHomeRedirect: React.FC = () => {
   const { defaultRoute, isAuthenticated } = useAuth();
