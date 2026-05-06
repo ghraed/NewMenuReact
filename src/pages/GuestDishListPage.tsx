@@ -325,7 +325,16 @@ const GuestDishListPage: React.FC = () => {
           guestAccess: response.guest_access,
         });
       } else {
-        clearGuestAccess();
+        const hasVerifiedAccessForSameTable = (
+          draft.guestAccessVerified
+          && Boolean(draft.guestAccessToken)
+          && draft.tableId === response.table.id
+        );
+
+        if (!hasVerifiedAccessForSameTable) {
+          clearGuestAccess();
+        }
+
         updateDraft({
           tableId: response.table.id,
           tableReference: response.table.name,
@@ -362,6 +371,9 @@ const GuestDishListPage: React.FC = () => {
     guestResource.error,
     table_id,
     i18n,
+    draft.guestAccessVerified,
+    draft.guestAccessToken,
+    draft.tableId,
     setGuestContext,
     updateDraft,
     clearGuestAccess,
