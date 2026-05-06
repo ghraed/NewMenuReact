@@ -29,7 +29,7 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
-  const { draft, setGuestAccess, clearGuestAccess } = useOrderCart();
+  const { draft, setGuestAccess, setGuestContext, clearGuestAccess } = useOrderCart();
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +54,20 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
 
     try {
       const response = await verifyGuestTablePin(tableId, pin);
-      setGuestAccess({
-        token: response.guest_access.token,
-        expiresAt: response.guest_access.expires_at,
-      });
+      if (response.table_session) {
+        setGuestContext({
+          restaurant: response.restaurant,
+          tableId: response.table.id,
+          tableReference: response.table.name,
+          tableSessionId: response.table_session.id,
+          guestAccess: response.guest_access,
+        });
+      } else {
+        setGuestAccess({
+          token: response.guest_access.token,
+          expiresAt: response.guest_access.expires_at,
+        });
+      }
       setPin('');
       setSuccess(response.message || t('guestAccess.unlocked'));
     } catch (err: unknown) {

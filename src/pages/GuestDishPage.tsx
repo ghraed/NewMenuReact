@@ -35,19 +35,29 @@ const GuestDishPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchDish = async () => {
       if (!dish_id) {
-        setError(t('dishPage.notFound'));
-        setLoading(false);
+        if (!cancelled) {
+          setError(t('dishPage.notFound'));
+          setLoading(false);
+        }
         return;
       }
 
-      setLoading(true);
-      setError(null);
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
 
       try {
         if (table_id) {
           const response = await fetchGuestTableDish(table_id, dish_id, draft.guestAccessToken);
+          if (cancelled) {
+            return;
+          }
+
           setDish(response.dish);
           setResolvedRestaurantSlug(response.restaurant.slug);
           setRestaurantName(response.restaurant.name || formatRestaurantLabel(response.restaurant.slug));
@@ -65,7 +75,16 @@ const GuestDishPage: React.FC = () => {
               guestAccess: response.guest_access,
             });
           } else {
-            clearGuestAccess();
+            const hasVerifiedAccessForSameTable = (
+              draft.guestAccessVerified
+              && Boolean(draft.guestAccessToken)
+              && draft.tableId === response.table.id
+            );
+
+            if (!hasVerifiedAccessForSameTable) {
+              clearGuestAccess();
+            }
+
             updateDraft({
               tableId: response.table.id,
               tableReference: response.table.name,
@@ -86,6 +105,9 @@ const GuestDishPage: React.FC = () => {
                   'ngrok-skip-browser-warning': 'true',
                 },
               });
+              if (cancelled) {
+                return;
+              }
 
               setDish(response.data);
               setResolvedRestaurantSlug(response.data?.restaurant?.slug || candidateSlug);
@@ -111,6 +133,9 @@ const GuestDishPage: React.FC = () => {
               'ngrok-skip-browser-warning': 'true',
             },
           });
+          if (cancelled) {
+            return;
+          }
 
           setDish(response.data);
           setResolvedRestaurantSlug(response.data?.restaurant?.slug);
@@ -129,15 +154,34 @@ const GuestDishPage: React.FC = () => {
           throw new Error(t('dishPage.failedToLoad'));
         }
       } catch (err) {
-        setError(t('dishPage.failedToLoad'));
-        console.error(err);
+        if (!cancelled) {
+          setError(t('dishPage.failedToLoad'));
+          console.error(err);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchDish();
-  }, [draft.guestAccessToken, restaurant_slug, table_id, dish_id, t, setGuestContext, updateDraft, clearGuestAccess]);
+    void fetchDish();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    draft.guestAccessToken,
+    draft.guestAccessVerified,
+    draft.tableId,
+    restaurant_slug,
+    table_id,
+    dish_id,
+    t,
+    setGuestContext,
+    updateDraft,
+    clearGuestAccess,
+  ]);
 
   return (
     <GuestPageShell>

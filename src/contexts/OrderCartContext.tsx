@@ -149,19 +149,26 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         && Boolean(current.draft.guestAccessToken)
       );
       const incomingVerifiedAccess = context.guestAccess?.verified === true;
+      const incomingGuestAccessToken = (
+        typeof context.guestAccess?.token === 'string' && context.guestAccess.token.trim() !== ''
+          ? context.guestAccess.token
+          : null
+      );
 
       // Keep verified guest access when stale/unverified payloads arrive for the same session.
       const shouldKeepExistingAccess = !sessionChanged && hasExistingVerifiedAccess && !incomingVerifiedAccess;
       const nextGuestAccessToken = sessionChanged
-        ? null
-        : (incomingVerifiedAccess || shouldKeepExistingAccess)
-          ? current.draft.guestAccessToken
+        ? (incomingVerifiedAccess ? incomingGuestAccessToken : null)
+        : incomingVerifiedAccess
+          ? (incomingGuestAccessToken || current.draft.guestAccessToken)
+          : shouldKeepExistingAccess
+            ? current.draft.guestAccessToken
           : null;
       const nextGuestAccessVerified = sessionChanged
-        ? false
-        : incomingVerifiedAccess || shouldKeepExistingAccess;
+        ? incomingVerifiedAccess && Boolean(nextGuestAccessToken)
+        : (incomingVerifiedAccess || shouldKeepExistingAccess) && Boolean(nextGuestAccessToken);
       const nextGuestAccessExpiresAt = sessionChanged
-        ? null
+        ? (incomingVerifiedAccess ? (context.guestAccess?.expires_at ?? null) : null)
         : incomingVerifiedAccess
           ? context.guestAccess?.expires_at ?? current.draft.guestAccessExpiresAt
           : shouldKeepExistingAccess
