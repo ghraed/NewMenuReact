@@ -602,6 +602,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <p className="mt-1 text-sm text-muted">Payroll and staffing metrics for the selected date range.</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/finance/expenses')}>
+                  Open Expenses
+                </LiquidButton>
                 <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/finance/payroll')}>
                   Open Payroll
                 </LiquidButton>

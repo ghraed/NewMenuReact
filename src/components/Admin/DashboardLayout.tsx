@@ -47,6 +47,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️', requiredFeatures: ['room_plan_editor'] },
         { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
         { path: '/admin/finance', label: 'Finance', icon: '📈', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/finance/expenses', label: 'Expenses', icon: '🧾', requiredFeatures: ['finance_dashboard', 'expense_management'] },
         { path: '/admin/finance/payroll', label: 'Payroll', icon: '💼', requiredFeatures: ['payroll_management'] },
         { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾', requiredFeatures: ['realtime_staff_orders'] },
         { path: '/staff/pos', label: 'Cashier POS', icon: '🛒', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },

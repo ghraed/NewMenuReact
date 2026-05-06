@@ -581,6 +581,57 @@ export interface FinanceTaxSummary {
   net_vat_payable: number;
 }
 
+export type FinanceExpenseStatus = 'draft' | 'approved' | 'paid' | 'void';
+export type FinanceExpensePaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'wallet' | 'other';
+
+export interface FinanceExpenseCategory {
+  id: number;
+  code: string;
+  name: string;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface FinanceVendor {
+  id: number;
+  name: string;
+  contact_name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  tax_number?: string | null;
+  notes?: string | null;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface FinanceExpense {
+  id: number;
+  uuid: string;
+  restaurant_id: number;
+  expense_category_id: number;
+  vendor_id?: number | null;
+  expense_date: string;
+  amount_cents: number;
+  tax_amount_cents: number;
+  total_cents: number;
+  currency: string;
+  status: FinanceExpenseStatus;
+  payment_method?: FinanceExpensePaymentMethod | null;
+  reference_no?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  due_date?: string | null;
+  paid_at?: string | null;
+  created_by?: number | null;
+  approved_by?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  category?: Pick<FinanceExpenseCategory, 'id' | 'code' | 'name'> | null;
+  vendor?: Pick<FinanceVendor, 'id' | 'name'> | null;
+}
+
 export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
 export type PayrollSummaryMode = 'approved_paid' | 'all';
 export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';

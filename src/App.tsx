@@ -26,6 +26,7 @@ import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
 import AdminCurrencyPage from './pages/AdminCurrencyPage';
 import AdminFinanceDashboardPage from './pages/AdminFinanceDashboardPage';
+import AdminFinanceExpensesPage from './pages/AdminFinanceExpensesPage';
 import AdminFinanceInvoiceDetailsPage from './pages/AdminFinanceInvoiceDetailsPage';
 import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
 import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
@@ -91,6 +92,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/staff/scheduling',
   '/admin/accounting',
   '/admin/finance',
+  '/admin/finance/expenses',
   '/admin/finance/invoices/:invoice_id',
   '/admin/finance/payroll',
   '/admin/currency',
@@ -217,6 +219,10 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
               <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
               <Route path="/admin/finance/invoices/:invoice_id" element={lazyRoute(<AdminFinanceInvoiceDetailsPage />)} />
+            </Route>
+
+            <Route element={<ProtectedRoute requiredFeatures={['finance_dashboard', 'expense_management']} />}>
+              <Route path="/admin/finance/expenses" element={lazyRoute(<AdminFinanceExpensesPage />)} />
             </Route>
 
             <Route element={<ProtectedRoute requiredFeatures={['payroll_management']} />}>
