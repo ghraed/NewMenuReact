@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/useAuth';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import type { UserRole } from '../../types';
@@ -15,6 +15,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles, requiredFeatures }) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <LoadingSpinner />;
@@ -32,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     return <NotFoundView />;
   }
 
-  return <>{children}</>;
+  return <React.Fragment key={location.key || `${location.pathname}${location.search}${location.hash}`}>{children}</React.Fragment>;
 };
 
 export default ProtectedRoute;
