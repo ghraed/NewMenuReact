@@ -4,6 +4,7 @@ import type {
   FinanceExpenseCategory,
   FinanceExpensePaymentMethod,
   FinanceExpenseStatus,
+  FinanceUnlinkedRestockRecord,
   FinanceVendor,
 } from '../types';
 
@@ -113,6 +114,16 @@ interface ExpenseMutationResponse {
   expense: FinanceExpense;
 }
 
+interface UnlinkedRestocksResponse {
+  restocks: FinanceUnlinkedRestockRecord[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+}
+
 export const fetchExpenseCategories = async (): Promise<FinanceExpenseCategory[]> => {
   const response = await api.get<CategoriesResponse>('/admin/finance/expense-categories');
   return response.data.categories;
@@ -169,4 +180,22 @@ export const createExpense = async (payload: CreateExpensePayload): Promise<Fina
 export const updateExpense = async (expenseId: number, payload: UpdateExpensePayload): Promise<FinanceExpense> => {
   const response = await api.patch<ExpenseMutationResponse>(`/admin/finance/expenses/${expenseId}`, payload);
   return response.data.expense;
+};
+
+export const fetchUnlinkedRestocks = async (filters: {
+  date_from?: string;
+  date_to?: string;
+  ingredient_id?: number;
+  per_page?: number;
+}): Promise<UnlinkedRestocksResponse> => {
+  const response = await api.get<UnlinkedRestocksResponse>('/admin/finance/expenses/unlinked-restocks', {
+    params: {
+      date_from: filters.date_from || undefined,
+      date_to: filters.date_to || undefined,
+      ingredient_id: filters.ingredient_id || undefined,
+      per_page: filters.per_page || undefined,
+    },
+  });
+
+  return response.data;
 };

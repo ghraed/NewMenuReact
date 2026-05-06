@@ -8,6 +8,7 @@ import {
   createVendor,
   fetchExpenseCategories,
   fetchExpenses,
+  fetchUnlinkedRestocks,
   fetchVendors,
   updateExpense,
   updateExpenseCategory,
@@ -20,6 +21,7 @@ import type {
   FinanceExpenseCategory,
   FinanceExpensePaymentMethod,
   FinanceExpenseStatus,
+  FinanceUnlinkedRestockRecord,
   FinanceVendor,
 } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
@@ -125,6 +127,8 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [vendors, setVendors] = useState<FinanceVendor[]>([]);
   const [expenses, setExpenses] = useState<FinanceExpense[]>([]);
   const [totalExpensesCount, setTotalExpensesCount] = useState(0);
+  const [unlinkedRestocks, setUnlinkedRestocks] = useState<FinanceUnlinkedRestockRecord[]>([]);
+  const [unlinkedRestocksCount, setUnlinkedRestocksCount] = useState(0);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -150,6 +154,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingVendor, setSavingVendor] = useState(false);
   const [savingExpense, setSavingExpense] = useState(false);
+  const [loadingUnlinkedRestocks, setLoadingUnlinkedRestocks] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -186,18 +191,33 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setTotalExpensesCount(response.meta.total);
   }, [categoryFilter, dateFrom, dateTo, statusFilter, vendorFilter]);
 
+  const loadUnlinkedRestocks = useCallback(async () => {
+    setLoadingUnlinkedRestocks(true);
+    try {
+      const response = await fetchUnlinkedRestocks({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        per_page: 200,
+      });
+      setUnlinkedRestocks(response.restocks);
+      setUnlinkedRestocksCount(response.meta.total);
+    } finally {
+      setLoadingUnlinkedRestocks(false);
+    }
+  }, [dateFrom, dateTo]);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      await Promise.all([loadReferenceData(), loadExpenses()]);
+      await Promise.all([loadReferenceData(), loadExpenses(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError, 'Failed to load expense management data.'));
     } finally {
       setLoading(false);
     }
-  }, [loadExpenses, loadReferenceData]);
+  }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks]);
 
   useEffect(() => {
     void loadAll();
@@ -315,6 +335,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
         ))));
         setSuccess('Expense updated.');
       }
+      void loadUnlinkedRestocks();
     } catch (saveError: unknown) {
       setError(getErrorMessage(saveError, 'Failed to save expense.'));
     } finally {
@@ -352,6 +373,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
         item.id === updated.id ? updated : item
       ))));
       setSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
+      void loadUnlinkedRestocks();
     } catch (updateError: unknown) {
       setError(getErrorMessage(updateError, 'Failed to update expense status.'));
     } finally {
@@ -707,6 +729,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
               >
                 Clear
               </LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()}>
+                Refresh Report
+              </LiquidButton>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-stroke">
@@ -716,6 +741,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Vendor</th>
+                    <th className="px-4 py-3">Inventory Link</th>
                     <th className="px-4 py-3">Total</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Actions</th>
@@ -724,7 +750,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                 <tbody>
                   {expenses.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-10 text-center text-muted" colSpan={6}>
+                      <td className="px-4 py-10 text-center text-muted" colSpan={7}>
                         No expenses found for current filters.
                       </td>
                     </tr>
@@ -735,6 +761,14 @@ const AdminFinanceExpensesPage: React.FC = () => {
                         {expense.category?.name || `Category #${expense.expense_category_id}`}
                       </td>
                       <td className="px-4 py-3 text-muted">{expense.vendor?.name || '-'}</td>
+                      <td className="px-4 py-3 text-xs text-muted">
+                        {expense.linked_stock_movement ? (
+                          <div>
+                            <p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p>
+                            <p>{expense.linked_stock_movement.ingredient_name || '-'}</p>
+                          </div>
+                        ) : 'Not linked'}
+                      </td>
                       <td className="px-4 py-3 font-semibold text-text">
                         {formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency)}
                       </td>
@@ -764,6 +798,45 @@ const AdminFinanceExpensesPage: React.FC = () => {
         </div>
 
         <div className="grid gap-5 xl:grid-cols-2">
+          <GlassCard className="xl:col-span-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-text">Unlinked Restocks</h3>
+                <p className="text-sm text-muted">
+                  {unlinkedRestocksCount} restock movement{unlinkedRestocksCount === 1 ? '' : 's'} without linked expense.
+                </p>
+              </div>
+              <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()} disabled={loadingUnlinkedRestocks}>
+                {loadingUnlinkedRestocks ? 'Refreshing...' : 'Refresh Unlinked'}
+              </LiquidButton>
+            </div>
+
+            {unlinkedRestocks.length === 0 ? (
+              <div className="rounded-xl border border-stroke bg-bg1/55 px-4 py-6 text-center text-sm text-muted">
+                No unlinked restocks found.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {unlinkedRestocks.map((restock) => (
+                  <div key={restock.id} className={`rounded-xl border px-3 py-2 ${restock.is_flagged ? 'border-spicy/45 bg-spicy/10' : 'border-stroke bg-bg1/55'}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-text">
+                        {restock.ingredient_name} • {restock.quantity_delta} {restock.unit}
+                      </p>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-spicy/20 text-spicy' : 'bg-gold/20 text-gold2'}`}>
+                        {restock.is_flagged ? `Flagged (${restock.age_days}d)` : `Open (${restock.age_days}d)`}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted">
+                      Ref: {restock.reference || '-'} • {restock.created_at ? new Date(restock.created_at).toLocaleString() : '-'}
+                    </p>
+                    {restock.notes ? <p className="mt-1 text-xs text-muted2">{restock.notes}</p> : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
+
           <GlassCard>
             <h3 className="mb-3 text-lg font-semibold text-text">Expense Categories</h3>
             <div className="space-y-2">

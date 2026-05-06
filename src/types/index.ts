@@ -237,6 +237,9 @@ export interface InventoryStockMovementRecord {
   reference_type: string;
   reference_id: string | null;
   notes: string | null;
+  linked_expense_id?: number | null;
+  linked_expense_status?: string | null;
+  linked_expense_date?: string | null;
   created_at: string | null;
 }
 
@@ -630,6 +633,27 @@ export interface FinanceExpense {
   updated_at?: string | null;
   category?: Pick<FinanceExpenseCategory, 'id' | 'code' | 'name'> | null;
   vendor?: Pick<FinanceVendor, 'id' | 'name'> | null;
+  linked_stock_movement?: {
+    id: number;
+    ingredient_id?: number | null;
+    ingredient_name?: string | null;
+    quantity_delta?: string | null;
+    unit?: string | null;
+    created_at?: string | null;
+  } | null;
+}
+
+export interface FinanceUnlinkedRestockRecord {
+  id: number;
+  ingredient_id?: number | null;
+  ingredient_name: string;
+  quantity_delta: string;
+  unit: string;
+  reference?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  age_days: number;
+  is_flagged: boolean;
 }
 
 export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';

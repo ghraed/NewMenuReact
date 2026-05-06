@@ -249,6 +249,7 @@ const AdminStockHistoryPage: React.FC = () => {
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.quantityAfter')}: </span>{record.quantity_after ?? '-'}</p>
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.referenceType')}: </span>{record.reference_type}</p>
                   <p className="text-sm text-text"><span className="text-muted2">{t('stockHistory.columns.referenceId')}: </span>{record.reference_id ?? '-'}</p>
+                  <p className="text-sm text-text"><span className="text-muted2">Linked Expense: </span>{record.linked_expense_id ?? '-'}</p>
                   <p className="text-sm text-text md:col-span-2 xl:col-span-1"><span className="text-muted2">{t('stockHistory.columns.createdAt')}: </span>{record.created_at ? new Date(record.created_at).toLocaleString() : '-'}</p>
                   <p className="text-sm text-text md:col-span-2 xl:col-span-3"><span className="text-muted2">{t('stockHistory.columns.notes')}: </span>{record.notes || '-'}</p>
                 </div>

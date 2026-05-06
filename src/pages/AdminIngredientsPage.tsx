@@ -12,7 +12,16 @@ import {
   useGlassToast,
 } from '../components/ui/liquid-glass';
 import api, { resolveAssetUrl } from '../services/api';
-import type { GlobalIngredient, InventoryIngredient, IngredientStockUnit } from '../types';
+import { fetchExpenseCategories, fetchVendors } from '../services/financeExpenseService';
+import type {
+  FinanceExpenseCategory,
+  FinanceExpensePaymentMethod,
+  FinanceExpenseStatus,
+  FinanceVendor,
+  GlobalIngredient,
+  InventoryIngredient,
+  IngredientStockUnit,
+} from '../types';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 
 interface IngredientPayload {
@@ -32,6 +41,14 @@ interface InventoryActionState {
   quantity: string;
   reference: string;
   notes: string;
+  createExpenseLink: boolean;
+  expenseCategoryId: string;
+  expenseVendorId: string;
+  expenseAmount: string;
+  expenseTaxAmount: string;
+  expenseCurrency: string;
+  expenseStatus: FinanceExpenseStatus;
+  expensePaymentMethod: '' | FinanceExpensePaymentMethod;
 }
 interface RestockDraftRow {
   ingredientId: number;
@@ -68,6 +85,14 @@ const defaultActionState = (type: InventoryActionType): InventoryActionState => 
   quantity: '',
   reference: '',
   notes: '',
+  createExpenseLink: false,
+  expenseCategoryId: '',
+  expenseVendorId: '',
+  expenseAmount: '',
+  expenseTaxAmount: '0.00',
+  expenseCurrency: 'USD',
+  expenseStatus: 'draft',
+  expensePaymentMethod: '',
 });
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -137,6 +162,9 @@ const AdminIngredientsPage: React.FC = () => {
   const [reorderModalOpen, setReorderModalOpen] = useState(false);
   const [reorderModalView, setReorderModalView] = useState<ReorderModalView>('missing');
   const [restockDraftRows, setRestockDraftRows] = useState<RestockDraftRow[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<FinanceExpenseCategory[]>([]);
+  const [expenseVendors, setExpenseVendors] = useState<FinanceVendor[]>([]);
+  const [expenseLinkLoading, setExpenseLinkLoading] = useState(false);
 
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
@@ -166,9 +194,29 @@ const AdminIngredientsPage: React.FC = () => {
     }
   }, [showToast, t]);
 
+  const fetchExpenseLinkData = useCallback(async () => {
+    setExpenseLinkLoading(true);
+    try {
+      const [categories, vendors] = await Promise.all([
+        fetchExpenseCategories(),
+        fetchVendors(),
+      ]);
+      setExpenseCategories(categories.filter((category) => category.is_active));
+      setExpenseVendors(vendors.filter((vendor) => vendor.is_active));
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Failed to load expense categories/vendors.'), 'tertiary');
+    } finally {
+      setExpenseLinkLoading(false);
+    }
+  }, [showToast]);
+
   useEffect(() => {
     void fetchIngredients();
   }, [fetchIngredients]);
+
+  useEffect(() => {
+    void fetchExpenseLinkData();
+  }, [fetchExpenseLinkData]);
 
   const summary = useMemo(() => {
     const activeCount = ingredients.filter((ingredient) => ingredient.is_active).length;
@@ -349,6 +397,24 @@ const AdminIngredientsPage: React.FC = () => {
             quantity,
             reference: actionState.reference || null,
             notes: actionState.notes || null,
+            create_expense: actionState.createExpenseLink,
+            expense_category_id: actionState.createExpenseLink && actionState.expenseCategoryId
+              ? Number(actionState.expenseCategoryId)
+              : undefined,
+            expense_vendor_id: actionState.createExpenseLink && actionState.expenseVendorId
+              ? Number(actionState.expenseVendorId)
+              : null,
+            expense_amount_cents: actionState.createExpenseLink
+              ? Math.round(Number(actionState.expenseAmount || '0') * 100)
+              : undefined,
+            expense_tax_amount_cents: actionState.createExpenseLink
+              ? Math.round(Number(actionState.expenseTaxAmount || '0') * 100)
+              : undefined,
+            expense_currency: actionState.createExpenseLink ? actionState.expenseCurrency : undefined,
+            expense_status: actionState.createExpenseLink ? actionState.expenseStatus : undefined,
+            expense_payment_method: actionState.createExpenseLink && actionState.expensePaymentMethod
+              ? actionState.expensePaymentMethod
+              : null,
           }
         : {
             quantity_delta: quantity,
@@ -364,6 +430,10 @@ const AdminIngredientsPage: React.FC = () => {
       )));
 
       showToast(response.data?.message || t('inventoryIngredients.stockUpdated'), 'secondary');
+      const warning = response.data?.restock_finance?.warning;
+      if (typeof warning === 'string' && warning.trim() !== '') {
+        showToast(warning, 'tertiary', 5200);
+      }
       handleCloseAction();
     } catch (err: unknown) {
       const message = getErrorMessage(err, t('inventoryIngredients.failedStockUpdate'));
@@ -930,6 +1000,165 @@ const AdminIngredientsPage: React.FC = () => {
                           />
                         </div>
                       </div>
+
+                      {actionState.type === 'restock' ? (
+                        <div className="mt-4 rounded-[18px] border border-white/10 bg-black/10 p-3">
+                          <label className="inline-flex items-center gap-2 text-sm font-medium text-text">
+                            <input
+                              type="checkbox"
+                              checked={actionState.createExpenseLink}
+                              onChange={(event) => setActionState((current) => ({
+                                ...current,
+                                createExpenseLink: event.target.checked,
+                              }))}
+                              disabled={submittingAction || expenseLinkLoading}
+                            />
+                            Link this restock to a finance expense
+                          </label>
+                          <p className="mt-1 text-xs text-muted2">
+                            Restock always succeeds. If expense creation fails, you can follow up from Finance.
+                          </p>
+
+                          {actionState.createExpenseLink ? (
+                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Expense Category
+                                </label>
+                                <GlassSelect
+                                  value={actionState.expenseCategoryId}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseCategoryId: event.target.value,
+                                  }))}
+                                  disabled={submittingAction || expenseLinkLoading}
+                                  options={[
+                                    { value: '', label: 'Select category' },
+                                    ...expenseCategories.map((category) => ({
+                                      value: String(category.id),
+                                      label: `${category.name} (${category.code})`,
+                                    })),
+                                  ]}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Vendor (optional)
+                                </label>
+                                <GlassSelect
+                                  value={actionState.expenseVendorId}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseVendorId: event.target.value,
+                                  }))}
+                                  disabled={submittingAction || expenseLinkLoading}
+                                  options={[
+                                    { value: '', label: 'No vendor' },
+                                    ...expenseVendors.map((vendor) => ({
+                                      value: String(vendor.id),
+                                      label: vendor.name,
+                                    })),
+                                  ]}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Currency
+                                </label>
+                                <GlassInput
+                                  value={actionState.expenseCurrency}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseCurrency: event.target.value.toUpperCase().slice(0, 3),
+                                  }))}
+                                  disabled={submittingAction || expenseLinkLoading}
+                                  placeholder="USD"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Amount
+                                </label>
+                                <GlassInput
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={actionState.expenseAmount}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseAmount: event.target.value,
+                                  }))}
+                                  disabled={submittingAction}
+                                  placeholder="0.00"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Tax Amount
+                                </label>
+                                <GlassInput
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={actionState.expenseTaxAmount}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseTaxAmount: event.target.value,
+                                  }))}
+                                  disabled={submittingAction}
+                                  placeholder="0.00"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Expense Status
+                                </label>
+                                <GlassSelect
+                                  value={actionState.expenseStatus}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expenseStatus: event.target.value as FinanceExpenseStatus,
+                                  }))}
+                                  disabled={submittingAction}
+                                  options={[
+                                    { value: 'draft', label: 'draft' },
+                                    { value: 'approved', label: 'approved' },
+                                    { value: 'paid', label: 'paid' },
+                                    { value: 'void', label: 'void' },
+                                  ]}
+                                />
+                              </div>
+
+                              <div>
+                                <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
+                                  Payment Method
+                                </label>
+                                <GlassSelect
+                                  value={actionState.expensePaymentMethod}
+                                  onChange={(event) => setActionState((current) => ({
+                                    ...current,
+                                    expensePaymentMethod: event.target.value as '' | FinanceExpensePaymentMethod,
+                                  }))}
+                                  disabled={submittingAction}
+                                  options={[
+                                    { value: '', label: 'Not set' },
+                                    { value: 'cash', label: 'cash' },
+                                    { value: 'card', label: 'card' },
+                                    { value: 'bank_transfer', label: 'bank_transfer' },
+                                    { value: 'wallet', label: 'wallet' },
+                                    { value: 'other', label: 'other' },
+                                  ]}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         <LiquidButton tone="primary" onClick={handleSubmitAction} disabled={submittingAction}>
