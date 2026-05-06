@@ -40,6 +40,24 @@ interface PayrollPeriodMutationResponse {
   period: PayrollPeriod;
 }
 
+export interface PayrollQueryPayload {
+  mode: 'monthly' | 'range';
+  year?: number;
+  month?: number;
+  date_from?: string;
+  date_to?: string;
+  notes?: string;
+}
+
+export interface PayrollQueryResponse {
+  mode: 'monthly' | 'range';
+  window: {
+    date_from: string;
+    date_to: string;
+  };
+  periods: PayrollPeriod[];
+}
+
 export const fetchPayrollPeriods = async (): Promise<PayrollPeriod[]> => {
   const response = await api.get<PayrollPeriodsResponse>('/admin/finance/payroll/periods');
   return response.data.periods;
@@ -82,4 +100,9 @@ export const upsertPayrollEntries = async (
     { entries }
   );
   return response.data.period;
+};
+
+export const queryPayrollPeriods = async (payload: PayrollQueryPayload): Promise<PayrollQueryResponse> => {
+  const response = await api.post<PayrollQueryResponse>('/admin/finance/payroll/query', payload);
+  return response.data;
 };

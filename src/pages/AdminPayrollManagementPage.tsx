@@ -3,9 +3,9 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
-  createPayrollPeriod,
   fetchPayrollPeriods,
   fetchPayrollSummary,
+  queryPayrollPeriods,
   updatePayrollPeriod,
   upsertPayrollEntries,
   type UpsertPayrollEntryPayload,
@@ -15,6 +15,10 @@ import type { PayrollPeriod, PayrollPeriodStatus, StaffMember } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
 
 const today = new Date().toISOString().slice(0, 10);
+const previousMonthDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+const defaultPayrollYear = previousMonthDate.getFullYear();
+const defaultPayrollMonth = previousMonthDate.getMonth() + 1;
+const monthLabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 type PayrollEntryDraft = {
   base: string;
@@ -78,8 +82,11 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState<number | ''>('');
   const [entryDrafts, setEntryDrafts] = useState<Record<number, PayrollEntryDraft>>({});
-  const [periodStart, setPeriodStart] = useState(today.slice(0, 8) + '01');
-  const [periodEnd, setPeriodEnd] = useState(today);
+  const [isMonthlyMode, setIsMonthlyMode] = useState(true);
+  const [queryYear, setQueryYear] = useState(defaultPayrollYear);
+  const [queryMonth, setQueryMonth] = useState(defaultPayrollMonth);
+  const [queryDateFrom, setQueryDateFrom] = useState(today);
+  const [queryDateTo, setQueryDateTo] = useState(today);
   const [periodNotes, setPeriodNotes] = useState('');
   const [summaryDateFrom, setSummaryDateFrom] = useState(today.slice(0, 8) + '01');
   const [summaryDateTo, setSummaryDateTo] = useState(today);
@@ -87,7 +94,7 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [summaryEmployees, setSummaryEmployees] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingEntries, setSavingEntries] = useState(false);
-  const [creatingPeriod, setCreatingPeriod] = useState(false);
+  const [generatingPeriods, setGeneratingPeriods] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -173,35 +180,48 @@ const AdminPayrollManagementPage: React.FC = () => {
     resetEntryDrafts(period, eligibleStaff);
   };
 
-  const handleCreatePeriod = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleGeneratePeriods = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
 
-    if (periodStart > periodEnd) {
-      setError('Period end date must be on or after start date.');
+    if (!isMonthlyMode && queryDateFrom > queryDateTo) {
+      setError('End date must be on or after start date.');
       return;
     }
 
-    setCreatingPeriod(true);
+    setGeneratingPeriods(true);
 
     try {
-      const createdPeriod = await createPayrollPeriod({
-        period_start: periodStart,
-        period_end: periodEnd,
+      const result = await queryPayrollPeriods({
+        mode: isMonthlyMode ? 'monthly' : 'range',
+        year: isMonthlyMode ? queryYear : undefined,
+        month: isMonthlyMode ? queryMonth : undefined,
+        date_from: !isMonthlyMode ? queryDateFrom : undefined,
+        date_to: !isMonthlyMode ? queryDateTo : undefined,
         notes: periodNotes.trim() || undefined,
       });
 
-      const nextPeriods = [createdPeriod, ...periods];
-      setPeriods(nextPeriods);
-      setSelectedPeriodId(createdPeriod.id);
-      resetEntryDrafts(createdPeriod, eligibleStaff);
-      setPeriodNotes('');
-      setSuccess('Payroll period created successfully.');
-    } catch (createError: unknown) {
-      setError(getErrorMessage(createError, 'Failed to create payroll period.'));
+      setPeriods((current) => {
+        const next = new Map<number, PayrollPeriod>();
+        current.forEach((period) => next.set(period.id, period));
+        result.periods.forEach((period) => next.set(period.id, period));
+        return Array.from(next.values()).sort((a, b) => {
+          if (a.period_start === b.period_start) return b.id - a.id;
+          return a.period_start < b.period_start ? 1 : -1;
+        });
+      });
+
+      const firstPeriod = result.periods[0] ?? null;
+      if (firstPeriod) {
+        setSelectedPeriodId(firstPeriod.id);
+        resetEntryDrafts(firstPeriod, eligibleStaff);
+      }
+      setSuccess(`Generated payroll lines for ${result.window.date_from} to ${result.window.date_to}.`);
+    } catch (queryError: unknown) {
+      setError(getErrorMessage(queryError, 'Failed to generate payroll lines.'));
     } finally {
-      setCreatingPeriod(false);
+      setGeneratingPeriods(false);
     }
   };
 
@@ -330,32 +350,71 @@ const AdminPayrollManagementPage: React.FC = () => {
       <div className="space-y-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)]">
           <GlassCard>
-            <h2 className="text-lg font-semibold text-text">Create Payroll Period</h2>
-            <p className="mt-1 text-sm text-muted">Define non-overlapping windows for payroll processing.</p>
+            <h2 className="text-lg font-semibold text-text">Payroll Query Builder</h2>
+            <p className="mt-1 text-sm text-muted">Choose monthly or date range, then generate payroll period containers and employee rows.</p>
 
-            <form className="mt-5 space-y-4" onSubmit={handleCreatePeriod}>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Date</span>
-                  <input
-                    type="date"
-                    value={periodStart}
-                    onChange={(event) => setPeriodStart(event.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">End Date</span>
-                  <input
-                    type="date"
-                    value={periodEnd}
-                    onChange={(event) => setPeriodEnd(event.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                  />
-                </label>
-              </div>
+            <form className="mt-5 space-y-4" onSubmit={handleGeneratePeriods}>
+              <label className="flex items-center gap-2 rounded-xl border border-stroke bg-bg1/55 px-3 py-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={isMonthlyMode}
+                  onChange={(event) => setIsMonthlyMode(event.target.checked)}
+                  className="h-4 w-4 accent-gold"
+                />
+                Monthly
+              </label>
+
+              {isMonthlyMode ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Year</span>
+                    <select
+                      value={queryYear}
+                      onChange={(event) => setQueryYear(Number(event.target.value))}
+                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    >
+                      {Array.from({ length: 8 }, (_, index) => defaultPayrollYear - 3 + index).map((year) => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Month</span>
+                    <select
+                      value={queryMonth}
+                      onChange={(event) => setQueryMonth(Number(event.target.value))}
+                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    >
+                      {monthLabels.map((label, index) => (
+                        <option key={label} value={index + 1}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Date</span>
+                    <input
+                      type="date"
+                      value={queryDateFrom}
+                      onChange={(event) => setQueryDateFrom(event.target.value)}
+                      required
+                      className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">End Date</span>
+                    <input
+                      type="date"
+                      value={queryDateTo}
+                      onChange={(event) => setQueryDateTo(event.target.value)}
+                      required
+                      className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    />
+                  </label>
+                </div>
+              )}
 
               <label className="block">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
@@ -368,8 +427,8 @@ const AdminPayrollManagementPage: React.FC = () => {
                 />
               </label>
 
-              <LiquidButton type="submit" disabled={creatingPeriod || loading}>
-                {creatingPeriod ? 'Creating...' : 'Create Period'}
+              <LiquidButton type="submit" disabled={generatingPeriods || loading}>
+                {generatingPeriods ? 'Generating...' : 'Generate Payroll Lines'}
               </LiquidButton>
             </form>
           </GlassCard>
