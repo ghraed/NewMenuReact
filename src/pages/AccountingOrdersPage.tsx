@@ -18,10 +18,19 @@ import {
   fetchStaffTableSessionInvoiceSplit,
   finalizeGuestTableSession,
 } from '../services/orderService';
+import { fetchInvoices } from '../services/invoiceService';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import { calculateInvoicePreview } from '../utils/financeMath';
-import type { AccountOrderRequest, DiscountType, InvoiceSplitSummary, OrderRecord, RestaurantTableSummary } from '../types';
+import type {
+  AccountOrderRequest,
+  DiscountType,
+  FinalizeInvoiceStatusMode,
+  FinancePaymentMethod,
+  InvoiceSplitSummary,
+  OrderRecord,
+  RestaurantTableSummary,
+} from '../types';
 
 const ACCOUNTING_POLL_INTERVAL_MS = 5000;
 
@@ -72,6 +81,8 @@ const AccountingOrdersPage: React.FC = () => {
   const [processingTarget, setProcessingTarget] = useState<string | null>(null);
   const [sessionInvoiceSplit, setSessionInvoiceSplit] = useState<InvoiceSplitSummary | null>(null);
   const [splitLoading, setSplitLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<FinancePaymentMethod>('cash');
+  const [paymentReference, setPaymentReference] = useState('');
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasLoadedOrdersRef = useRef(false);
@@ -308,6 +319,10 @@ const AccountingOrdersPage: React.FC = () => {
   ), [orders, selectedTable]);
 
   const splitFeatureEnabled = user?.restaurant?.feature_flags?.invoice_splitting === true;
+  const finalizeInvoiceStatusMode: FinalizeInvoiceStatusMode = (
+    user?.restaurant?.finalize_invoice_status_mode === 'paid' ? 'paid' : 'issued'
+  );
+  const requiresPaymentCapture = finalizeInvoiceStatusMode === 'paid';
 
   const selectedTableSessionIds = useMemo(() => (
     Array.from(new Set(
@@ -444,6 +459,14 @@ const AccountingOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (requiresPaymentCapture) {
+        const normalizedReference = paymentReference.trim();
+
+        if (!normalizedReference) {
+          throw new Error('Payment reference is required before marking this invoice as paid.');
+        }
+      }
+
       await Promise.all(selectedTableOrders.map((order) => accountConfirmedOrder(order.id, payload)));
       const uniqueSessionIds = Array.from(new Set(
         selectedTableOrders
@@ -457,7 +480,50 @@ const AccountingOrdersPage: React.FC = () => {
         );
       }
 
-      await Promise.all(uniqueSessionIds.map((sessionId) => finalizeGuestTableSession(sessionId)));
+      const finalizePayload = requiresPaymentCapture
+        ? {
+            payment_method: paymentMethod,
+            payment_reference: paymentReference.trim(),
+          }
+        : undefined;
+
+      const finalizeResponses = await Promise.all(
+        uniqueSessionIds.map((sessionId) => finalizeGuestTableSession(sessionId, finalizePayload))
+      );
+
+      const finalizedInvoiceNumbers = finalizeResponses
+        .map((response) => response.invoice_number?.trim())
+        .filter((invoiceNumber): invoiceNumber is string => Boolean(invoiceNumber));
+
+      if (finalizedInvoiceNumbers.length > 0) {
+        try {
+          const financeInvoiceResponse = await fetchInvoices({ per_page: 200 });
+          const knownFinanceInvoiceNumbers = new Set(
+            financeInvoiceResponse.invoices
+              .map((invoice) => invoice.invoice_number?.trim())
+              .filter((invoiceNumber): invoiceNumber is string => Boolean(invoiceNumber))
+          );
+
+          const missingInvoiceNumber = finalizedInvoiceNumbers.find(
+            (invoiceNumber) => !knownFinanceInvoiceNumbers.has(invoiceNumber)
+          );
+
+          if (missingInvoiceNumber) {
+            showToast(
+              `Finalized table session, but finance record ${missingInvoiceNumber} is not visible yet. Please refresh finance shortly.`,
+              'tertiary',
+              5600
+            );
+          }
+        } catch {
+          showToast(
+            'Finalized table session, but finance verification could not be completed. Please refresh finance shortly.',
+            'tertiary',
+            5600
+          );
+        }
+      }
+
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
       showToast(
@@ -465,6 +531,10 @@ const AccountingOrdersPage: React.FC = () => {
         'secondary',
         4200
       );
+      if (requiresPaymentCapture) {
+        setPaymentMethod('cash');
+        setPaymentReference('');
+      }
       setVisibleInvoiceTable('');
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('accountingPage.failedFinalize', { table: selectedTable })));
@@ -877,6 +947,49 @@ const AccountingOrdersPage: React.FC = () => {
                   </div>
                 ) : null}
 
+                {requiresPaymentCapture ? (
+                  <div className="rounded-[22px] border border-white/10 bg-black/10 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-muted2">
+                      {t('accountingPage.paymentDetailsTitle', { defaultValue: 'Payment Details' })}
+                    </p>
+                    <p className="mt-2 text-xs text-muted2">
+                      {t('accountingPage.paymentDetailsHint', {
+                        defaultValue: 'This restaurant marks finalized invoices as paid, so payment details are required.',
+                      })}
+                    </p>
+                    <div className="mt-3 grid gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
+                          {t('accountingPage.paymentMethod', { defaultValue: 'Payment Method' })}
+                        </label>
+                        <select
+                          value={paymentMethod}
+                          onChange={(event) => setPaymentMethod(event.target.value as FinancePaymentMethod)}
+                          className="themed-native-select w-full rounded-full border border-white/10 bg-bg1/70 px-3 py-2 text-sm text-text outline-none transition focus:border-gold"
+                        >
+                          <option value="cash">{t('accountingPage.paymentMethodCash', { defaultValue: 'Cash' })}</option>
+                          <option value="card">{t('accountingPage.paymentMethodCard', { defaultValue: 'Card' })}</option>
+                          <option value="transfer">{t('accountingPage.paymentMethodTransfer', { defaultValue: 'Transfer' })}</option>
+                          <option value="other">{t('accountingPage.paymentMethodOther', { defaultValue: 'Other' })}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs uppercase tracking-[0.18em] text-muted2">
+                          {t('accountingPage.paymentReference', { defaultValue: 'Payment Reference' })}
+                        </label>
+                        <GlassInput
+                          type="text"
+                          value={paymentReference}
+                          onChange={(event) => setPaymentReference(event.target.value)}
+                          placeholder={t('accountingPage.paymentReferencePlaceholder', {
+                            defaultValue: 'Receipt number, transaction id, or note',
+                          })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <LiquidButton
                   tone="tertiary"
                   onClick={() => setVisibleInvoiceTable(
@@ -898,7 +1011,10 @@ const AccountingOrdersPage: React.FC = () => {
                 <LiquidButton
                   tone="primary"
                   onClick={handleFinalizeSelectedTable}
-                  disabled={processingTarget === `table:${selectedTable}`}
+                  disabled={
+                    processingTarget === `table:${selectedTable}`
+                    || (requiresPaymentCapture && paymentReference.trim() === '')
+                  }
                 >
                   {processingTarget === `table:${selectedTable}` ? t('accountingPage.finalizing') : t('accountingPage.finalizeTableInvoice', { table: selectedTable })}
                 </LiquidButton>

@@ -10,6 +10,8 @@ export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
 export type InvoiceSplitMode = 'none' | 'equal' | 'by_person_order';
 export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
+export type FinalizeInvoiceStatusMode = 'issued' | 'paid';
+export type FinancePaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
 
 export interface RestaurantProfile {
   legal_business_name?: string | null;
@@ -147,6 +149,7 @@ export interface RestaurantSummary {
   max_tables?: number;
   profile?: RestaurantProfile | null;
   feature_flags?: Record<string, boolean>;
+  finalize_invoice_status_mode?: FinalizeInvoiceStatusMode | null;
 }
 
 export interface RestaurantTableSummary {
@@ -530,6 +533,8 @@ export interface FinanceInvoice {
   total: string;
   notes?: string | null;
   paid_at?: string | null;
+  payment_method?: FinancePaymentMethod | null;
+  payment_reference?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   items: FinanceInvoiceItem[];

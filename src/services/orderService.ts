@@ -4,6 +4,8 @@ import type {
   ActiveTableSessionRecord,
   AccountOrderRequest,
   CreateGuestOrderRequest,
+  FinancePaymentMethod,
+  FinanceInvoiceStatus,
   GuestDishIndexEntry,
   GuestDishesMeta,
   GuestTableDishResponse,
@@ -73,6 +75,9 @@ interface WaveResponse {
 interface TableSessionActionResponse {
   message: string;
   table_session?: TableSessionSummary;
+  invoice_id?: number | null;
+  invoice_number?: string | null;
+  invoice_status?: FinanceInvoiceStatus | null;
   invoice_preview?: {
     restaurant_name: string;
     table_name: string;
@@ -407,8 +412,16 @@ export const resetActiveTableSessionPin = async (sessionId: number | string): Pr
   return response.data;
 };
 
-export const finalizeGuestTableSession = async (sessionId: number | string): Promise<TableSessionActionResponse> => {
-  const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`);
+export interface FinalizeGuestTableSessionPayload {
+  payment_method?: FinancePaymentMethod;
+  payment_reference?: string;
+}
+
+export const finalizeGuestTableSession = async (
+  sessionId: number | string,
+  payload?: FinalizeGuestTableSessionPayload
+): Promise<TableSessionActionResponse> => {
+  const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`, payload);
   return response.data;
 };
 
