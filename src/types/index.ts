@@ -615,6 +615,7 @@ export interface FinanceExpense {
   restaurant_id: number;
   expense_category_id: number;
   vendor_id?: number | null;
+  payroll_period_id?: number | null;
   expense_date: string;
   amount_cents: number;
   tax_amount_cents: number;
@@ -702,6 +703,7 @@ export interface PayrollPeriod {
   created_at?: string | null;
   updated_at?: string | null;
   processed_by?: PayrollEmployeeSummary | null;
+  mirrored_expense_id?: number | null;
   entries: PayrollEntry[];
   totals: PayrollPeriodTotals;
 }
