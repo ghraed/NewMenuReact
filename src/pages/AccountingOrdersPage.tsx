@@ -522,14 +522,14 @@ const AccountingOrdersPage: React.FC = () => {
 
           if (missingInvoiceNumber) {
             showToast(
-              `Finalized table session, but finance record ${missingInvoiceNumber} is not visible yet. Please refresh finance shortly.`,
+              `Finalized table session successfully. Finance record ${missingInvoiceNumber} is still syncing and may appear shortly; please refresh finance.`,
               'tertiary',
               5600
             );
           }
         } catch {
           showToast(
-            'Finalized table session, but finance verification could not be completed. Please refresh finance shortly.',
+            'Finalized table session successfully, but finance visibility check could not be completed. Please refresh finance shortly.',
             'tertiary',
             5600
           );

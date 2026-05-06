@@ -112,6 +112,33 @@ const parseNonNegativeNumber = (value: string): number | null => {
   return parsed;
 };
 
+const sortFinanceInvoicesNewestFirst = (records: FinanceInvoice[]): FinanceInvoice[] => (
+  [...records].sort((left, right) => {
+    const leftCreated = left.created_at ? Date.parse(left.created_at) : Number.NaN;
+    const rightCreated = right.created_at ? Date.parse(right.created_at) : Number.NaN;
+
+    if (Number.isFinite(leftCreated) || Number.isFinite(rightCreated)) {
+      const safeLeft = Number.isFinite(leftCreated) ? leftCreated : Number.NEGATIVE_INFINITY;
+      const safeRight = Number.isFinite(rightCreated) ? rightCreated : Number.NEGATIVE_INFINITY;
+      if (safeLeft !== safeRight) {
+        return safeRight - safeLeft;
+      }
+    }
+
+    const leftInvoiceDate = left.invoice_date ? Date.parse(`${left.invoice_date}T00:00:00Z`) : Number.NaN;
+    const rightInvoiceDate = right.invoice_date ? Date.parse(`${right.invoice_date}T00:00:00Z`) : Number.NaN;
+    if (Number.isFinite(leftInvoiceDate) || Number.isFinite(rightInvoiceDate)) {
+      const safeLeft = Number.isFinite(leftInvoiceDate) ? leftInvoiceDate : Number.NEGATIVE_INFINITY;
+      const safeRight = Number.isFinite(rightInvoiceDate) ? rightInvoiceDate : Number.NEGATIVE_INFINITY;
+      if (safeLeft !== safeRight) {
+        return safeRight - safeLeft;
+      }
+    }
+
+    return right.id - left.id;
+  })
+);
+
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -175,7 +202,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         }),
       ]);
 
-      setInvoices(invoiceResponse.invoices);
+      setInvoices(sortFinanceInvoicesNewestFirst(invoiceResponse.invoices));
       setChartLabels(trendResponse.points.map((point) => point.label));
       setChartRevenues(trendResponse.points.map((point) => point.revenue));
       setChartInvoiceCounts(trendResponse.points.map((point) => point.invoice_count));
@@ -396,9 +423,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
     try {
       const updatedInvoice = await updateInvoice(invoiceId, { status });
-      setInvoices((previous) => previous.map((invoice) => (
+      setInvoices((previous) => sortFinanceInvoicesNewestFirst(previous.map((invoice) => (
         invoice.id === updatedInvoice.id ? updatedInvoice : invoice
-      )));
+      ))));
 
       const trendResponse = await fetchInvoiceRevenueTrends({
         range,
