@@ -78,7 +78,12 @@ const OrderReviewPage: React.FC = () => {
     void guestMenuResource.ensure()
       .then((entry) => {
         const response = entry.data;
-        if (!response?.table || !response.table_session) {
+        const hasActiveUnlockedSession = (
+          response?.table_session?.status === 'active'
+          && response?.protected_actions?.ordering_unlocked === true
+        );
+
+        if (!response?.table || !hasActiveUnlockedSession) {
           if (response?.table) {
             updateDraft({
               tableId: response.table.id,
@@ -96,7 +101,7 @@ const OrderReviewPage: React.FC = () => {
             restaurant: response.restaurant,
             tableId: response.table.id,
             tableReference: response.table.name,
-            tableSessionId: response.table_session.id,
+            tableSessionId: response.table_session!.id,
             guestAccess: response.guest_access,
           });
         }

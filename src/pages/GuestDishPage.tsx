@@ -66,25 +66,21 @@ const GuestDishPage: React.FC = () => {
           setResolvedTableId(response.table.id);
           setAiRecommendationsEnabled(response.restaurant.feature_flags?.ai_recommendations !== false);
           setTableOrderingEnabled(response.restaurant.feature_flags?.table_ordering !== false);
-          if (response.table_session) {
+          const hasActiveUnlockedSession = (
+            response.table_session?.status === 'active'
+            && response.protected_actions?.ordering_unlocked === true
+          );
+
+          if (hasActiveUnlockedSession) {
             setGuestContext({
               restaurant: response.restaurant,
               tableId: response.table.id,
               tableReference: response.table.name,
-              tableSessionId: response.table_session.id,
+              tableSessionId: response.table_session!.id,
               guestAccess: response.guest_access,
             });
           } else {
-            const hasVerifiedAccessForSameTable = (
-              draft.guestAccessVerified
-              && Boolean(draft.guestAccessToken)
-              && draft.tableId === response.table.id
-            );
-
-            if (!hasVerifiedAccessForSameTable) {
-              clearGuestAccess();
-            }
-
+            clearGuestAccess();
             updateDraft({
               tableId: response.table.id,
               tableReference: response.table.name,

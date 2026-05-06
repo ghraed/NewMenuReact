@@ -232,7 +232,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             <div className="border-b border-stroke px-6 py-4">
               <h1 className="text-2xl font-semibold text-text">{title}</h1>
             </div>
-            <div className="p-6">{children}</div>
+            <div key={`${location.pathname}${location.search}`} className="p-6">{children}</div>
           </GlassBoard>
         </div>
       </div>

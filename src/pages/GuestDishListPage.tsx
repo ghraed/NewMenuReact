@@ -316,25 +316,21 @@ const GuestDishListPage: React.FC = () => {
 
     const response = guestResource.data;
     if (table_id && response.table) {
-      if (response.table_session && response.guest_access) {
+      const hasActiveUnlockedSession = (
+        response.table_session?.status === 'active'
+        && response.protected_actions?.ordering_unlocked === true
+      );
+
+      if (hasActiveUnlockedSession && response.guest_access) {
         setGuestContext({
           restaurant: response.restaurant,
           tableId: response.table.id,
           tableReference: response.table.name,
-          tableSessionId: response.table_session.id,
+          tableSessionId: response.table_session!.id,
           guestAccess: response.guest_access,
         });
       } else {
-        const hasVerifiedAccessForSameTable = (
-          draft.guestAccessVerified
-          && Boolean(draft.guestAccessToken)
-          && draft.tableId === response.table.id
-        );
-
-        if (!hasVerifiedAccessForSameTable) {
-          clearGuestAccess();
-        }
-
+        clearGuestAccess();
         updateDraft({
           tableId: response.table.id,
           tableReference: response.table.name,
