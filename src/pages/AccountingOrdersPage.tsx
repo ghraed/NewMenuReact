@@ -491,6 +491,18 @@ const AccountingOrdersPage: React.FC = () => {
         uniqueSessionIds.map((sessionId) => finalizeGuestTableSession(sessionId, finalizePayload))
       );
 
+      const responsesMissingFinanceInvoice = finalizeResponses.some((response) => (
+        typeof response.invoice_id !== 'number'
+        || !response.invoice_number
+        || !response.invoice_status
+      ));
+
+      if (responsesMissingFinanceInvoice) {
+        throw new Error(
+          'Finalize completed session closure, but no finance invoice record was returned. Please contact support to enable finalize-to-finance persistence.'
+        );
+      }
+
       const finalizedInvoiceNumbers = finalizeResponses
         .map((response) => response.invoice_number?.trim())
         .filter((invoiceNumber): invoiceNumber is string => Boolean(invoiceNumber));
