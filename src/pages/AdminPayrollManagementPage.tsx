@@ -20,6 +20,8 @@ type PayrollEntryDraft = {
   base: string;
   overtime: string;
   bonus: string;
+  allowance: string;
+  reimbursement: string;
   deduction: string;
   tax: string;
   notes: string;
@@ -115,6 +117,8 @@ const AdminPayrollManagementPage: React.FC = () => {
         base: centsToMoneyString(existing?.base_amount_cents ?? 0),
         overtime: centsToMoneyString(existing?.overtime_amount_cents ?? 0),
         bonus: centsToMoneyString(existing?.bonus_amount_cents ?? 0),
+        allowance: centsToMoneyString(existing?.allowance_amount_cents ?? 0),
+        reimbursement: centsToMoneyString(existing?.reimbursement_amount_cents ?? 0),
         deduction: centsToMoneyString(existing?.deduction_amount_cents ?? 0),
         tax: centsToMoneyString(existing?.tax_amount_cents ?? 0),
         notes: existing?.notes ?? '',
@@ -228,6 +232,8 @@ const AdminPayrollManagementPage: React.FC = () => {
           base: '0.00',
           overtime: '0.00',
           bonus: '0.00',
+          allowance: '0.00',
+          reimbursement: '0.00',
           deduction: '0.00',
           tax: '0.00',
           notes: '',
@@ -243,6 +249,8 @@ const AdminPayrollManagementPage: React.FC = () => {
         base: '0.00',
         overtime: '0.00',
         bonus: '0.00',
+        allowance: '0.00',
+        reimbursement: '0.00',
         deduction: '0.00',
         tax: '0.00',
         notes: '',
@@ -253,6 +261,8 @@ const AdminPayrollManagementPage: React.FC = () => {
         base_amount_cents: moneyStringToCents(draft.base),
         overtime_amount_cents: moneyStringToCents(draft.overtime),
         bonus_amount_cents: moneyStringToCents(draft.bonus),
+        allowance_amount_cents: moneyStringToCents(draft.allowance),
+        reimbursement_amount_cents: moneyStringToCents(draft.reimbursement),
         deduction_amount_cents: moneyStringToCents(draft.deduction),
         tax_amount_cents: moneyStringToCents(draft.tax),
         notes: draft.notes.trim() || undefined,
@@ -264,6 +274,7 @@ const AdminPayrollManagementPage: React.FC = () => {
   const draftNetTotal = useMemo(() => {
     return currentEntriesPayload.reduce((sum, entry) => (
       sum + entry.base_amount_cents + (entry.overtime_amount_cents ?? 0) + (entry.bonus_amount_cents ?? 0)
+      + (entry.allowance_amount_cents ?? 0) + (entry.reimbursement_amount_cents ?? 0)
       - (entry.deduction_amount_cents ?? 0) - (entry.tax_amount_cents ?? 0)
     ), 0);
   }, [currentEntriesPayload]);
@@ -281,6 +292,7 @@ const AdminPayrollManagementPage: React.FC = () => {
 
     const invalidNetEntry = currentEntriesPayload.find((entry) => (
       (entry.base_amount_cents + (entry.overtime_amount_cents ?? 0) + (entry.bonus_amount_cents ?? 0)
+      + (entry.allowance_amount_cents ?? 0) + (entry.reimbursement_amount_cents ?? 0)
       - (entry.deduction_amount_cents ?? 0) - (entry.tax_amount_cents ?? 0)) < 0
     ));
 
@@ -472,18 +484,20 @@ const AdminPayrollManagementPage: React.FC = () => {
               </div>
 
               <div className="mb-4 rounded-2xl border border-stroke bg-bg1/50 p-4 text-sm text-muted">
-                Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, 'USD')}</span>
+                Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span>
                 {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, currency)}</span>
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-stroke">
-                <table className="min-w-[980px] text-left text-sm">
+                <table className="min-w-[1200px] text-left text-sm">
                   <thead className="bg-bg1/85 text-xs uppercase tracking-[0.14em] text-gold2/85">
                     <tr>
                       <th className="px-3 py-3">Employee</th>
                       <th className="px-3 py-3">Base</th>
                       <th className="px-3 py-3">Overtime</th>
                       <th className="px-3 py-3">Bonus</th>
+                      <th className="px-3 py-3">Allowance</th>
+                      <th className="px-3 py-3">Reimbursement</th>
                       <th className="px-3 py-3">Deduction</th>
                       <th className="px-3 py-3">Tax</th>
                       <th className="px-3 py-3">Net</th>
@@ -493,13 +507,15 @@ const AdminPayrollManagementPage: React.FC = () => {
                   <tbody>
                     {eligibleStaff.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-3 py-6 text-center text-muted">No staff members found.</td>
+                        <td colSpan={10} className="px-3 py-6 text-center text-muted">No staff members found.</td>
                       </tr>
                     ) : eligibleStaff.map((staff) => {
                       const draft = entryDrafts[staff.id] ?? {
                         base: '0.00',
                         overtime: '0.00',
                         bonus: '0.00',
+                        allowance: '0.00',
+                        reimbursement: '0.00',
                         deduction: '0.00',
                         tax: '0.00',
                         notes: '',
@@ -514,11 +530,14 @@ const AdminPayrollManagementPage: React.FC = () => {
                           <td className="px-3 py-3"><input value={draft.base} onChange={(event) => setEntryValue(staff.id, 'base', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.overtime} onChange={(event) => setEntryValue(staff.id, 'overtime', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.bonus} onChange={(event) => setEntryValue(staff.id, 'bonus', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
+                          <td className="px-3 py-3"><input value={draft.allowance} onChange={(event) => setEntryValue(staff.id, 'allowance', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
+                          <td className="px-3 py-3"><input value={draft.reimbursement} onChange={(event) => setEntryValue(staff.id, 'reimbursement', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.deduction} onChange={(event) => setEntryValue(staff.id, 'deduction', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3"><input value={draft.tax} onChange={(event) => setEntryValue(staff.id, 'tax', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
                           <td className="px-3 py-3 text-sm font-semibold text-text">
                             {formatPriceWithCurrency(
                               (moneyStringToCents(draft.base) + moneyStringToCents(draft.overtime) + moneyStringToCents(draft.bonus)
+                                + moneyStringToCents(draft.allowance) + moneyStringToCents(draft.reimbursement)
                                 - moneyStringToCents(draft.deduction) - moneyStringToCents(draft.tax)) / 100,
                               currency
                             )}

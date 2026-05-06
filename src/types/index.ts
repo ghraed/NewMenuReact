@@ -676,6 +676,8 @@ export interface PayrollEntry {
   base_amount_cents: number;
   overtime_amount_cents: number;
   bonus_amount_cents: number;
+  allowance_amount_cents: number;
+  reimbursement_amount_cents: number;
   deduction_amount_cents: number;
   tax_amount_cents: number;
   net_amount_cents: number;
