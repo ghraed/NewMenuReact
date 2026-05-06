@@ -450,6 +450,13 @@ const AccountingOrdersPage: React.FC = () => {
           .map((order) => order.table_session_id)
           .filter((sessionId): sessionId is number => typeof sessionId === 'number')
       ));
+
+      if (uniqueSessionIds.length === 0) {
+        throw new Error(
+          'Unable to finalize this table because no active table session was found for the selected orders.'
+        );
+      }
+
       await Promise.all(uniqueSessionIds.map((sessionId) => finalizeGuestTableSession(sessionId)));
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
