@@ -1,5 +1,13 @@
-import React, { Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import {
+  BrowserRouter,
+  matchPath,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -34,7 +42,6 @@ import { useOwnerAuth } from './contexts/useOwnerAuth';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
-import { useTranslation } from 'react-i18next';
 import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
 import NotFoundView from './components/Common/NotFoundView';
 import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
@@ -49,6 +56,51 @@ const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
+
+const ROUTE_DEBUG_PATTERNS = [
+  '/',
+  '/menu',
+  '/menu/table/:table_id',
+  '/menu/table/:table_id/dish/:dish_id',
+  '/menu/table/:table_id/dish/:dish_id/ingredients',
+  '/menu/table/:table_id/review',
+  '/menu/table/:table_id/orders',
+  '/menu/table/:table_id/invoice',
+  '/menu/dish/:dish_id',
+  '/menu/dish/:dish_id/ingredients',
+  '/menu/:restaurant_slug',
+  '/menu/:restaurant_slug/dish/:dish_id',
+  '/menu/:restaurant_slug/dish/:dish_id/ingredients',
+  '/dish/:dish_id',
+  '/reservations',
+  '/order/review',
+  '/invoice/print',
+  '/admin/login',
+  '/admin/dashboard',
+  '/admin/profile',
+  '/admin/room-plans',
+  '/admin/reservations',
+  '/admin/dishes/create',
+  '/admin/dish/:dish_id',
+  '/admin/dishes/:dish_id/edit',
+  '/admin/ingredients/library',
+  '/admin/ingredients/global',
+  '/admin/inventory/ingredients',
+  '/admin/inventory/stock-history',
+  '/admin/staff',
+  '/admin/staff/scheduling',
+  '/admin/accounting',
+  '/admin/finance',
+  '/admin/finance/invoices/:invoice_id',
+  '/admin/finance/payroll',
+  '/admin/currency',
+  '/admin/theme-demo',
+  '/staff/orders',
+  '/staff/pos',
+  '/chef/dashboard',
+  '/owner/login',
+  '/owner/dashboard',
+];
 
 const RoleHomeRedirect: React.FC = () => {
   const { defaultRoute, isAuthenticated } = useAuth();
@@ -98,256 +150,129 @@ const lazyRoute = (element: React.ReactNode) => (
 );
 
 const AppRoutes: React.FC = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    const matchedRoutePaths = ROUTE_DEBUG_PATTERNS.filter((pattern) => (
+      Boolean(matchPath({ path: pattern, end: true }, location.pathname))
+    ));
+
+    console.debug('[router] location update', {
+      pathname: location.pathname,
+      search: location.search,
+      hash: location.hash,
+      matchedRoutePaths,
+    });
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <AppThemeShell>
       <RouteErrorBoundary>
-        <Routes key={`${i18n.resolvedLanguage}:${location.pathname}`}>
-        <Route path="/" element={<GuestDishListPage />} />
-        <Route path="/menu" element={<GuestDishListPage />} />
-        <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
-        <Route path="/menu/table/:table_id/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
-        <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
-        <Route path="/menu/table/:table_id/review" element={lazyRoute(<OrderReviewPage />)} />
-        <Route path="/menu/table/:table_id/orders" element={lazyRoute(<GuestOrdersPage />)} />
-        <Route path="/menu/table/:table_id/invoice" element={lazyRoute(<GuestInvoicePage />)} />
-        <Route path="/menu/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
-        <Route path="/menu/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
-        <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
-        <Route path="/menu/:restaurant_slug/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
-        <Route path="/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
-        <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
-        <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
-        <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
-        <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
-        <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
+        <Routes>
+          <Route path="/" element={<GuestDishListPage />} />
+          <Route path="/menu" element={<GuestDishListPage />} />
+          <Route path="/menu/table/:table_id" element={<GuestDishListPage />} />
+          <Route path="/menu/table/:table_id/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+          <Route path="/menu/table/:table_id/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+          <Route path="/menu/table/:table_id/review" element={lazyRoute(<OrderReviewPage />)} />
+          <Route path="/menu/table/:table_id/orders" element={lazyRoute(<GuestOrdersPage />)} />
+          <Route path="/menu/table/:table_id/invoice" element={lazyRoute(<GuestInvoicePage />)} />
+          <Route path="/menu/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+          <Route path="/menu/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+          <Route path="/menu/:restaurant_slug" element={<GuestDishListPage />} />
+          <Route path="/menu/:restaurant_slug/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+          <Route path="/dish/:dish_id" element={lazyRoute(<GuestDishPage />)} />
+          <Route path="/menu/:restaurant_slug/dish/:dish_id/ingredients" element={lazyRoute(<GuestDishIngredientsPage />)} />
+          <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
+          <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
+          <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
+          <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
-        <Route path="/admin/login" element={<LoginPage />} />
-        <Route path="/owner/login" element={lazyRoute(<OwnerLoginPage />)} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/owner/login" element={lazyRoute(<OwnerLoginPage />)} />
 
-        <Route
-          path="/admin/room-plans"
-          element={(
-            <ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['room_plan_editor']}>
-              {lazyRoute(<AdminRoomPlansPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/profile" element={lazyRoute(<AdminRestaurantProfilePage />)} />
+            <Route path="/admin/dishes/create" element={lazyRoute(<CreateDishPage />)} />
+            <Route path="/admin/dish/:dish_id" element={lazyRoute(<AdminDishPage />)} />
+            <Route path="/admin/dishes/:dish_id/edit" element={lazyRoute(<EditDishPage />)} />
+            <Route path="/admin/ingredients/library" element={lazyRoute(<IngredientLibrary />)} />
+            <Route path="/admin/ingredients/global" element={lazyRoute(<GlobalIngredientsPage />)} />
+            <Route path="/admin/staff" element={lazyRoute(<AdminStaffPage />)} />
+            <Route path="/admin/currency" element={lazyRoute(<AdminCurrencyPage />)} />
+            <Route path="/admin/theme-demo" element={lazyRoute(<LiquidGlassDemoPage />)} />
 
-        <Route
-          path="/admin/reservations"
-          element={(
-            <ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['table_reservations']}>
-              {lazyRoute(<AdminReservationsPage />)}
-            </ProtectedRoute>
-          )}
-        />
+            <Route element={<ProtectedRoute requiredFeatures={['inventory']} />}>
+              <Route path="/admin/inventory/ingredients" element={lazyRoute(<AdminIngredientsPage />)} />
+              <Route path="/admin/inventory/stock-history" element={lazyRoute(<AdminStockHistoryPage />)} />
+            </Route>
 
-        <Route
-          path="/admin/dashboard"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          )}
-        />
+            <Route element={<ProtectedRoute requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
+              <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
+              <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
+              <Route path="/admin/finance/invoices/:invoice_id" element={lazyRoute(<AdminFinanceInvoiceDetailsPage />)} />
+            </Route>
 
-        <Route
-          path="/admin/profile"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<AdminRestaurantProfilePage />)}
-            </ProtectedRoute>
-          )}
-        />
+            <Route element={<ProtectedRoute requiredFeatures={['payroll_management']} />}>
+              <Route path="/admin/finance/payroll" element={lazyRoute(<AdminPayrollManagementPage />)} />
+            </Route>
 
-        <Route
-          path="/owner/dashboard"
-          element={(
-            <OwnerProtectedRoute>
-              {lazyRoute(<OwnerDashboardPage />)}
-            </OwnerProtectedRoute>
-          )}
-        />
+            <Route element={<ProtectedRoute requiredFeatures={['staff_scheduling']} />}>
+              <Route path="/admin/staff/scheduling" element={lazyRoute(<AdminStaffSchedulingPage />)} />
+            </Route>
+          </Route>
 
-        <Route
-          path="/admin/dishes/create"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<CreateDishPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['room_plan_editor']} />}>
+            <Route path="/admin/room-plans" element={lazyRoute(<AdminRoomPlansPage />)} />
+          </Route>
 
-        <Route
-          path="/admin/dish/:dish_id"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<AdminDishPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['table_reservations']} />}>
+            <Route path="/admin/reservations" element={lazyRoute(<AdminReservationsPage />)} />
+          </Route>
 
-        <Route
-          path="/admin/dishes/:dish_id/edit"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<EditDishPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders']} />}>
+            <Route path="/staff/orders" element={lazyRoute(<StaffOrdersPage />)} />
+          </Route>
 
-        <Route
-          path="/admin/ingredients/library"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<IngredientLibrary />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route
+            element={<ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders', 'table_ordering']} />}
+          >
+            <Route path="/staff/pos" element={lazyRoute(<CashierPosPage />)} />
+          </Route>
 
-        <Route
-          path="/admin/ingredients/global"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<GlobalIngredientsPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route element={<ProtectedRoute allowedRoles={['chef']} />}>
+            <Route path="/chef/dashboard" element={lazyRoute(<ChefDashboardPage />)} />
+          </Route>
 
-        <Route
-          path="/admin/inventory/ingredients"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['inventory']}>
-              {lazyRoute(<AdminIngredientsPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route
+            path="/owner/dashboard"
+            element={(
+              <OwnerProtectedRoute>
+                {lazyRoute(<OwnerDashboardPage />)}
+              </OwnerProtectedRoute>
+            )}
+          />
 
-        <Route
-          path="/admin/inventory/stock-history"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['inventory']}>
-              {lazyRoute(<AdminStockHistoryPage />)}
-            </ProtectedRoute>
-          )}
-        />
+          <Route path="/login" element={<Navigate to="/admin/login" replace />} />
+          <Route path="/dashboard" element={<RoleHomeRedirect />} />
+          <Route path="/admin" element={<RoleHomeRedirect />} />
+          <Route path="/owner" element={<OwnerHomeRedirect />} />
+          <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
+          <Route path="/chef" element={<Navigate to="/chef/dashboard" replace />} />
+          <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
+          <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
+          <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
 
-        <Route
-          path="/staff/orders"
-          element={(
-            <ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders']}>
-              {lazyRoute(<StaffOrdersPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/staff/pos"
-          element={(
-            <ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders', 'table_ordering']}>
-              {lazyRoute(<CashierPosPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/chef/dashboard"
-          element={(
-            <ProtectedRoute allowedRoles={['chef']}>
-              {lazyRoute(<ChefDashboardPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/staff"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<AdminStaffPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/accounting"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
-              {lazyRoute(<AccountingOrdersPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/finance"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
-              {lazyRoute(<AdminFinanceDashboardPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/finance/invoices/:invoice_id"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['finance_dashboard', 'dish_profitability']}>
-              {lazyRoute(<AdminFinanceInvoiceDetailsPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/finance/payroll"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['payroll_management']}>
-              {lazyRoute(<AdminPayrollManagementPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/staff/scheduling"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']} requiredFeatures={['staff_scheduling']}>
-              {lazyRoute(<AdminStaffSchedulingPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/currency"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<AdminCurrencyPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route
-          path="/admin/theme-demo"
-          element={(
-            <ProtectedRoute allowedRoles={['admin']}>
-              {lazyRoute(<LiquidGlassDemoPage />)}
-            </ProtectedRoute>
-          )}
-        />
-
-        <Route path="/login" element={<Navigate to="/admin/login" replace />} />
-        <Route path="/dashboard" element={<RoleHomeRedirect />} />
-        <Route path="/admin" element={<RoleHomeRedirect />} />
-        <Route path="/owner" element={<OwnerHomeRedirect />} />
-        <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
-        <Route path="/chef" element={<Navigate to="/chef/dashboard" replace />} />
-        <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
-        <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
-        <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
-
-        <Route
-          path="*"
-          element={<NotFoundView title={t('app.brand')} message={t('app.visit')} />}
-        />
+          <Route
+            path="*"
+            element={<NotFoundView title={t('app.brand')} message={t('app.visit')} />}
+          />
         </Routes>
       </RouteErrorBoundary>
     </AppThemeShell>
@@ -362,7 +287,7 @@ const App: React.FC = () => {
           <AppThemeProvider>
             <AppLocaleSync />
             <GuestMenuResourceProvider>
-              <BrowserRouter>
+              <BrowserRouter unstable_useTransitions={false}>
                 <AppRoutes />
                 <Suspense fallback={null}>
                   <ChatBot />
