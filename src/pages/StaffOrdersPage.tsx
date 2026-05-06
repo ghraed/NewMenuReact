@@ -799,6 +799,17 @@ const StaffOrdersPage: React.FC = () => {
 
     try {
       const response = await finalizeGuestTableSession(session.id);
+
+      if (
+        typeof response.invoice_id !== 'number'
+        || !response.invoice_number
+        || !response.invoice_status
+      ) {
+        throw new Error(
+          'Finalize closed the table session, but no finance invoice record was returned. Please finalize from Accounting only after finalize-to-finance persistence is enabled.'
+        );
+      }
+
       setTableSessions((current) => current.filter((item) => item.id !== session.id));
       showToast(response.message || t('staffOrdersPage.finalizedSession', { table: session.table_reference }), 'secondary', 4200);
     } catch (err: unknown) {
