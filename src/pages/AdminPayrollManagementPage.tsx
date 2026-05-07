@@ -3,6 +3,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
+  createPayrollPeriod,
   fetchPayrollPeriods,
   fetchPayrollSummary,
   queryPayrollPeriods,
@@ -90,6 +91,9 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [splitMode, setSplitMode] = useState<PayrollSplitMode>('full');
   const [customSplitDays, setCustomSplitDays] = useState('7');
   const [periodNotes, setPeriodNotes] = useState('');
+  const [adjustmentSourcePeriodId, setAdjustmentSourcePeriodId] = useState<number | ''>('');
+  const [adjustmentDate, setAdjustmentDate] = useState(today);
+  const [adjustmentNotes, setAdjustmentNotes] = useState('');
   const [summaryDateFrom, setSummaryDateFrom] = useState(today.slice(0, 8) + '01');
   const [summaryDateTo, setSummaryDateTo] = useState(today);
   const [summaryNet, setSummaryNet] = useState(0);
@@ -97,6 +101,7 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [savingEntries, setSavingEntries] = useState(false);
   const [generatingPeriods, setGeneratingPeriods] = useState(false);
+  const [creatingAdjustment, setCreatingAdjustment] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -109,6 +114,11 @@ const AdminPayrollManagementPage: React.FC = () => {
   const selectedPeriod = useMemo(
     () => periods.find((period) => period.id === selectedPeriodId) ?? null,
     [periods, selectedPeriodId]
+  );
+  const isSelectedAdjustmentPeriod = (selectedPeriod?.period_type ?? 'regular') === 'adjustment';
+  const paidRegularPeriods = useMemo(
+    () => periods.filter((period) => (period.period_type ?? 'regular') === 'regular' && period.status === 'paid'),
+    [periods]
   );
 
   const resetEntryDrafts = useCallback((period: PayrollPeriod | null, employees: StaffMember[]) => {
@@ -254,6 +264,42 @@ const AdminPayrollManagementPage: React.FC = () => {
     }
   };
 
+  const handleCreateAdjustmentPeriod = async () => {
+    setError(null);
+    setSuccess(null);
+
+    if (adjustmentSourcePeriodId === '') {
+      setError('Select a paid payroll period to adjust.');
+      return;
+    }
+
+    setCreatingAdjustment(true);
+    try {
+      const created = await createPayrollPeriod({
+        period_start: adjustmentDate,
+        period_end: adjustmentDate,
+        period_type: 'adjustment',
+        adjustment_of_period_id: adjustmentSourcePeriodId,
+        notes: adjustmentNotes.trim() || undefined,
+      });
+      setPeriods((current) => {
+        const next = [created, ...current.filter((period) => period.id !== created.id)];
+        return next.sort((a, b) => {
+          if (a.period_start === b.period_start) return b.id - a.id;
+          return a.period_start < b.period_start ? 1 : -1;
+        });
+      });
+      setSelectedPeriodId(created.id);
+      resetEntryDrafts(created, eligibleStaff);
+      setSuccess(`Adjustment period created for ${created.period_start}.`);
+      setAdjustmentNotes('');
+    } catch (createError: unknown) {
+      setError(getErrorMessage(createError, 'Failed to create adjustment period.'));
+    } finally {
+      setCreatingAdjustment(false);
+    }
+  };
+
   const setEntryValue = (userId: number, field: keyof PayrollEntryDraft, value: string) => {
     setEntryDrafts((current) => ({
       ...current,
@@ -289,17 +335,17 @@ const AdminPayrollManagementPage: React.FC = () => {
       return {
         user_id: staff.id,
         base_amount_cents: moneyStringToCents(draft.base),
-        overtime_amount_cents: moneyStringToCents(draft.overtime),
-        bonus_amount_cents: moneyStringToCents(draft.bonus),
-        allowance_amount_cents: moneyStringToCents(draft.allowance),
-        reimbursement_amount_cents: moneyStringToCents(draft.reimbursement),
-        deduction_amount_cents: moneyStringToCents(draft.deduction),
-        tax_amount_cents: moneyStringToCents(draft.tax),
+        overtime_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.overtime),
+        bonus_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.bonus),
+        allowance_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.allowance),
+        reimbursement_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.reimbursement),
+        deduction_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.deduction),
+        tax_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.tax),
         notes: draft.notes.trim() || undefined,
         currency: 'USD',
       };
     });
-  }, [eligibleStaff, entryDrafts]);
+  }, [eligibleStaff, entryDrafts, isSelectedAdjustmentPeriod]);
 
   const draftNetTotal = useMemo(() => {
     return currentEntriesPayload.reduce((sum, entry) => (
@@ -523,6 +569,48 @@ const AdminPayrollManagementPage: React.FC = () => {
             </div>
           </div>
 
+          <div className="mb-5 grid gap-3 rounded-2xl border border-stroke bg-bg1/45 p-4 sm:grid-cols-4">
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment For Paid Period</span>
+              <select
+                value={adjustmentSourcePeriodId}
+                onChange={(event) => setAdjustmentSourcePeriodId(event.target.value === '' ? '' : Number(event.target.value))}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="">Select paid period</option>
+                {paidRegularPeriods.map((period) => (
+                  <option key={period.id} value={period.id}>
+                    #{period.id} {period.period_start} to {period.period_end}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment Date</span>
+              <input
+                type="date"
+                value={adjustmentDate}
+                onChange={(event) => setAdjustmentDate(event.target.value)}
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              />
+            </label>
+            <div className="flex items-end">
+              <LiquidButton type="button" onClick={() => void handleCreateAdjustmentPeriod()} disabled={creatingAdjustment}>
+                {creatingAdjustment ? 'Creating...' : 'Create Adjustment'}
+              </LiquidButton>
+            </div>
+            <label className="block sm:col-span-4">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment Notes</span>
+              <input
+                type="text"
+                value={adjustmentNotes}
+                onChange={(event) => setAdjustmentNotes(event.target.value)}
+                placeholder="Reason for correction period"
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              />
+            </label>
+          </div>
+
           <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block sm:col-span-2 lg:col-span-2">
               <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Payroll Period</span>
@@ -537,7 +625,9 @@ const AdminPayrollManagementPage: React.FC = () => {
                 <option value="">Select payroll period</option>
                 {periods.map((period) => (
                   <option key={period.id} value={period.id}>
-                    {period.period_start} to {period.period_end} ({period.status})
+                    {(period.period_type ?? 'regular') === 'adjustment'
+                      ? `[Adjustment #${period.id}] ${period.period_start} (${period.status}) for #${period.adjustment_of_period_id ?? '-'}`
+                      : `${period.period_start} to ${period.period_end} (${period.status})`}
                   </option>
                 ))}
               </select>
@@ -580,8 +670,15 @@ const AdminPayrollManagementPage: React.FC = () => {
               </div>
 
               <div className="mb-4 rounded-2xl border border-stroke bg-bg1/50 p-4 text-sm text-muted">
-                Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span>
+                {(selectedPeriod.period_type ?? 'regular') === 'adjustment'
+                  ? <>Adjustment total: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span></>
+                  : <>Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span></>}
                 {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, currency)}</span>
+                {isSelectedAdjustmentPeriod && selectedPeriod.adjustment_of_period_id ? (
+                  <>
+                    {' '}• Adjusts Period: <span className="font-semibold text-text">#{selectedPeriod.adjustment_of_period_id}</span>
+                  </>
+                ) : null}
                 {selectedPeriod.mirrored_expense_id ? (
                   <>
                     {' '}• Mirrored to Finance Expense: <span className="font-semibold text-text">#{selectedPeriod.mirrored_expense_id}</span>
@@ -594,7 +691,7 @@ const AdminPayrollManagementPage: React.FC = () => {
                   <thead className="bg-bg1/85 text-xs uppercase tracking-[0.14em] text-gold2/85">
                     <tr>
                       <th className="px-3 py-3">Employee</th>
-                      <th className="px-3 py-3">Base</th>
+                      <th className="px-3 py-3">{isSelectedAdjustmentPeriod ? 'Correction (+/-)' : 'Base'}</th>
                       <th className="px-3 py-3">Overtime</th>
                       <th className="px-3 py-3">Bonus</th>
                       <th className="px-3 py-3">Allowance</th>
@@ -628,13 +725,13 @@ const AdminPayrollManagementPage: React.FC = () => {
                             <p className="font-semibold text-text">{staff.name}</p>
                             <p className="text-xs text-muted">{staff.role}</p>
                           </td>
-                          <td className="px-3 py-3"><input value={draft.base} onChange={(event) => setEntryValue(staff.id, 'base', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.overtime} onChange={(event) => setEntryValue(staff.id, 'overtime', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.bonus} onChange={(event) => setEntryValue(staff.id, 'bonus', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.allowance} onChange={(event) => setEntryValue(staff.id, 'allowance', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.reimbursement} onChange={(event) => setEntryValue(staff.id, 'reimbursement', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.deduction} onChange={(event) => setEntryValue(staff.id, 'deduction', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.tax} onChange={(event) => setEntryValue(staff.id, 'tax', event.target.value)} type="number" min="0" step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
+                          <td className="px-3 py-3"><input value={draft.base} onChange={(event) => setEntryValue(staff.id, 'base', event.target.value)} type="number" min={isSelectedAdjustmentPeriod ? undefined : '0'} step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
+                          <td className="px-3 py-3"><input value={draft.overtime} onChange={(event) => setEntryValue(staff.id, 'overtime', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
+                          <td className="px-3 py-3"><input value={draft.bonus} onChange={(event) => setEntryValue(staff.id, 'bonus', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
+                          <td className="px-3 py-3"><input value={draft.allowance} onChange={(event) => setEntryValue(staff.id, 'allowance', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
+                          <td className="px-3 py-3"><input value={draft.reimbursement} onChange={(event) => setEntryValue(staff.id, 'reimbursement', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
+                          <td className="px-3 py-3"><input value={draft.deduction} onChange={(event) => setEntryValue(staff.id, 'deduction', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
+                          <td className="px-3 py-3"><input value={draft.tax} onChange={(event) => setEntryValue(staff.id, 'tax', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
                           <td className="px-3 py-3 text-sm font-semibold text-text">
                             {formatPriceWithCurrency(
                               (moneyStringToCents(draft.base) + moneyStringToCents(draft.overtime) + moneyStringToCents(draft.bonus)

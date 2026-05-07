@@ -14,6 +14,8 @@ export interface PayrollSummaryFilters {
 export interface CreatePayrollPeriodPayload {
   period_start: string;
   period_end: string;
+  period_type?: 'regular' | 'adjustment';
+  adjustment_of_period_id?: number;
   notes?: string;
 }
 

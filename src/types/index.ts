@@ -660,6 +660,7 @@ export interface FinanceUnlinkedRestockRecord {
 export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
 export type PayrollSummaryMode = 'approved_paid' | 'all';
 export type PayrollSplitMode = 'full' | 'weekly' | 'custom_days';
+export type PayrollPeriodType = 'regular' | 'adjustment';
 export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export interface PayrollEmployeeSummary {
@@ -699,6 +700,14 @@ export interface PayrollPeriod {
   restaurant_id: number;
   period_start: string;
   period_end: string;
+  period_type?: PayrollPeriodType;
+  adjustment_of_period_id?: number | null;
+  adjustment_of_period?: {
+    id: number;
+    period_start: string;
+    period_end: string;
+    status: PayrollPeriodStatus;
+  } | null;
   status: PayrollPeriodStatus;
   approved_at?: string | null;
   paid_at?: string | null;
