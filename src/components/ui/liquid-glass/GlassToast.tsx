@@ -10,15 +10,15 @@ interface GlassToastProps {
 }
 
 const toneTextClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#2b1f00]',
-  secondary: 'text-[#2b1f00]',
-  tertiary: 'text-white',
+  primary: 'text-[#f8e6b8]',
+  secondary: 'text-[#f6edd8]',
+  tertiary: 'text-[#ffe6e3]',
 };
 
 const toneCloseClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#2b1f00]/80 hover:text-[#2b1f00]',
-  secondary: 'text-[#2b1f00]/80 hover:text-[#2b1f00]',
-  tertiary: 'text-white/90 hover:text-white',
+  primary: 'text-[#f8e6b8]/80 hover:text-[#f8e6b8]',
+  secondary: 'text-[#f6edd8]/80 hover:text-[#f6edd8]',
+  tertiary: 'text-[#ffe6e3]/85 hover:text-[#ffe6e3]',
 };
 
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
