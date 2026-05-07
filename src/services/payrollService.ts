@@ -55,6 +55,8 @@ export interface PayrollQueryResponse {
   mode: 'monthly' | 'range';
   split_mode?: 'full' | 'weekly' | 'custom_days';
   split_days?: number | null;
+  created_period_ids?: number[];
+  created_count?: number;
   window: {
     date_from: string;
     date_to: string;

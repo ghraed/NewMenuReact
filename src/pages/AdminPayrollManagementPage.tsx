@@ -216,12 +216,18 @@ const AdminPayrollManagementPage: React.FC = () => {
         });
       });
 
-      const firstPeriod = result.periods[0] ?? null;
-      if (firstPeriod) {
-        setSelectedPeriodId(firstPeriod.id);
-        resetEntryDrafts(firstPeriod, eligibleStaff);
+      const createdIds = new Set(result.created_period_ids ?? []);
+      const preferredPeriod = result.periods.find((period) => createdIds.has(period.id)) ?? result.periods[0] ?? null;
+      if (preferredPeriod) {
+        setSelectedPeriodId(preferredPeriod.id);
+        resetEntryDrafts(preferredPeriod, eligibleStaff);
       }
-      setSuccess(`Generated payroll lines for ${result.window.date_from} to ${result.window.date_to}.`);
+      const createdCount = result.created_count ?? (result.created_period_ids?.length ?? 0);
+      if (createdCount > 0) {
+        setSuccess(`Created ${createdCount} payroll period(s) for ${result.window.date_from} to ${result.window.date_to}.`);
+      } else {
+        setSuccess(`No new payroll periods were created for ${result.window.date_from} to ${result.window.date_to}; existing periods already cover this range.`);
+      }
     } catch (queryError: unknown) {
       setError(getErrorMessage(queryError, 'Failed to generate payroll lines.'));
     } finally {
