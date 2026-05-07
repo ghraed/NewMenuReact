@@ -545,6 +545,11 @@ const AdminPayrollManagementPage: React.FC = () => {
               <div className="mb-4 rounded-2xl border border-stroke bg-bg1/50 p-4 text-sm text-muted">
                 Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span>
                 {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, currency)}</span>
+                {selectedPeriod.mirrored_expense_id ? (
+                  <>
+                    {' '}• Mirrored to Finance Expense: <span className="font-semibold text-text">#{selectedPeriod.mirrored_expense_id}</span>
+                  </>
+                ) : null}
               </div>
 
               <div className="overflow-x-auto rounded-2xl border border-stroke">
