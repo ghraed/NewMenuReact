@@ -14,6 +14,14 @@ export interface PayrollSummaryFilters {
 export interface CreatePayrollPeriodPayload {
   period_start: string;
   period_end: string;
+  employee_id?: number;
+  base_amount_cents?: number;
+  overtime_amount_cents?: number;
+  bonus_amount_cents?: number;
+  allowance_amount_cents?: number;
+  reimbursement_amount_cents?: number;
+  deduction_amount_cents?: number;
+  tax_amount_cents?: number;
   period_type?: 'regular' | 'adjustment';
   adjustment_of_period_id?: number;
   notes?: string;

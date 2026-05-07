@@ -6,22 +6,23 @@ import {
   createPayrollPeriod,
   fetchPayrollPeriods,
   fetchPayrollSummary,
-  queryPayrollPeriods,
   updatePayrollPeriod,
   upsertPayrollEntries,
-  type UpsertPayrollEntryPayload,
 } from '../services/payrollService';
 import { fetchStaffMembers } from '../services/staffService';
-import type { PayrollPeriod, PayrollPeriodStatus, PayrollSplitMode, StaffMember } from '../types';
+import type { PayrollPeriod, PayrollPeriodStatus, StaffMember } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
 
 const today = new Date().toISOString().slice(0, 10);
-const previousMonthDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
-const defaultPayrollYear = previousMonthDate.getFullYear();
-const defaultPayrollMonth = previousMonthDate.getMonth() + 1;
-const monthLabels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const monthStart = today.slice(0, 8) + '01';
 
-type PayrollEntryDraft = {
+type SalaryDraft = {
+  employeeId: string;
+  monthly: boolean;
+  year: string;
+  month: string;
+  startDate: string;
+  endDate: string;
   base: string;
   overtime: string;
   bonus: string;
@@ -32,733 +33,439 @@ type PayrollEntryDraft = {
   notes: string;
 };
 
+type AdjustmentDraft = {
+  date: string;
+  amount: string;
+  note: string;
+};
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response;
-
-    if (response?.data?.errors) {
-      const firstFieldError = Object.values(response.data.errors)[0]?.[0];
-      if (firstFieldError) return firstFieldError;
-    }
-
+    const firstFieldError = response?.data?.errors ? Object.values(response.data.errors)[0]?.[0] : null;
+    if (firstFieldError) return firstFieldError;
     if (response?.data?.message) return response.data.message;
   }
-
-  if (error instanceof Error && error.message.trim() !== '') {
-    return error.message;
-  }
-
+  if (error instanceof Error && error.message.trim() !== '') return error.message;
   return fallback;
 };
 
-const centsToMoneyString = (value: number): string => (value / 100).toFixed(2);
-
-const moneyStringToCents = (value: string): number => {
-  const trimmed = value.trim();
-  if (trimmed === '') return 0;
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+const cents = (value: string): number => {
+  const parsed = Number(value.trim());
+  if (!Number.isFinite(parsed)) return 0;
   return Math.round(parsed * 100);
 };
 
-const PayrollStatusChip: React.FC<{ status: PayrollPeriodStatus }> = ({ status }) => {
-  const tone = status === 'paid'
-    ? 'border-sage/45 bg-sage/10 text-sage'
-    : status === 'approved'
-      ? 'border-gold/45 bg-gold/10 text-gold2'
-      : 'border-stroke bg-bg1/50 text-muted';
-
-  return (
-    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${tone}`}>
-      {status}
-    </span>
-  );
+const defaultDraft = (): SalaryDraft => {
+  const d = new Date();
+  return {
+    employeeId: '',
+    monthly: true,
+    year: String(d.getFullYear()),
+    month: String(d.getMonth() + 1).padStart(2, '0'),
+    startDate: monthStart,
+    endDate: today,
+    base: '0.00',
+    overtime: '0.00',
+    bonus: '0.00',
+    allowance: '0.00',
+    reimbursement: '0.00',
+    deduction: '0.00',
+    tax: '0.00',
+    notes: '',
+  };
 };
+
+const statusChip = (status: PayrollPeriodStatus): string => (
+  status === 'paid' ? 'border-sage/45 bg-sage/10 text-sage'
+    : status === 'approved' ? 'border-gold/45 bg-gold/10 text-gold2'
+      : 'border-stroke bg-bg1/50 text-muted'
+);
 
 const AdminPayrollManagementPage: React.FC = () => {
   const { user } = useAuth();
   const currency = user?.restaurant?.currency ?? 'USD';
 
-  const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
-  const [selectedPeriodId, setSelectedPeriodId] = useState<number | ''>('');
-  const [entryDrafts, setEntryDrafts] = useState<Record<number, PayrollEntryDraft>>({});
-  const [isMonthlyMode, setIsMonthlyMode] = useState(true);
-  const [queryYear, setQueryYear] = useState(defaultPayrollYear);
-  const [queryMonth, setQueryMonth] = useState(defaultPayrollMonth);
-  const [queryDateFrom, setQueryDateFrom] = useState(today);
-  const [queryDateTo, setQueryDateTo] = useState(today);
-  const [splitMode, setSplitMode] = useState<PayrollSplitMode>('full');
-  const [customSplitDays, setCustomSplitDays] = useState('7');
-  const [periodNotes, setPeriodNotes] = useState('');
-  const [adjustmentSourcePeriodId, setAdjustmentSourcePeriodId] = useState<number | ''>('');
-  const [adjustmentDate, setAdjustmentDate] = useState(today);
-  const [adjustmentNotes, setAdjustmentNotes] = useState('');
-  const [summaryDateFrom, setSummaryDateFrom] = useState(today.slice(0, 8) + '01');
-  const [summaryDateTo, setSummaryDateTo] = useState(today);
+  const [records, setRecords] = useState<PayrollPeriod[]>([]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [summaryFrom, setSummaryFrom] = useState(monthStart);
+  const [summaryTo, setSummaryTo] = useState(today);
   const [summaryNet, setSummaryNet] = useState(0);
   const [summaryEmployees, setSummaryEmployees] = useState(0);
+
+  const [draft, setDraft] = useState<SalaryDraft>(defaultDraft);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [editing, setEditing] = useState<Record<number, boolean>>({});
+  const [editDrafts, setEditDrafts] = useState<Record<number, SalaryDraft>>({});
+  const [adjustmentDrafts, setAdjustmentDrafts] = useState<Record<number, AdjustmentDraft>>({});
+
   const [loading, setLoading] = useState(true);
-  const [savingEntries, setSavingEntries] = useState(false);
-  const [generatingPeriods, setGeneratingPeriods] = useState(false);
-  const [creatingAdjustment, setCreatingAdjustment] = useState(false);
-  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+  const [savingCreate, setSavingCreate] = useState(false);
+  const [savingRow, setSavingRow] = useState<number | null>(null);
+  const [savingAdjustment, setSavingAdjustment] = useState<number | null>(null);
+  const [statusUpdating, setStatusUpdating] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const eligibleStaff = useMemo(
-    () => staffMembers.filter((member) => member.role === 'staff' || member.role === 'chef'),
-    [staffMembers]
+  const eligibleStaff = useMemo(() => staff.filter((s) => s.role === 'staff' || s.role === 'chef'), [staff]);
+
+  const regularRecords = useMemo(
+    () => records.filter((record) => (record.period_type ?? 'regular') === 'regular').sort((a, b) => (a.period_start === b.period_start ? b.id - a.id : (a.period_start < b.period_start ? 1 : -1))),
+    [records]
   );
 
-  const selectedPeriod = useMemo(
-    () => periods.find((period) => period.id === selectedPeriodId) ?? null,
-    [periods, selectedPeriodId]
-  );
-  const isSelectedAdjustmentPeriod = (selectedPeriod?.period_type ?? 'regular') === 'adjustment';
-  const paidRegularPeriods = useMemo(
-    () => periods.filter((period) => (period.period_type ?? 'regular') === 'regular' && period.status === 'paid'),
-    [periods]
-  );
-
-  const resetEntryDrafts = useCallback((period: PayrollPeriod | null, employees: StaffMember[]) => {
-    if (!period) {
-      setEntryDrafts({});
-      return;
-    }
-
-    const existingByUser = new Map(period.entries.map((entry) => [entry.user_id, entry]));
-    const nextDrafts: Record<number, PayrollEntryDraft> = {};
-
-    employees.forEach((employee) => {
-      const existing = existingByUser.get(employee.id);
-      nextDrafts[employee.id] = {
-        base: centsToMoneyString(existing?.base_amount_cents ?? 0),
-        overtime: centsToMoneyString(existing?.overtime_amount_cents ?? 0),
-        bonus: centsToMoneyString(existing?.bonus_amount_cents ?? 0),
-        allowance: centsToMoneyString(existing?.allowance_amount_cents ?? 0),
-        reimbursement: centsToMoneyString(existing?.reimbursement_amount_cents ?? 0),
-        deduction: centsToMoneyString(existing?.deduction_amount_cents ?? 0),
-        tax: centsToMoneyString(existing?.tax_amount_cents ?? 0),
-        notes: existing?.notes ?? '',
-      };
-    });
-
-    setEntryDrafts(nextDrafts);
-  }, []);
-
-  const loadData = useCallback(async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const [periodsResponse, staffResponse, summaryResponse] = await Promise.all([
+      const [periods, members, summary] = await Promise.all([
         fetchPayrollPeriods(),
         fetchStaffMembers(),
-        fetchPayrollSummary({
-          date_from: summaryDateFrom || undefined,
-          date_to: summaryDateTo || undefined,
-          period_status: 'approved_paid',
-        }),
+        fetchPayrollSummary({ date_from: summaryFrom || undefined, date_to: summaryTo || undefined, period_status: 'approved_paid' }),
       ]);
-
-      setPeriods(periodsResponse);
-      setStaffMembers(staffResponse);
-      setSummaryNet(summaryResponse.totals.net_pay);
-      setSummaryEmployees(summaryResponse.totals.employee_count);
-
-      const defaultPeriod = periodsResponse[0] ?? null;
-      const keepSelected = defaultPeriod && selectedPeriodId !== ''
-        ? periodsResponse.find((period) => period.id === selectedPeriodId) ?? null
-        : null;
-      const nextSelected = keepSelected ?? defaultPeriod;
-
-      setSelectedPeriodId(nextSelected ? nextSelected.id : '');
-      resetEntryDrafts(nextSelected, staffResponse);
-    } catch (loadError: unknown) {
-      setError(getErrorMessage(loadError, 'Failed to load payroll data.'));
+      setRecords(periods);
+      setStaff(members);
+      setSummaryNet(summary.totals.net_pay);
+      setSummaryEmployees(summary.totals.employee_count);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to load salary records.'));
     } finally {
       setLoading(false);
     }
-  }, [resetEntryDrafts, selectedPeriodId, summaryDateFrom, summaryDateTo]);
+  }, [summaryFrom, summaryTo]);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void refresh();
+  }, [refresh]);
 
-  const handleSelectPeriod = (periodId: number | '') => {
-    setSelectedPeriodId(periodId);
-    const period = periods.find((candidate) => candidate.id === periodId) ?? null;
-    resetEntryDrafts(period, eligibleStaff);
+  const resolveRange = (form: SalaryDraft): { start: string; end: string } => {
+    if (!form.monthly) {
+      return { start: form.startDate, end: form.endDate };
+    }
+    const year = Number(form.year);
+    const monthIndex = Number(form.month) - 1;
+    const start = new Date(year, monthIndex, 1);
+    const end = new Date(year, monthIndex + 1, 0);
+    return {
+      start: start.toISOString().slice(0, 10),
+      end: end.toISOString().slice(0, 10),
+    };
   };
 
-  const handleGeneratePeriods = async (event: React.FormEvent<HTMLFormElement>) => {
+  const createSalaryRecord = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    if (!isMonthlyMode && queryDateFrom > queryDateTo) {
-      setError('End date must be on or after start date.');
-      return;
-    }
-
-    setGeneratingPeriods(true);
-
-    try {
-      const result = await queryPayrollPeriods({
-        mode: isMonthlyMode ? 'monthly' : 'range',
-        split_mode: splitMode,
-        split_days: splitMode === 'custom_days' ? Math.max(1, Number(customSplitDays) || 1) : undefined,
-        year: isMonthlyMode ? queryYear : undefined,
-        month: isMonthlyMode ? queryMonth : undefined,
-        date_from: !isMonthlyMode ? queryDateFrom : undefined,
-        date_to: !isMonthlyMode ? queryDateTo : undefined,
-        notes: periodNotes.trim() || undefined,
-      });
-
-      setPeriods((current) => {
-        const next = new Map<number, PayrollPeriod>();
-        current.forEach((period) => next.set(period.id, period));
-        result.periods.forEach((period) => next.set(period.id, period));
-        return Array.from(next.values()).sort((a, b) => {
-          if (a.period_start === b.period_start) return b.id - a.id;
-          return a.period_start < b.period_start ? 1 : -1;
-        });
-      });
-
-      const createdIds = new Set(result.created_period_ids ?? []);
-      const preferredPeriod = result.periods.find((period) => createdIds.has(period.id)) ?? result.periods[0] ?? null;
-      if (preferredPeriod) {
-        setSelectedPeriodId(preferredPeriod.id);
-        resetEntryDrafts(preferredPeriod, eligibleStaff);
-      }
-      const createdCount = result.created_count ?? (result.created_period_ids?.length ?? 0);
-      if (createdCount > 0) {
-        setSuccess(`Created ${createdCount} payroll period(s) for ${result.window.date_from} to ${result.window.date_to}.`);
-      } else {
-        setSuccess(`No new payroll periods were created for ${result.window.date_from} to ${result.window.date_to}; existing periods already cover this range.`);
-      }
-    } catch (queryError: unknown) {
-      setError(getErrorMessage(queryError, 'Failed to generate payroll lines.'));
-    } finally {
-      setGeneratingPeriods(false);
-    }
-  };
-
-  const handleUpdatePeriodStatus = async (periodId: number, status: PayrollPeriodStatus) => {
-    setUpdatingStatusId(periodId);
+    setSavingCreate(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const updated = await updatePayrollPeriod(periodId, { status });
-      setPeriods((current) => current.map((period) => (period.id === periodId ? updated : period)));
-      if (selectedPeriodId === periodId) {
-        resetEntryDrafts(updated, eligibleStaff);
+      if (!draft.employeeId) {
+        setError('Select an employee.');
+        return;
       }
-      setSuccess(`Payroll period moved to ${status}.`);
-    } catch (updateError: unknown) {
-      setError(getErrorMessage(updateError, 'Failed to update payroll status.'));
-    } finally {
-      setUpdatingStatusId(null);
-    }
-  };
+      const range = resolveRange(draft);
+      if (range.start > range.end) {
+        setError('Salary range end date must be on or after start date.');
+        return;
+      }
 
-  const handleCreateAdjustmentPeriod = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (adjustmentSourcePeriodId === '') {
-      setError('Select a paid payroll period to adjust.');
-      return;
-    }
-
-    setCreatingAdjustment(true);
-    try {
       const created = await createPayrollPeriod({
-        period_start: adjustmentDate,
-        period_end: adjustmentDate,
-        period_type: 'adjustment',
-        adjustment_of_period_id: adjustmentSourcePeriodId,
-        notes: adjustmentNotes.trim() || undefined,
+        period_type: 'regular',
+        employee_id: Number(draft.employeeId),
+        period_start: range.start,
+        period_end: range.end,
+        base_amount_cents: cents(draft.base),
+        overtime_amount_cents: cents(draft.overtime),
+        bonus_amount_cents: cents(draft.bonus),
+        allowance_amount_cents: cents(draft.allowance),
+        reimbursement_amount_cents: cents(draft.reimbursement),
+        deduction_amount_cents: cents(draft.deduction),
+        tax_amount_cents: cents(draft.tax),
+        notes: draft.notes.trim() || undefined,
       });
-      setPeriods((current) => {
-        const next = [created, ...current.filter((period) => period.id !== created.id)];
-        return next.sort((a, b) => {
-          if (a.period_start === b.period_start) return b.id - a.id;
-          return a.period_start < b.period_start ? 1 : -1;
-        });
-      });
-      setSelectedPeriodId(created.id);
-      resetEntryDrafts(created, eligibleStaff);
-      setSuccess(`Adjustment period created for ${created.period_start}.`);
-      setAdjustmentNotes('');
-    } catch (createError: unknown) {
-      setError(getErrorMessage(createError, 'Failed to create adjustment period.'));
+
+      setRecords((current) => [created, ...current.filter((p) => p.id !== created.id)]);
+      setDraft(defaultDraft());
+      setSuccess('Salary record created.');
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to create salary record.'));
     } finally {
-      setCreatingAdjustment(false);
+      setSavingCreate(false);
     }
   };
 
-  const setEntryValue = (userId: number, field: keyof PayrollEntryDraft, value: string) => {
-    setEntryDrafts((current) => ({
-      ...current,
-      [userId]: {
-        ...(current[userId] ?? {
-          base: '0.00',
-          overtime: '0.00',
-          bonus: '0.00',
-          allowance: '0.00',
-          reimbursement: '0.00',
-          deduction: '0.00',
-          tax: '0.00',
-          notes: '',
-        }),
-        [field]: value,
+  const updateStatus = async (record: PayrollPeriod, status: PayrollPeriodStatus) => {
+    setStatusUpdating(record.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      const updated = await updatePayrollPeriod(record.id, { status });
+      setRecords((current) => current.map((p) => (p.id === record.id ? updated : p)));
+      setSuccess(`Record #${record.id} moved to ${status}.`);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to update status.'));
+    } finally {
+      setStatusUpdating(null);
+    }
+  };
+
+  const beginEdit = (record: PayrollPeriod) => {
+    const first = record.entries[0];
+    setEditing((prev) => ({ ...prev, [record.id]: true }));
+    setEditDrafts((prev) => ({
+      ...prev,
+      [record.id]: {
+        ...defaultDraft(),
+        employeeId: String(record.employee_id ?? first?.user_id ?? ''),
+        monthly: false,
+        year: record.period_start.slice(0, 4),
+        month: record.period_start.slice(5, 7),
+        startDate: record.period_start,
+        endDate: record.period_end,
+        base: ((first?.base_amount_cents ?? 0) / 100).toFixed(2),
+        overtime: ((first?.overtime_amount_cents ?? 0) / 100).toFixed(2),
+        bonus: ((first?.bonus_amount_cents ?? 0) / 100).toFixed(2),
+        allowance: ((first?.allowance_amount_cents ?? 0) / 100).toFixed(2),
+        reimbursement: ((first?.reimbursement_amount_cents ?? 0) / 100).toFixed(2),
+        deduction: ((first?.deduction_amount_cents ?? 0) / 100).toFixed(2),
+        tax: ((first?.tax_amount_cents ?? 0) / 100).toFixed(2),
+        notes: first?.notes ?? '',
       },
     }));
   };
 
-  const currentEntriesPayload = useMemo<UpsertPayrollEntryPayload[]>(() => {
-    return eligibleStaff.map((staff) => {
-      const draft = entryDrafts[staff.id] ?? {
-        base: '0.00',
-        overtime: '0.00',
-        bonus: '0.00',
-        allowance: '0.00',
-        reimbursement: '0.00',
-        deduction: '0.00',
-        tax: '0.00',
-        notes: '',
-      };
-
-      return {
-        user_id: staff.id,
-        base_amount_cents: moneyStringToCents(draft.base),
-        overtime_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.overtime),
-        bonus_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.bonus),
-        allowance_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.allowance),
-        reimbursement_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.reimbursement),
-        deduction_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.deduction),
-        tax_amount_cents: isSelectedAdjustmentPeriod ? 0 : moneyStringToCents(draft.tax),
-        notes: draft.notes.trim() || undefined,
-        currency: 'USD',
-      };
-    });
-  }, [eligibleStaff, entryDrafts, isSelectedAdjustmentPeriod]);
-
-  const draftNetTotal = useMemo(() => {
-    return currentEntriesPayload.reduce((sum, entry) => (
-      sum + entry.base_amount_cents + (entry.overtime_amount_cents ?? 0) + (entry.bonus_amount_cents ?? 0)
-      + (entry.allowance_amount_cents ?? 0) + (entry.reimbursement_amount_cents ?? 0)
-      - (entry.deduction_amount_cents ?? 0) - (entry.tax_amount_cents ?? 0)
-    ), 0);
-  }, [currentEntriesPayload]);
-
-  const handleSaveEntries = async () => {
-    if (!selectedPeriod) {
-      setError('Select a payroll period first.');
-      return;
-    }
-
-    if (summaryDateFrom > summaryDateTo) {
-      setError('Summary end date must be on or after start date.');
-      return;
-    }
-
-    const invalidNetEntry = currentEntriesPayload.find((entry) => (
-      (entry.base_amount_cents + (entry.overtime_amount_cents ?? 0) + (entry.bonus_amount_cents ?? 0)
-      + (entry.allowance_amount_cents ?? 0) + (entry.reimbursement_amount_cents ?? 0)
-      - (entry.deduction_amount_cents ?? 0) - (entry.tax_amount_cents ?? 0)) < 0
-    ));
-
-    if (invalidNetEntry) {
-      const name = eligibleStaff.find((staff) => staff.id === invalidNetEntry.user_id)?.name ?? `#${invalidNetEntry.user_id}`;
-      setError(`Net pay cannot be negative for ${name}. Reduce deductions/tax or increase base pay.`);
-      return;
-    }
-
-    setSavingEntries(true);
+  const saveEdit = async (record: PayrollPeriod) => {
+    const form = editDrafts[record.id];
+    if (!form) return;
+    setSavingRow(record.id);
     setError(null);
     setSuccess(null);
 
     try {
-      const updatedPeriod = await upsertPayrollEntries(selectedPeriod.id, currentEntriesPayload);
-      setPeriods((current) => current.map((period) => (period.id === selectedPeriod.id ? updatedPeriod : period)));
-      resetEntryDrafts(updatedPeriod, eligibleStaff);
-      setSuccess('Payroll entries saved successfully.');
-      const summaryResponse = await fetchPayrollSummary({
-        date_from: summaryDateFrom || undefined,
-        date_to: summaryDateTo || undefined,
-        period_status: 'approved_paid',
-      });
-      setSummaryNet(summaryResponse.totals.net_pay);
-      setSummaryEmployees(summaryResponse.totals.employee_count);
-    } catch (saveError: unknown) {
-      setError(getErrorMessage(saveError, 'Failed to save payroll entries.'));
+      const updated = await upsertPayrollEntries(record.id, [{
+        user_id: Number(form.employeeId),
+        base_amount_cents: cents(form.base),
+        overtime_amount_cents: cents(form.overtime),
+        bonus_amount_cents: cents(form.bonus),
+        allowance_amount_cents: cents(form.allowance),
+        reimbursement_amount_cents: cents(form.reimbursement),
+        deduction_amount_cents: cents(form.deduction),
+        tax_amount_cents: cents(form.tax),
+        notes: form.notes.trim() || undefined,
+        currency: currency,
+      }]);
+      setRecords((current) => current.map((p) => (p.id === record.id ? updated : p)));
+      setEditing((prev) => ({ ...prev, [record.id]: false }));
+      setSuccess(`Salary record #${record.id} updated.`);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to update salary record.'));
     } finally {
-      setSavingEntries(false);
+      setSavingRow(null);
+    }
+  };
+
+  const addAdjustment = async (record: PayrollPeriod) => {
+    const form = adjustmentDrafts[record.id] ?? { date: today, amount: '', note: '' };
+    setSavingAdjustment(record.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const amountCents = cents(form.amount);
+      if (!Number.isFinite(Number(form.amount)) || form.amount.trim() === '' || amountCents === 0) {
+        setError('Adjustment amount must be non-zero.');
+        return;
+      }
+      if (!form.note.trim()) {
+        setError('Adjustment note is required.');
+        return;
+      }
+
+      const adjustment = await createPayrollPeriod({
+        period_type: 'adjustment',
+        adjustment_of_period_id: record.id,
+        period_start: form.date,
+        period_end: form.date,
+        notes: form.note.trim(),
+      });
+
+      const updatedAdjustment = await upsertPayrollEntries(adjustment.id, [{
+        user_id: Number(record.employee_id ?? record.entries[0]?.user_id),
+        base_amount_cents: amountCents,
+        notes: form.note.trim(),
+        currency,
+      }]);
+
+      setRecords((current) => [updatedAdjustment, ...current.filter((p) => p.id !== updatedAdjustment.id)]);
+      setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { date: today, amount: '', note: '' } }));
+      await refresh();
+      setExpanded((prev) => ({ ...prev, [record.id]: true }));
+      setSuccess(`Adjustment created for salary #${record.id}.`);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to create adjustment.'));
+    } finally {
+      setSavingAdjustment(null);
     }
   };
 
   return (
     <DashboardLayout title="Payroll Management">
       <div className="space-y-6">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1.9fr)]">
-          <GlassCard>
-            <h2 className="text-lg font-semibold text-text">Payroll Query Builder</h2>
-            <p className="mt-1 text-sm text-muted">Choose monthly or date range, then generate payroll period containers and employee rows.</p>
+        <GlassCard>
+          <h2 className="text-lg font-semibold text-text">Employee Salary Record</h2>
+          <p className="mt-1 text-sm text-muted">Create independent salary records per employee. Each record can be approved/paid and adjusted later.</p>
 
-            <form className="mt-5 space-y-4" onSubmit={handleGeneratePeriods}>
-              <label className="flex items-center gap-2 rounded-xl border border-stroke bg-bg1/55 px-3 py-2 text-sm text-text">
-                <input
-                  type="checkbox"
-                  checked={isMonthlyMode}
-                  onChange={(event) => setIsMonthlyMode(event.target.checked)}
-                  className="h-4 w-4 accent-gold"
-                />
-                Monthly
+          <form className="mt-5 grid gap-4" onSubmit={createSalaryRecord}>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="block sm:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee</span>
+                <select value={draft.employeeId} onChange={(e) => setDraft((d) => ({ ...d, employeeId: e.target.value }))} className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60">
+                  <option value="">Select employee</option>
+                  {eligibleStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
               </label>
-
-              {isMonthlyMode ? (
-                <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex items-center gap-2 rounded-xl border border-stroke bg-bg1/55 px-3 py-2 text-sm text-text">
+                <input type="checkbox" checked={draft.monthly} onChange={(e) => setDraft((d) => ({ ...d, monthly: e.target.checked }))} className="h-4 w-4 accent-gold" />
+                Monthly Range
+              </label>
+              {draft.monthly ? (
+                <>
                   <label className="block">
                     <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Year</span>
-                    <select
-                      value={queryYear}
-                      onChange={(event) => setQueryYear(Number(event.target.value))}
-                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                    >
-                      {Array.from({ length: 8 }, (_, index) => defaultPayrollYear - 3 + index).map((year) => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
+                    <input type="number" value={draft.year} onChange={(e) => setDraft((d) => ({ ...d, year: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Month</span>
-                    <select
-                      value={queryMonth}
-                      onChange={(event) => setQueryMonth(Number(event.target.value))}
-                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                    >
-                      {monthLabels.map((label, index) => (
-                        <option key={label} value={index + 1}>{label}</option>
-                      ))}
-                    </select>
+                    <input type="number" min={1} max={12} value={draft.month} onChange={(e) => setDraft((d) => ({ ...d, month: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
-                </div>
+                </>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <>
                   <label className="block">
                     <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Date</span>
-                    <input
-                      type="date"
-                      value={queryDateFrom}
-                      onChange={(event) => setQueryDateFrom(event.target.value)}
-                      required
-                      className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                    />
+                    <input type="date" value={draft.startDate} onChange={(e) => setDraft((d) => ({ ...d, startDate: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                   <label className="block">
                     <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">End Date</span>
-                    <input
-                      type="date"
-                      value={queryDateTo}
-                      onChange={(event) => setQueryDateTo(event.target.value)}
-                      required
-                      className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                    />
+                    <input type="date" value={draft.endDate} onChange={(e) => setDraft((d) => ({ ...d, endDate: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
-                </div>
+                </>
               )}
+            </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Period Split</span>
-                  <select
-                    value={splitMode}
-                    onChange={(event) => setSplitMode(event.target.value as PayrollSplitMode)}
-                    className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                  >
-                    <option value="full">Single Period</option>
-                    <option value="weekly">Weekly Periods</option>
-                    <option value="custom_days">Custom Day Blocks</option>
-                  </select>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+              {(['base', 'overtime', 'bonus', 'allowance', 'reimbursement', 'deduction', 'tax'] as const).map((field) => (
+                <label key={field} className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{field}</span>
+                  <input type="number" step="0.01" min="0" value={draft[field]} onChange={(e) => setDraft((d) => ({ ...d, [field]: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
                 </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Custom Days</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={31}
-                    value={customSplitDays}
-                    onChange={(event) => setCustomSplitDays(event.target.value)}
-                    disabled={splitMode !== 'custom_days'}
-                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60 disabled:opacity-50"
-                  />
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
-                <textarea
-                  value={periodNotes}
-                  onChange={(event) => setPeriodNotes(event.target.value)}
-                  rows={3}
-                  className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                  placeholder="Optional payroll notes"
-                />
-              </label>
-
-              <LiquidButton type="submit" disabled={generatingPeriods || loading}>
-                {generatingPeriods ? 'Generating...' : 'Generate Payroll Lines'}
-              </LiquidButton>
-            </form>
-          </GlassCard>
-
-          <GlassCard>
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-semibold text-text">Payroll Snapshot</h3>
-                <p className="mt-1 text-sm text-muted">Approved and paid payroll totals for selected range.</p>
-              </div>
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadData()} disabled={loading}>
-                {loading ? 'Loading...' : 'Refresh'}
-              </LiquidButton>
+              ))}
             </div>
 
-            <div className="mb-4 grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Summary Date From</span>
-                <input
-                  type="date"
-                  value={summaryDateFrom}
-                  onChange={(event) => setSummaryDateFrom(event.target.value)}
-                  className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Summary Date To</span>
-                <input
-                  type="date"
-                  value={summaryDateTo}
-                  onChange={(event) => setSummaryDateTo(event.target.value)}
-                  className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                />
-              </label>
-            </div>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
+              <input value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
+            </label>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-stroke bg-bg1/55 p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Payroll</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, currency)}</p>
-              </div>
-              <div className="rounded-2xl border border-stroke bg-bg1/55 p-4">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
-                <p className="mt-1 text-xl font-semibold text-text">{summaryEmployees}</p>
-              </div>
+            <div>
+              <LiquidButton type="submit" disabled={savingCreate || loading}>{savingCreate ? 'Saving...' : 'Create Salary Record'}</LiquidButton>
             </div>
-          </GlassCard>
-        </div>
+          </form>
+        </GlassCard>
 
         <GlassCard>
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-text">Periods & Entries</h3>
-              <p className="mt-1 text-sm text-muted">Select period, adjust statuses, and save per-employee payroll lines.</p>
+              <h3 className="text-lg font-semibold text-text">Salary Summary</h3>
+              <p className="mt-1 text-sm text-muted">Finance totals are based on saved salary records and adjustments.</p>
             </div>
+            <LiquidButton type="button" tone="tertiary" onClick={() => void refresh()} disabled={loading}>{loading ? 'Loading...' : 'Refresh'}</LiquidButton>
           </div>
-
-          <div className="mb-5 grid gap-3 rounded-2xl border border-stroke bg-bg1/45 p-4 sm:grid-cols-4">
-            <label className="block sm:col-span-2">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment For Paid Period</span>
-              <select
-                value={adjustmentSourcePeriodId}
-                onChange={(event) => setAdjustmentSourcePeriodId(event.target.value === '' ? '' : Number(event.target.value))}
-                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-              >
-                <option value="">Select paid period</option>
-                {paidRegularPeriods.map((period) => (
-                  <option key={period.id} value={period.id}>
-                    #{period.id} {period.period_start} to {period.period_end}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment Date</span>
-              <input
-                type="date"
-                value={adjustmentDate}
-                onChange={(event) => setAdjustmentDate(event.target.value)}
-                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-              />
-            </label>
-            <div className="flex items-end">
-              <LiquidButton type="button" onClick={() => void handleCreateAdjustmentPeriod()} disabled={creatingAdjustment}>
-                {creatingAdjustment ? 'Creating...' : 'Create Adjustment'}
-              </LiquidButton>
-            </div>
-            <label className="block sm:col-span-4">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Adjustment Notes</span>
-              <input
-                type="text"
-                value={adjustmentNotes}
-                onChange={(event) => setAdjustmentNotes(event.target.value)}
-                placeholder="Reason for correction period"
-                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-              />
-            </label>
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">From</span><input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
+            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">To</span><input type="date" value={summaryTo} onChange={(e) => setSummaryTo(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
           </div>
-
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="block sm:col-span-2 lg:col-span-2">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Payroll Period</span>
-              <select
-                value={selectedPeriodId}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  handleSelectPeriod(next === '' ? '' : Number(next));
-                }}
-                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-              >
-                <option value="">Select payroll period</option>
-                {periods.map((period) => (
-                  <option key={period.id} value={period.id}>
-                    {(period.period_type ?? 'regular') === 'adjustment'
-                      ? `[Adjustment #${period.id}] ${period.period_start} (${period.status}) for #${period.adjustment_of_period_id ?? '-'}`
-                      : `${period.period_start} to ${period.period_end} (${period.status})`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {selectedPeriod ? (
-              <div className="flex items-end">
-                <PayrollStatusChip status={selectedPeriod.status} />
-              </div>
-            ) : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Payroll</p><p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, currency)}</p></div>
+            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p><p className="mt-1 text-xl font-semibold text-text">{summaryEmployees}</p></div>
           </div>
+        </GlassCard>
 
-          {selectedPeriod ? (
-            <>
-              <div className="mb-4 flex flex-wrap gap-2">
-                <LiquidButton
-                  type="button"
-                  tone="tertiary"
-                  disabled={updatingStatusId === selectedPeriod.id}
-                  onClick={() => void handleUpdatePeriodStatus(selectedPeriod.id, 'draft')}
-                >
-                  Mark Draft
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  tone="tertiary"
-                  disabled={updatingStatusId === selectedPeriod.id}
-                  onClick={() => void handleUpdatePeriodStatus(selectedPeriod.id, 'approved')}
-                >
-                  Mark Approved
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  tone="tertiary"
-                  disabled={updatingStatusId === selectedPeriod.id}
-                  onClick={() => void handleUpdatePeriodStatus(selectedPeriod.id, 'paid')}
-                >
-                  Mark Paid
-                </LiquidButton>
-              </div>
+        <GlassCard>
+          <h3 className="text-lg font-semibold text-text">Employee Salary Records</h3>
+          <p className="mt-1 text-sm text-muted">Main row = original salary. Expanded rows = correction history.</p>
 
-              <div className="mb-4 rounded-2xl border border-stroke bg-bg1/50 p-4 text-sm text-muted">
-                {(selectedPeriod.period_type ?? 'regular') === 'adjustment'
-                  ? <>Adjustment total: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span></>
-                  : <>Period total net pay: <span className="font-semibold text-text">{formatPriceWithCurrency(selectedPeriod.totals.net_pay, currency)}</span></>}
-                {' '}• Draft net (editable form): <span className="font-semibold text-text">{formatPriceWithCurrency(draftNetTotal / 100, currency)}</span>
-                {isSelectedAdjustmentPeriod && selectedPeriod.adjustment_of_period_id ? (
-                  <>
-                    {' '}• Adjusts Period: <span className="font-semibold text-text">#{selectedPeriod.adjustment_of_period_id}</span>
-                  </>
-                ) : null}
-                {selectedPeriod.mirrored_expense_id ? (
-                  <>
-                    {' '}• Mirrored to Finance Expense: <span className="font-semibold text-text">#{selectedPeriod.mirrored_expense_id}</span>
-                  </>
-                ) : null}
-              </div>
+          <div className="mt-4 space-y-3">
+            {regularRecords.length === 0 ? <div className="rounded-2xl border border-stroke bg-bg1/55 p-4 text-sm text-muted">No salary records yet.</div> : regularRecords.map((record) => {
+              const recordEdit = editDrafts[record.id];
+              const adjDraft = adjustmentDrafts[record.id] ?? { date: today, amount: '', note: '' };
+              const adjusted = (record.adjustment_count ?? 0) > 0;
 
-              <div className="overflow-x-auto rounded-2xl border border-stroke">
-                <table className="min-w-[1200px] text-left text-sm">
-                  <thead className="bg-bg1/85 text-xs uppercase tracking-[0.14em] text-gold2/85">
-                    <tr>
-                      <th className="px-3 py-3">Employee</th>
-                      <th className="px-3 py-3">{isSelectedAdjustmentPeriod ? 'Correction (+/-)' : 'Base'}</th>
-                      <th className="px-3 py-3">Overtime</th>
-                      <th className="px-3 py-3">Bonus</th>
-                      <th className="px-3 py-3">Allowance</th>
-                      <th className="px-3 py-3">Reimbursement</th>
-                      <th className="px-3 py-3">Deduction</th>
-                      <th className="px-3 py-3">Tax</th>
-                      <th className="px-3 py-3">Net</th>
-                      <th className="px-3 py-3">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eligibleStaff.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="px-3 py-6 text-center text-muted">No staff members found.</td>
-                      </tr>
-                    ) : eligibleStaff.map((staff) => {
-                      const draft = entryDrafts[staff.id] ?? {
-                        base: '0.00',
-                        overtime: '0.00',
-                        bonus: '0.00',
-                        allowance: '0.00',
-                        reimbursement: '0.00',
-                        deduction: '0.00',
-                        tax: '0.00',
-                        notes: '',
-                      };
+              return (
+                <div key={record.id} className="rounded-2xl border border-stroke bg-bg1/45 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-text">#{record.id} • {record.employee?.name ?? `Employee #${record.employee_id ?? '-'}`}</p>
+                      <p className="text-xs text-muted">{record.period_start} to {record.period_end}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className={`rounded-full border px-2.5 py-1 font-semibold uppercase tracking-[0.12em] ${statusChip(record.status)}`}>{record.status}</span>
+                        {adjusted ? <span className="rounded-full border border-gold/45 bg-gold/10 px-2.5 py-1 font-semibold uppercase tracking-[0.12em] text-gold2">Adjusted ({record.adjustment_count})</span> : null}
+                      </div>
+                    </div>
+                    <div className="grid gap-1 text-right text-sm">
+                      <p className="text-muted">Original: <span className="font-semibold text-text">{formatPriceWithCurrency(record.original_salary ?? record.totals.net_pay, currency)}</span></p>
+                      <p className="text-muted">Adjustments: <span className="font-semibold text-text">{formatPriceWithCurrency(record.total_adjustments ?? 0, currency)}</span></p>
+                      <p className="text-muted">Final: <span className="font-semibold text-text">{formatPriceWithCurrency(record.final_salary ?? record.totals.net_pay, currency)}</span></p>
+                    </div>
+                  </div>
 
-                      return (
-                        <tr key={staff.id} className="border-t border-stroke/70 bg-bg1/40">
-                          <td className="px-3 py-3">
-                            <p className="font-semibold text-text">{staff.name}</p>
-                            <p className="text-xs text-muted">{staff.role}</p>
-                          </td>
-                          <td className="px-3 py-3"><input value={draft.base} onChange={(event) => setEntryValue(staff.id, 'base', event.target.value)} type="number" min={isSelectedAdjustmentPeriod ? undefined : '0'} step="0.01" className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                          <td className="px-3 py-3"><input value={draft.overtime} onChange={(event) => setEntryValue(staff.id, 'overtime', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3"><input value={draft.bonus} onChange={(event) => setEntryValue(staff.id, 'bonus', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3"><input value={draft.allowance} onChange={(event) => setEntryValue(staff.id, 'allowance', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3"><input value={draft.reimbursement} onChange={(event) => setEntryValue(staff.id, 'reimbursement', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3"><input value={draft.deduction} onChange={(event) => setEntryValue(staff.id, 'deduction', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3"><input value={draft.tax} onChange={(event) => setEntryValue(staff.id, 'tax', event.target.value)} type="number" min="0" step="0.01" disabled={isSelectedAdjustmentPeriod} className="w-24 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text disabled:opacity-50" /></td>
-                          <td className="px-3 py-3 text-sm font-semibold text-text">
-                            {formatPriceWithCurrency(
-                              (moneyStringToCents(draft.base) + moneyStringToCents(draft.overtime) + moneyStringToCents(draft.bonus)
-                                + moneyStringToCents(draft.allowance) + moneyStringToCents(draft.reimbursement)
-                                - moneyStringToCents(draft.deduction) - moneyStringToCents(draft.tax)) / 100,
-                              currency
-                            )}
-                          </td>
-                          <td className="px-3 py-3"><input value={draft.notes} onChange={(event) => setEntryValue(staff.id, 'notes', event.target.value)} type="text" placeholder="Optional" className="w-56 rounded-lg border border-stroke bg-bg1/65 px-2 py-1.5 text-sm text-text" /></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <LiquidButton type="button" tone="tertiary" onClick={() => setExpanded((p) => ({ ...p, [record.id]: !p[record.id] }))}>{expanded[record.id] ? 'Hide Details' : 'Show Details'}</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'draft')}>Draft</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'approved')}>Approve</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'paid')}>Pay</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={record.status === 'paid'} onClick={() => beginEdit(record)}>Edit Salary</LiquidButton>
+                  </div>
 
-              <div className="mt-4">
-                <LiquidButton type="button" onClick={() => void handleSaveEntries()} disabled={savingEntries || selectedPeriod.status === 'paid'}>
-                  {savingEntries ? 'Saving...' : selectedPeriod.status === 'paid' ? 'Paid Period Locked' : 'Save Entries'}
-                </LiquidButton>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-stroke bg-bg1/55 p-5 text-sm text-muted">
-              Select a period to edit payroll entries.
-            </div>
-          )}
+                  {editing[record.id] && recordEdit ? (
+                    <div className="mt-3 grid gap-3 rounded-xl border border-stroke bg-bg1/55 p-3 sm:grid-cols-4">
+                      {(['base', 'overtime', 'bonus', 'allowance', 'reimbursement', 'deduction', 'tax'] as const).map((field) => (
+                        <label key={field} className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{field}</span><input type="number" min="0" step="0.01" value={recordEdit[field]} onChange={(e) => setEditDrafts((prev) => ({ ...prev, [record.id]: { ...recordEdit, [field]: e.target.value } }))} className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" /></label>
+                      ))}
+                      <label className="block sm:col-span-4"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span><input value={recordEdit.notes} onChange={(e) => setEditDrafts((prev) => ({ ...prev, [record.id]: { ...recordEdit, notes: e.target.value } }))} className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" /></label>
+                      <div className="sm:col-span-4"><LiquidButton type="button" onClick={() => void saveEdit(record)} disabled={savingRow === record.id}>{savingRow === record.id ? 'Saving...' : 'Save Salary Values'}</LiquidButton></div>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 grid gap-2 rounded-xl border border-stroke bg-bg1/55 p-3 sm:grid-cols-[1fr_1fr_2fr_auto]">
+                    <input type="date" value={adjDraft.date} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, date: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
+                    <input type="number" step="0.01" placeholder="Adjustment +/-" value={adjDraft.amount} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, amount: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
+                    <input type="text" placeholder="Adjustment note" value={adjDraft.note} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, note: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
+                    <LiquidButton type="button" tone="tertiary" onClick={() => void addAdjustment(record)} disabled={savingAdjustment === record.id}>{savingAdjustment === record.id ? 'Adding...' : 'Add Adjustment'}</LiquidButton>
+                  </div>
+
+                  {expanded[record.id] ? (
+                    <div className="mt-3 space-y-2 rounded-xl border border-stroke bg-bg1/35 p-3">
+                      {(record.adjustments ?? []).length === 0 ? (
+                        <p className="text-sm text-muted">No adjustments.</p>
+                      ) : (record.adjustments ?? []).map((adj) => (
+                        <div key={adj.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stroke/70 bg-bg1/55 px-3 py-2 text-sm">
+                          <div>
+                            <p className="font-semibold text-text">Adjustment #{adj.id} • {adj.date ?? '-'}</p>
+                            <p className="text-xs text-muted">{adj.note || 'No note'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-text">{formatPriceWithCurrency(adj.amount, currency)}</p>
+                            <p className="text-xs text-muted uppercase">{adj.status}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </GlassCard>
 
         {error ? <div className="rounded-xl border border-spicy/45 bg-spicy/10 px-4 py-3 text-sm text-spicy">{error}</div> : null}

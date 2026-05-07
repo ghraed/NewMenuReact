@@ -715,7 +715,21 @@ export interface PayrollPeriod {
   created_at?: string | null;
   updated_at?: string | null;
   processed_by?: PayrollEmployeeSummary | null;
+  employee_id?: number | null;
+  employee?: PayrollEmployeeSummary | null;
   mirrored_expense_id?: number | null;
+  adjustments?: Array<{
+    id: number;
+    date?: string | null;
+    status: PayrollPeriodStatus;
+    amount_cents: number;
+    amount: number;
+    note?: string | null;
+  }>;
+  adjustment_count?: number;
+  original_salary?: number;
+  total_adjustments?: number;
+  final_salary?: number;
   entries: PayrollEntry[];
   totals: PayrollPeriodTotals;
 }
