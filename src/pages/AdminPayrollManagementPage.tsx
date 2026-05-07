@@ -4,6 +4,7 @@ import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   createPayrollPeriod,
+  deletePayrollPeriod,
   fetchPayrollPeriods,
   fetchPayrollSummary,
   updatePayrollPeriod,
@@ -103,6 +104,7 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [savingCreate, setSavingCreate] = useState(false);
   const [savingRow, setSavingRow] = useState<number | null>(null);
   const [savingAdjustment, setSavingAdjustment] = useState<number | null>(null);
+  const [deletingRow, setDeletingRow] = useState<number | null>(null);
   const [statusUpdating, setStatusUpdating] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -308,6 +310,38 @@ const AdminPayrollManagementPage: React.FC = () => {
     }
   };
 
+  const deleteDraftRecord = async (record: PayrollPeriod) => {
+    if (record.status !== 'draft') {
+      setError('Only draft records can be deleted.');
+      return;
+    }
+    const confirmed = window.confirm(`Delete draft payroll record #${record.id}?`);
+    if (!confirmed) return;
+
+    setDeletingRow(record.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      await deletePayrollPeriod(record.id);
+      setRecords((current) => current.filter((p) => p.id !== record.id));
+      setExpanded((prev) => {
+        const next = { ...prev };
+        delete next[record.id];
+        return next;
+      });
+      setEditing((prev) => {
+        const next = { ...prev };
+        delete next[record.id];
+        return next;
+      });
+      setSuccess(`Draft record #${record.id} deleted.`);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Failed to delete draft payroll record.'));
+    } finally {
+      setDeletingRow(null);
+    }
+  };
+
   return (
     <DashboardLayout title="Payroll Management">
       <div className="space-y-6">
@@ -425,6 +459,9 @@ const AdminPayrollManagementPage: React.FC = () => {
                     <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'approved')}>Approve</LiquidButton>
                     <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'paid')}>Pay</LiquidButton>
                     <LiquidButton type="button" tone="tertiary" disabled={record.status === 'paid'} onClick={() => beginEdit(record)}>Edit Salary</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={record.status !== 'draft' || deletingRow === record.id} onClick={() => void deleteDraftRecord(record)}>
+                      {deletingRow === record.id ? 'Deleting...' : 'Delete Draft'}
+                    </LiquidButton>
                   </div>
 
                   {editing[record.id] && recordEdit ? (

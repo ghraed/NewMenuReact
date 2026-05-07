@@ -107,6 +107,10 @@ export const updatePayrollPeriod = async (
   return response.data.period;
 };
 
+export const deletePayrollPeriod = async (payrollPeriodId: number): Promise<void> => {
+  await api.delete(`/admin/finance/payroll/periods/${payrollPeriodId}`);
+};
+
 export const upsertPayrollEntries = async (
   payrollPeriodId: number,
   entries: UpsertPayrollEntryPayload[]
