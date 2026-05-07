@@ -24,6 +24,37 @@ type NavItem = {
   requiredFeatures?: string[];
 };
 
+const navIconClass = 'h-4 w-4 fill-none stroke-current';
+
+const NavIcon: React.FC<{ name: string }> = ({ name }) => {
+  const pathByName: Record<string, string> = {
+    kitchen: 'M4 6h16M6 6v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6M9 10h6M9 14h6',
+    receipt: 'M7 3h10v18l-5-3-5 3V3zM9 7h6M9 11h6',
+    cart: 'M3 5h2l2.2 10.5a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L21 8H8M10 19a1 1 0 1 0 0 .01M17 19a1 1 0 1 0 0 .01',
+    calendar: 'M7 2v3M17 2v3M4 7h16M5 5h14a1 1 0 0 1 1 1v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1z',
+    dashboard: 'M4 13h6V4H4v9zm10 7h6V4h-6v16zM4 20h6v-5H4v5z',
+    tag: 'M20 12l-8 8-9-9V4h7l10 8zM7.5 8.5h.01',
+    map: 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2V6zM9 4v14M15 6v14',
+    chart: 'M4 19h16M7 16V9M12 16V5M17 16v-7',
+    payroll: 'M12 1v22M3 6h13a4 4 0 1 1 0 8H8a4 4 0 1 0 0 8h13',
+    schedule: 'M8 2v3M16 2v3M4 7h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 12h8M8 16h5',
+    card: 'M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zm0 0a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2M3 11h18',
+    currency: 'M12 2v20M5 7h9a3 3 0 1 1 0 6H10a3 3 0 1 0 0 6h9',
+    users: 'M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M9.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm9 10v-2a4 4 0 0 0-3-3.87M15.5 3.3a4 4 0 0 1 0 7.75',
+    plus: 'M12 5v14M5 12h14',
+    box: 'M3 8l9-5 9 5-9 5-9-5zm0 0v8l9 5 9-5V8',
+    scroll: 'M6 4h11a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H8a4 4 0 0 1-4-4V7a3 3 0 0 1 3-3zM8 8h8M8 12h8M8 16h5',
+    leaf: 'M4 14c7-1 11-5 14-12 2 8-1 16-9 18-5 1-7-2-5-6z',
+    globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-7 10h14M12 2c3 3 4 7 4 10s-1 7-4 10m0-20c-3 3-4 7-4 10s1 7 4 10',
+  };
+  const d = pathByName[name] ?? pathByName.dashboard;
+  return (
+    <svg viewBox="0 0 24 24" className={navIconClass} strokeWidth={1.8} aria-hidden="true">
+      <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,33 +64,33 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   const navItems: NavItem[] = user?.role === 'chef'
     ? [
-      { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: '👨‍🍳' },
+      { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
     ]
     : user?.role === 'staff'
       ? [
-        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: '🧾', requiredFeatures: ['realtime_staff_orders'] },
-        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-        { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
+        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
+        { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
       ]
       : [
-        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: '📊' },
-        { path: '/admin/profile', label: t('adminDashboard.profileTitle'), icon: '🏷️' },
-        { path: '/admin/room-plans', label: 'Room Plans', icon: '🗺️', requiredFeatures: ['room_plan_editor'] },
-        { path: '/admin/reservations', label: 'Reservations', icon: '📅', requiredFeatures: ['table_reservations'] },
-        { path: '/admin/finance', label: 'Finance', icon: '📈', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-        { path: '/admin/finance/expenses', label: 'Expenses', icon: '🧾', requiredFeatures: ['finance_dashboard', 'expense_management'] },
-        { path: '/admin/finance/payroll', label: 'Payroll', icon: '💼', requiredFeatures: ['payroll_management'] },
-        { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: '🗓️', requiredFeatures: ['staff_scheduling'] },
-        { path: '/staff/orders', label: t('admin.staffOrders'), icon: '🧾', requiredFeatures: ['realtime_staff_orders'] },
-        { path: '/staff/pos', label: 'Cashier POS', icon: '🛒', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-        { path: '/admin/accounting', label: t('admin.accounting'), icon: '💳', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-        { path: '/admin/currency', label: 'Currency', icon: '💱' },
-        { path: '/admin/staff', label: t('admin.staff'), icon: '👥' },
-        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: '➕' },
-        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: '📦', requiredFeatures: ['inventory'] },
-        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: '📜', requiredFeatures: ['inventory'] },
-        { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: '🥬' },
-        { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: '🌐' },
+        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
+        { path: '/admin/profile', label: t('adminDashboard.profileTitle'), icon: 'tag' },
+        { path: '/admin/room-plans', label: 'Room Plans', icon: 'map', requiredFeatures: ['room_plan_editor'] },
+        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
+        { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
+        { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
+        { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
+        { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
+        { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+        { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/currency', label: 'Currency', icon: 'currency' },
+        { path: '/admin/staff', label: t('admin.staff'), icon: 'users' },
+        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
+        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
+        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+        { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: 'leaf' },
+        { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: 'globe' },
         // { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
       ];
 
@@ -152,7 +183,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                         : 'border border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
                         }`}
                     >
-                      <span>{item.icon}</span>
+                      <span className="inline-flex items-center justify-center text-gold2/95">
+                        <NavIcon name={item.icon} />
+                      </span>
                       <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
                         {item.label}
                       </span>
@@ -215,7 +248,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                               : 'border border-stroke bg-bg1/65 text-text hover:border-gold/30'
                               }`}
                           >
-                            <span className="text-base">{item.icon}</span>
+                            <span className="inline-flex items-center justify-center text-gold2/95">
+                              <NavIcon name={item.icon} />
+                            </span>
                             <span className="truncate">{item.label}</span>
                           </Link>
                         </motion.li>
