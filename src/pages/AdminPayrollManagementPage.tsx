@@ -11,7 +11,7 @@ import {
   type UpsertPayrollEntryPayload,
 } from '../services/payrollService';
 import { fetchStaffMembers } from '../services/staffService';
-import type { PayrollPeriod, PayrollPeriodStatus, StaffMember } from '../types';
+import type { PayrollPeriod, PayrollPeriodStatus, PayrollSplitMode, StaffMember } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -87,6 +87,8 @@ const AdminPayrollManagementPage: React.FC = () => {
   const [queryMonth, setQueryMonth] = useState(defaultPayrollMonth);
   const [queryDateFrom, setQueryDateFrom] = useState(today);
   const [queryDateTo, setQueryDateTo] = useState(today);
+  const [splitMode, setSplitMode] = useState<PayrollSplitMode>('full');
+  const [customSplitDays, setCustomSplitDays] = useState('7');
   const [periodNotes, setPeriodNotes] = useState('');
   const [summaryDateFrom, setSummaryDateFrom] = useState(today.slice(0, 8) + '01');
   const [summaryDateTo, setSummaryDateTo] = useState(today);
@@ -195,6 +197,8 @@ const AdminPayrollManagementPage: React.FC = () => {
     try {
       const result = await queryPayrollPeriods({
         mode: isMonthlyMode ? 'monthly' : 'range',
+        split_mode: splitMode,
+        split_days: splitMode === 'custom_days' ? Math.max(1, Number(customSplitDays) || 1) : undefined,
         year: isMonthlyMode ? queryYear : undefined,
         month: isMonthlyMode ? queryMonth : undefined,
         date_from: !isMonthlyMode ? queryDateFrom : undefined,
@@ -415,6 +419,33 @@ const AdminPayrollManagementPage: React.FC = () => {
                   </label>
                 </div>
               )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Period Split</span>
+                  <select
+                    value={splitMode}
+                    onChange={(event) => setSplitMode(event.target.value as PayrollSplitMode)}
+                    className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                  >
+                    <option value="full">Single Period</option>
+                    <option value="weekly">Weekly Periods</option>
+                    <option value="custom_days">Custom Day Blocks</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Custom Days</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={customSplitDays}
+                    onChange={(event) => setCustomSplitDays(event.target.value)}
+                    disabled={splitMode !== 'custom_days'}
+                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60 disabled:opacity-50"
+                  />
+                </label>
+              </div>
 
               <label className="block">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>

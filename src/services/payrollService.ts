@@ -42,6 +42,8 @@ interface PayrollPeriodMutationResponse {
 
 export interface PayrollQueryPayload {
   mode: 'monthly' | 'range';
+  split_mode?: 'full' | 'weekly' | 'custom_days';
+  split_days?: number;
   year?: number;
   month?: number;
   date_from?: string;
@@ -51,6 +53,8 @@ export interface PayrollQueryPayload {
 
 export interface PayrollQueryResponse {
   mode: 'monthly' | 'range';
+  split_mode?: 'full' | 'weekly' | 'custom_days';
+  split_days?: number | null;
   window: {
     date_from: string;
     date_to: string;

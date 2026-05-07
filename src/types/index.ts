@@ -659,6 +659,7 @@ export interface FinanceUnlinkedRestockRecord {
 
 export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
 export type PayrollSummaryMode = 'approved_paid' | 'all';
+export type PayrollSplitMode = 'full' | 'weekly' | 'custom_days';
 export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';
 
 export interface PayrollEmployeeSummary {
