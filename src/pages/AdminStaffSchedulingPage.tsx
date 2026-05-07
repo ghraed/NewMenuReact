@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import GlassToast from '../components/ui/liquid-glass/GlassToast';
+import { useGlassToast } from '../components/ui/liquid-glass/useGlassToast';
 import { fetchStaffMembers } from '../services/staffService';
 import {
   createStaffShift,
@@ -50,6 +52,19 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [savingStatusId, setSavingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { toast, showToast, dismiss } = useGlassToast(3600);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary');
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'primary');
+    }
+  }, [showToast, success]);
 
   const scheduleEligibleStaff = useMemo(
     () => staffMembers.filter((member) => member.role === 'staff' || member.role === 'chef'),
@@ -337,8 +352,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
         </GlassCard>
       </div>
 
-      {error ? <div className="mt-5 rounded-xl border border-spicy/45 bg-spicy/10 px-4 py-3 text-sm text-spicy">{error}</div> : null}
-      {success ? <div className="mt-5 rounded-xl border border-sage/45 bg-sage/10 px-4 py-3 text-sm text-sage">{success}</div> : null}
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };
