@@ -4,6 +4,8 @@ export interface ToastState {
   open: boolean;
   message: string;
   tone?: 'primary' | 'secondary' | 'tertiary';
+  durationMs?: number;
+  nonce?: number;
 }
 
 export const useGlassToast = (defaultDuration = 2200) => {
@@ -11,6 +13,8 @@ export const useGlassToast = (defaultDuration = 2200) => {
     open: false,
     message: '',
     tone: 'primary',
+    durationMs: defaultDuration,
+    nonce: 0,
   });
   const timeoutRef = useRef<number | null>(null);
 
@@ -24,7 +28,7 @@ export const useGlassToast = (defaultDuration = 2200) => {
 
   const showToast = useCallback(
     (message: string, tone: ToastState['tone'] = 'primary', duration = defaultDuration) => {
-      setToast({ open: true, message, tone });
+      setToast({ open: true, message, tone, durationMs: duration, nonce: Date.now() });
 
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);

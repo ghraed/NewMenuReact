@@ -144,3 +144,13 @@
     opacity: 0.985;
   }
 }
+
+@keyframes lg-toast-shrink {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
