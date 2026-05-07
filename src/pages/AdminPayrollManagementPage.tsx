@@ -83,6 +83,16 @@ const statusChip = (status: PayrollPeriodStatus): string => (
       : 'border-stroke bg-bg1/50 text-muted'
 );
 
+const ActionIcon: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center text-gold2/95">{children}</span>
+);
+
+const IconGlyph: React.FC<{ d: string }> = ({ d }) => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+    <path d={d} strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const AdminPayrollManagementPage: React.FC = () => {
   const { user } = useAuth();
   const currency = user?.restaurant?.currency ?? 'USD';
@@ -402,7 +412,12 @@ const AdminPayrollManagementPage: React.FC = () => {
             </label>
 
             <div>
-              <LiquidButton type="submit" disabled={savingCreate || loading}>{savingCreate ? 'Saving...' : 'Create Salary Record'}</LiquidButton>
+              <LiquidButton type="submit" disabled={savingCreate || loading}>
+                <span className="inline-flex items-center">
+                  <ActionIcon><IconGlyph d="M12 5v14M5 12h14" /></ActionIcon>
+                  {savingCreate ? 'Saving...' : 'Create Salary Record'}
+                </span>
+              </LiquidButton>
             </div>
           </form>
         </GlassCard>
@@ -413,7 +428,12 @@ const AdminPayrollManagementPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-text">Salary Summary</h3>
               <p className="mt-1 text-sm text-muted">Finance totals are based on saved salary records and adjustments.</p>
             </div>
-            <LiquidButton type="button" tone="tertiary" onClick={() => void refresh()} disabled={loading}>{loading ? 'Loading...' : 'Refresh'}</LiquidButton>
+            <LiquidButton type="button" tone="tertiary" onClick={() => void refresh()} disabled={loading}>
+              <span className="inline-flex items-center">
+                <ActionIcon><IconGlyph d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></ActionIcon>
+                {loading ? 'Loading...' : 'Refresh'}
+              </span>
+            </LiquidButton>
           </div>
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
             <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">From</span><input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
@@ -454,13 +474,29 @@ const AdminPayrollManagementPage: React.FC = () => {
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <LiquidButton type="button" tone="tertiary" onClick={() => setExpanded((p) => ({ ...p, [record.id]: !p[record.id] }))}>{expanded[record.id] ? 'Hide Details' : 'Show Details'}</LiquidButton>
-                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'draft')}>Draft</LiquidButton>
-                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'approved')}>Approve</LiquidButton>
-                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'paid')}>Pay</LiquidButton>
-                    <LiquidButton type="button" tone="tertiary" disabled={record.status === 'paid'} onClick={() => beginEdit(record)}>Edit Salary</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" onClick={() => setExpanded((p) => ({ ...p, [record.id]: !p[record.id] }))}>
+                      <span className="inline-flex items-center">
+                        <ActionIcon><IconGlyph d={expanded[record.id] ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} /></ActionIcon>
+                        {expanded[record.id] ? 'Hide Details' : 'Show Details'}
+                      </span>
+                    </LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'draft')}>
+                      <span className="inline-flex items-center"><ActionIcon><IconGlyph d="M4 20h16M14 4l6 6L8 22l-4 1 1-4 9-9z" /></ActionIcon>Draft</span>
+                    </LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'approved')}>
+                      <span className="inline-flex items-center"><ActionIcon><IconGlyph d="M20 6L9 17l-5-5" /></ActionIcon>Approve</span>
+                    </LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={statusUpdating === record.id} onClick={() => void updateStatus(record, 'paid')}>
+                      <span className="inline-flex items-center"><ActionIcon><IconGlyph d="M12 1v22M3 6h13a4 4 0 0 1 0 8H8a4 4 0 0 0 0 8h13" /></ActionIcon>Pay</span>
+                    </LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" disabled={record.status === 'paid'} onClick={() => beginEdit(record)}>
+                      <span className="inline-flex items-center"><ActionIcon><IconGlyph d="M14 4l6 6M4 20l4.5-1 10-10-3.5-3.5-10 10L4 20z" /></ActionIcon>Edit Salary</span>
+                    </LiquidButton>
                     <LiquidButton type="button" tone="tertiary" disabled={record.status !== 'draft' || deletingRow === record.id} onClick={() => void deleteDraftRecord(record)}>
-                      {deletingRow === record.id ? 'Deleting...' : 'Delete Draft'}
+                      <span className="inline-flex items-center">
+                        <ActionIcon><IconGlyph d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13" /></ActionIcon>
+                        {deletingRow === record.id ? 'Deleting...' : 'Delete Draft'}
+                      </span>
                     </LiquidButton>
                   </div>
 
@@ -470,7 +506,14 @@ const AdminPayrollManagementPage: React.FC = () => {
                         <label key={field} className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{field}</span><input type="number" min="0" step="0.01" value={recordEdit[field]} onChange={(e) => setEditDrafts((prev) => ({ ...prev, [record.id]: { ...recordEdit, [field]: e.target.value } }))} className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" /></label>
                       ))}
                       <label className="block sm:col-span-4"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span><input value={recordEdit.notes} onChange={(e) => setEditDrafts((prev) => ({ ...prev, [record.id]: { ...recordEdit, notes: e.target.value } }))} className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" /></label>
-                      <div className="sm:col-span-4"><LiquidButton type="button" onClick={() => void saveEdit(record)} disabled={savingRow === record.id}>{savingRow === record.id ? 'Saving...' : 'Save Salary Values'}</LiquidButton></div>
+                      <div className="sm:col-span-4">
+                        <LiquidButton type="button" onClick={() => void saveEdit(record)} disabled={savingRow === record.id}>
+                          <span className="inline-flex items-center">
+                            <ActionIcon><IconGlyph d="M5 5h11l3 3v11H5zM8 5v6h8" /></ActionIcon>
+                            {savingRow === record.id ? 'Saving...' : 'Save Salary Values'}
+                          </span>
+                        </LiquidButton>
+                      </div>
                     </div>
                   ) : null}
 
@@ -478,7 +521,12 @@ const AdminPayrollManagementPage: React.FC = () => {
                     <input type="date" value={adjDraft.date} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, date: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
                     <input type="number" step="0.01" placeholder="Adjustment +/-" value={adjDraft.amount} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, amount: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
                     <input type="text" placeholder="Adjustment note" value={adjDraft.note} onChange={(e) => setAdjustmentDrafts((prev) => ({ ...prev, [record.id]: { ...adjDraft, note: e.target.value } }))} className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text" />
-                    <LiquidButton type="button" tone="tertiary" onClick={() => void addAdjustment(record)} disabled={savingAdjustment === record.id}>{savingAdjustment === record.id ? 'Adding...' : 'Add Adjustment'}</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" onClick={() => void addAdjustment(record)} disabled={savingAdjustment === record.id}>
+                      <span className="inline-flex items-center">
+                        <ActionIcon><IconGlyph d="M12 5v14M5 12h14" /></ActionIcon>
+                        {savingAdjustment === record.id ? 'Adding...' : 'Add Adjustment'}
+                      </span>
+                    </LiquidButton>
                   </div>
 
                   {expanded[record.id] ? (
