@@ -627,7 +627,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Staff Scheduling">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)]">
+      <div className="grid gap-6">
         <GlassCard>
           <h2 className="text-lg font-semibold text-text">Create Shift</h2>
           <p className="mt-1 text-sm text-muted">Weekly-first planning with conflict-safe shift creation.</p>
@@ -990,7 +990,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                     <th className="px-3 py-3">Worked Hours</th>
                     <th className="px-3 py-3">Position</th>
                     <th className="px-3 py-3">Status</th>
-                    <th className="px-3 py-3">Notes</th>
+                    <th className="px-3 py-3">Note</th>
                     <th className="px-3 py-3">Actions</th>
                   </tr>
                 </thead>
@@ -1035,7 +1035,27 @@ const AdminStaffSchedulingPage: React.FC = () => {
                             </select>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-muted">{shift.notes || '-'}</td>
+                        <td className="px-3 py-3">
+                          {shift.notes && shift.notes.trim() !== '' ? (
+                            <button
+                              type="button"
+                              onClick={() => showToast(shift.notes || '', 'secondary', 5200)}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold/45 bg-gold/15 text-gold2 transition hover:bg-gold/25"
+                              aria-label="Show shift note"
+                              title="Show note"
+                            >
+                              📝
+                            </button>
+                          ) : (
+                            <span
+                              className="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-full border border-stroke/70 bg-bg1/40 text-gray-400/80"
+                              aria-label="No note"
+                              title="No note"
+                            >
+                              📝
+                            </span>
+                          )}
+                        </td>
                         <td className="px-3 py-3">
                           <button
                             type="button"
