@@ -8,8 +8,9 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish, InventoryIngredient } from '../types';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { buildGuestDishPath } from '../utils/guestTableRoutes';
 
-const guestRestaurantSlug = import.meta.env.VITE_GUEST_RESTAURANT_SLUG || 'pizza-palace';
+const guestPreviewTableId = import.meta.env.VITE_GUEST_TABLE_ID || '50';
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -280,7 +281,7 @@ const EditDishPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/menu/${guestRestaurantSlug}/dish/${dish.id}`} target="_blank">
+          <Link to={buildGuestDishPath(guestPreviewTableId, dish.id)} target="_blank">
             <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">{t('adminDish.openGuestView')}</LiquidButton>
           </Link>
           {dish.deleted_at ? (
