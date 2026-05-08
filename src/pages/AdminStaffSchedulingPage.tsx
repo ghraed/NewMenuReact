@@ -14,7 +14,6 @@ import {
 } from '../services/staffScheduleService';
 import type { StaffMember, StaffShift, StaffShiftStatus } from '../types';
 
-const today = new Date().toISOString().slice(0, 10);
 const MINUTES_PER_DAY = 24 * 60;
 
 type ScheduleViewMode = 'week' | 'day' | 'custom';
@@ -91,19 +90,28 @@ const titleize = (value: string): string => value.charAt(0).toUpperCase() + valu
 
 const dayName = (day: number): string => WEEKDAY_OPTIONS.find((item) => item.value === day)?.label ?? `#${day}`;
 
+const toDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const today = toDateKey(new Date());
+
 const startOfWeek = (dateValue: string): string => {
   const date = new Date(`${dateValue}T00:00:00`);
   const weekday = date.getDay();
   const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
   const start = new Date(date);
   start.setDate(date.getDate() + mondayOffset);
-  return start.toISOString().slice(0, 10);
+  return toDateKey(start);
 };
 
 const addDays = (dateValue: string, days: number): string => {
   const date = new Date(`${dateValue}T00:00:00`);
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return toDateKey(date);
 };
 
 const detectOvernight = (startTime: string, endTime: string, explicitOvernight: boolean): boolean => {
@@ -385,15 +393,13 @@ const AdminStaffSchedulingPage: React.FC = () => {
       return [];
     }
 
-    const anchorWeekday = recurrenceStartWeekday;
     let cursor = new Date(start);
     while (cursor <= end) {
       const cursorDay = cursor.getDay();
-      const cursorDate = cursor.toISOString().slice(0, 10);
+      const cursorDate = toDateKey(cursor);
       const isSelectedWeekday = selected.has(cursorDay);
-      const isAfterAnchorInWeek = ((cursorDay - anchorWeekday + 7) % 7) >= 0;
 
-      if (isSelectedWeekday && isAfterAnchorInWeek) {
+      if (isSelectedWeekday) {
         if (recurrenceFrequency === 'weekly') {
           dates.push(cursorDate);
         } else if (matchesMonthlyPattern(cursorDate, shiftDate)) {
