@@ -150,6 +150,7 @@ const CreateDishPage: React.FC = () => {
         suggestedDishOptions={suggestedDishOptions}
         relatedDishOptions={relatedDishOptions}
         requireModelUpload
+        requirePreviewUpload
         submitLabel={t('createDish.submit')}
         submittingLabel={t('createDish.submitting')}
       />

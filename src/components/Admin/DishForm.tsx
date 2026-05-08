@@ -73,6 +73,7 @@ interface DishFormProps {
   onSubmit: (data: DishFormData) => Promise<void> | void;
   initialValues?: Partial<DishFormData>;
   requireModelUpload?: boolean;
+  requirePreviewUpload?: boolean;
   submitLabel?: string;
   submittingLabel?: string;
   allowDishNameSelection?: boolean;
@@ -102,6 +103,7 @@ const DishForm: React.FC<DishFormProps> = ({
   onSubmit,
   initialValues,
   requireModelUpload = true,
+  requirePreviewUpload = false,
   submitLabel = 'Save Dish',
   submittingLabel = 'Saving...',
   allowDishNameSelection = false,
@@ -454,6 +456,27 @@ const DishForm: React.FC<DishFormProps> = ({
 
     const hasGlb = !!formData.glb_file;
     const hasUsdz = !!formData.usdz_file;
+
+    if (requirePreviewUpload && !formData.preview_file && !existingFiles?.previewImage) {
+      setFormError('Please upload a preview image.');
+      return;
+    }
+
+    if (formData.preview_file) {
+      const previewMimeIsImage = formData.preview_file.type.startsWith('image/');
+      const previewHasImageExtension = /\.(png|jpe?g|webp|gif|avif|bmp|svg)$/i.test(formData.preview_file.name);
+      const maxPreviewBytes = 10 * 1024 * 1024;
+
+      if (!previewMimeIsImage && !previewHasImageExtension) {
+        setFormError('Preview image must be a valid image file (png, jpg, webp, gif, avif, bmp, or svg).');
+        return;
+      }
+
+      if (formData.preview_file.size > maxPreviewBytes) {
+        setFormError('Preview image must be 10MB or smaller.');
+        return;
+      }
+    }
 
     if (requireModelUpload && !hasGlb && !hasUsdz) {
       setFormError('Please upload at least one model file (.glb or .usdz).');
@@ -1082,14 +1105,15 @@ const DishForm: React.FC<DishFormProps> = ({
 
       <div>
         <label htmlFor="preview_file" className="mb-1 block text-sm font-medium text-text">
-          {t('dishForm.previewImageUploadOptional')}
+          {requirePreviewUpload ? `${t('dishForm.previewImageUploadOptional')} *` : t('dishForm.previewImageUploadOptional')}
         </label>
         <GlassInput
           type="file"
           id="preview_file"
           name="preview_file"
-          accept="image/*"
+          accept=".png,.jpg,.jpeg,.webp,.gif,.avif,.bmp,.svg,image/*"
           onChange={handleFileChange}
+          required={requirePreviewUpload && !existingFiles?.previewImage}
         />
         {formData.preview_file ? (
           <p className="mt-2 text-xs text-muted">Selected preview: {formData.preview_file.name}</p>
