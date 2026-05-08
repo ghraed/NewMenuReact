@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Dish } from '../../types';
@@ -13,7 +13,12 @@ import {
 } from './guestPresentation';
 import { translateCategoryLabel } from '../../i18n/dynamic';
 import { buildGuestDishIngredientsPath, buildGuestDishPath } from '../../utils/guestTableRoutes';
-import { formatPriceWithCurrency } from '../../utils/currency';
+import {
+  convertPriceFromUsdToCurrency,
+  formatPriceWithCurrency,
+  formatUsdEquivalent,
+  normalizeCurrency,
+} from '../../utils/currency';
 
 interface DishDetailViewProps {
   dish: Dish;
@@ -59,7 +64,21 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   cartQuantity = 0,
 }) => {
   const { t } = useTranslation();
-  const priceLabel = formatPriceWithCurrency(Number(dish.price), dish.currency);
+  const [showDollarRate, setShowDollarRate] = useState(false);
+  const currency = normalizeCurrency(dish.currency);
+  const originalCurrency = normalizeCurrency(dish.original_currency || dish.currency);
+  const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);
+  const clickLabel = useMemo(() => {
+    const amount = Number(dish.price);
+    const hasRate = typeof dish.dollar_rate === 'number' && Number.isFinite(dish.dollar_rate) && dish.dollar_rate > 0;
+
+    if (dish.price_is_usd_base === true && currency === 'USD' && originalCurrency !== 'USD' && hasRate) {
+      const converted = convertPriceFromUsdToCurrency(amount, originalCurrency, dish.dollar_rate);
+      return formatPriceWithCurrency(converted, originalCurrency);
+    }
+
+    return formatUsdEquivalent(amount, currency, dish.dollar_rate);
+  }, [dish.price, dish.price_is_usd_base, dish.dollar_rate, currency, originalCurrency]);
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
@@ -160,16 +179,26 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
               ) : null} */}
             </div>
 
-            <span
-              className="shrink-0 rounded-full border px-4 py-2 text-lg font-semibold"
-              style={{
-                backgroundColor: 'var(--guest-accent-soft)',
-                borderColor: 'var(--guest-border)',
-                color: 'var(--guest-accent)',
-              }}
-            >
-              {priceLabel}
-            </span>
+            <div className="shrink-0 text-right">
+              <button
+                type="button"
+                onClick={() => setShowDollarRate((current) => !current)}
+                className="rounded-full border px-4 py-2 text-lg font-semibold transition hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
+                style={{
+                  backgroundColor: 'var(--guest-accent-soft)',
+                  borderColor: 'var(--guest-border)',
+                  color: 'var(--guest-accent)',
+                }}
+                aria-label="Show currency rate"
+              >
+                {priceLabel}
+              </button>
+              {showDollarRate ? (
+                <p className="mt-2 text-xs font-medium leading-5 text-[var(--guest-muted)]">
+                  {clickLabel}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <DishTags tags={metadataTags} className="mt-5" />
