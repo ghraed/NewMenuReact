@@ -484,23 +484,27 @@ const AdminFinanceDashboardPage: React.FC = () => {
     labels: chartLabels,
     datasets: selectedMetrics.map((metric) => {
       const palette: Record<MetricKey, { bg: string; border: string }> = {
-        revenue: { bg: 'rgba(215, 180, 106, 0.82)', border: 'rgba(243, 215, 154, 0.98)' },
-        totalCosts: { bg: 'rgba(218, 108, 108, 0.7)', border: 'rgba(244, 157, 157, 0.92)' },
-        netProfit: { bg: 'rgba(95, 206, 141, 0.2)', border: 'rgba(95, 206, 141, 0.96)' },
-        cogs: { bg: 'rgba(250, 167, 91, 0.72)', border: 'rgba(255, 199, 143, 0.95)' },
-        operatingExpenses: { bg: 'rgba(132, 167, 235, 0.72)', border: 'rgba(178, 204, 255, 0.95)' },
-        payroll: { bg: 'rgba(190, 152, 234, 0.72)', border: 'rgba(221, 194, 247, 0.95)' },
+        revenue: { bg: 'rgba(203, 168, 98, 0.78)', border: 'rgba(240, 213, 155, 0.95)' },
+        totalCosts: { bg: 'rgba(214, 131, 125, 0.72)', border: 'rgba(244, 183, 172, 0.92)' },
+        netProfit: { bg: 'rgba(102, 193, 146, 0.28)', border: 'rgba(118, 223, 170, 0.96)' },
+        cogs: { bg: 'rgba(232, 169, 113, 0.7)', border: 'rgba(250, 210, 164, 0.92)' },
+        operatingExpenses: { bg: 'rgba(128, 157, 214, 0.72)', border: 'rgba(179, 204, 249, 0.94)' },
+        payroll: { bg: 'rgba(176, 150, 219, 0.72)', border: 'rgba(213, 191, 244, 0.94)' },
       };
+      const isNetProfit = metric === 'netProfit';
       return {
         type: 'bar' as const,
         label: metricLabels[metric],
         data: chartMetrics[metric],
         backgroundColor: palette[metric].bg,
         borderColor: palette[metric].border,
-        borderWidth: 1.5,
-        borderRadius: 10,
-        barPercentage: 0.72,
-        categoryPercentage: 0.72,
+        borderWidth: isNetProfit ? 2.4 : 1.4,
+        borderRadius: isNetProfit ? 14 : 12,
+        borderSkipped: false as const,
+        barPercentage: isNetProfit ? 0.48 : 0.7,
+        categoryPercentage: 0.68,
+        hoverBackgroundColor: palette[metric].border,
+        hoverBorderColor: '#fff4d6',
       };
     }),
   }), [chartLabels, chartMetrics, selectedMetrics]);
@@ -513,13 +517,30 @@ const AdminFinanceDashboardPage: React.FC = () => {
       easing: 'easeOutQuart',
     },
     plugins: {
-      legend: { display: true, labels: { color: 'rgba(243, 215, 154, 0.88)' } },
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          color: 'rgba(233, 205, 147, 0.96)',
+          boxWidth: 14,
+          boxHeight: 14,
+          borderRadius: 5,
+          useBorderRadius: true,
+          padding: 18,
+          font: {
+            size: 12,
+            weight: 600,
+          },
+        },
+      },
       tooltip: {
-        backgroundColor: 'rgba(10, 16, 32, 0.92)',
-        borderColor: 'rgba(243, 215, 154, 0.3)',
+        backgroundColor: 'rgba(19, 23, 32, 0.94)',
+        borderColor: 'rgba(235, 203, 135, 0.45)',
         borderWidth: 1,
-        titleColor: '#f3d79a',
-        bodyColor: '#ffffff',
+        titleColor: '#f4ddb0',
+        bodyColor: '#fff9ea',
+        cornerRadius: 12,
+        padding: 12,
         callbacks: {
           label: (context) => `${context.dataset.label}: ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
         },
@@ -528,23 +549,28 @@ const AdminFinanceDashboardPage: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(215, 180, 106, 0.12)',
+          color: 'rgba(226, 195, 130, 0.08)',
+          drawBorder: false,
         },
         ticks: {
-          color: 'rgba(243, 215, 154, 0.9)',
+          color: 'rgba(226, 195, 130, 0.92)',
           font: {
+            family: 'Cormorant Garamond, serif',
+            size: 13,
             weight: 600,
           },
         },
       },
       y: {
-        beginAtZero: true,
         grid: {
-          color: 'rgba(215, 180, 106, 0.14)',
+          color: 'rgba(226, 195, 130, 0.11)',
+          drawBorder: false,
         },
         ticks: {
-          color: 'rgba(243, 215, 154, 0.85)',
+          color: 'rgba(226, 195, 130, 0.9)',
           font: {
+            family: 'Cormorant Garamond, serif',
+            size: 12,
             weight: 600,
           },
           callback: (value) => formatPriceWithCurrency(Number(value), currency),
