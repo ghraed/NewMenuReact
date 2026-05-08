@@ -1089,12 +1089,16 @@ const AdminStaffSchedulingPage: React.FC = () => {
           <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-modalStroke bg-modalSurface shadow-[0_30px_90px_rgba(0,0,0,0.35)] ring-1 ring-gold/25">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(243,215,154,0.16),transparent_60%)]" />
             <div className="relative z-10 border-b border-gold/25 px-5 py-4">
-              <div className="text-xs uppercase tracking-[0.14em] text-gold2/85">Shift Note</div>
-              <div className="mt-1 text-sm font-semibold text-gold2">{activeNote.title}</div>
+              <div className={`text-xs uppercase tracking-[0.14em] ${theme === 'dark' ? 'text-text/92' : 'text-black/85'}`}>
+                Shift Note
+              </div>
+              <div className={`mt-1 text-sm font-semibold ${theme === 'dark' ? 'text-text' : 'text-black'}`}>
+                {activeNote.title}
+              </div>
             </div>
             <div
               className={`relative z-10 max-h-[55vh] overflow-auto px-5 py-4 text-sm leading-6 ${
-                theme === 'dark' ? 'text-text/92' : 'text-gold2/90'
+                theme === 'dark' ? 'text-text/92' : 'text-black/90'
               }`}
             >
               {activeNote.content}
