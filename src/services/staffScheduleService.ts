@@ -53,3 +53,7 @@ export const updateStaffShift = async (shiftId: number, payload: UpdateStaffShif
   const response = await api.patch<StaffScheduleMutationResponse>(`/admin/staff/schedules/${shiftId}`, payload);
   return response.data.shift;
 };
+
+export const deleteStaffShift = async (shiftId: number): Promise<void> => {
+  await api.delete(`/admin/staff/schedules/${shiftId}`);
+};

@@ -6,6 +6,7 @@ import { useGlassToast } from '../components/ui/liquid-glass/useGlassToast';
 import { fetchStaffMembers } from '../services/staffService';
 import {
   createStaffShift,
+  deleteStaffShift,
   fetchStaffSchedules,
   updateStaffShift,
   type CreateStaffShiftPayload,
@@ -16,6 +17,8 @@ const today = new Date().toISOString().slice(0, 10);
 const MINUTES_PER_DAY = 24 * 60;
 
 type ScheduleViewMode = 'week' | 'day' | 'custom';
+type ShiftEntryMode = 'single' | 'recurring';
+type RecurrenceFrequency = 'weekly' | 'monthly';
 
 type PositionCode = 'waiter' | 'cashier' | 'kitchen' | 'floor' | 'delivery' | 'manager';
 
@@ -26,6 +29,16 @@ const POSITION_OPTIONS: Array<{ value: PositionCode; label: string }> = [
   { value: 'floor', label: 'Floor' },
   { value: 'delivery', label: 'Delivery' },
   { value: 'manager', label: 'Manager' },
+];
+
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+  { value: 0, label: 'Sun' },
 ];
 
 const STATUS_OPTIONS: StaffShiftStatus[] = ['scheduled', 'completed', 'cancelled', 'absent', 'replaced'];
@@ -72,6 +85,8 @@ const toEpochDay = (dateValue: string): number => {
 const formatTime = (time: string): string => time.slice(0, 5);
 
 const titleize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+
+const dayName = (day: number): string => WEEKDAY_OPTIONS.find((item) => item.value === day)?.label ?? `#${day}`;
 
 const startOfWeek = (dateValue: string): string => {
   const date = new Date(`${dateValue}T00:00:00`);
@@ -136,6 +151,21 @@ const withBreakTag = (notes: string, breakMinutes: number): string | undefined =
   return tagged;
 };
 
+const withOvernightTag = (notes: string | undefined, overnight: boolean): string | undefined => {
+  if (!overnight) return notes;
+  if (!notes || notes.trim() === '') return '[overnight]';
+  if (/\[overnight\]/i.test(notes)) return notes;
+  return `${notes} [overnight]`;
+};
+
+const matchesMonthlyPattern = (candidateDate: string, anchorDate: string): boolean => {
+  const candidate = new Date(`${candidateDate}T00:00:00`);
+  const anchor = new Date(`${anchorDate}T00:00:00`);
+  const candidateOrdinal = Math.ceil(candidate.getDate() / 7);
+  const anchorOrdinal = Math.ceil(anchor.getDate() / 7);
+  return candidateOrdinal === anchorOrdinal;
+};
+
 const AdminStaffSchedulingPage: React.FC = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [shifts, setShifts] = useState<StaffShift[]>([]);
@@ -150,7 +180,12 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StaffShiftStatus | ''>('');
 
   const [employeeId, setEmployeeId] = useState<number | ''>('');
+  const [shiftEntryMode, setShiftEntryMode] = useState<ShiftEntryMode>('single');
   const [shiftDate, setShiftDate] = useState(today);
+  const [recurrenceUntilDate, setRecurrenceUntilDate] = useState(addDays(today, 27));
+  const [recurrenceStartWeekday, setRecurrenceStartWeekday] = useState<number>(new Date(`${today}T00:00:00`).getDay());
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('weekly');
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([1, 3]);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [allowOvernight, setAllowOvernight] = useState(false);
@@ -161,6 +196,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [savingStatusId, setSavingStatusId] = useState<number | null>(null);
+  const [deletingShiftId, setDeletingShiftId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -317,7 +353,48 @@ const AdminStaffSchedulingPage: React.FC = () => {
     [shifts]
   );
 
-  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+  const toggleRecurrenceWeekday = useCallback((weekday: number) => {
+    setRecurrenceWeekdays((current) => {
+      if (current.includes(weekday)) {
+        return current.filter((day) => day !== weekday);
+      }
+      return [...current, weekday].sort((a, b) => a - b);
+    });
+  }, []);
+
+  const generateRecurringDates = useCallback((): string[] => {
+    const selected = new Set(recurrenceWeekdays);
+    const dates: string[] = [];
+    const start = new Date(`${shiftDate}T00:00:00`);
+    const end = new Date(`${recurrenceUntilDate}T00:00:00`);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+      return [];
+    }
+
+    const anchorWeekday = recurrenceStartWeekday;
+    let cursor = new Date(start);
+    while (cursor <= end) {
+      const cursorDay = cursor.getDay();
+      const cursorDate = cursor.toISOString().slice(0, 10);
+      const isSelectedWeekday = selected.has(cursorDay);
+      const isAfterAnchorInWeek = ((cursorDay - anchorWeekday + 7) % 7) >= 0;
+
+      if (isSelectedWeekday && isAfterAnchorInWeek) {
+        if (recurrenceFrequency === 'weekly') {
+          dates.push(cursorDate);
+        } else if (matchesMonthlyPattern(cursorDate, shiftDate)) {
+          dates.push(cursorDate);
+        }
+      }
+
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return dates;
+  }, [recurrenceFrequency, recurrenceStartWeekday, recurrenceUntilDate, recurrenceWeekdays, shiftDate]);
+
+  const handleCreate = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
@@ -355,56 +432,131 @@ const AdminStaffSchedulingPage: React.FC = () => {
       return;
     }
 
-    if (
-      hasDuplicateShift({
-        userId: employeeId,
-        shiftDate,
-        startTime,
-        endTime,
-      })
-    ) {
-      setError('Duplicate identical shifts are not allowed for the same employee.');
+    const candidateDates =
+      shiftEntryMode === 'single'
+        ? [shiftDate]
+        : generateRecurringDates();
+
+    if (candidateDates.length === 0) {
+      setError(
+        shiftEntryMode === 'recurring'
+          ? 'No recurring dates matched this rule. Adjust start day, frequency, weekdays, or date range.'
+          : 'No dates selected.'
+      );
       return;
     }
 
-    if (
-      hasEmployeeConflict({
-        userId: employeeId,
-        shiftDate,
-        startTime,
-        endTime,
-        overnight: isOvernight,
-      })
-    ) {
-      setError('This employee already has a shift during this time.');
-      return;
-    }
-
-    const payload: CreateStaffShiftPayload = {
-      user_id: employeeId,
-      shift_date: shiftDate,
-      start_time: startTime,
-      end_time: endTime,
-      position,
-      status: 'scheduled',
-      notes: withBreakTag(notes, breakMinutes),
-    };
+    const normalizedNotes = withBreakTag(notes, breakMinutes);
 
     setCreating(true);
 
     try {
-      await createStaffShift(payload);
-      setSuccess(`Shift created successfully (${(workedMinutes / 60).toFixed(2)} worked hours).`);
+      let createdCount = 0;
+
+      for (const candidateDate of candidateDates) {
+        if (
+          hasDuplicateShift({
+            userId: employeeId,
+            shiftDate: candidateDate,
+            startTime,
+            endTime,
+          })
+        ) {
+          continue;
+        }
+
+        if (
+          hasEmployeeConflict({
+            userId: employeeId,
+            shiftDate: candidateDate,
+            startTime,
+            endTime,
+            overnight: isOvernight,
+          })
+        ) {
+          continue;
+        }
+
+        if (isOvernight) {
+          const nextDay = addDays(candidateDate, 1);
+          const firstLegPayload: CreateStaffShiftPayload = {
+            user_id: employeeId,
+            shift_date: candidateDate,
+            start_time: startTime,
+            end_time: '23:59',
+            position,
+            status: 'scheduled',
+            notes: withOvernightTag(normalizedNotes, true),
+          };
+          const secondLegPayload: CreateStaffShiftPayload = {
+            user_id: employeeId,
+            shift_date: nextDay,
+            start_time: '00:00',
+            end_time: endTime,
+            position,
+            status: 'scheduled',
+            notes: withOvernightTag(normalizedNotes, true),
+          };
+
+          await createStaffShift(firstLegPayload);
+          await createStaffShift(secondLegPayload);
+          createdCount += 2;
+        } else {
+          const payload: CreateStaffShiftPayload = {
+            user_id: employeeId,
+            shift_date: candidateDate,
+            start_time: startTime,
+            end_time: endTime,
+            position,
+            status: 'scheduled',
+            notes: normalizedNotes,
+          };
+          await createStaffShift(payload);
+          createdCount += 1;
+        }
+      }
+
+      if (createdCount === 0) {
+        setError('All generated shifts were skipped due to duplicate or overlap conflicts.');
+        return;
+      }
+
+      const recurringLabel =
+        shiftEntryMode === 'recurring'
+          ? ` from recurring rule (${recurrenceFrequency}, ${recurrenceWeekdays.map(dayName).join('/')})`
+          : '';
+      setSuccess(
+        `Created ${createdCount} shift record(s)${recurringLabel}. Worked hours per shift: ${(workedMinutes / 60).toFixed(2)}h.`
+      );
+
       setPosition('');
       setNotes('');
       setBreakMinutes(0);
+      setAllowOvernight(false);
       await loadPageData();
     } catch (createError: unknown) {
       setError(getErrorMessage(createError, 'Failed to create shift.'));
     } finally {
       setCreating(false);
     }
-  };
+  }, [
+    allowOvernight,
+    breakMinutes,
+    employeeId,
+    endTime,
+    generateRecurringDates,
+    hasDuplicateShift,
+    hasEmployeeConflict,
+    loadPageData,
+    notes,
+    position,
+    recurrenceFrequency,
+    recurrenceWeekdays,
+    scheduleEligibleStaff,
+    shiftDate,
+    shiftEntryMode,
+    startTime,
+  ]);
 
   const handleStatusChange = async (shift: StaffShift, status: StaffShiftStatus) => {
     setSavingStatusId(shift.id);
@@ -439,6 +591,28 @@ const AdminStaffSchedulingPage: React.FC = () => {
     }
   };
 
+  const handleDeleteShift = useCallback(async (shift: StaffShift) => {
+    const employeeName = shift.employee?.name || employeeNameById.get(shift.user_id) || `#${shift.user_id}`;
+    const confirmed = window.confirm(
+      `Delete shift for ${employeeName} on ${shift.shift_date} (${formatTime(shift.start_time)}-${formatTime(shift.end_time)})?\n\nThis is a soft delete.`
+    );
+    if (!confirmed) return;
+
+    setDeletingShiftId(shift.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await deleteStaffShift(shift.id);
+      setSuccess('Shift deleted successfully.');
+      await loadPageData();
+    } catch (deleteError: unknown) {
+      setError(getErrorMessage(deleteError, 'Failed to delete shift.'));
+    } finally {
+      setDeletingShiftId(null);
+    }
+  }, [employeeNameById, loadPageData]);
+
   return (
     <DashboardLayout title="Staff Scheduling">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)]">
@@ -447,6 +621,18 @@ const AdminStaffSchedulingPage: React.FC = () => {
           <p className="mt-1 text-sm text-muted">Weekly-first planning with conflict-safe shift creation.</p>
 
           <form className="mt-5 space-y-4" onSubmit={handleCreate}>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Schedule Type</span>
+              <select
+                value={shiftEntryMode}
+                onChange={(event) => setShiftEntryMode(event.target.value as ShiftEntryMode)}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="single">Single shift</option>
+                <option value="recurring">Recurring schedule</option>
+              </select>
+            </label>
+
             <label className="block">
               <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee</span>
               <select
@@ -469,7 +655,9 @@ const AdminStaffSchedulingPage: React.FC = () => {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Shift Date</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">
+                  {shiftEntryMode === 'single' ? 'Shift Date' : 'Recurring Start Date'}
+                </span>
                 <input
                   type="date"
                   value={shiftDate}
@@ -478,6 +666,18 @@ const AdminStaffSchedulingPage: React.FC = () => {
                   required
                 />
               </label>
+              {shiftEntryMode === 'recurring' ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Recurring Until</span>
+                  <input
+                    type="date"
+                    value={recurrenceUntilDate}
+                    onChange={(event) => setRecurrenceUntilDate(event.target.value)}
+                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    required
+                  />
+                </label>
+              ) : null}
               <label className="block">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Position</span>
                 <select
@@ -495,6 +695,65 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 </select>
               </label>
             </div>
+
+            {shiftEntryMode === 'recurring' ? (
+              <div className="space-y-3 rounded-2xl border border-stroke bg-bg1/40 p-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Day Of Week</span>
+                    <select
+                      value={recurrenceStartWeekday}
+                      onChange={(event) => setRecurrenceStartWeekday(Number(event.target.value))}
+                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    >
+                      {WEEKDAY_OPTIONS.map((day) => (
+                        <option key={day.value} value={day.value}>
+                          {day.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Frequency</span>
+                    <select
+                      value={recurrenceFrequency}
+                      onChange={(event) => setRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
+                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Weekdays Included</span>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAY_OPTIONS.map((day) => {
+                      const active = recurrenceWeekdays.includes(day.value);
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => toggleRecurrenceWeekday(day.value)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition ${
+                            active
+                              ? 'border-gold/60 bg-gold/20 text-gold2'
+                              : 'border-stroke bg-bg1/60 text-muted hover:text-text'
+                          }`}
+                        >
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-stroke/70 bg-bg1/50 px-3 py-2 text-xs text-muted">
+                  Rule preview: starts on {dayName(recurrenceStartWeekday)}, {recurrenceFrequency}, days{' '}
+                  {recurrenceWeekdays.length > 0 ? recurrenceWeekdays.map(dayName).join(', ') : 'none selected'}, time{' '}
+                  {startTime} - {endTime}.
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
@@ -559,7 +818,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
             </label>
 
             <LiquidButton type="submit" disabled={creating || loading}>
-              {creating ? 'Creating...' : 'Create Shift'}
+              {creating ? 'Creating...' : shiftEntryMode === 'single' ? 'Create Shift' : 'Generate Recurring Shifts'}
             </LiquidButton>
           </form>
         </GlassCard>
@@ -710,6 +969,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                     <th className="px-3 py-3">Position</th>
                     <th className="px-3 py-3">Status</th>
                     <th className="px-3 py-3">Notes</th>
+                    <th className="px-3 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -754,6 +1014,16 @@ const AdminStaffSchedulingPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-3 py-3 text-muted">{shift.notes || '-'}</td>
+                        <td className="px-3 py-3">
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteShift(shift)}
+                            disabled={deletingShiftId === shift.id}
+                            className="rounded-full border border-spicy/40 bg-spicy/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-spicy transition hover:bg-spicy/20 disabled:opacity-60"
+                          >
+                            {deletingShiftId === shift.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
