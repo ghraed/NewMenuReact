@@ -200,7 +200,6 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [shiftEntryMode, setShiftEntryMode] = useState<ShiftEntryMode>('single');
   const [shiftDate, setShiftDate] = useState(today);
   const [recurrenceUntilDate, setRecurrenceUntilDate] = useState(addDays(today, 27));
-  const [recurrenceStartWeekday, setRecurrenceStartWeekday] = useState<number>(new Date(`${today}T00:00:00`).getDay());
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>('weekly');
   const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([1, 3]);
   const [startTime, setStartTime] = useState('09:00');
@@ -411,7 +410,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
     }
 
     return dates;
-  }, [recurrenceFrequency, recurrenceStartWeekday, recurrenceUntilDate, recurrenceWeekdays, shiftDate]);
+  }, [recurrenceFrequency, recurrenceUntilDate, recurrenceWeekdays, shiftDate]);
 
   const handleCreate = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -719,21 +718,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
 
             {shiftEntryMode === 'recurring' ? (
               <div className="space-y-3 rounded-2xl border border-stroke bg-bg1/40 p-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Day Of Week</span>
-                    <select
-                      value={recurrenceStartWeekday}
-                      onChange={(event) => setRecurrenceStartWeekday(Number(event.target.value))}
-                      className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                    >
-                      {WEEKDAY_OPTIONS.map((day) => (
-                        <option key={day.value} value={day.value}>
-                          {day.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="grid gap-3 sm:grid-cols-1">
                   <label className="block">
                     <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Frequency</span>
                     <select
@@ -769,7 +754,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="rounded-xl border border-stroke/70 bg-bg1/50 px-3 py-2 text-xs text-muted">
-                  Rule preview: starts on {dayName(recurrenceStartWeekday)}, {recurrenceFrequency}, days{' '}
+                  Rule preview: {recurrenceFrequency}, days{' '}
                   {recurrenceWeekdays.length > 0 ? recurrenceWeekdays.map(dayName).join(', ') : 'none selected'}, time{' '}
                   {startTime} - {endTime}.
                 </div>
