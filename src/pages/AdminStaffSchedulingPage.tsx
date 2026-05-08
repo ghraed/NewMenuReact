@@ -603,15 +603,16 @@ const AdminStaffSchedulingPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      await deleteStaffShift(shift.id);
+      const softDeleteNote = `${shift.notes ? `${shift.notes} | ` : ''}[soft-deleted ${new Date().toISOString()}]`;
+      await deleteStaffShift(shift.id, softDeleteNote);
+      setShifts((current) => current.filter((row) => row.id !== shift.id));
       setSuccess('Shift deleted successfully.');
-      await loadPageData();
     } catch (deleteError: unknown) {
       setError(getErrorMessage(deleteError, 'Failed to delete shift.'));
     } finally {
       setDeletingShiftId(null);
     }
-  }, [employeeNameById, loadPageData]);
+  }, [employeeNameById]);
 
   return (
     <DashboardLayout title="Staff Scheduling">

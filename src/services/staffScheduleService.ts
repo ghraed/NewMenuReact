@@ -54,6 +54,10 @@ export const updateStaffShift = async (shiftId: number, payload: UpdateStaffShif
   return response.data.shift;
 };
 
-export const deleteStaffShift = async (shiftId: number): Promise<void> => {
-  await api.delete(`/admin/staff/schedules/${shiftId}`);
+export const deleteStaffShift = async (shiftId: number, notes?: string): Promise<StaffShift> => {
+  const response = await api.patch<StaffScheduleMutationResponse>(`/admin/staff/schedules/${shiftId}`, {
+    status: 'cancelled',
+    notes,
+  });
+  return response.data.shift;
 };
