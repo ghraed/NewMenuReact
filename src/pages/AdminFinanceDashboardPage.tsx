@@ -17,18 +17,19 @@ import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   createInvoice,
-  fetchInvoiceRevenueTrends,
   fetchInvoices,
   updateInvoice,
   type CreateInvoiceItemInput,
 } from '../services/invoiceService';
-import { fetchProfitAndLossSummary, fetchTaxSummary } from '../services/financeReportingService';
+import { fetchTaxSummary } from '../services/financeReportingService';
+import { fetchExpenses } from '../services/financeExpenseService';
 import { fetchPayrollPeriods, fetchPayrollSummary } from '../services/payrollService';
 import { fetchStaffSchedules } from '../services/staffScheduleService';
 import type {
   FinanceInvoice,
   FinanceInvoiceStatus,
   FinanceProfitAndLossSummary,
+  FinanceExpense,
   FinanceTaxSummary,
   PayrollSummaryTotals,
 } from '../types';
@@ -139,6 +140,78 @@ const sortFinanceInvoicesNewestFirst = (records: FinanceInvoice[]): FinanceInvoi
   })
 );
 
+type MetricKey = 'revenue' | 'totalCosts' | 'netProfit' | 'cogs' | 'operatingExpenses' | 'payroll';
+
+const DEFAULT_SELECTED_METRICS: MetricKey[] = ['revenue', 'totalCosts', 'netProfit'];
+const VALID_REVENUE_STATUSES: FinanceInvoiceStatus[] = ['issued', 'paid'];
+const INCLUDED_EXPENSE_STATUSES = new Set(['approved', 'paid']);
+const INCLUDED_PAYROLL_STATUSES = new Set(['approved', 'paid']);
+
+const metricLabels: Record<MetricKey, string> = {
+  revenue: 'Revenue',
+  totalCosts: 'Total Costs',
+  netProfit: 'Net Profit',
+  cogs: 'COGS',
+  operatingExpenses: 'Operating Expenses',
+  payroll: 'Payroll',
+};
+
+const isValidDateWithinRange = (date: string, dateFrom: string, dateTo: string): boolean => {
+  if (!date) {
+    return false;
+  }
+  if (dateFrom && date < dateFrom) {
+    return false;
+  }
+  if (dateTo && date > dateTo) {
+    return false;
+  }
+  return true;
+};
+
+const toPeriodKey = (date: string, range: RevenueRange): string => {
+  const normalized = date.slice(0, 10);
+  if (range === 'daily') {
+    return normalized;
+  }
+  if (range === 'monthly') {
+    return normalized.slice(0, 7);
+  }
+  return normalized.slice(0, 4);
+};
+
+const toPeriodLabel = (periodKey: string, range: RevenueRange): string => {
+  if (range === 'daily') {
+    return periodKey;
+  }
+  if (range === 'monthly') {
+    const [year, month] = periodKey.split('-').map((value) => Number(value));
+    if (!year || !month) {
+      return periodKey;
+    }
+    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  }
+  return periodKey;
+};
+
+const isExpenseCogs = (expense: FinanceExpense): boolean => {
+  const code = expense.category?.code?.toLowerCase() ?? '';
+  const name = expense.category?.name?.toLowerCase() ?? '';
+  if (expense.linked_stock_movement) {
+    return true;
+  }
+  return code.includes('cogs')
+    || code.includes('cost_of_goods')
+    || code.includes('ingredient')
+    || code.includes('inventory')
+    || code.includes('stock')
+    || name.includes('cogs')
+    || name.includes('cost of goods')
+    || name.includes('ingredient')
+    || name.includes('inventory')
+    || name.includes('stock');
+};
+
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -150,8 +223,16 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<FinanceInvoiceStatus | ''>('');
   const [invoices, setInvoices] = useState<FinanceInvoice[]>([]);
   const [chartLabels, setChartLabels] = useState<string[]>([]);
-  const [chartRevenues, setChartRevenues] = useState<number[]>([]);
-  const [chartInvoiceCounts, setChartInvoiceCounts] = useState<number[]>([]);
+  const [chartMetrics, setChartMetrics] = useState<Record<MetricKey, number[]>>({
+    revenue: [],
+    totalCosts: [],
+    netProfit: [],
+    cogs: [],
+    operatingExpenses: [],
+    payroll: [],
+  });
+  const [selectedMetrics, setSelectedMetrics] = useState<MetricKey[]>(DEFAULT_SELECTED_METRICS);
+  const [showDetailedCosts, setShowDetailedCosts] = useState(false);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalInvoicesInRange, setTotalInvoicesInRange] = useState(0);
   const [payrollTotals, setPayrollTotals] = useState<PayrollSummaryTotals>(emptyPayrollTotals);
@@ -188,28 +269,23 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
 
     try {
-      const [invoiceResponse, trendResponse] = await Promise.all([
+      const [invoiceResponse, expenseResponse] = await Promise.all([
         fetchInvoices({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
           status: statusFilter || undefined,
           per_page: 200,
         }),
-        fetchInvoiceRevenueTrends({
-          range,
+        fetchExpenses({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
+          per_page: 500,
         }),
       ]);
 
       setInvoices(sortFinanceInvoicesNewestFirst(invoiceResponse.invoices));
-      setChartLabels(trendResponse.points.map((point) => point.label));
-      setChartRevenues(trendResponse.points.map((point) => point.revenue));
-      setChartInvoiceCounts(trendResponse.points.map((point) => point.invoice_count));
-      setTotalRevenue(trendResponse.totals.revenue);
-      setTotalInvoicesInRange(trendResponse.totals.invoice_count);
 
-      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, pnlResult, taxResult] = await Promise.allSettled([
+      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult] = await Promise.allSettled([
         fetchPayrollSummary({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
@@ -220,16 +296,116 @@ const AdminFinanceDashboardPage: React.FC = () => {
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
         }),
-        fetchProfitAndLossSummary({
-          date_from: dateFrom || undefined,
-          date_to: dateTo || undefined,
-          group_by: range,
-        }),
         fetchTaxSummary({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
         }),
       ]);
+
+      const payrollPeriods = payrollPeriodsResult.status === 'fulfilled' ? payrollPeriodsResult.value : [];
+      const allPeriods = new Set<string>();
+      const metricsByPeriod = new Map<string, Record<MetricKey, number>>();
+
+      const ensurePeriod = (periodKey: string) => {
+        if (!metricsByPeriod.has(periodKey)) {
+          metricsByPeriod.set(periodKey, {
+            revenue: 0,
+            totalCosts: 0,
+            netProfit: 0,
+            cogs: 0,
+            operatingExpenses: 0,
+            payroll: 0,
+          });
+        }
+        allPeriods.add(periodKey);
+        return metricsByPeriod.get(periodKey)!;
+      };
+
+      let invoiceCount = 0;
+      for (const invoice of invoiceResponse.invoices) {
+        if (!VALID_REVENUE_STATUSES.includes(invoice.status) || !invoice.invoice_date) {
+          continue;
+        }
+        const periodKey = toPeriodKey(invoice.invoice_date, range);
+        const bucket = ensurePeriod(periodKey);
+        bucket.revenue += Number(invoice.total ?? 0);
+        invoiceCount += 1;
+      }
+
+      for (const expense of expenseResponse.expenses) {
+        if (!INCLUDED_EXPENSE_STATUSES.has(expense.status) || !isValidDateWithinRange(expense.expense_date, dateFrom, dateTo)) {
+          continue;
+        }
+        const periodKey = toPeriodKey(expense.expense_date, range);
+        const bucket = ensurePeriod(periodKey);
+        const expenseAmount = (expense.total_cents ?? 0) / 100;
+        if (isExpenseCogs(expense)) {
+          bucket.cogs += expenseAmount;
+        } else {
+          bucket.operatingExpenses += expenseAmount;
+        }
+      }
+
+      for (const period of payrollPeriods) {
+        if (!INCLUDED_PAYROLL_STATUSES.has(period.status)) {
+          continue;
+        }
+        const payrollDate = (period.paid_at || period.period_end || '').slice(0, 10);
+        if (!isValidDateWithinRange(payrollDate, dateFrom, dateTo)) {
+          continue;
+        }
+        const periodKey = toPeriodKey(payrollDate, range);
+        const bucket = ensurePeriod(periodKey);
+        const finalSalary = Number(period.final_salary ?? period.totals.net_pay ?? 0);
+        bucket.payroll += finalSalary;
+      }
+
+      const orderedPeriodKeys = [...allPeriods].sort();
+      const labels = orderedPeriodKeys.map((periodKey) => toPeriodLabel(periodKey, range));
+      const nextMetrics: Record<MetricKey, number[]> = {
+        revenue: [],
+        totalCosts: [],
+        netProfit: [],
+        cogs: [],
+        operatingExpenses: [],
+        payroll: [],
+      };
+
+      let nextRevenue = 0;
+      let nextCogs = 0;
+      let nextOperating = 0;
+      let nextPayroll = 0;
+
+      orderedPeriodKeys.forEach((periodKey) => {
+        const bucket = metricsByPeriod.get(periodKey)!;
+        const totalCosts = bucket.cogs + bucket.operatingExpenses + bucket.payroll;
+        const netProfit = bucket.revenue - totalCosts;
+        nextMetrics.revenue.push(bucket.revenue);
+        nextMetrics.cogs.push(bucket.cogs);
+        nextMetrics.operatingExpenses.push(bucket.operatingExpenses);
+        nextMetrics.payroll.push(bucket.payroll);
+        nextMetrics.totalCosts.push(totalCosts);
+        nextMetrics.netProfit.push(netProfit);
+        nextRevenue += bucket.revenue;
+        nextCogs += bucket.cogs;
+        nextOperating += bucket.operatingExpenses;
+        nextPayroll += bucket.payroll;
+      });
+
+      setChartLabels(labels);
+      setChartMetrics(nextMetrics);
+      setTotalRevenue(nextRevenue);
+      setTotalInvoicesInRange(invoiceCount);
+      setPnlSummary({
+        date_from: dateFrom,
+        date_to: dateTo,
+        group_by: range,
+        revenue: nextRevenue,
+        cogs: nextCogs,
+        gross_profit: nextRevenue - nextCogs,
+        operating_expenses: nextOperating + nextPayroll,
+        net_profit: nextRevenue - (nextCogs + nextOperating + nextPayroll),
+      });
 
       if (payrollSummaryResult.status === 'fulfilled') {
         setPayrollTotals(payrollSummaryResult.value.totals);
@@ -247,12 +423,6 @@ const AdminFinanceDashboardPage: React.FC = () => {
         setScheduledShiftsCount(shiftsResult.value.filter((shift) => shift.status === 'scheduled').length);
       } else {
         setScheduledShiftsCount(0);
-      }
-
-      if (pnlResult.status === 'fulfilled') {
-        setPnlSummary(pnlResult.value);
-      } else {
-        setPnlSummary(emptyPnl());
       }
 
       if (taxResult.status === 'fulfilled') {
@@ -274,19 +444,28 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
   const chartData = useMemo<ChartData<'bar'>>(() => ({
     labels: chartLabels,
-    datasets: [
-      {
-        label: 'Revenue',
-        data: chartRevenues,
-        backgroundColor: 'rgba(215, 180, 106, 0.82)',
-        borderColor: 'rgba(243, 215, 154, 0.98)',
+    datasets: selectedMetrics.map((metric) => {
+      const palette: Record<MetricKey, { bg: string; border: string }> = {
+        revenue: { bg: 'rgba(215, 180, 106, 0.82)', border: 'rgba(243, 215, 154, 0.98)' },
+        totalCosts: { bg: 'rgba(218, 108, 108, 0.7)', border: 'rgba(244, 157, 157, 0.92)' },
+        netProfit: { bg: 'rgba(95, 206, 141, 0.2)', border: 'rgba(95, 206, 141, 0.96)' },
+        cogs: { bg: 'rgba(250, 167, 91, 0.72)', border: 'rgba(255, 199, 143, 0.95)' },
+        operatingExpenses: { bg: 'rgba(132, 167, 235, 0.72)', border: 'rgba(178, 204, 255, 0.95)' },
+        payroll: { bg: 'rgba(190, 152, 234, 0.72)', border: 'rgba(221, 194, 247, 0.95)' },
+      };
+      return {
+        type: 'bar' as const,
+        label: metricLabels[metric],
+        data: chartMetrics[metric],
+        backgroundColor: palette[metric].bg,
+        borderColor: palette[metric].border,
         borderWidth: 1.5,
         borderRadius: 10,
         barPercentage: 0.72,
         categoryPercentage: 0.72,
-      },
-    ],
-  }), [chartLabels, chartRevenues]);
+      };
+    }),
+  }), [chartLabels, chartMetrics, selectedMetrics]);
 
   const chartOptions = useMemo<ChartOptions<'bar'>>(() => ({
     responsive: true,
@@ -296,9 +475,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       easing: 'easeOutQuart',
     },
     plugins: {
-      legend: {
-        display: false,
-      },
+      legend: { display: true, labels: { color: 'rgba(243, 215, 154, 0.88)' } },
       tooltip: {
         backgroundColor: 'rgba(10, 16, 32, 0.92)',
         borderColor: 'rgba(243, 215, 154, 0.3)',
@@ -306,7 +483,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         titleColor: '#f3d79a',
         bodyColor: '#ffffff',
         callbacks: {
-          label: (context) => ` ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
+          label: (context) => `${context.dataset.label}: ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
         },
       },
     },
@@ -337,6 +514,23 @@ const AdminFinanceDashboardPage: React.FC = () => {
       },
     },
   }), [currency]);
+
+  const chartHasData = useMemo(
+    () => chartLabels.length > 0 && selectedMetrics.some((metric) => chartMetrics[metric].some((value) => value !== 0)),
+    [chartLabels, chartMetrics, selectedMetrics]
+  );
+
+  const toggleMetric = (metric: MetricKey) => {
+    setSelectedMetrics((current) => {
+      if (current.includes(metric)) {
+        if (current.length === 1) {
+          return current;
+        }
+        return current.filter((item) => item !== metric);
+      }
+      return [...current, metric];
+    });
+  };
 
   const draftInvoiceTotal = useMemo(() => newInvoiceItems.reduce((sum, item) => {
     const quantity = parsePositiveNumber(item.quantity);
@@ -427,17 +621,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         invoice.id === updatedInvoice.id ? updatedInvoice : invoice
       ))));
 
-      const trendResponse = await fetchInvoiceRevenueTrends({
-        range,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-      });
-
-      setChartLabels(trendResponse.points.map((point) => point.label));
-      setChartRevenues(trendResponse.points.map((point) => point.revenue));
-      setChartInvoiceCounts(trendResponse.points.map((point) => point.invoice_count));
-      setTotalRevenue(trendResponse.totals.revenue);
-      setTotalInvoicesInRange(trendResponse.totals.invoice_count);
+      await loadDashboardData();
     } catch (updateError: unknown) {
       setError(getErrorMessage(updateError, 'Failed to update invoice status.'));
     } finally {
@@ -513,7 +697,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue Trend</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Financial Performance</p>
                 <h3 className="mt-1 text-xl font-semibold text-text">Daily, Monthly, Yearly</h3>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-stroke bg-bg1/70 p-1">
@@ -534,8 +718,50 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
             </div>
 
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {(['revenue', 'totalCosts', 'netProfit'] as MetricKey[]).map((metric) => (
+                <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
+                  <input
+                    type="checkbox"
+                    checked={selectedMetrics.includes(metric)}
+                    onChange={() => toggleMetric(metric)}
+                    className="h-3.5 w-3.5 accent-gold"
+                  />
+                  {metricLabels[metric]}
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowDetailedCosts((current) => !current)}
+                className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 transition hover:bg-gold/20"
+              >
+                {showDetailedCosts ? 'Hide Cost Details' : 'Show Cost Details'}
+              </button>
+            </div>
+            {showDetailedCosts ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                {(['cogs', 'operatingExpenses', 'payroll'] as MetricKey[]).map((metric) => (
+                  <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
+                    <input
+                      type="checkbox"
+                      checked={selectedMetrics.includes(metric)}
+                      onChange={() => toggleMetric(metric)}
+                      className="h-3.5 w-3.5 accent-gold"
+                    />
+                    {metricLabels[metric]}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+
             <div className="h-[320px] w-full">
-              <Bar data={chartData} options={chartOptions} />
+              {chartHasData ? (
+                <Bar data={chartData} options={chartOptions} />
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-2xl border border-stroke/70 bg-bg1/35 px-4 text-center text-sm text-muted">
+                  No finance data found for the selected period.
+                </div>
+              )}
             </div>
           </GlassCard>
 
@@ -664,6 +890,15 @@ const AdminFinanceDashboardPage: React.FC = () => {
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Operating Expenses</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     {formatPriceWithCurrency(pnlSummary.operating_expenses, currency)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    {formatPriceWithCurrency(
+                      chartMetrics.payroll.reduce((sum, value) => sum + value, 0),
+                      currency
+                    )}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3 sm:col-span-2">
@@ -912,10 +1147,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard className="border-gold/15 bg-gradient-to-r from-bg1/82 via-bg1/72 to-bg1/82">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted">
-                Revenue bars reflect non-cancelled finalized invoice states (`issued`, `paid`) for clear operational tracking.
+                Financial performance reflects revenue (`issued`, `paid`) vs costs (COGS + operating + payroll) to show true profit/loss.
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">
-                Total Bars: {chartLabels.length} • Volume: {chartInvoiceCounts.reduce((sum, count) => sum + count, 0)}
+                Total Bars: {chartLabels.length} • Invoices Counted: {totalInvoicesInRange}
               </p>
             </div>
           </GlassCard>
