@@ -11,7 +11,7 @@ export interface DishIngredientStoryItem {
   imageUrl?: string | null;
 }
 
-type AnimationStage = 'idle' | 'reset' | 'expand' | 'float' | 'aligned' | 'labels';
+type AnimationStage = 'idle' | 'reset' | 'lift' | 'pause' | 'travel' | 'labels';
 
 interface DishIngredientStoryProps {
   dishName: string;
@@ -61,18 +61,18 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
     clearScheduledStages();
     setStage('reset');
 
-    timeoutsRef.current.push(window.setTimeout(() => setStage('expand'), 140));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('float'), 1120));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('aligned'), 2220));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 3100));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('lift'), 140));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('pause'), 1240));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('travel'), 1820));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 3000));
   };
 
   const hasIngredients = ingredients.length > 0;
   const stageHeight = useMemo(() => Math.max(620, 280 + ingredients.length * 92), [ingredients.length]);
   const rowGap = 82;
   const rowStart = 54;
-  const previewAnchorTop = Math.min(stageHeight - 190, Math.max(220, stageHeight * 0.48));
-  const dishCenterTop = previewAnchorTop + 28;
+  const previewAnchorTop = Math.max(230, stageHeight - 280);
+  const dishCenterTop = previewAnchorTop + 26;
   const centerLiftTop = Math.max(150, Math.min(220, stageHeight * 0.33));
   const horizontalTravel = useMemo(() => getHorizontalTravel(), []);
 
@@ -136,14 +136,16 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               <motion.div
                 animate={
                   stage === 'idle' || stage === 'reset'
-                    ? { y: previewAnchorTop - 70, scale: 1, opacity: 1, filter: 'blur(0px)' }
-                    : stage === 'expand'
-                      ? { y: previewAnchorTop - 36, scale: 0.92, opacity: 0.96, filter: 'blur(0.2px)' }
-                      : stage === 'float'
-                        ? { y: previewAnchorTop + 32, scale: 0.74, opacity: 0.7, filter: 'blur(0.8px)' }
-                        : { y: stageHeight - 160, scale: 0.45, opacity: 0, filter: 'blur(1.4px)' }
+                    ? { y: previewAnchorTop, scale: 1, opacity: 1, filter: 'blur(0px)' }
+                    : stage === 'lift'
+                      ? { y: previewAnchorTop + 2, scale: 0.98, opacity: 1, filter: 'blur(0px)' }
+                      : stage === 'pause'
+                        ? { y: previewAnchorTop + 4, scale: 0.97, opacity: 1, filter: 'blur(0px)' }
+                        : stage === 'travel'
+                          ? { y: previewAnchorTop + 2, scale: 0.98, opacity: 1, filter: 'blur(0px)' }
+                          : { y: previewAnchorTop, scale: 1, opacity: 1, filter: 'blur(0px)' }
                 }
-                transition={{ duration: stage === 'reset' ? 0 : 0.95, ease: premiumEase }}
+                transition={{ duration: stage === 'reset' ? 0 : 0.9, ease: premiumEase }}
                 className="relative w-[220px] overflow-hidden rounded-[34px] border border-white/50 bg-white shadow-[0_24px_64px_rgba(113,84,37,0.18)] sm:w-[260px]"
               >
                 {dishImageUrl ? (
@@ -167,28 +169,34 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               const currentY =
                 isHiddenStage
                   ? startFromDishY
-                  : stage === 'expand'
+                  : stage === 'lift'
                     ? liftToCenterY
-                    : stage === 'float'
-                      ? floatFromCenterY
+                    : stage === 'pause'
+                      ? floatFromCenterY * 0.94
+                      : stage === 'travel'
+                        ? 0
                       : 0;
 
               const currentX =
                 isHiddenStage
                   ? horizontalTravel
-                  : stage === 'expand'
+                  : stage === 'lift'
                     ? horizontalTravel
-                    : stage === 'float'
-                      ? horizontalTravel * 0.48
+                    : stage === 'pause'
+                      ? horizontalTravel * 0.42
+                      : stage === 'travel'
+                        ? 0
                       : 0;
 
               const currentScale =
                 isHiddenStage
                   ? 0.56
-                  : stage === 'expand'
+                  : stage === 'lift'
                     ? 0.84
-                    : stage === 'float'
+                    : stage === 'pause'
                       ? 0.98
+                      : stage === 'travel'
+                        ? 1
                       : 1;
 
               return (
@@ -231,10 +239,17 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                           y: currentY,
                           scale: currentScale,
                           opacity: isHiddenStage ? 0 : 1,
-                          rotateZ: stage === 'float' ? getFloatRotation(index) : 0,
+                          rotateZ: stage === 'pause' ? getFloatRotation(index) : 0,
                         }}
                         transition={{
-                          duration: stage === 'reset' ? 0 : stage === 'expand' ? 0.96 : 1.04,
+                          duration:
+                            stage === 'reset'
+                              ? 0
+                              : stage === 'lift'
+                                ? 0.96
+                                : stage === 'pause'
+                                  ? 0.55
+                                  : 1.12,
                           delay: stage === 'reset' ? 0 : index * 0.12,
                           ease: premiumEase,
                         }}
