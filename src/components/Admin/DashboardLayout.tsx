@@ -207,25 +207,34 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 onClick={() => setMobileNavOpen(false)}
               />
               <motion.aside
-                className="absolute inset-0 border-t border-gold/20 bg-gradient-to-b from-bg0 via-bg1 to-bg0 p-5"
+                className="absolute inset-0 h-[100dvh] overflow-y-auto overscroll-contain border-t border-gold/20 bg-gradient-to-b from-bg0 via-bg1 to-bg0 px-5 pb-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)]"
                 initial={{ y: '-8%', opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: '-6%', opacity: 0 }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
-                <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
-                  <div className="mb-6 flex items-center justify-between">
+                <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+                  <div className="sticky top-0 z-10 mb-6 flex items-center justify-between bg-gradient-to-b from-bg0 via-bg1/95 to-transparent pb-2 pt-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold2/85">{t('admin.navigation')}</p>
                     <button
                       type="button"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-text transition hover:border-gold/40"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/80 text-text shadow-lux2 transition hover:border-gold/40"
                       onClick={() => setMobileNavOpen(false)}
-                      aria-label="Close"
+                      aria-label={t('common.close', { defaultValue: 'Close' })}
                     >
-                      ✕
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                        <path
+                          d="M6 6l12 12M18 6l-12 12"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                      </svg>
                     </button>
                   </div>
-                  <ul className="grid gap-3 sm:grid-cols-2">
+                  <ul className="grid gap-3 pb-[max(env(safe-area-inset-bottom,0px),1rem)] sm:grid-cols-2">
                     {visibleNavItems.map((item, index) => {
                       const isActive = location.pathname === item.path;
                       return (
