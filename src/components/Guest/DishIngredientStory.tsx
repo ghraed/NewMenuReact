@@ -11,7 +11,7 @@ export interface DishIngredientStoryItem {
   imageUrl?: string | null;
 }
 
-type AnimationStage = 'idle' | 'reset' | 'lift' | 'pause' | 'travel' | 'labels';
+type AnimationStage = 'idle' | 'reset' | 'lift' | 'travel' | 'labels';
 
 interface DishIngredientStoryProps {
   dishName: string;
@@ -62,9 +62,8 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
     setStage('reset');
 
     timeoutsRef.current.push(window.setTimeout(() => setStage('lift'), 140));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('pause'), 1240));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('travel'), 1820));
-    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 3000));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('travel'), 1240));
+    timeoutsRef.current.push(window.setTimeout(() => setStage('labels'), 2500));
   };
 
   const hasIngredients = ingredients.length > 0;
@@ -139,11 +138,9 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                     ? { y: previewAnchorTop, scale: 1, opacity: 1, filter: 'blur(0px)' }
                     : stage === 'lift'
                       ? { y: previewAnchorTop + 2, scale: 0.98, opacity: 1, filter: 'blur(0px)' }
-                      : stage === 'pause'
-                        ? { y: previewAnchorTop + 4, scale: 0.97, opacity: 1, filter: 'blur(0px)' }
-                        : stage === 'travel'
-                          ? { y: previewAnchorTop + 2, scale: 0.98, opacity: 1, filter: 'blur(0px)' }
-                          : { y: previewAnchorTop, scale: 1, opacity: 1, filter: 'blur(0px)' }
+                      : stage === 'travel'
+                        ? { y: previewAnchorTop + 2, scale: 0.98, opacity: 1, filter: 'blur(0px)' }
+                        : { y: previewAnchorTop, scale: 1, opacity: 1, filter: 'blur(0px)' }
                 }
                 transition={{ duration: stage === 'reset' ? 0 : 0.9, ease: premiumEase }}
                 className="relative w-[220px] overflow-hidden rounded-[34px] border border-white/50 bg-white shadow-[0_24px_64px_rgba(113,84,37,0.18)] sm:w-[260px]"
@@ -163,7 +160,6 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
               const centeredOffset = getCenteredOffset(index, ingredients.length);
               const startFromDishY = dishCenterTop - rowTop + centeredOffset * 4;
               const liftToCenterY = centerLiftTop - rowTop + centeredOffset * 10;
-              const floatFromCenterY = centerLiftTop - rowTop + centeredOffset * 22;
               const isHiddenStage = stage === 'idle' || stage === 'reset';
 
               const currentY =
@@ -171,33 +167,27 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                   ? startFromDishY
                   : stage === 'lift'
                     ? liftToCenterY
-                    : stage === 'pause'
-                      ? floatFromCenterY * 0.94
-                      : stage === 'travel'
-                        ? 0
-                      : 0;
+                    : stage === 'travel'
+                      ? 0
+                    : 0;
 
               const currentX =
                 isHiddenStage
                   ? horizontalTravel
                   : stage === 'lift'
                     ? horizontalTravel
-                    : stage === 'pause'
-                      ? horizontalTravel * 0.42
-                      : stage === 'travel'
-                        ? 0
-                      : 0;
+                    : stage === 'travel'
+                      ? 0
+                    : 0;
 
               const currentScale =
                 isHiddenStage
                   ? 0.56
                   : stage === 'lift'
                     ? 0.84
-                    : stage === 'pause'
-                      ? 0.98
-                      : stage === 'travel'
-                        ? 1
-                      : 1;
+                    : stage === 'travel'
+                      ? 1
+                    : 1;
 
               return (
                 <div
@@ -239,7 +229,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                           y: currentY,
                           scale: currentScale,
                           opacity: isHiddenStage ? 0 : 1,
-                          rotateZ: stage === 'pause' ? getFloatRotation(index) : 0,
+                          rotateZ: stage === 'lift' ? getFloatRotation(index) * 0.4 : 0,
                         }}
                         transition={{
                           duration:
@@ -247,9 +237,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
                               ? 0
                               : stage === 'lift'
                                 ? 0.96
-                                : stage === 'pause'
-                                  ? 0.55
-                                  : 1.12,
+                                : 1.12,
                           delay: stage === 'reset' ? 0 : index * 0.12,
                           ease: premiumEase,
                         }}
