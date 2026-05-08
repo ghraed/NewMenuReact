@@ -42,6 +42,7 @@ const WEEKDAY_OPTIONS = [
 ];
 
 const STATUS_OPTIONS: StaffShiftStatus[] = ['scheduled', 'completed', 'cancelled', 'absent', 'replaced'];
+const STATUS_FILTER_OPTIONS: StaffShiftStatus[] = ['scheduled', 'completed', 'cancelled', 'absent', 'replaced', 'deleted'];
 
 const REQUIRED_DAILY_COVERAGE: PositionCode[] = ['waiter', 'kitchen', 'cashier'];
 
@@ -51,6 +52,7 @@ const STATUS_BADGE_CLASS: Record<StaffShiftStatus, string> = {
   cancelled: 'border-spicy/40 bg-spicy/15 text-spicy',
   absent: 'border-red-400/45 bg-red-400/15 text-red-200',
   replaced: 'border-sky-300/45 bg-sky-300/15 text-sky-200',
+  deleted: 'border-zinc-400/45 bg-zinc-400/15 text-zinc-200',
 };
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -144,6 +146,10 @@ const parseBreakMinutesFromNotes = (notes: string | null | undefined): number =>
   return Number(match[1]) || 0;
 };
 
+const isSoftDeletedShift = (shift: StaffShift): boolean => {
+  return shift.status === 'deleted' || Boolean(shift.deleted_at) || /\[soft-deleted\s/i.test(shift.notes || '');
+};
+
 const withBreakTag = (notes: string, breakMinutes: number): string | undefined => {
   const cleaned = notes.replace(/\s*\[break:\d+m\]\s*/gi, ' ').trim();
   if (breakMinutes <= 0) return cleaned || undefined;
@@ -178,6 +184,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
   const [staffFilterId, setStaffFilterId] = useState<number | ''>('');
   const [positionFilter, setPositionFilter] = useState<PositionCode | ''>('');
   const [statusFilter, setStatusFilter] = useState<StaffShiftStatus | ''>('');
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const [employeeId, setEmployeeId] = useState<number | ''>('');
   const [shiftEntryMode, setShiftEntryMode] = useState<ShiftEntryMode>('single');
@@ -270,6 +277,9 @@ const AdminStaffSchedulingPage: React.FC = () => {
 
   const filteredShifts = useMemo(() => {
     return shifts.filter((shift) => {
+      if (!showDeleted && isSoftDeletedShift(shift)) {
+        return false;
+      }
       if (positionFilter && (shift.position || '').toLowerCase() !== positionFilter) {
         return false;
       }
@@ -278,7 +288,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
       }
       return true;
     });
-  }, [positionFilter, shifts, statusFilter]);
+  }, [positionFilter, shifts, showDeleted, statusFilter]);
 
   const coverageWarnings = useMemo(() => {
     if (viewMode !== 'week') return [];
@@ -603,7 +613,8 @@ const AdminStaffSchedulingPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      const softDeleteNote = `${shift.notes ? `${shift.notes} | ` : ''}[soft-deleted ${new Date().toISOString()}]`;
+      const deletedAt = new Date().toISOString();
+      const softDeleteNote = `${shift.notes ? `${shift.notes} | ` : ''}[soft-deleted ${deletedAt}]`;
       await deleteStaffShift(shift.id, softDeleteNote);
       setShifts((current) => current.filter((row) => row.id !== shift.id));
       setSuccess('Shift deleted successfully.');
@@ -923,7 +934,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
               >
                 <option value="">All statuses</option>
-                {STATUS_OPTIONS.map((status) => (
+                {STATUS_FILTER_OPTIONS.map((status) => (
                   <option key={status} value={status}>
                     {titleize(status)}
                   </option>
@@ -931,6 +942,16 @@ const AdminStaffSchedulingPage: React.FC = () => {
               </select>
             </label>
           </div>
+
+          <label className="mb-4 flex items-center gap-2 rounded-2xl border border-stroke bg-bg1/45 px-3 py-2.5 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(event) => setShowDeleted(event.target.checked)}
+              className="h-4 w-4 accent-[rgb(var(--color-gold))]"
+            />
+            Show deleted shifts
+          </label>
 
           {viewMode === 'week' ? (
             <div className="mb-4 rounded-2xl border border-stroke bg-bg1/35 p-3">

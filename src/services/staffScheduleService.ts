@@ -24,8 +24,9 @@ export interface CreateStaffShiftPayload {
   start_time: string;
   end_time: string;
   position?: string;
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'absent' | 'replaced';
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'absent' | 'replaced' | 'deleted';
   notes?: string;
+  deleted_at?: string | null;
 }
 
 export type UpdateStaffShiftPayload = Partial<CreateStaffShiftPayload>;
@@ -56,7 +57,8 @@ export const updateStaffShift = async (shiftId: number, payload: UpdateStaffShif
 
 export const deleteStaffShift = async (shiftId: number, notes?: string): Promise<StaffShift> => {
   const response = await api.patch<StaffScheduleMutationResponse>(`/admin/staff/schedules/${shiftId}`, {
-    status: 'cancelled',
+    status: 'deleted',
+    deleted_at: new Date().toISOString(),
     notes,
   });
   return response.data.shift;
