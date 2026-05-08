@@ -37,6 +37,33 @@ const AdminReservationsPage: React.FC = () => {
   const [createAvailability, setCreateAvailability] = useState<RoomPlanAvailabilityRow[]>([]);
   const [createAvailabilityLoading, setCreateAvailabilityLoading] = useState(false);
 
+  const refreshCreateAvailability = useCallback(async () => {
+    if (
+      typeof createRoomPlanId !== 'number'
+      || !createReservationDate
+      || !createStartTime
+      || !createEndTime
+    ) {
+      setCreateAvailability([]);
+      return;
+    }
+
+    setCreateAvailabilityLoading(true);
+    try {
+      const rows = await fetchTableAvailability({
+        room_plan_id: createRoomPlanId,
+        reservation_date: createReservationDate,
+        start_time: createStartTime,
+        end_time: createEndTime,
+      });
+      setCreateAvailability(rows);
+    } catch {
+      setError('Failed to load table availability for manual reservation.');
+    } finally {
+      setCreateAvailabilityLoading(false);
+    }
+  }, [createRoomPlanId, createReservationDate, createStartTime, createEndTime]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -85,35 +112,8 @@ const AdminReservationsPage: React.FC = () => {
   }, [createRoomPlanId]);
 
   useEffect(() => {
-    const loadCreateAvailability = async () => {
-      if (
-        typeof createRoomPlanId !== 'number'
-        || !createReservationDate
-        || !createStartTime
-        || !createEndTime
-      ) {
-        setCreateAvailability([]);
-        return;
-      }
-
-      setCreateAvailabilityLoading(true);
-      try {
-        const rows = await fetchTableAvailability({
-          room_plan_id: createRoomPlanId,
-          reservation_date: createReservationDate,
-          start_time: createStartTime,
-          end_time: createEndTime,
-        });
-        setCreateAvailability(rows);
-      } catch {
-        setError('Failed to load table availability for manual reservation.');
-      } finally {
-        setCreateAvailabilityLoading(false);
-      }
-    };
-
-    void loadCreateAvailability();
-  }, [createRoomPlanId, createReservationDate, createStartTime, createEndTime]);
+    void refreshCreateAvailability();
+  }, [refreshCreateAvailability]);
 
   const createTableOptions = useMemo(() => {
     const availableLookup = new Map(createAvailability.map((row) => [row.room_plan_item_id, row]));
@@ -190,7 +190,7 @@ const AdminReservationsPage: React.FC = () => {
       setCreateNotes('');
       setCreateTableItemId('');
       setSuccess('Manual reservation created successfully.');
-      await loadData();
+      await Promise.all([loadData(), refreshCreateAvailability()]);
     } catch {
       setError('Failed to create manual reservation.');
     } finally {
