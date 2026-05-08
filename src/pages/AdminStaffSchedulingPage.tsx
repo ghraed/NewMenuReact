@@ -1083,21 +1083,21 @@ const AdminStaffSchedulingPage: React.FC = () => {
       </div>
 
       {activeNote ? (
-        <div className="fixed inset-0 z-[2147483640] flex items-center justify-center bg-[rgba(6,10,18,0.72)] p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-gold/45 bg-[linear-gradient(140deg,rgba(14,20,32,0.96),rgba(21,30,46,0.94))] shadow-[0_30px_90px_rgba(0,0,0,0.45)] ring-1 ring-white/15">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(243,215,154,0.18),transparent_60%)]" />
+        <div className="fixed inset-0 z-[2147483640] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[3px]">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-modalStroke bg-modalSurface shadow-[0_30px_90px_rgba(0,0,0,0.35)] ring-1 ring-gold/25">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(243,215,154,0.16),transparent_60%)]" />
             <div className="relative z-10 border-b border-gold/25 px-5 py-4">
               <div className="text-xs uppercase tracking-[0.14em] text-gold2/85">Shift Note</div>
-              <div className="mt-1 text-sm font-semibold text-text">{activeNote.title}</div>
+              <div className="mt-1 text-sm font-semibold text-gold2">{activeNote.title}</div>
             </div>
-            <div className="relative z-10 max-h-[55vh] overflow-auto px-5 py-4 text-sm leading-6 text-text/90">
+            <div className="relative z-10 max-h-[55vh] overflow-auto px-5 py-4 text-sm leading-6 text-gold2/90">
               {activeNote.content}
             </div>
-            <div className="relative z-10 flex justify-end border-t border-white/10 px-5 py-4">
+            <div className="relative z-10 flex justify-end border-t border-gold/20 px-5 py-4">
               <button
                 type="button"
                 onClick={() => setActiveNote(null)}
-                className="rounded-full border border-gold/45 bg-gold/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-gold2 transition hover:bg-gold/30"
+                className="rounded-full border border-gold/45 bg-gold/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-gold2 transition hover:bg-gold/25"
               >
                 Close
               </button>
