@@ -3,6 +3,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import GlassToast from '../components/ui/liquid-glass/GlassToast';
 import { useGlassToast } from '../components/ui/liquid-glass/useGlassToast';
+import { useAppTheme } from '../hooks/useGuestTheme';
 import { fetchStaffMembers } from '../services/staffService';
 import {
   createStaffShift,
@@ -173,6 +174,7 @@ const matchesMonthlyPattern = (candidateDate: string, anchorDate: string): boole
 };
 
 const AdminStaffSchedulingPage: React.FC = () => {
+  const { theme } = useAppTheme();
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [shifts, setShifts] = useState<StaffShift[]>([]);
 
@@ -1090,7 +1092,11 @@ const AdminStaffSchedulingPage: React.FC = () => {
               <div className="text-xs uppercase tracking-[0.14em] text-gold2/85">Shift Note</div>
               <div className="mt-1 text-sm font-semibold text-gold2">{activeNote.title}</div>
             </div>
-            <div className="relative z-10 max-h-[55vh] overflow-auto px-5 py-4 text-sm leading-6 text-gold2/90">
+            <div
+              className={`relative z-10 max-h-[55vh] overflow-auto px-5 py-4 text-sm leading-6 ${
+                theme === 'dark' ? 'text-text/92' : 'text-gold2/90'
+              }`}
+            >
               {activeNote.content}
             </div>
             <div className="relative z-10 flex justify-end border-t border-gold/20 px-5 py-4">
