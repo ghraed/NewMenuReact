@@ -661,7 +661,7 @@ export type PayrollPeriodStatus = 'draft' | 'approved' | 'paid';
 export type PayrollSummaryMode = 'approved_paid' | 'all';
 export type PayrollSplitMode = 'full' | 'weekly' | 'custom_days';
 export type PayrollPeriodType = 'regular' | 'adjustment';
-export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled';
+export type StaffShiftStatus = 'scheduled' | 'completed' | 'cancelled' | 'absent' | 'replaced';
 
 export interface PayrollEmployeeSummary {
   id: number;

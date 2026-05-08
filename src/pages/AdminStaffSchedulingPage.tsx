@@ -13,6 +13,32 @@ import {
 import type { StaffMember, StaffShift, StaffShiftStatus } from '../types';
 
 const today = new Date().toISOString().slice(0, 10);
+const MINUTES_PER_DAY = 24 * 60;
+
+type ScheduleViewMode = 'week' | 'day' | 'custom';
+
+type PositionCode = 'waiter' | 'cashier' | 'kitchen' | 'floor' | 'delivery' | 'manager';
+
+const POSITION_OPTIONS: Array<{ value: PositionCode; label: string }> = [
+  { value: 'waiter', label: 'Waiter' },
+  { value: 'cashier', label: 'Cashier' },
+  { value: 'kitchen', label: 'Kitchen' },
+  { value: 'floor', label: 'Floor' },
+  { value: 'delivery', label: 'Delivery' },
+  { value: 'manager', label: 'Manager' },
+];
+
+const STATUS_OPTIONS: StaffShiftStatus[] = ['scheduled', 'completed', 'cancelled', 'absent', 'replaced'];
+
+const REQUIRED_DAILY_COVERAGE: PositionCode[] = ['waiter', 'kitchen', 'cashier'];
+
+const STATUS_BADGE_CLASS: Record<StaffShiftStatus, string> = {
+  scheduled: 'border-gold/40 bg-gold/15 text-gold2',
+  completed: 'border-sage/40 bg-sage/15 text-sage',
+  cancelled: 'border-spicy/40 bg-spicy/15 text-spicy',
+  absent: 'border-red-400/45 bg-red-400/15 text-red-200',
+  replaced: 'border-sky-300/45 bg-sky-300/15 text-sky-200',
+};
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -33,41 +59,143 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const STATUS_OPTIONS: StaffShiftStatus[] = ['scheduled', 'completed', 'cancelled'];
+const toMinutes = (time: string): number => {
+  const [hour, minute] = time.slice(0, 5).split(':').map(Number);
+  return hour * 60 + minute;
+};
+
+const toEpochDay = (dateValue: string): number => {
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  return Math.floor(parsed.getTime() / (1000 * 60 * 60 * 24));
+};
+
+const formatTime = (time: string): string => time.slice(0, 5);
+
+const titleize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
+
+const startOfWeek = (dateValue: string): string => {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const weekday = date.getDay();
+  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+  const start = new Date(date);
+  start.setDate(date.getDate() + mondayOffset);
+  return start.toISOString().slice(0, 10);
+};
+
+const addDays = (dateValue: string, days: number): string => {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const detectOvernight = (startTime: string, endTime: string, explicitOvernight: boolean): boolean => {
+  if (explicitOvernight) return true;
+  return toMinutes(endTime) <= toMinutes(startTime);
+};
+
+const computeDurationMinutes = (
+  startTime: string,
+  endTime: string,
+  explicitOvernight: boolean,
+  breakMinutes: number
+): number => {
+  const start = toMinutes(startTime);
+  let end = toMinutes(endTime);
+  if (detectOvernight(startTime, endTime, explicitOvernight)) {
+    end += MINUTES_PER_DAY;
+  }
+  return Math.max(0, end - start - Math.max(0, breakMinutes));
+};
+
+const getShiftRangeMinutes = (
+  shiftDate: string,
+  startTime: string,
+  endTime: string,
+  explicitOvernight: boolean
+): { startAbs: number; endAbs: number } => {
+  const day = toEpochDay(shiftDate);
+  const start = day * MINUTES_PER_DAY + toMinutes(startTime);
+  let end = day * MINUTES_PER_DAY + toMinutes(endTime);
+  if (detectOvernight(startTime, endTime, explicitOvernight)) {
+    end += MINUTES_PER_DAY;
+  }
+  return { startAbs: start, endAbs: end };
+};
+
+const parseBreakMinutesFromNotes = (notes: string | null | undefined): number => {
+  if (!notes) return 0;
+  const match = notes.match(/\[break:(\d+)m\]/i);
+  if (!match) return 0;
+  return Number(match[1]) || 0;
+};
+
+const withBreakTag = (notes: string, breakMinutes: number): string | undefined => {
+  const cleaned = notes.replace(/\s*\[break:\d+m\]\s*/gi, ' ').trim();
+  if (breakMinutes <= 0) return cleaned || undefined;
+  const tagged = cleaned ? `${cleaned} [break:${breakMinutes}m]` : `[break:${breakMinutes}m]`;
+  return tagged;
+};
 
 const AdminStaffSchedulingPage: React.FC = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [shifts, setShifts] = useState<StaffShift[]>([]);
-  const [dateFrom, setDateFrom] = useState(today.slice(0, 8) + '01');
-  const [dateTo, setDateTo] = useState(today);
+
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>('week');
+  const [weekAnchorDate, setWeekAnchorDate] = useState(today);
+  const [dateFrom, setDateFrom] = useState(startOfWeek(today));
+  const [dateTo, setDateTo] = useState(addDays(startOfWeek(today), 6));
+
   const [staffFilterId, setStaffFilterId] = useState<number | ''>('');
+  const [positionFilter, setPositionFilter] = useState<PositionCode | ''>('');
+  const [statusFilter, setStatusFilter] = useState<StaffShiftStatus | ''>('');
+
   const [employeeId, setEmployeeId] = useState<number | ''>('');
   const [shiftDate, setShiftDate] = useState(today);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
-  const [position, setPosition] = useState('');
+  const [allowOvernight, setAllowOvernight] = useState(false);
+  const [position, setPosition] = useState<PositionCode | ''>('');
+  const [breakMinutes, setBreakMinutes] = useState(0);
   const [notes, setNotes] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [savingStatusId, setSavingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const { toast, showToast, dismiss } = useGlassToast(3600);
+
+  const { toast, showToast, dismiss } = useGlassToast(3800);
 
   useEffect(() => {
-    if (error) {
-      showToast(error, 'tertiary');
+    if (viewMode === 'week') {
+      const weekStart = startOfWeek(weekAnchorDate);
+      setDateFrom(weekStart);
+      setDateTo(addDays(weekStart, 6));
     }
+  }, [viewMode, weekAnchorDate]);
+
+  useEffect(() => {
+    if (viewMode === 'day') {
+      setDateFrom(weekAnchorDate);
+      setDateTo(weekAnchorDate);
+    }
+  }, [viewMode, weekAnchorDate]);
+
+  useEffect(() => {
+    if (error) showToast(error, 'tertiary');
   }, [error, showToast]);
 
   useEffect(() => {
-    if (success) {
-      showToast(success, 'primary');
-    }
+    if (success) showToast(success, 'primary');
   }, [showToast, success]);
 
   const scheduleEligibleStaff = useMemo(
     () => staffMembers.filter((member) => member.role === 'staff' || member.role === 'chef'),
+    [staffMembers]
+  );
+
+  const employeeNameById = useMemo(
+    () => new Map(staffMembers.map((member) => [member.id, member.name])),
     [staffMembers]
   );
 
@@ -82,6 +210,8 @@ const AdminStaffSchedulingPage: React.FC = () => {
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
           user_id: typeof staffFilterId === 'number' ? staffFilterId : undefined,
+          position: positionFilter || undefined,
+          status: statusFilter || undefined,
         }),
       ]);
 
@@ -96,15 +226,95 @@ const AdminStaffSchedulingPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, employeeId, staffFilterId]);
+  }, [dateFrom, dateTo, employeeId, positionFilter, staffFilterId, statusFilter]);
 
   useEffect(() => {
     void loadPageData();
   }, [loadPageData]);
 
-  const employeeNameById = useMemo(
-    () => new Map(staffMembers.map((member) => [member.id, member.name])),
-    [staffMembers]
+  const filteredShifts = useMemo(() => {
+    return shifts.filter((shift) => {
+      if (positionFilter && (shift.position || '').toLowerCase() !== positionFilter) {
+        return false;
+      }
+      if (statusFilter && shift.status !== statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [positionFilter, shifts, statusFilter]);
+
+  const coverageWarnings = useMemo(() => {
+    if (viewMode !== 'week') return [];
+
+    const warnings: string[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      const day = addDays(dateFrom, i);
+      const dayShifts = filteredShifts.filter((shift) => shift.shift_date === day && shift.status !== 'cancelled');
+
+      REQUIRED_DAILY_COVERAGE.forEach((requiredPosition) => {
+        const hasCoverage = dayShifts.some((shift) => (shift.position || '').toLowerCase() === requiredPosition);
+        if (!hasCoverage) {
+          warnings.push(`${day}: Missing ${requiredPosition} coverage.`);
+        }
+      });
+    }
+
+    return warnings;
+  }, [dateFrom, filteredShifts, viewMode]);
+
+  const weeklyColumns = useMemo(() => {
+    if (viewMode !== 'week') return [];
+
+    return Array.from({ length: 7 }).map((_, index) => {
+      const date = addDays(dateFrom, index);
+      const dayShifts = filteredShifts.filter((shift) => shift.shift_date === date);
+      return { date, shifts: dayShifts };
+    });
+  }, [dateFrom, filteredShifts, viewMode]);
+
+  const workedHoursPreview = useMemo(() => {
+    const minutes = computeDurationMinutes(startTime, endTime, allowOvernight, breakMinutes);
+    return (minutes / 60).toFixed(2);
+  }, [allowOvernight, breakMinutes, endTime, startTime]);
+
+  const hasEmployeeConflict = useCallback(
+    (candidate: { userId: number; shiftDate: string; startTime: string; endTime: string; overnight: boolean }): boolean => {
+      const candidateRange = getShiftRangeMinutes(
+        candidate.shiftDate,
+        candidate.startTime,
+        candidate.endTime,
+        candidate.overnight
+      );
+
+      return shifts.some((shift) => {
+        if (shift.user_id !== candidate.userId) return false;
+        if (shift.status === 'cancelled') return false;
+
+        const existingRange = getShiftRangeMinutes(
+          shift.shift_date,
+          shift.start_time,
+          shift.end_time,
+          detectOvernight(shift.start_time, shift.end_time, false)
+        );
+
+        return candidateRange.startAbs < existingRange.endAbs && existingRange.startAbs < candidateRange.endAbs;
+      });
+    },
+    [shifts]
+  );
+
+  const hasDuplicateShift = useCallback(
+    (candidate: { userId: number; shiftDate: string; startTime: string; endTime: string }): boolean => {
+      return shifts.some(
+        (shift) =>
+          shift.user_id === candidate.userId &&
+          shift.shift_date === candidate.shiftDate &&
+          shift.start_time.slice(0, 5) === candidate.startTime &&
+          shift.end_time.slice(0, 5) === candidate.endTime
+      );
+    },
+    [shifts]
   );
 
   const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -117,8 +327,56 @@ const AdminStaffSchedulingPage: React.FC = () => {
       return;
     }
 
-    if (startTime >= endTime) {
-      setError('End time must be after start time.');
+    const selectedEmployee = scheduleEligibleStaff.find((member) => member.id === employeeId);
+    if (!selectedEmployee) {
+      setError('Inactive employees cannot be scheduled.');
+      return;
+    }
+
+    if (position === '') {
+      setError('Please select a position for this shift.');
+      return;
+    }
+
+    const isOvernight = detectOvernight(startTime, endTime, allowOvernight);
+    if (!allowOvernight && toMinutes(endTime) <= toMinutes(startTime)) {
+      setError('End time must be after start time, or mark this as an overnight shift.');
+      return;
+    }
+
+    if (breakMinutes < 0 || breakMinutes >= 24 * 60) {
+      setError('Break minutes must be between 0 and 1439.');
+      return;
+    }
+
+    const workedMinutes = computeDurationMinutes(startTime, endTime, isOvernight, breakMinutes);
+    if (workedMinutes <= 0) {
+      setError('Worked hours must be greater than zero after break time.');
+      return;
+    }
+
+    if (
+      hasDuplicateShift({
+        userId: employeeId,
+        shiftDate,
+        startTime,
+        endTime,
+      })
+    ) {
+      setError('Duplicate identical shifts are not allowed for the same employee.');
+      return;
+    }
+
+    if (
+      hasEmployeeConflict({
+        userId: employeeId,
+        shiftDate,
+        startTime,
+        endTime,
+        overnight: isOvernight,
+      })
+    ) {
+      setError('This employee already has a shift during this time.');
       return;
     }
 
@@ -127,17 +385,19 @@ const AdminStaffSchedulingPage: React.FC = () => {
       shift_date: shiftDate,
       start_time: startTime,
       end_time: endTime,
-      position: position.trim() || undefined,
-      notes: notes.trim() || undefined,
+      position,
+      status: 'scheduled',
+      notes: withBreakTag(notes, breakMinutes),
     };
 
     setCreating(true);
 
     try {
       await createStaffShift(payload);
-      setSuccess('Shift created successfully.');
+      setSuccess(`Shift created successfully (${(workedMinutes / 60).toFixed(2)} worked hours).`);
       setPosition('');
       setNotes('');
+      setBreakMinutes(0);
       await loadPageData();
     } catch (createError: unknown) {
       setError(getErrorMessage(createError, 'Failed to create shift.'));
@@ -146,14 +406,31 @@ const AdminStaffSchedulingPage: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (shiftId: number, status: StaffShiftStatus) => {
-    setSavingStatusId(shiftId);
+  const handleStatusChange = async (shift: StaffShift, status: StaffShiftStatus) => {
+    setSavingStatusId(shift.id);
     setError(null);
     setSuccess(null);
 
+    const isPastOrToday = shift.shift_date <= today;
+    let nextNotes = shift.notes ?? undefined;
+
+    if (shift.status === 'completed' && status !== 'completed' && isPastOrToday) {
+      const correctionNote = window.prompt(
+        'Completed shifts used in payroll cannot be edited without a correction note. Enter correction note:'
+      );
+
+      if (!correctionNote || correctionNote.trim() === '') {
+        setSavingStatusId(null);
+        setError('Completed shifts used in payroll cannot be edited without a correction note.');
+        return;
+      }
+
+      nextNotes = `${shift.notes ? `${shift.notes} | ` : ''}Correction: ${correctionNote.trim()}`;
+    }
+
     try {
-      const updatedShift = await updateStaffShift(shiftId, { status });
-      setShifts((current) => current.map((shift) => (shift.id === shiftId ? updatedShift : shift)));
+      const updatedShift = await updateStaffShift(shift.id, { status, notes: nextNotes });
+      setShifts((current) => current.map((row) => (row.id === shift.id ? updatedShift : row)));
       setSuccess('Shift status updated.');
     } catch (updateError: unknown) {
       setError(getErrorMessage(updateError, 'Failed to update shift status.'));
@@ -167,7 +444,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.85fr)]">
         <GlassCard>
           <h2 className="text-lg font-semibold text-text">Create Shift</h2>
-          <p className="mt-1 text-sm text-muted">Assign schedule blocks for staff and kitchen team.</p>
+          <p className="mt-1 text-sm text-muted">Weekly-first planning with conflict-safe shift creation.</p>
 
           <form className="mt-5 space-y-4" onSubmit={handleCreate}>
             <label className="block">
@@ -203,13 +480,19 @@ const AdminStaffSchedulingPage: React.FC = () => {
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Position</span>
-                <input
-                  type="text"
+                <select
                   value={position}
-                  onChange={(event) => setPosition(event.target.value)}
-                  placeholder="Floor, Kitchen, Cashier"
-                  className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                />
+                  onChange={(event) => setPosition(event.target.value as PositionCode | '')}
+                  className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                  required
+                >
+                  <option value="">Select position</option>
+                  {POSITION_OPTIONS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
 
@@ -236,6 +519,34 @@ const AdminStaffSchedulingPage: React.FC = () => {
               </label>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex items-center gap-2 rounded-2xl border border-stroke bg-bg1/45 px-3 py-2.5 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={allowOvernight}
+                  onChange={(event) => setAllowOvernight(event.target.checked)}
+                  className="h-4 w-4 accent-[rgb(var(--color-gold))]"
+                />
+                Overnight shift
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Break (minutes)</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={1439}
+                  step={5}
+                  value={breakMinutes}
+                  onChange={(event) => setBreakMinutes(Number(event.target.value) || 0)}
+                  className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+                />
+              </label>
+            </div>
+
+            <div className="rounded-2xl border border-stroke bg-bg1/40 px-4 py-2.5 text-sm text-muted">
+              Worked hours preview: <span className="font-semibold text-text">{workedHoursPreview}h</span>
+            </div>
+
             <label className="block">
               <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
               <textarea
@@ -257,35 +568,37 @@ const AdminStaffSchedulingPage: React.FC = () => {
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h3 className="text-lg font-semibold text-text">Scheduled Shifts</h3>
-              <p className="mt-1 text-sm text-muted">Track and update shift status for the selected date range.</p>
+              <p className="mt-1 text-sm text-muted">Plan weekly by default, then refine by day, employee, position, and status.</p>
             </div>
             <LiquidButton type="button" tone="tertiary" onClick={() => void loadPageData()} disabled={loading}>
               {loading ? 'Loading...' : 'Refresh'}
             </LiquidButton>
           </div>
 
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date From</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Workflow</span>
+              <select
+                value={viewMode}
+                onChange={(event) => setViewMode(event.target.value as ScheduleViewMode)}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="week">Weekly (recommended)</option>
+                <option value="day">Daily</option>
+                <option value="custom">Custom range</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">
+                {viewMode === 'week' ? 'Week anchor date' : 'Date'}
+              </span>
               <input
                 type="date"
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
+                value={weekAnchorDate}
+                onChange={(event) => setWeekAnchorDate(event.target.value)}
                 className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
               />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date To</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-              />
-            </label>
-          </div>
-
-          <div className="mb-4">
             <label className="block">
               <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee Filter</span>
               <select
@@ -306,9 +619,84 @@ const AdminStaffSchedulingPage: React.FC = () => {
             </label>
           </div>
 
+          <div className="mb-4 grid gap-3 sm:grid-cols-4">
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date From</span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(event) => setDateFrom(event.target.value)}
+                disabled={viewMode !== 'custom'}
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition disabled:opacity-60 focus:border-gold/60"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date To</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(event) => setDateTo(event.target.value)}
+                disabled={viewMode !== 'custom'}
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition disabled:opacity-60 focus:border-gold/60"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Position Filter</span>
+              <select
+                value={positionFilter}
+                onChange={(event) => setPositionFilter(event.target.value as PositionCode | '')}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="">All positions</option>
+                {POSITION_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Status Filter</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as StaffShiftStatus | '')}
+                className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
+              >
+                <option value="">All statuses</option>
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {titleize(status)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {viewMode === 'week' ? (
+            <div className="mb-4 rounded-2xl border border-stroke bg-bg1/35 p-3">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
+                {weeklyColumns.map((column) => (
+                  <div key={column.date} className="rounded-xl border border-stroke/70 bg-bg1/45 p-2.5">
+                    <div className="text-xs uppercase tracking-[0.12em] text-gold2/85">{column.date}</div>
+                    <div className="mt-1 text-sm text-text">{column.shifts.length} shift(s)</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {coverageWarnings.length > 0 ? (
+            <div className="mb-4 rounded-2xl border border-amber-300/35 bg-amber-200/10 px-4 py-3 text-sm text-amber-100">
+              {coverageWarnings.slice(0, 4).map((warning) => (
+                <div key={warning}>{warning}</div>
+              ))}
+              {coverageWarnings.length > 4 ? <div>+{coverageWarnings.length - 4} more coverage warnings.</div> : null}
+            </div>
+          ) : null}
+
           {loading ? (
             <div className="rounded-2xl border border-stroke bg-bg1/55 p-5 text-sm text-muted">Loading shifts...</div>
-          ) : shifts.length === 0 ? (
+          ) : filteredShifts.length === 0 ? (
             <div className="rounded-2xl border border-stroke bg-bg1/55 p-5 text-sm text-muted">No shifts in this range.</div>
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-stroke">
@@ -318,33 +706,57 @@ const AdminStaffSchedulingPage: React.FC = () => {
                     <th className="px-3 py-3">Date</th>
                     <th className="px-3 py-3">Employee</th>
                     <th className="px-3 py-3">Time</th>
+                    <th className="px-3 py-3">Worked Hours</th>
                     <th className="px-3 py-3">Position</th>
                     <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shifts.map((shift) => (
-                    <tr key={shift.id} className="border-t border-stroke/70 bg-bg1/45">
-                      <td className="px-3 py-3 text-text">{shift.shift_date}</td>
-                      <td className="px-3 py-3 text-text">
-                        {shift.employee?.name || employeeNameById.get(shift.user_id) || `#${shift.user_id}`}
-                      </td>
-                      <td className="px-3 py-3 text-muted">{shift.start_time.slice(0, 5)} - {shift.end_time.slice(0, 5)}</td>
-                      <td className="px-3 py-3 text-muted">{shift.position || '-'}</td>
-                      <td className="px-3 py-3">
-                        <select
-                          value={shift.status}
-                          onChange={(event) => void handleStatusChange(shift.id, event.target.value as StaffShiftStatus)}
-                          disabled={savingStatusId === shift.id}
-                          className="themed-native-select rounded-full border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none"
-                        >
-                          {STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredShifts.map((shift) => {
+                    const breakFromNotes = parseBreakMinutesFromNotes(shift.notes);
+                    const overnight = detectOvernight(shift.start_time, shift.end_time, false);
+                    const workedHours = (
+                      computeDurationMinutes(shift.start_time, shift.end_time, overnight, breakFromNotes) / 60
+                    ).toFixed(2);
+
+                    return (
+                      <tr key={shift.id} className="border-t border-stroke/70 bg-bg1/45">
+                        <td className="px-3 py-3 text-text">{shift.shift_date}</td>
+                        <td className="px-3 py-3 text-text">
+                          {shift.employee?.name || employeeNameById.get(shift.user_id) || `#${shift.user_id}`}
+                        </td>
+                        <td className="px-3 py-3 text-muted">
+                          {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+                          {overnight ? ' (+1 day)' : ''}
+                        </td>
+                        <td className="px-3 py-3 text-text">{workedHours}h</td>
+                        <td className="px-3 py-3 text-muted">{shift.position ? titleize(shift.position) : '-'}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] ${STATUS_BADGE_CLASS[shift.status]}`}
+                            >
+                              {shift.status}
+                            </span>
+                            <select
+                              value={shift.status}
+                              onChange={(event) => void handleStatusChange(shift, event.target.value as StaffShiftStatus)}
+                              disabled={savingStatusId === shift.id}
+                              className="themed-native-select rounded-full border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none"
+                            >
+                              {STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-muted">{shift.notes || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
