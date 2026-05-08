@@ -484,12 +484,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
     labels: chartLabels,
     datasets: selectedMetrics.map((metric) => {
       const palette: Record<MetricKey, { bg: string; border: string }> = {
-        revenue: { bg: 'rgba(203, 168, 98, 0.78)', border: 'rgba(240, 213, 155, 0.95)' },
-        totalCosts: { bg: 'rgba(214, 131, 125, 0.72)', border: 'rgba(244, 183, 172, 0.92)' },
-        netProfit: { bg: 'rgba(102, 193, 146, 0.28)', border: 'rgba(118, 223, 170, 0.96)' },
-        cogs: { bg: 'rgba(232, 169, 113, 0.7)', border: 'rgba(250, 210, 164, 0.92)' },
-        operatingExpenses: { bg: 'rgba(128, 157, 214, 0.72)', border: 'rgba(179, 204, 249, 0.94)' },
-        payroll: { bg: 'rgba(176, 150, 219, 0.72)', border: 'rgba(213, 191, 244, 0.94)' },
+        revenue: { bg: 'rgba(201, 162, 90, 0.8)', border: 'rgba(233, 203, 147, 0.96)' },
+        totalCosts: { bg: 'rgba(180, 139, 92, 0.76)', border: 'rgba(218, 181, 128, 0.94)' },
+        netProfit: { bg: 'rgba(122, 156, 115, 0.34)', border: 'rgba(164, 201, 152, 0.94)' },
+        cogs: { bg: 'rgba(170, 121, 73, 0.76)', border: 'rgba(207, 163, 114, 0.94)' },
+        operatingExpenses: { bg: 'rgba(156, 128, 99, 0.72)', border: 'rgba(201, 171, 138, 0.94)' },
+        payroll: { bg: 'rgba(144, 113, 91, 0.72)', border: 'rgba(188, 152, 126, 0.94)' },
       };
       const isNetProfit = metric === 'netProfit';
       return {
@@ -521,26 +521,26 @@ const AdminFinanceDashboardPage: React.FC = () => {
         display: true,
         position: 'top',
         labels: {
-          color: 'rgba(233, 205, 147, 0.96)',
-          boxWidth: 14,
-          boxHeight: 14,
-          borderRadius: 5,
+          color: 'rgba(205, 168, 109, 0.98)',
+          boxWidth: 12,
+          boxHeight: 12,
+          borderRadius: 4,
           useBorderRadius: true,
-          padding: 18,
+          padding: 16,
           font: {
-            size: 12,
+            size: 11,
             weight: 600,
           },
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(19, 23, 32, 0.94)',
-        borderColor: 'rgba(235, 203, 135, 0.45)',
+        backgroundColor: 'rgba(36, 31, 24, 0.92)',
+        borderColor: 'rgba(216, 180, 120, 0.42)',
         borderWidth: 1,
-        titleColor: '#f4ddb0',
-        bodyColor: '#fff9ea',
-        cornerRadius: 12,
-        padding: 12,
+        titleColor: '#f2d8a1',
+        bodyColor: '#fff7e8',
+        cornerRadius: 10,
+        padding: 10,
         callbacks: {
           label: (context) => `${context.dataset.label}: ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
         },
@@ -549,11 +549,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(226, 195, 130, 0.08)',
+          color: 'rgba(213, 179, 120, 0.07)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(226, 195, 130, 0.92)',
+          color: 'rgba(206, 168, 106, 0.9)',
           font: {
             family: 'Cormorant Garamond, serif',
             size: 13,
@@ -563,11 +563,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
       },
       y: {
         grid: {
-          color: 'rgba(226, 195, 130, 0.11)',
+          color: 'rgba(213, 179, 120, 0.1)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(226, 195, 130, 0.9)',
+          color: 'rgba(206, 168, 106, 0.9)',
           font: {
             family: 'Cormorant Garamond, serif',
             size: 12,
@@ -818,7 +818,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
             ) : null}
 
-            <div className="h-[320px] w-full">
+            <div className="h-[320px] w-full rounded-2xl border border-gold/20 bg-gradient-to-b from-[#fff9ed]/45 via-bg1/35 to-bg1/45 p-3 shadow-[inset_0_1px_0_rgba(255,245,220,0.35)]">
               {chartHasData ? (
                 <Bar data={chartData} options={chartOptions} />
               ) : (
