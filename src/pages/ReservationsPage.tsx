@@ -142,6 +142,16 @@ const ReservationsPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!reservationDate || !startTime || !endTime) {
+      setError('Reservation date and time range are required.');
+      return;
+    }
+
+    if (startTime >= endTime) {
+      setError('End time must be later than start time.');
+      return;
+    }
+
     if (!selectedPlanId || !selectedTableItemId || !selectedTableItem) {
       setError('Please select an available table before booking.');
       return;
@@ -150,6 +160,14 @@ const ReservationsPage: React.FC = () => {
     if (!customerName.trim() || !customerPhone.trim()) {
       setError('Customer name and phone are required.');
       return;
+    }
+
+    if (customerEmail.trim()) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(customerEmail.trim())) {
+        setError('Please enter a valid email address.');
+        return;
+      }
     }
 
     if ((selectedTableItem.type !== 'table' && selectedTableItem.type !== 'table_circle') || !selectedTableItem.is_active) {
@@ -221,35 +239,47 @@ const ReservationsPage: React.FC = () => {
           <div className="space-y-4">
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <select
-                  value={selectedPlanId ?? ''}
-                  onChange={(event) => setSelectedPlanId(Number(event.target.value))}
-                  className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                >
-                  {roomPlans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>{plan.name}</option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  value={reservationDate}
-                  onChange={(event) => setReservationDate(event.target.value)}
-                  className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                />
-                <select
-                  value={startTime}
-                  onChange={(event) => setStartTime(event.target.value)}
-                  className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                >
-                  {timeSlots.map((slot) => <option key={`start-${slot}`} value={slot}>{slot}</option>)}
-                </select>
-                <select
-                  value={endTime}
-                  onChange={(event) => setEndTime(event.target.value)}
-                  className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                >
-                  {timeSlots.map((slot) => <option key={`end-${slot}`} value={slot}>{slot}</option>)}
-                </select>
+                <label className="block text-sm text-text">
+                  <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Room Plan</span>
+                  <select
+                    value={selectedPlanId ?? ''}
+                    onChange={(event) => setSelectedPlanId(Number(event.target.value))}
+                    className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  >
+                    {roomPlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm text-text">
+                  <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Reservation Date</span>
+                  <input
+                    type="date"
+                    value={reservationDate}
+                    onChange={(event) => setReservationDate(event.target.value)}
+                    className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  />
+                </label>
+                <label className="block text-sm text-text">
+                  <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Start Time</span>
+                  <select
+                    value={startTime}
+                    onChange={(event) => setStartTime(event.target.value)}
+                    className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  >
+                    {timeSlots.map((slot) => <option key={`start-${slot}`} value={slot}>{slot}</option>)}
+                  </select>
+                </label>
+                <label className="block text-sm text-text">
+                  <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">End Time</span>
+                  <select
+                    value={endTime}
+                    onChange={(event) => setEndTime(event.target.value)}
+                    className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  >
+                    {timeSlots.map((slot) => <option key={`end-${slot}`} value={slot}>{slot}</option>)}
+                  </select>
+                </label>
               </div>
               <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted">
                 <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full" style={{ backgroundColor: '#22c55e' }} /> Free</span>
@@ -340,34 +370,46 @@ const ReservationsPage: React.FC = () => {
             </p>
 
             <form className="mt-4 space-y-3" onSubmit={(event) => void handleSubmit(event)}>
-              <input
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                placeholder="Customer name"
-                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              />
-              <input
-                value={customerPhone}
-                onChange={(event) => setCustomerPhone(event.target.value)}
-                placeholder="Customer phone"
-                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              />
-              <input
-                type="email"
-                value={customerEmail}
-                onChange={(event) => setCustomerEmail(event.target.value)}
-                placeholder="Customer email (optional)"
-                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-              />
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="Notes (optional)"
-                rows={4}
-                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-              />
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Customer Name</span>
+                <input
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                  placeholder="e.g. Maya Hassan"
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                />
+              </label>
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Customer Phone</span>
+                <input
+                  value={customerPhone}
+                  onChange={(event) => setCustomerPhone(event.target.value)}
+                  placeholder="e.g. +961 70 000 000"
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                />
+              </label>
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Customer Email (Optional)</span>
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(event) => setCustomerEmail(event.target.value)}
+                  placeholder="e.g. maya@example.com"
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                />
+              </label>
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Notes (Optional)</span>
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Special requests, seating preferences, allergies..."
+                  rows={4}
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                />
+              </label>
               <button
                 type="submit"
                 disabled={submitting || !selectedTableItemId}

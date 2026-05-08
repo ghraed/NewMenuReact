@@ -74,11 +74,12 @@ const AdminCurrencyPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      const parsedRate = Number(dollarRate);
+      const normalizedRate = dollarRate.trim();
+      const parsedRate = Number(normalizedRate);
       const safeDollarRate = originalCurrency === 'USD' ? 1 : parsedRate;
 
       if (!Number.isFinite(safeDollarRate) || safeDollarRate <= 0) {
-        setError('Please enter a valid dollar rate greater than zero.');
+        setError('Exchange rate must be a number greater than 0.');
         setSaving(false);
         return;
       }
@@ -123,7 +124,7 @@ const AdminCurrencyPage: React.FC = () => {
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
-                Original Currency
+                Base Menu Currency
               </label>
               <GlassSelect
                 id="currency"
@@ -145,13 +146,13 @@ const AdminCurrencyPage: React.FC = () => {
 
             <div>
               <label htmlFor="dollar_rate" className="mb-1 block text-sm font-medium text-text">
-                Dollar Rate
+                USD Exchange Rate
               </label>
               <GlassInput
                 id="dollar_rate"
                 name="dollar_rate"
                 type="number"
-                min="0"
+                min="0.000001"
                 step="0.01"
                 value={dollarRate}
                 onChange={(event) => setDollarRate(event.target.value)}
@@ -160,7 +161,7 @@ const AdminCurrencyPage: React.FC = () => {
               />
               <p className="mt-2 text-xs text-muted">
                 {originalCurrency === 'USD'
-                  ? 'USD to USD rate is not allowed to be edited. It is always fixed to 1.'
+                  ? 'This value is fixed at 1 when the base menu currency is USD.'
                   : `Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
               </p>
             </div>

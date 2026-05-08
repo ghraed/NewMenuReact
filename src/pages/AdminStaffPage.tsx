@@ -38,6 +38,10 @@ const mapAssignments = (staffMembers: StaffMember[]): AssignmentState => (
   )
 );
 
+const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+const normalizePhone = (value: string): string => value.replace(/[^\d+]/g, '');
+
 const AdminStaffPage: React.FC = () => {
   const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
@@ -147,6 +151,16 @@ const AdminStaffPage: React.FC = () => {
       return;
     }
 
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      setPageError('Please enter a valid email address.');
+      return;
+    }
+
+    if (normalizedPhone && normalizePhone(normalizedPhone).length < 7) {
+      setPageError('Please enter a valid phone number.');
+      return;
+    }
+
     if (manualModeRequiresCount) {
       setPageError('Set manual table count before assigning tables.');
       return;
@@ -206,10 +220,19 @@ const AdminStaffPage: React.FC = () => {
         <GlassCard noise={false}>
           <h2 className="text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <GlassInput id="staff-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Maya Hassan" disabled={creating} required />
+            <div>
+              <label htmlFor="staff-name" className="mb-2 block text-sm font-medium text-text">Staff Name</label>
+              <GlassInput id="staff-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Maya Hassan" disabled={creating} required />
+            </div>
             <div className="grid gap-5 md:grid-cols-2">
-              <GlassInput id="staff-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="maya@restaurant.com" disabled={creating} />
-              <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+961 70 000 000" disabled={creating} />
+              <div>
+                <label htmlFor="staff-email" className="mb-2 block text-sm font-medium text-text">Email (Optional)</label>
+                <GlassInput id="staff-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="maya@restaurant.com" disabled={creating} />
+              </div>
+              <div>
+                <label htmlFor="staff-phone" className="mb-2 block text-sm font-medium text-text">Phone (Optional)</label>
+                <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+961 70 000 000" disabled={creating} />
+              </div>
             </div>
             <div>
               <div className="mb-2 block text-sm font-medium text-text">Role</div>
