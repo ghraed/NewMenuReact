@@ -485,10 +485,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
     datasets: selectedMetrics.map((metric) => {
       const palette: Record<MetricKey, { bg: string; border: string }> = {
         revenue: { bg: 'rgba(201, 162, 90, 0.8)', border: 'rgba(233, 203, 147, 0.96)' },
-        totalCosts: { bg: 'rgba(180, 139, 92, 0.76)', border: 'rgba(218, 181, 128, 0.94)' },
+        totalCosts: { bg: 'rgba(188, 132, 86, 0.78)', border: 'rgba(226, 171, 119, 0.95)' },
         netProfit: { bg: 'rgba(122, 156, 115, 0.34)', border: 'rgba(164, 201, 152, 0.94)' },
         cogs: { bg: 'rgba(170, 121, 73, 0.76)', border: 'rgba(207, 163, 114, 0.94)' },
-        operatingExpenses: { bg: 'rgba(156, 128, 99, 0.72)', border: 'rgba(201, 171, 138, 0.94)' },
+        operatingExpenses: { bg: 'rgba(143, 122, 102, 0.74)', border: 'rgba(189, 163, 138, 0.94)' },
         payroll: { bg: 'rgba(144, 113, 91, 0.72)', border: 'rgba(188, 152, 126, 0.94)' },
       };
       const isNetProfit = metric === 'netProfit';
