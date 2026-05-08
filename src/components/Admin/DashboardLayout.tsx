@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -61,6 +61,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const { logout, user } = useAuth();
   const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const lastPathnameRef = useRef(location.pathname);
 
   const navItems: NavItem[] = user?.role === 'chef'
     ? [
@@ -99,18 +100,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   ));
 
   useEffect(() => {
-    if (!mobileNavOpen || typeof window === 'undefined') {
-      return;
-    }
-
-    const animationFrameId = window.requestAnimationFrame(() => {
+    if (location.pathname !== lastPathnameRef.current) {
       setMobileNavOpen(false);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(animationFrameId);
-    };
-  }, [location.pathname, mobileNavOpen]);
+      lastPathnameRef.current = location.pathname;
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
