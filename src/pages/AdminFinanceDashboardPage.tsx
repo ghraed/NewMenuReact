@@ -489,7 +489,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         netProfit: { bg: 'rgba(122, 156, 115, 0.34)', border: 'rgba(164, 201, 152, 0.94)' },
         cogs: { bg: 'rgba(170, 121, 73, 0.76)', border: 'rgba(207, 163, 114, 0.94)' },
         operatingExpenses: { bg: 'rgba(143, 122, 102, 0.74)', border: 'rgba(189, 163, 138, 0.94)' },
-        payroll: { bg: 'rgba(144, 113, 91, 0.72)', border: 'rgba(188, 152, 126, 0.94)' },
+        payroll: { bg: 'rgba(132, 101, 124, 0.76)', border: 'rgba(177, 144, 170, 0.95)' },
       };
       const isNetProfit = metric === 'netProfit';
       return {
