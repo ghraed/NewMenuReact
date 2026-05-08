@@ -211,6 +211,8 @@ const isExpenseCogs = (expense: FinanceExpense): boolean => {
     || name.includes('inventory')
     || name.includes('stock');
 };
+const INVOICE_PAGE_SIZE = 200;
+const EXPENSE_PAGE_SIZE = 200;
 
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -269,21 +271,57 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
 
     try {
-      const [invoiceResponse, expenseResponse] = await Promise.all([
-        fetchInvoices({
+      const fetchAllInvoices = async (): Promise<FinanceInvoice[]> => {
+        const firstPage = await fetchInvoices({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
           status: statusFilter || undefined,
-          per_page: 200,
-        }),
-        fetchExpenses({
+          per_page: INVOICE_PAGE_SIZE,
+          page: 1,
+        });
+        const allInvoices = [...firstPage.invoices];
+        const lastPage = Math.max(1, firstPage.meta?.last_page || 1);
+        if (lastPage > 1) {
+          const remainingPages = await Promise.all(
+            Array.from({ length: lastPage - 1 }, (_, index) => fetchInvoices({
+              date_from: dateFrom || undefined,
+              date_to: dateTo || undefined,
+              status: statusFilter || undefined,
+              per_page: INVOICE_PAGE_SIZE,
+              page: index + 2,
+            }))
+          );
+          remainingPages.forEach((pageResult) => allInvoices.push(...pageResult.invoices));
+        }
+        return allInvoices;
+      };
+
+      const fetchAllExpenses = async (): Promise<FinanceExpense[]> => {
+        const firstPage = await fetchExpenses({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
-          per_page: 500,
-        }),
-      ]);
+          per_page: EXPENSE_PAGE_SIZE,
+          page: 1,
+        });
+        const allExpenses = [...firstPage.expenses];
+        const lastPage = Math.max(1, firstPage.meta?.last_page || 1);
+        if (lastPage > 1) {
+          const remainingPages = await Promise.all(
+            Array.from({ length: lastPage - 1 }, (_, index) => fetchExpenses({
+              date_from: dateFrom || undefined,
+              date_to: dateTo || undefined,
+              per_page: EXPENSE_PAGE_SIZE,
+              page: index + 2,
+            }))
+          );
+          remainingPages.forEach((pageResult) => allExpenses.push(...pageResult.expenses));
+        }
+        return allExpenses;
+      };
 
-      setInvoices(sortFinanceInvoicesNewestFirst(invoiceResponse.invoices));
+      const [allInvoices, allExpenses] = await Promise.all([fetchAllInvoices(), fetchAllExpenses()]);
+
+      setInvoices(sortFinanceInvoicesNewestFirst(allInvoices));
 
       const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult] = await Promise.allSettled([
         fetchPayrollSummary({
@@ -322,7 +360,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       };
 
       let invoiceCount = 0;
-      for (const invoice of invoiceResponse.invoices) {
+      for (const invoice of allInvoices) {
         if (!VALID_REVENUE_STATUSES.includes(invoice.status) || !invoice.invoice_date) {
           continue;
         }
@@ -332,7 +370,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         invoiceCount += 1;
       }
 
-      for (const expense of expenseResponse.expenses) {
+      for (const expense of allExpenses) {
         if (!INCLUDED_EXPENSE_STATUSES.has(expense.status) || !isValidDateWithinRange(expense.expense_date, dateFrom, dateTo)) {
           continue;
         }

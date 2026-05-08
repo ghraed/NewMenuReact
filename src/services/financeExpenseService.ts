@@ -15,6 +15,7 @@ export interface FinanceExpensesFilters {
   category_id?: number;
   vendor_id?: number;
   per_page?: number;
+  page?: number;
 }
 
 export interface CreateExpenseCategoryPayload {
@@ -166,6 +167,7 @@ export const fetchExpenses = async (filters: FinanceExpensesFilters): Promise<Ex
       category_id: filters.category_id || undefined,
       vendor_id: filters.vendor_id || undefined,
       per_page: filters.per_page || undefined,
+      page: filters.page || undefined,
     },
   });
 

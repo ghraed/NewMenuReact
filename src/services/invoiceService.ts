@@ -6,6 +6,7 @@ export interface InvoiceListFilters {
   date_to?: string;
   status?: FinanceInvoiceStatus | '';
   per_page?: number;
+  page?: number;
 }
 
 export interface InvoiceRevenueTrendFilters {
@@ -67,6 +68,7 @@ export const fetchInvoices = async (filters: InvoiceListFilters): Promise<Invoic
       date_to: filters.date_to || undefined,
       status: filters.status || undefined,
       per_page: filters.per_page || undefined,
+      page: filters.page || undefined,
     },
   });
 
