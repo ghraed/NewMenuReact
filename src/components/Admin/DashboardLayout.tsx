@@ -190,11 +190,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                       to={item.path}
                       aria-label={item.label}
                       className={`group relative flex h-11 w-11 items-center justify-center rounded-full text-base transition ${isActive
-                        ? 'bg-gold/80 text-bg0 shadow-[0_12px_28px_rgba(215,180,106,0.3)]'
+                        ? 'bg-gold/40 text-bg0 shadow-[0_12px_28px_rgba(215,180,106,0.3)]'
                         : 'border border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
                         }`}
                     >
-                      <span className="inline-flex items-center justify-center text-gold2/95">
+                      <span className="inline-flex items-center justify-center text-gold">
                         <NavIcon name={item.icon} />
                       </span>
                       <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
@@ -269,7 +269,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                               : 'border border-stroke bg-bg1/65 text-text hover:border-gold/30'
                               }`}
                           >
-                            <span className="inline-flex items-center justify-center text-gold2/95">
+                            <span className="inline-flex items-center justify-center text-gold">
                               <NavIcon name={item.icon} />
                             </span>
                             <span className="truncate">{item.label}</span>
