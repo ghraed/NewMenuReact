@@ -75,6 +75,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
         { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
         { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
+        { path: '/admin/currency', label: 'Currency', icon: 'currency' },
       ]
     : user?.role === 'stock_manager'
       ? [
