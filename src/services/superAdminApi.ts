@@ -1,19 +1,19 @@
 import axios from 'axios';
 import { getStoredLanguage } from '../i18n/language';
 
-export const OWNER_TOKEN_STORAGE_KEY = 'owner_auth_token';
+export const SUPER_ADMIN_TOKEN_STORAGE_KEY = 'owner_auth_token';
 
 const OWNER_API_URL = import.meta.env.VITE_API_URL || '/api';
 
-const ownerApi = axios.create({
+const superAdminApi = axios.create({
   baseURL: OWNER_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-ownerApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem(OWNER_TOKEN_STORAGE_KEY);
+superAdminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
   const language = getStoredLanguage();
 
   config.headers = config.headers || {};
@@ -28,4 +28,4 @@ ownerApi.interceptors.request.use((config) => {
   return config;
 });
 
-export default ownerApi;
+export default superAdminApi;

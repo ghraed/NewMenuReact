@@ -32,18 +32,18 @@ import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
 import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
 import AdminRoomPlansPage from './pages/AdminRoomPlansPage';
 import AdminReservationsPage from './pages/AdminReservationsPage';
-import OwnerLoginPage from './pages/OwnerLoginPage';
-import OwnerDashboardPage from './pages/OwnerDashboardPage';
+import SuperAdminLoginPage from './pages/SuperAdminLoginPage';
+import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
-import { OwnerAuthProvider } from './contexts/OwnerAuthContext';
+import { SuperAdminAuthProvider } from './contexts/SuperAdminAuthContext';
 import { OrderCartProvider } from './contexts/OrderCartContext';
 import { useAuth } from './contexts/useAuth';
-import { useOwnerAuth } from './contexts/useOwnerAuth';
+import { useSuperAdminAuth } from './contexts/useSuperAdminAuth';
 import { AppThemeProvider } from './hooks/useGuestTheme';
 import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
-import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
+import SuperAdminProtectedRoute from './components/Auth/SuperAdminProtectedRoute';
 import NotFoundView from './components/Common/NotFoundView';
 import AppChangeGuards from './components/AppChangeGuards';
 import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
@@ -101,6 +101,8 @@ const ROUTE_DEBUG_PATTERNS = [
   '/staff/orders',
   '/staff/pos',
   '/chef/dashboard',
+  '/super-admin/login',
+  '/super-admin/dashboard',
   '/owner/login',
   '/owner/dashboard',
 ];
@@ -111,10 +113,10 @@ const RoleHomeRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? defaultRoute : '/admin/login'} replace />;
 };
 
-const OwnerHomeRedirect: React.FC = () => {
-  const { isAuthenticated } = useOwnerAuth();
+const SuperAdminHomeRedirect: React.FC = () => {
+  const { isAuthenticated } = useSuperAdminAuth();
 
-  return <Navigate to={isAuthenticated ? '/owner/dashboard' : '/owner/login'} replace />;
+  return <Navigate to={isAuthenticated ? '/super-admin/dashboard' : '/super-admin/login'} replace />;
 };
 
 class RouteErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
@@ -198,7 +200,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
           <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/owner/login" element={lazyRoute(<OwnerLoginPage />)} />
+          <Route path="/super-admin/login" element={lazyRoute(<SuperAdminLoginPage />)} />
 
           <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -259,18 +261,21 @@ const AppRoutes: React.FC = () => {
           </Route>
 
           <Route
-            path="/owner/dashboard"
+            path="/super-admin/dashboard"
             element={(
-              <OwnerProtectedRoute>
-                {lazyRoute(<OwnerDashboardPage />)}
-              </OwnerProtectedRoute>
+              <SuperAdminProtectedRoute>
+                {lazyRoute(<SuperAdminDashboardPage />)}
+              </SuperAdminProtectedRoute>
             )}
           />
 
           <Route path="/login" element={<Navigate to="/admin/login" replace />} />
           <Route path="/dashboard" element={<RoleHomeRedirect />} />
           <Route path="/admin" element={<RoleHomeRedirect />} />
-          <Route path="/owner" element={<OwnerHomeRedirect />} />
+          <Route path="/super-admin" element={<SuperAdminHomeRedirect />} />
+          <Route path="/owner" element={<Navigate to="/super-admin" replace />} />
+          <Route path="/owner/login" element={<Navigate to="/super-admin/login" replace />} />
+          <Route path="/owner/dashboard" element={<Navigate to="/super-admin/dashboard" replace />} />
           <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
           <Route path="/chef" element={<Navigate to="/chef/dashboard" replace />} />
           <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
@@ -290,7 +295,7 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <OwnerAuthProvider>
+      <SuperAdminAuthProvider>
         <OrderCartProvider>
           <AppThemeProvider>
             <AppLocaleSync />
@@ -304,7 +309,7 @@ const App: React.FC = () => {
             </GuestMenuResourceProvider>
           </AppThemeProvider>
         </OrderCartProvider>
-      </OwnerAuthProvider>
+      </SuperAdminAuthProvider>
     </AuthProvider>
   );
 };

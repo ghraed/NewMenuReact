@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOwnerAuth } from '../contexts/useOwnerAuth';
+import { useSuperAdminAuth } from '../contexts/useSuperAdminAuth';
+import { useAuth } from '../contexts/useAuth';
+import { getDefaultRouteForRole } from '../utils/auth';
 import {
   GlassBoard,
   GlassInput,
@@ -19,9 +21,10 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const OwnerLoginPage: React.FC = () => {
+const SuperAdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useOwnerAuth();
+  const { login, isAuthenticated } = useSuperAdminAuth();
+  const { isAuthenticated: isAdminSessionAuthenticated, user: adminSessionUser } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
   const [email, setEmail] = useState('raed@rozer.fun');
@@ -30,14 +33,19 @@ const OwnerLoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isAdminSessionAuthenticated) {
+      navigate(getDefaultRouteForRole(adminSessionUser?.role), { replace: true });
+      return;
+    }
+
     if (isAuthenticated) {
       if (typeof window !== 'undefined') {
-        window.location.replace('/owner/dashboard');
+        window.location.replace('/super-admin/dashboard');
         return;
       }
-      navigate('/owner/dashboard', { replace: true });
+      navigate('/super-admin/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [adminSessionUser?.role, isAdminSessionAuthenticated, isAuthenticated, navigate]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -46,14 +54,14 @@ const OwnerLoginPage: React.FC = () => {
 
     try {
       await login(email.trim(), password);
-      showToast('Welcome back, owner.', 'primary');
+      showToast('Welcome back, Super Admin.', 'primary');
       if (typeof window !== 'undefined') {
-        window.location.replace('/owner/dashboard');
+        window.location.replace('/super-admin/dashboard');
         return;
       }
-      navigate('/owner/dashboard', { replace: true });
+      navigate('/super-admin/dashboard', { replace: true });
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Owner login failed. Please check your credentials.'));
+      setError(getErrorMessage(err, 'Super Admin login failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }
@@ -64,20 +72,20 @@ const OwnerLoginPage: React.FC = () => {
       <div className="flex min-h-screen items-center justify-center px-4 py-8">
         <GlassBoard className="w-full max-w-lg">
           <div className="mb-8">
-            <p className="text-xs uppercase tracking-[0.22em] text-gold2/85">Private Owner Access</p>
-            <h1 className="mt-2 text-3xl font-semibold text-text">SaaS Owner Control</h1>
+            <p className="text-xs uppercase tracking-[0.22em] text-gold2/85">Private Super Admin Access</p>
+            <h1 className="mt-2 text-3xl font-semibold text-text">Super Admin Control</h1>
             <p className="mt-2 text-sm text-muted">
-              This portal is restricted to the platform owner and is not visible in tenant admin navigation.
+              This portal is restricted to the Super Admin and is not visible in tenant admin navigation.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="owner-email" className="mb-1 block text-sm font-medium text-text">
-                Owner Email
+              <label htmlFor="super-admin-email" className="mb-1 block text-sm font-medium text-text">
+                Super Admin Email
               </label>
               <GlassInput
-                id="owner-email"
+                id="super-admin-email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -86,11 +94,11 @@ const OwnerLoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="owner-password" className="mb-1 block text-sm font-medium text-text">
+              <label htmlFor="super-admin-password" className="mb-1 block text-sm font-medium text-text">
                 Password
               </label>
               <GlassInput
-                id="owner-password"
+                id="super-admin-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -105,7 +113,7 @@ const OwnerLoginPage: React.FC = () => {
             ) : null}
 
             <LiquidButton type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in as Owner'}
+              {loading ? 'Signing in...' : 'Sign in as Super Admin'}
             </LiquidButton>
           </form>
         </GlassBoard>
@@ -116,4 +124,4 @@ const OwnerLoginPage: React.FC = () => {
   );
 };
 
-export default OwnerLoginPage;
+export default SuperAdminLoginPage;

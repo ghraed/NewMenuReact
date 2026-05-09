@@ -509,6 +509,7 @@ const AdminIngredientsPage: React.FC = () => {
       return searchableText.includes(normalizedListSearch);
     })
   ), [formatIngredientName, ingredients, normalizedListSearch, statusFilter, unitFilter]);
+  const hasIngredientListFilters = normalizedListSearch.length > 0 || statusFilter !== 'all' || unitFilter !== 'all';
 
   const globalImportRows = useMemo(() => {
     const existingByGlobalId = new Set<number>(
@@ -568,6 +569,7 @@ const AdminIngredientsPage: React.FC = () => {
       );
     });
   }, [globalImportRows, globalImportSearch, hideAlreadyAddedGlobals, i18n.resolvedLanguage]);
+  const hasGlobalImportFilters = globalImportSearch.trim().length > 0 || hideAlreadyAddedGlobals;
 
   const selectedGlobalIngredientsCount = selectedGlobalIngredientIds.length;
 
@@ -887,7 +889,14 @@ const AdminIngredientsPage: React.FC = () => {
         {loading ? (
           <div className="py-12 text-center text-muted">{t('inventoryIngredients.loading')}</div>
         ) : filteredIngredients.length === 0 ? (
-          <div className="py-12 text-center text-muted">{t('inventoryIngredients.empty')}</div>
+          <div className="py-12 text-center text-muted">
+            <p className="font-semibold text-text">No ingredients match your search/filter.</p>
+            <p className="mt-1">
+              {hasIngredientListFilters
+                ? 'Try a different search term or reset status/unit filters.'
+                : t('inventoryIngredients.empty')}
+            </p>
+          </div>
         ) : (
           <div className="mt-5 space-y-3">
             {filteredIngredients.map((ingredient) => {
@@ -1241,7 +1250,12 @@ const AdminIngredientsPage: React.FC = () => {
               </div>
             ) : filteredGlobalImportRows.length === 0 ? (
               <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-6 text-center text-sm text-muted">
-                {t('inventoryIngredients.importGlobal.empty')}
+                <p className="font-semibold text-text">No global ingredients match your search/filter.</p>
+                <p className="mt-1">
+                  {hasGlobalImportFilters
+                    ? 'Clear search or show already-added ingredients to broaden results.'
+                    : t('inventoryIngredients.importGlobal.empty')}
+                </p>
               </div>
             ) : (
               <div className="mt-5 max-h-[55vh] space-y-3 overflow-y-auto pr-1">

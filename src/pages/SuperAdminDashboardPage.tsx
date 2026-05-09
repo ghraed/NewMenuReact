@@ -1,16 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOwnerAuth } from '../contexts/useOwnerAuth';
+import { useSuperAdminAuth } from '../contexts/useSuperAdminAuth';
 import {
   bulkUpdateRestaurantFeatures,
-  fetchOwnerFeatures,
-  fetchOwnerRestaurants,
+  fetchSuperAdminFeatures,
+  fetchSuperAdminRestaurants,
   fetchRestaurantFeatures,
   updateRestaurantFeature,
-  type OwnerFeatureFlag,
-  type OwnerGroupedFeatures,
-  type OwnerRestaurantWithFeatures,
-} from '../services/ownerFeatureFlagsService';
+  type SuperAdminFeatureFlag,
+  type SuperAdminGroupedFeatures,
+  type SuperAdminRestaurantWithFeatures,
+} from '../services/superAdminFeatureFlagsService';
 import {
   GlassBoard,
   GlassCard,
@@ -50,16 +50,16 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const OwnerDashboardPage: React.FC = () => {
+const SuperAdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { logout, user } = useOwnerAuth();
+  const { logout, user } = useSuperAdminAuth();
   const { toast, showToast, dismiss } = useGlassToast();
 
-  const [restaurants, setRestaurants] = useState<OwnerRestaurantWithFeatures[]>([]);
-  const [groupedCatalog, setGroupedCatalog] = useState<OwnerGroupedFeatures[]>([]);
+  const [restaurants, setRestaurants] = useState<SuperAdminRestaurantWithFeatures[]>([]);
+  const [groupedCatalog, setGroupedCatalog] = useState<SuperAdminGroupedFeatures[]>([]);
   const [restaurantSearch, setRestaurantSearch] = useState('');
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<number | null>(null);
-  const [restaurantFeatures, setRestaurantFeatures] = useState<OwnerFeatureFlag[]>([]);
+  const [restaurantFeatures, setRestaurantFeatures] = useState<SuperAdminFeatureFlag[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [featuresLoading, setFeaturesLoading] = useState(false);
@@ -102,14 +102,14 @@ const OwnerDashboardPage: React.FC = () => {
       .filter((group) => group.features.length > 0);
   }, [orderedCategories, restaurantFeatures]);
 
-  const loadOwnerDashboard = useCallback(async () => {
+  const loadSuperAdminDashboard = useCallback(async () => {
     setRestaurantsLoading(true);
     setPageError(null);
 
     try {
       const [restaurantsResponse, featuresResponse] = await Promise.all([
-        fetchOwnerRestaurants(),
-        fetchOwnerFeatures(),
+        fetchSuperAdminRestaurants(),
+        fetchSuperAdminFeatures(),
       ]);
 
       setRestaurants(restaurantsResponse);
@@ -127,7 +127,7 @@ const OwnerDashboardPage: React.FC = () => {
         setRestaurantFeatures([]);
       }
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, 'Failed to load owner dashboard data.'));
+      setPageError(getErrorMessage(error, 'Failed to load Super Admin dashboard data.'));
     } finally {
       setRestaurantsLoading(false);
     }
@@ -149,8 +149,8 @@ const OwnerDashboardPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadOwnerDashboard();
-  }, [loadOwnerDashboard]);
+    loadSuperAdminDashboard();
+  }, [loadSuperAdminDashboard]);
 
   useEffect(() => {
     if (selectedRestaurantId === null) {
@@ -173,7 +173,7 @@ const OwnerDashboardPage: React.FC = () => {
     });
   };
 
-  const handleFeatureToggle = async (feature: OwnerFeatureFlag, enabled: boolean) => {
+  const handleFeatureToggle = async (feature: SuperAdminFeatureFlag, enabled: boolean) => {
     if (!selectedRestaurantId) return;
 
     const snapshot = restaurantFeatures;
@@ -238,7 +238,7 @@ const OwnerDashboardPage: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/owner/login', { replace: true });
+    navigate('/super-admin/login', { replace: true });
   };
 
   return (
@@ -247,14 +247,14 @@ const OwnerDashboardPage: React.FC = () => {
         <GlassBoard className="mb-6 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-gold2/85">Internal SaaS Owner Dashboard</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-gold2/85">Internal Super Admin Dashboard</p>
               <h1 className="mt-2 text-2xl font-semibold text-text">Feature Flag Control Room</h1>
               <p className="mt-1 text-sm text-muted">
                 Signed in as {user?.email}. Feature changes auto-save and are audited.
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <LiquidButton tone="tertiary" onClick={() => loadOwnerDashboard()}>
+              <LiquidButton tone="tertiary" onClick={() => loadSuperAdminDashboard()}>
                 Refresh
               </LiquidButton>
               <LiquidButton tone="secondary" onClick={handleLogout}>
@@ -418,4 +418,4 @@ const OwnerDashboardPage: React.FC = () => {
   );
 };
 
-export default OwnerDashboardPage;
+export default SuperAdminDashboardPage;

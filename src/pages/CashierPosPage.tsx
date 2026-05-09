@@ -99,6 +99,7 @@ const CashierPosPage: React.FC = () => {
       return matchesCategory && matchesSearch;
     });
   }, [dishes, searchQuery, selectedCategory]);
+  const hasCatalogFilters = searchQuery.trim().length > 0 || selectedCategory !== 'All';
 
   const subtotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + (item.dish.price * item.quantity), 0),
@@ -321,7 +322,18 @@ const CashierPosPage: React.FC = () => {
             </GlassCard>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {visibleDishes.map((dish) => (
+              {visibleDishes.length === 0 ? (
+                <GlassCard className="md:col-span-2 xl:col-span-3">
+                  <div className="py-8 text-center">
+                    <p className="text-base font-semibold text-text">No dishes match this search/filter.</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {hasCatalogFilters
+                        ? 'Try a different keyword or switch category to "All".'
+                        : 'No orderable dishes are available right now.'}
+                    </p>
+                  </div>
+                </GlassCard>
+              ) : visibleDishes.map((dish) => (
                 <GlassCard key={dish.id}>
                   <div className="flex h-full flex-col justify-between gap-3">
                     <div>

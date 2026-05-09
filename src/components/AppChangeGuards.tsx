@@ -6,11 +6,11 @@ const DELETE_CONFIRM_MESSAGE = 'Are you sure you want to delete this data? This 
 const UNSAVED_LEAVE_MESSAGE = 'You have unsaved changes. Leave this page and discard them?';
 
 const isGuardedPath = (pathname: string): boolean => {
-  if (pathname === '/admin/login' || pathname === '/owner/login') {
+  if (pathname === '/admin/login' || pathname === '/owner/login' || pathname === '/super-admin/login') {
     return false;
   }
 
-  return pathname.startsWith('/admin') || pathname.startsWith('/staff') || pathname.startsWith('/owner');
+  return pathname.startsWith('/admin') || pathname.startsWith('/staff') || pathname.startsWith('/owner') || pathname.startsWith('/super-admin');
 };
 
 const isFormValueInput = (target: EventTarget | null): target is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement => {

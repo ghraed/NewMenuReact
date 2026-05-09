@@ -395,7 +395,12 @@ const AdminReservationsPage: React.FC = () => {
         {loading ? (
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-5 text-sm text-muted">Loading reservations...</div>
         ) : filteredReservations.length === 0 ? (
-          <div className="rounded-2xl border border-stroke bg-bg1/60 p-5 text-sm text-muted">No reservations found for current filters.</div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 p-5 text-sm text-muted">
+            <p className="font-semibold text-text">No reservations match these filters.</p>
+            <p className="mt-1">
+              Try another date/room plan or press Reset to see all reservations again.
+            </p>
+          </div>
         ) : (
           <div className="space-y-3">
             {filteredReservations.map((reservation) => (
