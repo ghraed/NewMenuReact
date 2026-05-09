@@ -207,101 +207,128 @@ const AdminReservationsPage: React.FC = () => {
 
           <form className="mt-4 space-y-3" onSubmit={(event) => void handleCreateReservation(event)}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Room Plan</span>
+                <select
+                  value={createRoomPlanId}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setCreateRoomPlanId(next === '' ? '' : Number(next));
+                  }}
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                >
+                  <option value="" disabled>Select room plan</option>
+                  {roomPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>{plan.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Reservation Date</span>
+                <input
+                  type="date"
+                  value={createReservationDate}
+                  onChange={(event) => setCreateReservationDate(event.target.value)}
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                />
+              </label>
+
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Start Time</span>
+                <select
+                  value={createStartTime}
+                  onChange={(event) => setCreateStartTime(event.target.value)}
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                >
+                  {timeSlots.map((slot) => <option key={`manual-start-${slot}`} value={slot}>{slot}</option>)}
+                </select>
+              </label>
+
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">End Time</span>
+                <select
+                  value={createEndTime}
+                  onChange={(event) => setCreateEndTime(event.target.value)}
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                >
+                  {timeSlots.map((slot) => <option key={`manual-end-${slot}`} value={slot}>{slot}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <label className="block text-sm text-text">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Table</span>
               <select
-                value={createRoomPlanId}
+                value={createTableItemId}
                 onChange={(event) => {
                   const next = event.target.value;
-                  setCreateRoomPlanId(next === '' ? '' : Number(next));
+                  setCreateTableItemId(next === '' ? '' : Number(next));
                 }}
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                 required
               >
-                <option value="" disabled>Select room plan</option>
-                {roomPlans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>{plan.name}</option>
-                ))}
+                <option value="">Select available table</option>
+                {createTableOptions.map(({ item, availability }) => {
+                  const status = availability?.status ?? 'free';
+                  const selectable = availability?.is_selectable ?? true;
+                  return (
+                    <option key={item.id} value={item.id} disabled={!selectable}>
+                      {item.label} ({status.replace('_', ' ')})
+                    </option>
+                  );
+                })}
               </select>
-
-              <input
-                type="date"
-                value={createReservationDate}
-                onChange={(event) => setCreateReservationDate(event.target.value)}
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              />
-
-              <select
-                value={createStartTime}
-                onChange={(event) => setCreateStartTime(event.target.value)}
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              >
-                {timeSlots.map((slot) => <option key={`manual-start-${slot}`} value={slot}>{slot}</option>)}
-              </select>
-
-              <select
-                value={createEndTime}
-                onChange={(event) => setCreateEndTime(event.target.value)}
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              >
-                {timeSlots.map((slot) => <option key={`manual-end-${slot}`} value={slot}>{slot}</option>)}
-              </select>
-            </div>
-
-            <select
-              value={createTableItemId}
-              onChange={(event) => {
-                const next = event.target.value;
-                setCreateTableItemId(next === '' ? '' : Number(next));
-              }}
-              className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-              required
-            >
-              <option value="">Select available table</option>
-              {createTableOptions.map(({ item, availability }) => {
-                const status = availability?.status ?? 'free';
-                const selectable = availability?.is_selectable ?? true;
-                return (
-                  <option key={item.id} value={item.id} disabled={!selectable}>
-                    {item.label} ({status.replace('_', ' ')})
-                  </option>
-                );
-              })}
-            </select>
+            </label>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <input
-                value={createCustomerName}
-                onChange={(event) => setCreateCustomerName(event.target.value)}
-                placeholder="Guest name"
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              />
-              <input
-                value={createCustomerPhone}
-                onChange={(event) => setCreateCustomerPhone(event.target.value)}
-                placeholder="Guest phone"
-                className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                required
-              />
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Guest Name</span>
+                <input
+                  value={createCustomerName}
+                  onChange={(event) => setCreateCustomerName(event.target.value)}
+                  placeholder="Guest name"
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                />
+              </label>
+              <label className="block text-sm text-text">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Guest Phone</span>
+                <input
+                  value={createCustomerPhone}
+                  onChange={(event) => setCreateCustomerPhone(event.target.value)}
+                  placeholder="Guest phone"
+                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+                  required
+                />
+              </label>
             </div>
 
-            <input
-              type="email"
-              value={createCustomerEmail}
-              onChange={(event) => setCreateCustomerEmail(event.target.value)}
-              placeholder="Guest email (optional)"
-              className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-            />
+            <label className="block text-sm text-text">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Guest Email (Optional)</span>
+              <input
+                type="email"
+                value={createCustomerEmail}
+                onChange={(event) => setCreateCustomerEmail(event.target.value)}
+                placeholder="Guest email (optional)"
+                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+              />
+            </label>
 
-            <textarea
-              value={createNotes}
-              onChange={(event) => setCreateNotes(event.target.value)}
-              placeholder="Notes (optional)"
-              rows={3}
-              className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-            />
+            <label className="block text-sm text-text">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Notes (Optional)</span>
+              <textarea
+                value={createNotes}
+                onChange={(event) => setCreateNotes(event.target.value)}
+                placeholder="Notes (optional)"
+                rows={3}
+                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+              />
+            </label>
 
             <button
               type="submit"
@@ -319,25 +346,31 @@ const AdminReservationsPage: React.FC = () => {
 
         <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
           <div className="grid gap-3 md:grid-cols-4">
-            <input
-              type="date"
-              value={reservationDate}
-              onChange={(event) => setReservationDate(event.target.value)}
-              className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-            />
-            <select
-              value={roomPlanId}
-              onChange={(event) => {
-                const next = event.target.value;
-                setRoomPlanId(next === '' ? '' : Number(next));
-              }}
-              className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-            >
-              <option value="">All room plans</option>
-              {roomPlans.map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name}</option>
-              ))}
-            </select>
+            <label className="block text-sm text-text">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Filter Date</span>
+              <input
+                type="date"
+                value={reservationDate}
+                onChange={(event) => setReservationDate(event.target.value)}
+                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+              />
+            </label>
+            <label className="block text-sm text-text">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-[0.08em] text-muted2">Room Plan</span>
+              <select
+                value={roomPlanId}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setRoomPlanId(next === '' ? '' : Number(next));
+                }}
+                className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
+              >
+                <option value="">All room plans</option>
+                {roomPlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => void loadData()}
