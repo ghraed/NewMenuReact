@@ -1,4 +1,4 @@
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GlassChip, GlassInput, LiquidButton } from '../ui/liquid-glass';
 import { cx, focusRing, glassControl, glassControlHover } from '../../theme/liquidGlass';
@@ -107,7 +107,6 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
     };
   }, [isAddSectionOpen]);
 
-  const deferredSearch = useDeferredValue(search);
   const categories = useMemo(() => (
     ['All', ...Array.from(new Set(dishes.map((dish) => dish.category))).sort((left, right) => left.localeCompare(right))]
   ), [dishes]);
@@ -162,7 +161,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   ), [draftItems]);
 
   const filteredDishes = useMemo(() => {
-    const normalizedSearch = normalizeSearchText(deferredSearch);
+    const normalizedSearch = normalizeSearchText(search);
 
     return dishes.filter((dish) => {
       const categoryMatch = selectedCategory === 'All' || dish.category === selectedCategory;
@@ -174,7 +173,7 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
 
       return categoryMatch && searchMatch;
     });
-  }, [deferredSearch, dishes, selectedCategory]);
+  }, [dishes, search, selectedCategory]);
 
   if (!order) {
     return null;
