@@ -65,8 +65,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   const navItems: NavItem[] = user?.role === 'chef'
     ? [
-      { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-      { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
       { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
     ]
     : user?.role === 'accountant'
@@ -78,8 +76,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       ]
     : user?.role === 'stock_manager'
       ? [
-        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
         { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
         { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
       ]
