@@ -1,6 +1,6 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
-export type UserRole = 'admin' | 'staff' | 'chef' | 'stock_manager';
+export type UserRole = 'admin' | 'staff' | 'chef' | 'stock_manager' | 'accountant';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type KitchenOrderStatus = 'new' | 'in_progress' | 'ready' | 'served';
 export type DiscountType = 'fixed' | 'percentage';

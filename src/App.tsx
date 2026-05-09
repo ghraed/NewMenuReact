@@ -212,23 +212,23 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/currency" element={lazyRoute(<AdminCurrencyPage />)} />
             <Route path="/admin/theme-demo" element={lazyRoute(<LiquidGlassDemoPage />)} />
 
-            <Route element={<ProtectedRoute requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
-              <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
-              <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
-              <Route path="/admin/finance/invoices/:invoice_id" element={lazyRoute(<AdminFinanceInvoiceDetailsPage />)} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredFeatures={['finance_dashboard', 'expense_management']} />}>
-              <Route path="/admin/finance/expenses" element={lazyRoute(<AdminFinanceExpensesPage />)} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredFeatures={['payroll_management']} />}>
-              <Route path="/admin/finance/payroll" element={lazyRoute(<AdminPayrollManagementPage />)} />
-            </Route>
-
             <Route element={<ProtectedRoute requiredFeatures={['staff_scheduling']} />}>
               <Route path="/admin/staff/scheduling" element={lazyRoute(<AdminStaffSchedulingPage />)} />
             </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'accountant']} requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
+            <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
+            <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
+            <Route path="/admin/finance/invoices/:invoice_id" element={lazyRoute(<AdminFinanceInvoiceDetailsPage />)} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'accountant']} requiredFeatures={['finance_dashboard', 'expense_management']} />}>
+            <Route path="/admin/finance/expenses" element={lazyRoute(<AdminFinanceExpensesPage />)} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'accountant']} requiredFeatures={['payroll_management']} />}>
+            <Route path="/admin/finance/payroll" element={lazyRoute(<AdminPayrollManagementPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'stock_manager']} requiredFeatures={['inventory']} />}>

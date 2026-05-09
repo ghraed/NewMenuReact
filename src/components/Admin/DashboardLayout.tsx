@@ -67,6 +67,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     ? [
       { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
     ]
+    : user?.role === 'accountant'
+      ? [
+        { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
+        { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
+      ]
     : user?.role === 'stock_manager'
       ? [
         { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
@@ -135,6 +142,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('admin.controlRoom')}</p>
                 <h1 className="text-2xl font-semibold text-text">
                   {user?.role === 'chef' ? 'Kitchen Team'
+                    : user?.role === 'accountant' ? 'Accounting Team'
                     : user?.role === 'stock_manager' ? 'Stock Manager'
                     : user?.role === 'staff' ? t('admin.staffTitle')
                       : t('admin.adminTitle')}
