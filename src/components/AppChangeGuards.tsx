@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useBeforeUnload, useBlocker, useLocation } from 'react-router-dom';
+import { useBeforeUnload, useLocation } from 'react-router-dom';
 
 const SAVE_CONFIRM_MESSAGE = 'Save these changes now?';
 const DELETE_CONFIRM_MESSAGE = 'Are you sure you want to delete this data? This action may be irreversible.';
@@ -57,23 +57,6 @@ const AppChangeGuards = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const guarded = useMemo(() => isGuardedPath(location.pathname), [location.pathname]);
 
-  const blocker = useBlocker(guarded && hasUnsavedChanges);
-
-  useEffect(() => {
-    if (blocker.state !== 'blocked') {
-      return;
-    }
-
-    const shouldLeave = window.confirm(UNSAVED_LEAVE_MESSAGE);
-    if (shouldLeave) {
-      setHasUnsavedChanges(false);
-      blocker.proceed();
-      return;
-    }
-
-    blocker.reset();
-  }, [blocker]);
-
   useBeforeUnload(
     (event) => {
       if (!guarded || !hasUnsavedChanges) {
@@ -127,6 +110,28 @@ const AppChangeGuards = () => {
 
     const handleClick = (event: MouseEvent) => {
       if (!isLikelyDeleteAction(event.target)) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+          return;
+        }
+
+        const anchor = target.closest('a');
+        if (!anchor || !hasUnsavedChanges) {
+          return;
+        }
+
+        const href = anchor.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+          return;
+        }
+
+        const shouldLeave = window.confirm(UNSAVED_LEAVE_MESSAGE);
+        if (!shouldLeave) {
+          event.preventDefault();
+          event.stopPropagation();
+        } else {
+          setHasUnsavedChanges(false);
+        }
         return;
       }
 
@@ -137,18 +142,34 @@ const AppChangeGuards = () => {
       }
     };
 
+    const handlePopState = () => {
+      if (!hasUnsavedChanges) {
+        return;
+      }
+
+      const shouldLeave = window.confirm(UNSAVED_LEAVE_MESSAGE);
+      if (shouldLeave) {
+        setHasUnsavedChanges(false);
+        return;
+      }
+
+      window.history.go(1);
+    };
+
     document.addEventListener('input', handleInput, true);
     document.addEventListener('change', handleInput, true);
     document.addEventListener('submit', handleSubmit, true);
     document.addEventListener('click', handleClick, true);
+    window.addEventListener('popstate', handlePopState);
 
     return () => {
       document.removeEventListener('input', handleInput, true);
       document.removeEventListener('change', handleInput, true);
       document.removeEventListener('submit', handleSubmit, true);
       document.removeEventListener('click', handleClick, true);
+      window.removeEventListener('popstate', handlePopState);
     };
-  }, [guarded]);
+  }, [guarded, hasUnsavedChanges]);
 
   return null;
 };
