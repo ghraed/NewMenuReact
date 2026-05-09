@@ -176,7 +176,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             {/* <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
                 {t('admin.navigation')}
               </div> */}
-            <ul className="flex min-w-0 flex-nowrap items-center justify-between gap-1">
+            <ul className="flex min-w-0 flex-nowrap items-center justify-start gap-2">
               {visibleNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
 
