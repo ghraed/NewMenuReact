@@ -223,7 +223,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [statusFilter, setStatusFilter] = useState<FinanceInvoiceStatus | ''>('');
-  const [invoices, setInvoices] = useState<FinanceInvoice[]>([]);
+  const [invoiceTableRows, setInvoiceTableRows] = useState<FinanceInvoice[]>([]);
+  const [invoiceTablePage, setInvoiceTablePage] = useState(1);
+  const [invoiceTablePerPage, setInvoiceTablePerPage] = useState(25);
+  const [invoiceTableLastPage, setInvoiceTableLastPage] = useState(1);
+  const [invoiceTableTotal, setInvoiceTableTotal] = useState(0);
+  const [invoiceTableLoading, setInvoiceTableLoading] = useState(false);
   const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [chartMetrics, setChartMetrics] = useState<Record<MetricKey, number[]>>({
     revenue: [],
@@ -256,6 +261,26 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+
+  const loadInvoiceTablePage = useCallback(async () => {
+    setInvoiceTableLoading(true);
+    try {
+      const response = await fetchInvoices({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        status: statusFilter || undefined,
+        per_page: invoiceTablePerPage,
+        page: invoiceTablePage,
+      });
+      setInvoiceTableRows(sortFinanceInvoicesNewestFirst(response.invoices));
+      setInvoiceTableTotal(response.meta.total);
+      setInvoiceTableLastPage(Math.max(1, response.meta.last_page || 1));
+    } catch (loadError: unknown) {
+      setError(getErrorMessage(loadError, 'Failed to load invoice table data.'));
+    } finally {
+      setInvoiceTableLoading(false);
+    }
+  }, [dateFrom, dateTo, invoiceTablePage, invoiceTablePerPage, statusFilter]);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -320,8 +345,6 @@ const AdminFinanceDashboardPage: React.FC = () => {
       };
 
       const [allInvoices, allExpenses] = await Promise.all([fetchAllInvoices(), fetchAllExpenses()]);
-
-      setInvoices(sortFinanceInvoicesNewestFirst(allInvoices));
 
       const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult] = await Promise.allSettled([
         fetchPayrollSummary({
@@ -479,6 +502,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
   useEffect(() => {
     void loadDashboardData();
   }, [loadDashboardData]);
+
+  useEffect(() => {
+    void loadInvoiceTablePage();
+  }, [loadInvoiceTablePage]);
 
   const chartData = useMemo<ChartData<'bar'>>(() => ({
     labels: chartLabels,
@@ -667,7 +694,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setCreateSuccess('Invoice created successfully.');
       setNewInvoiceNotes('');
       setNewInvoiceItems([{ name: '', quantity: '1', unit_price: '' }]);
-      await loadDashboardData();
+      await Promise.all([loadDashboardData(), loadInvoiceTablePage()]);
     } catch (createInvoiceError: unknown) {
       setCreateError(getErrorMessage(createInvoiceError, 'Failed to create invoice.'));
     } finally {
@@ -681,7 +708,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
     try {
       const updatedInvoice = await updateInvoice(invoiceId, { status });
-      setInvoices((previous) => sortFinanceInvoicesNewestFirst(previous.map((invoice) => (
+      setInvoiceTableRows((previous) => sortFinanceInvoicesNewestFirst(previous.map((invoice) => (
         invoice.id === updatedInvoice.id ? updatedInvoice : invoice
       ))));
 
@@ -1129,7 +1156,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-text">Invoice Records</h3>
                 <p className="mt-1 text-sm text-muted">
-                  {invoices.length} invoice{invoices.length === 1 ? '' : 's'} in current filter range.
+                  {invoiceTableTotal} invoice{invoiceTableTotal === 1 ? '' : 's'} in current filter range.
                 </p>
               </div>
               <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={loading}>
@@ -1140,7 +1167,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
             {loading ? (
               <div className="py-14 text-center text-muted">Loading finance records...</div>
             ) : (
-              <div className="mt-4 overflow-x-auto rounded-2xl border border-stroke">
+              <div className="mt-4 space-y-3">
+                <div className="overflow-x-auto rounded-2xl border border-stroke">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-gold2/85">
                     <tr>
@@ -1152,13 +1180,19 @@ const AdminFinanceDashboardPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoices.length === 0 ? (
+                    {invoiceTableLoading ? (
+                      <tr>
+                        <td className="px-4 py-10 text-center text-muted" colSpan={5}>
+                          Loading invoices...
+                        </td>
+                      </tr>
+                    ) : invoiceTableRows.length === 0 ? (
                       <tr>
                         <td className="px-4 py-10 text-center text-muted" colSpan={5}>
                           No invoices found for the current filters.
                         </td>
                       </tr>
-                    ) : invoices.map((invoice) => (
+                    ) : invoiceTableRows.map((invoice) => (
                       <tr
                         key={invoice.id}
                         className="cursor-pointer border-t border-stroke/70 bg-bg1/45 transition hover:bg-bg1/62"
@@ -1198,6 +1232,44 @@ const AdminFinanceDashboardPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-muted">
+                    Page {invoiceTablePage} of {invoiceTableLastPage} • {invoiceTableTotal} total
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={String(invoiceTablePerPage)}
+                      onChange={(event) => {
+                        const parsed = Number(event.target.value);
+                        const nextPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
+                        setInvoiceTablePage(1);
+                        setInvoiceTablePerPage(nextPerPage);
+                      }}
+                      className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                    >
+                      {[25, 50, 100].map((size) => (
+                        <option key={size} value={size}>{size} / page</option>
+                      ))}
+                    </select>
+                    <LiquidButton
+                      type="button"
+                      tone="tertiary"
+                      disabled={invoiceTableLoading || invoiceTablePage <= 1}
+                      onClick={() => setInvoiceTablePage((current) => Math.max(1, current - 1))}
+                    >
+                      Previous
+                    </LiquidButton>
+                    <LiquidButton
+                      type="button"
+                      tone="tertiary"
+                      disabled={invoiceTableLoading || invoiceTablePage >= invoiceTableLastPage}
+                      onClick={() => setInvoiceTablePage((current) => Math.min(invoiceTableLastPage, current + 1))}
+                    >
+                      Next
+                    </LiquidButton>
+                  </div>
+                </div>
               </div>
             )}
           </GlassCard>
