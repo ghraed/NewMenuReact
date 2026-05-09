@@ -69,9 +69,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     ]
     : user?.role === 'staff'
       ? [
-        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
-        { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
+        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
+        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar' },
       ]
       : [
         { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },

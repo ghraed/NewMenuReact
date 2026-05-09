@@ -240,17 +240,15 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/room-plans" element={lazyRoute(<AdminRoomPlansPage />)} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['table_reservations']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
             <Route path="/admin/reservations" element={lazyRoute(<AdminReservationsPage />)} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
             <Route path="/staff/orders" element={lazyRoute(<StaffOrdersPage />)} />
           </Route>
 
-          <Route
-            element={<ProtectedRoute allowedRoles={['staff', 'admin']} requiredFeatures={['realtime_staff_orders', 'table_ordering']} />}
-          >
+          <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['table_ordering']} />}>
             <Route path="/staff/pos" element={lazyRoute(<CashierPosPage />)} />
           </Route>
 

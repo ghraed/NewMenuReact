@@ -25,6 +25,13 @@ interface StaffOrderEditorProps {
 }
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
+const normalizeSearchText = (value: string | null | undefined): string => (
+  (value ?? '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+);
 
 const getOrderLabel = (order: OrderRecord): string => order.order_number || `Order #${order.id}`;
 
@@ -155,13 +162,15 @@ const StaffOrderEditor: React.FC<StaffOrderEditorProps> = ({
   ), [draftItems]);
 
   const filteredDishes = useMemo(() => {
-    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const normalizedSearch = normalizeSearchText(deferredSearch);
 
     return dishes.filter((dish) => {
       const categoryMatch = selectedCategory === 'All' || dish.category === selectedCategory;
-      const searchMatch = normalizedSearch === ''
-        || dish.name.toLowerCase().includes(normalizedSearch)
-        || dish.category.toLowerCase().includes(normalizedSearch);
+      const haystack = [
+        normalizeSearchText(dish.name),
+        normalizeSearchText(dish.category),
+      ].join(' ');
+      const searchMatch = normalizedSearch === '' || haystack.includes(normalizedSearch);
 
       return categoryMatch && searchMatch;
     });
