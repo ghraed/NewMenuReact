@@ -45,6 +45,7 @@ import AppThemeShell from './components/AppThemeShell';
 import AppLocaleSync from './components/AppLocaleSync';
 import OwnerProtectedRoute from './components/Auth/OwnerProtectedRoute';
 import NotFoundView from './components/Common/NotFoundView';
+import AppChangeGuards from './components/AppChangeGuards';
 import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
 import LoadingSpinner from './components/Common/LoadingSpinner';
 
@@ -174,6 +175,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AppThemeShell>
+      <AppChangeGuards />
       <RouteErrorBoundary>
         <Routes>
           <Route path="/" element={<GuestDishListPage />} />
