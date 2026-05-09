@@ -39,10 +39,6 @@ const SuperAdminLoginPage: React.FC = () => {
     }
 
     if (isAuthenticated) {
-      if (typeof window !== 'undefined') {
-        window.location.replace('/super-admin/dashboard');
-        return;
-      }
       navigate('/super-admin/dashboard', { replace: true });
     }
   }, [adminSessionUser?.role, isAdminSessionAuthenticated, isAuthenticated, navigate]);
@@ -55,10 +51,6 @@ const SuperAdminLoginPage: React.FC = () => {
     try {
       await login(email.trim(), password);
       showToast('Welcome back, Super Admin.', 'primary');
-      if (typeof window !== 'undefined') {
-        window.location.replace('/super-admin/dashboard');
-        return;
-      }
       navigate('/super-admin/dashboard', { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Super Admin login failed. Please check your credentials.'));

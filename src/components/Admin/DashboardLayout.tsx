@@ -123,10 +123,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   const handleLogout = async () => {
     await logout();
-    if (typeof window !== 'undefined') {
-      window.location.replace('/admin/login');
-      return;
-    }
     navigate('/admin/login', { replace: true });
   };
 

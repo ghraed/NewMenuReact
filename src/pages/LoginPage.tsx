@@ -47,11 +47,7 @@ const LoginPage: React.FC = () => {
       const nextUser = await login(identifier, password);
       showToast(t('login.success'), 'primary');
       const nextRoute = getDefaultRouteForRole(nextUser.role);
-      if (typeof window !== 'undefined') {
-        window.location.replace(nextRoute);
-      } else {
-        navigate(nextRoute, { replace: true });
-      }
+      navigate(nextRoute, { replace: true });
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('login.failed')));
     } finally {
