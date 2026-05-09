@@ -8,37 +8,46 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000';
 
   return {
-  plugins: [
-    react(),
-    tailwindcss(), // Add this line
-  ],
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          i18n: ['i18next', 'react-i18next'],
-          realtime: ['laravel-echo', 'pusher-js'],
-          three: ['three', '@google/model-viewer'],
-          charts: ['chart.js', 'react-chartjs-2'],
+    plugins: [
+      react(),
+      tailwindcss(),
+    ],
+    build: {
+      // Keep warnings actionable while avoiding noise from intentionally large 3D/kitchen assets.
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+
+            if (id.includes('/react/') || id.includes('react-dom') || id.includes('react-router-dom')) return 'react';
+            if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
+            if (id.includes('laravel-echo') || id.includes('pusher-js')) return 'realtime';
+            if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'charts';
+            if (id.includes('framer-motion')) return 'motion';
+            if (id.includes('@google/model-viewer')) return 'model-viewer';
+            if (id.includes('/three/')) return 'three';
+            if (id.includes('axios')) return 'http';
+
+            return;
+          },
         },
       },
     },
-  },
-  server: {
-    host: true,
-    allowedHosts: [
-      '2d447bf9e7144f.lhr.lifelife',
-      'localhost',
-    ],
-    proxy: {
-      '/api': proxyTarget,
-      '/storage': {
-        target: proxyTarget,
-        changeOrigin: true,
-        secure: false,
+    server: {
+      host: true,
+      allowedHosts: [
+        '2d447bf9e7144f.lhr.lifelife',
+        'localhost',
+      ],
+      proxy: {
+        '/api': proxyTarget,
+        '/storage': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        }
       }
     }
-  }
   };
 })
