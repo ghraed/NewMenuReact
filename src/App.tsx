@@ -7,7 +7,6 @@ import {
   Routes,
   useLocation,
 } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -155,7 +154,6 @@ const lazyRoute = (element: React.ReactNode) => (
 );
 
 const AppRoutes: React.FC = () => {
-  const { t } = useTranslation();
   const location = useLocation();
 
   useEffect(() => {
@@ -284,7 +282,7 @@ const AppRoutes: React.FC = () => {
 
           <Route
             path="*"
-            element={<NotFoundView title={t('app.brand')} message={t('app.visit')} />}
+            element={<NotFoundView title="404" message="This route is unavailable." />}
           />
         </Routes>
       </RouteErrorBoundary>
