@@ -488,6 +488,11 @@ export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse
   return response.data;
 };
 
+export const markOrderServed = async (orderId: number): Promise<OrderResponse> => {
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`);
+  return response.data;
+};
+
 export const fetchPublishedDishes = async (): Promise<PublishedDishSummary[]> => {
   const response = await api.get<PublishedDishesResponse>('/dishes/published');
   return response.data.dishes;

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { useAuth } from '../contexts/useAuth';
 import {
   createAdminReservation,
   fetchAdminReservations,
@@ -15,6 +16,8 @@ const today = new Date().toISOString().slice(0, 10);
 const timeSlots = toTimeSlots(15);
 
 const AdminReservationsPage: React.FC = () => {
+  const { user } = useAuth();
+  const isStaffView = user?.role === 'staff';
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
   const [roomPlanId, setRoomPlanId] = useState<number | ''>('');
   const [reservationDate, setReservationDate] = useState<string>(today);
@@ -128,6 +131,11 @@ const AdminReservationsPage: React.FC = () => {
   const filteredReservations = useMemo(() => reservations, [reservations]);
 
   const handleStatus = async (reservationId: number, action: 'busy' | 'complete' | 'cancel' | 'no-show') => {
+    if (isStaffView) {
+      setError('Staff can only view reservations.');
+      return;
+    }
+
     setStatusBusyId(reservationId);
     setError(null);
     setSuccess(null);
@@ -145,6 +153,10 @@ const AdminReservationsPage: React.FC = () => {
 
   const handleCreateReservation = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isStaffView) {
+      setError('Staff can only view reservations.');
+      return;
+    }
     setError(null);
     setSuccess(null);
 
@@ -201,9 +213,10 @@ const AdminReservationsPage: React.FC = () => {
   return (
     <DashboardLayout title="Reservations Manager">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-          <h2 className="text-lg font-semibold text-text">Add Manual Reservation</h2>
-          <p className="mt-1 text-xs text-muted">Create reservations for walk-in guests or phone bookings.</p>
+        {!isStaffView ? (
+          <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
+            <h2 className="text-lg font-semibold text-text">Add Manual Reservation</h2>
+            <p className="mt-1 text-xs text-muted">Create reservations for walk-in guests or phone bookings.</p>
 
           <form className="mt-4 space-y-3" onSubmit={(event) => void handleCreateReservation(event)}>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -342,7 +355,12 @@ const AdminReservationsPage: React.FC = () => {
               <p className="text-xs text-muted">Refreshing availability for selected time...</p>
             ) : null}
           </form>
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-stroke bg-bg1/60 p-4 text-sm text-muted">
+            Staff has view-only access to reservations.
+          </div>
+        )}
 
         <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
           <div className="grid gap-3 md:grid-cols-4">
@@ -422,38 +440,42 @@ const AdminReservationsPage: React.FC = () => {
                     <span className="rounded-full border border-gold/45 bg-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-gold2">
                       {reservation.status}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => void handleStatus(reservation.id, 'busy')}
-                      disabled={statusBusyId === reservation.id}
-                      className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-1.5 text-xs text-red-200 disabled:opacity-50"
-                    >
-                      Busy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleStatus(reservation.id, 'complete')}
-                      disabled={statusBusyId === reservation.id}
-                      className="rounded-lg border border-sage/45 bg-sage/10 px-3 py-1.5 text-xs text-sage disabled:opacity-50"
-                    >
-                      Complete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleStatus(reservation.id, 'cancel')}
-                      disabled={statusBusyId === reservation.id}
-                      className="rounded-lg border border-spicy/45 bg-spicy/10 px-3 py-1.5 text-xs text-spicy disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleStatus(reservation.id, 'no-show')}
-                      disabled={statusBusyId === reservation.id}
-                      className="rounded-lg border border-slate-400/45 bg-slate-400/10 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
-                    >
-                      No Show
-                    </button>
+                    {!isStaffView ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void handleStatus(reservation.id, 'busy')}
+                          disabled={statusBusyId === reservation.id}
+                          className="rounded-lg border border-red-500/45 bg-red-500/10 px-3 py-1.5 text-xs text-red-200 disabled:opacity-50"
+                        >
+                          Busy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleStatus(reservation.id, 'complete')}
+                          disabled={statusBusyId === reservation.id}
+                          className="rounded-lg border border-sage/45 bg-sage/10 px-3 py-1.5 text-xs text-sage disabled:opacity-50"
+                        >
+                          Complete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleStatus(reservation.id, 'cancel')}
+                          disabled={statusBusyId === reservation.id}
+                          className="rounded-lg border border-spicy/45 bg-spicy/10 px-3 py-1.5 text-xs text-spicy disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleStatus(reservation.id, 'no-show')}
+                          disabled={statusBusyId === reservation.id}
+                          className="rounded-lg border border-slate-400/45 bg-slate-400/10 px-3 py-1.5 text-xs text-slate-200 disabled:opacity-50"
+                        >
+                          No Show
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               </div>

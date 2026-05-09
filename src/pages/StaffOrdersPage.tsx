@@ -21,7 +21,9 @@ import {
   fetchGuestTables,
   fetchPendingOrders,
   fetchPendingWaves,
+  fetchKitchenOrders,
   finalizeGuestTableSession,
+  markOrderServed,
   resetActiveTableSessionPin,
   resolvePendingWave,
   updatePendingOrder,
@@ -31,6 +33,7 @@ import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import type {
   ActiveTableSessionRecord,
   InventoryIngredient,
+  KitchenOrderRecord,
   OrderRecord,
   PublishedDishSummary,
   RestaurantTableSummary,
@@ -110,12 +113,14 @@ const StaffOrdersPage: React.FC = () => {
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [readyOrders, setReadyOrders] = useState<KitchenOrderRecord[]>([]);
   const [waves, setWaves] = useState<TableWaveRecord[]>([]);
   const [tableSessions, setTableSessions] = useState<ActiveTableSessionRecord[]>([]);
   const [accessibleTables, setAccessibleTables] = useState<RestaurantTableSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const [processingServedOrderId, setProcessingServedOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
   const [processingSessionId, setProcessingSessionId] = useState<number | null>(null);
   const [tableUrlPopup, setTableUrlPopup] = useState<{ label: string; url: string } | null>(null);
@@ -236,6 +241,13 @@ const StaffOrdersPage: React.FC = () => {
       ]);
       setOrders(nextOrders);
       setWaves(nextWaves);
+      try {
+        const nextReadyOrders = await fetchKitchenOrders('ready');
+        setReadyOrders(nextReadyOrders);
+      } catch (kitchenErr) {
+        console.warn('[Staff] Failed to load ready kitchen orders.', kitchenErr);
+        setReadyOrders([]);
+      }
 
       try {
         const nextSessions = await fetchActiveTableSessions();
@@ -642,6 +654,9 @@ const StaffOrdersPage: React.FC = () => {
   const waveCountLabel = useMemo(() => (
     t('staffOrdersPage.wavesWaiting', { count: waves.length })
   ), [waves.length, t]);
+  const readyOrderCountLabel = useMemo(() => (
+    `Ready to serve: ${readyOrders.length}`
+  ), [readyOrders.length]);
 
   const activeTableSessionCountLabel = useMemo(() => (
     t('staffOrdersPage.activeTableSessions', { count: tableSessions.length })
@@ -737,6 +752,25 @@ const StaffOrdersPage: React.FC = () => {
       setError(getErrorMessage(err, t('staffOrdersPage.failedResolveWave')));
     } finally {
       setProcessingWaveId(null);
+    }
+  };
+
+  const handleMarkServed = async (order: KitchenOrderRecord) => {
+    setProcessingServedOrderId(order.id);
+    setError(null);
+
+    try {
+      const response = await markOrderServed(order.id);
+      setReadyOrders((current) => current.filter((item) => item.id !== order.id));
+      showToast(
+        `Marked ${response.order.order_number || `#${response.order.id}`} as served.`,
+        'secondary',
+        3600
+      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to mark order as served.'));
+    } finally {
+      setProcessingServedOrderId(null);
     }
   };
 
@@ -916,6 +950,7 @@ const StaffOrdersPage: React.FC = () => {
             {user?.role === 'staff' ? t('staffOrdersPage.headingStaff') : t('staffOrdersPage.headingAdmin')}
           </h2>
           <p className="mt-1 text-sm text-muted">{waveCountLabel} • {orderCountLabel}</p>
+          <p className="text-xs text-muted">{readyOrderCountLabel}</p>
         </div>
 
         {!pushSubscribed ? (
@@ -1098,7 +1133,7 @@ const StaffOrdersPage: React.FC = () => {
         <div className="py-12 text-center text-muted">{t('staffOrdersPage.loadingActivity')}</div>
       ) : null}
 
-      {!loading && waves.length === 0 && orders.length === 0 ? (
+      {!loading && waves.length === 0 && orders.length === 0 && readyOrders.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">👋</div>
           <h3 className="mb-2 text-xl font-medium text-text">{t('staffOrdersPage.noPendingActivity')}</h3>
@@ -1139,6 +1174,43 @@ const StaffOrdersPage: React.FC = () => {
                   {processingWaveId === wave.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.markHandled')}
                 </LiquidButton>
               </div>
+            </GlassCard>
+          ))}
+
+          {readyOrders.map((order) => (
+            <GlassCard key={`ready-${order.id}`} className="space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Ready To Serve</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-text">
+                    {order.order_number || `Order #${order.id}`}
+                  </h3>
+                  <p className="mt-2 text-sm text-muted">
+                    Table {order.table_reference}
+                    {order.kitchen_ready_at ? ` • Ready at ${new Date(order.kitchen_ready_at).toLocaleString()}` : ''}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Total</p>
+                  <p className="mt-2 text-2xl font-semibold text-text">${order.invoice.total}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {order.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between rounded-[16px] border border-white/10 bg-black/10 px-3 py-2 text-sm">
+                    <span className="text-text">{item.quantity} × {item.dish_name}</span>
+                    <span className="text-gold2">${item.line_subtotal}</span>
+                  </div>
+                ))}
+              </div>
+              <LiquidButton
+                tone="primary"
+                onClick={() => void handleMarkServed(order)}
+                disabled={processingServedOrderId === order.id}
+                className="w-full"
+              >
+                {processingServedOrderId === order.id ? t('staffOrdersPage.processing') : 'Mark Served'}
+              </LiquidButton>
             </GlassCard>
           ))}
 
