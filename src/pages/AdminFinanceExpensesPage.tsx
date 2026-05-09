@@ -127,6 +127,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [vendors, setVendors] = useState<FinanceVendor[]>([]);
   const [expenses, setExpenses] = useState<FinanceExpense[]>([]);
   const [totalExpensesCount, setTotalExpensesCount] = useState(0);
+  const [expensePage, setExpensePage] = useState(1);
+  const [expensePerPage, setExpensePerPage] = useState(25);
+  const [expenseLastPage, setExpenseLastPage] = useState(1);
   const [unlinkedRestocks, setUnlinkedRestocks] = useState<FinanceUnlinkedRestockRecord[]>([]);
   const [unlinkedRestocksCount, setUnlinkedRestocksCount] = useState(0);
 
@@ -151,6 +154,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingVendor, setSavingVendor] = useState(false);
   const [savingExpense, setSavingExpense] = useState(false);
@@ -179,17 +183,24 @@ const AdminFinanceExpensesPage: React.FC = () => {
   }, []);
 
   const loadExpenses = useCallback(async () => {
-    const response = await fetchExpenses({
-      date_from: dateFrom || undefined,
-      date_to: dateTo || undefined,
-      status: statusFilter || undefined,
-      category_id: categoryFilter ? Number(categoryFilter) : undefined,
-      vendor_id: vendorFilter ? Number(vendorFilter) : undefined,
-      per_page: 200,
-    });
-    setExpenses(expenseSortNewestFirst(response.expenses));
-    setTotalExpensesCount(response.meta.total);
-  }, [categoryFilter, dateFrom, dateTo, statusFilter, vendorFilter]);
+    setLoadingExpenses(true);
+    try {
+      const response = await fetchExpenses({
+        date_from: dateFrom || undefined,
+        date_to: dateTo || undefined,
+        status: statusFilter || undefined,
+        category_id: categoryFilter ? Number(categoryFilter) : undefined,
+        vendor_id: vendorFilter ? Number(vendorFilter) : undefined,
+        per_page: expensePerPage,
+        page: expensePage,
+      });
+      setExpenses(expenseSortNewestFirst(response.expenses));
+      setTotalExpensesCount(response.meta.total);
+      setExpenseLastPage(Math.max(1, response.meta.last_page));
+    } finally {
+      setLoadingExpenses(false);
+    }
+  }, [categoryFilter, dateFrom, dateTo, expensePage, expensePerPage, statusFilter, vendorFilter]);
 
   const loadUnlinkedRestocks = useCallback(async () => {
     setLoadingUnlinkedRestocks(true);
@@ -206,6 +217,19 @@ const AdminFinanceExpensesPage: React.FC = () => {
     }
   }, [dateFrom, dateTo]);
 
+  const loadInitialData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await Promise.all([loadReferenceData(), loadUnlinkedRestocks()]);
+    } catch (loadError: unknown) {
+      setError(getErrorMessage(loadError, 'Failed to load expense management data.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [loadReferenceData, loadUnlinkedRestocks]);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -220,8 +244,12 @@ const AdminFinanceExpensesPage: React.FC = () => {
   }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks]);
 
   useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
+    void loadInitialData();
+  }, [loadInitialData]);
+
+  useEffect(() => {
+    void loadExpenses();
+  }, [loadExpenses]);
 
   const resetExpenseForm = () => {
     setEditingExpenseId(null);
@@ -322,17 +350,15 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
     try {
       if (editingExpenseId === null) {
-        const created = await createExpense(expensePayloadFromDraft(expenseDraft));
-        setExpenses((current) => expenseSortNewestFirst([created, ...current]));
-        setTotalExpensesCount((current) => current + 1);
+        await createExpense(expensePayloadFromDraft(expenseDraft));
+        setExpensePage(1);
+        await loadExpenses();
         setSuccess('Expense created.');
         resetExpenseForm();
       } else {
         const updatePayload: UpdateExpensePayload = expensePayloadFromDraft(expenseDraft);
-        const updated = await updateExpense(editingExpenseId, updatePayload);
-        setExpenses((current) => expenseSortNewestFirst(current.map((expense) => (
-          expense.id === updated.id ? updated : expense
-        ))));
+        await updateExpense(editingExpenseId, updatePayload);
+        await loadExpenses();
         setSuccess('Expense updated.');
       }
       void loadUnlinkedRestocks();
@@ -369,9 +395,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
     try {
       const updated = await updateExpense(expense.id, { status: nextStatus });
-      setExpenses((current) => expenseSortNewestFirst(current.map((item) => (
-        item.id === updated.id ? updated : item
-      ))));
+      setExpenses((current) => expenseSortNewestFirst(current.map((item) => (item.id === updated.id ? updated : item))));
       setSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
       void loadUnlinkedRestocks();
     } catch (updateError: unknown) {
@@ -670,7 +694,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
                 <input
                   type="date"
                   value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
+                  onChange={(event) => {
+                    setExpensePage(1);
+                    setDateFrom(event.target.value);
+                  }}
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
               </label>
@@ -679,13 +706,19 @@ const AdminFinanceExpensesPage: React.FC = () => {
                 <input
                   type="date"
                   value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
+                  onChange={(event) => {
+                    setExpensePage(1);
+                    setDateTo(event.target.value);
+                  }}
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
               </label>
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as FinanceExpenseStatus | '')}
+                onChange={(event) => {
+                  setExpensePage(1);
+                  setStatusFilter(event.target.value as FinanceExpenseStatus | '');
+                }}
                 className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
               >
                 <option value="">All statuses</option>
@@ -695,7 +728,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
               </select>
               <select
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) => {
+                  setExpensePage(1);
+                  setCategoryFilter(event.target.value);
+                }}
                 className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
               >
                 <option value="">All categories</option>
@@ -705,7 +741,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
               </select>
               <select
                 value={vendorFilter}
-                onChange={(event) => setVendorFilter(event.target.value)}
+                onChange={(event) => {
+                  setExpensePage(1);
+                  setVendorFilter(event.target.value);
+                }}
                 className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
               >
                 <option value="">All vendors</option>
@@ -713,13 +752,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
                 ))}
               </select>
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadExpenses()}>
-                Apply Filters
-              </LiquidButton>
               <LiquidButton
                 type="button"
                 tone="tertiary"
                 onClick={() => {
+                  setExpensePage(1);
                   setDateFrom('');
                   setDateTo('');
                   setStatusFilter('');
@@ -729,6 +766,20 @@ const AdminFinanceExpensesPage: React.FC = () => {
               >
                 Clear
               </LiquidButton>
+              <select
+                value={String(expensePerPage)}
+                onChange={(event) => {
+                  const parsed = Number(event.target.value);
+                  const nextPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
+                  setExpensePage(1);
+                  setExpensePerPage(nextPerPage);
+                }}
+                className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+              >
+                {[25, 50, 100].map((size) => (
+                  <option key={size} value={size}>{size} / page</option>
+                ))}
+              </select>
               <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()}>
                 Refresh Report
               </LiquidButton>
@@ -748,7 +799,13 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.length === 0 ? (
+                  {loadingExpenses ? (
+                    <tr>
+                      <td className="px-4 py-10 text-center text-muted" colSpan={7}>
+                        Loading expenses...
+                      </td>
+                    </tr>
+                  ) : expenses.length === 0 ? (
                     <tr>
                       <td className="px-4 py-10 text-center text-muted" colSpan={7}>
                         No expenses found for current filters.
@@ -793,6 +850,30 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-muted">
+                Page {expensePage} of {expenseLastPage} • {totalExpensesCount} total
+              </p>
+              <div className="flex gap-2">
+                <LiquidButton
+                  type="button"
+                  tone="tertiary"
+                  disabled={loadingExpenses || expensePage <= 1}
+                  onClick={() => setExpensePage((current) => Math.max(1, current - 1))}
+                >
+                  Previous
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  tone="tertiary"
+                  disabled={loadingExpenses || expensePage >= expenseLastPage}
+                  onClick={() => setExpensePage((current) => Math.min(expenseLastPage, current + 1))}
+                >
+                  Next
+                </LiquidButton>
+              </div>
             </div>
           </GlassCard>
         </div>

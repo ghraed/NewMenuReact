@@ -115,10 +115,11 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     try {
-      const [nextOrders, pendingWaves] = await Promise.all([
-        fetchAccountingOrders(),
-        fetchPendingWaves(),
-      ]);
+      const canReadPendingWaves = user?.role === 'admin' || user?.role === 'staff';
+      const nextOrders = await fetchAccountingOrders();
+      const pendingWaves = canReadPendingWaves
+        ? await fetchPendingWaves()
+        : [];
       const previousKnownOrderIds = knownOrderIdsRef.current;
       const newOrders = hasLoadedOrdersRef.current
         ? nextOrders.filter((order) => !previousKnownOrderIds.has(order.id))
@@ -169,7 +170,7 @@ const AccountingOrdersPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [getOrderLabel, showToast, t]);
+  }, [getOrderLabel, showToast, t, user?.role]);
 
   useEffect(() => {
     void loadOrders();
