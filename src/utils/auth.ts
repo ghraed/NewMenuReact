@@ -2,11 +2,11 @@ import type { UserRole } from '../types';
 
 export const getDefaultRouteForRole = (role?: UserRole | null): string => (
   role === 'chef'
-    ? '/chef/dashboard'
+    ? '/admin/dashboard'
     : role === 'accountant'
       ? '/admin/finance'
     : role === 'stock_manager'
-      ? '/admin/inventory/ingredients'
+      ? '/admin/dashboard'
     : role === 'staff'
       ? '/staff/orders'
       : '/admin/dashboard'

@@ -200,7 +200,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/admin/login" element={<LoginPage />} />
           <Route path="/super-admin/login" element={lazyRoute(<SuperAdminLoginPage />)} />
 
-          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={lazyRoute(<AdminRestaurantProfilePage />)} />
             <Route path="/admin/dishes/create" element={lazyRoute(<CreateDishPage />)} />
@@ -273,7 +273,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/owner/login" element={<Navigate to="/super-admin/login" replace />} />
           <Route path="/owner/dashboard" element={<Navigate to="/super-admin/dashboard" replace />} />
           <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
-          <Route path="/chef" element={<Navigate to="/chef/dashboard" replace />} />
+          <Route path="/chef" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
           <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
           <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
