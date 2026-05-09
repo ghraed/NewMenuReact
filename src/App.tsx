@@ -212,11 +212,6 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/currency" element={lazyRoute(<AdminCurrencyPage />)} />
             <Route path="/admin/theme-demo" element={lazyRoute(<LiquidGlassDemoPage />)} />
 
-            <Route element={<ProtectedRoute requiredFeatures={['inventory']} />}>
-              <Route path="/admin/inventory/ingredients" element={lazyRoute(<AdminIngredientsPage />)} />
-              <Route path="/admin/inventory/stock-history" element={lazyRoute(<AdminStockHistoryPage />)} />
-            </Route>
-
             <Route element={<ProtectedRoute requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
               <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
               <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
@@ -234,6 +229,11 @@ const AppRoutes: React.FC = () => {
             <Route element={<ProtectedRoute requiredFeatures={['staff_scheduling']} />}>
               <Route path="/admin/staff/scheduling" element={lazyRoute(<AdminStaffSchedulingPage />)} />
             </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'stock_manager']} requiredFeatures={['inventory']} />}>
+            <Route path="/admin/inventory/ingredients" element={lazyRoute(<AdminIngredientsPage />)} />
+            <Route path="/admin/inventory/stock-history" element={lazyRoute(<AdminStockHistoryPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['room_plan_editor']} />}>

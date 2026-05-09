@@ -67,6 +67,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     ? [
       { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
     ]
+    : user?.role === 'stock_manager'
+      ? [
+        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
+        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+      ]
     : user?.role === 'staff'
       ? [
         { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
@@ -130,6 +135,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('admin.controlRoom')}</p>
                 <h1 className="text-2xl font-semibold text-text">
                   {user?.role === 'chef' ? 'Kitchen Team'
+                    : user?.role === 'stock_manager' ? 'Stock Manager'
                     : user?.role === 'staff' ? t('admin.staffTitle')
                       : t('admin.adminTitle')}
                 </h1>

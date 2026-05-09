@@ -1,6 +1,6 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
-export type UserRole = 'admin' | 'staff' | 'chef';
+export type UserRole = 'admin' | 'staff' | 'chef' | 'stock_manager';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type KitchenOrderStatus = 'new' | 'in_progress' | 'ready' | 'served';
 export type DiscountType = 'fixed' | 'percentage';
@@ -56,7 +56,7 @@ export interface CreateStaffRequest {
   name: string;
   email?: string;
   phone?: string;
-  role?: Extract<UserRole, 'staff' | 'chef'>;
+  role?: Extract<UserRole, 'staff' | 'chef' | 'stock_manager'>;
   table_ids?: number[];
 }
 

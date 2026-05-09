@@ -15,6 +15,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   isStaff: boolean;
   isChef: boolean;
+  isStockManager: boolean;
   defaultRoute: string;
   login: (identifier: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
@@ -96,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin: user?.role === 'admin',
       isStaff: user?.role === 'staff',
       isChef: user?.role === 'chef',
+      isStockManager: user?.role === 'stock_manager',
       defaultRoute: getDefaultRouteForRole(user?.role),
       login,
       logout,
