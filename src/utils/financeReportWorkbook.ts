@@ -219,7 +219,8 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   const payrollMargin = totalIncome !== 0 ? payrollTotal / totalIncome : 0;
 
   // Header
-  dashboard.mergeCells('B1:L2');
+  dashboard.mergeCells('B1:L1');
+  dashboard.mergeCells('B2:L2');
   for (let row = 1; row <= 2; row += 1) {
     for (let col = 2; col <= 12; col += 1) {
       dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
@@ -230,9 +231,9 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   dashboard.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
   dashboard.mergeCells('B3:L3');
   dashboard.getCell('B3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.gold } };
-  dashboard.getCell('F2').value = `${input.currency}  |  ${input.dateFrom && input.dateTo ? `${input.dateFrom} - ${input.dateTo}` : 'All time'}  |  Executive Summary`;
-  dashboard.getCell('F2').font = { name: 'Arial', size: 11, color: { argb: COLORS.white } };
-  dashboard.getCell('F2').alignment = { horizontal: 'center' };
+  dashboard.getCell('B2').value = `${input.currency}  |  ${input.dateFrom && input.dateTo ? `${input.dateFrom} - ${input.dateTo}` : 'All time'}  |  Executive Summary`;
+  dashboard.getCell('B2').font = { name: 'Arial', size: 11, color: { argb: COLORS.white } };
+  dashboard.getCell('B2').alignment = { horizontal: 'center', vertical: 'middle' };
 
   // KPI row
   const kpiStarts = ['B5', 'D5', 'F5', 'H5', 'J5'];
@@ -379,9 +380,9 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   dashboard.getCell('I34').value = 'Net payroll divided by revenue';
   dashboard.getCell('I34').font = { name: 'Arial', size: 9, color: { argb: COLORS.muted } };
 
-  // chart helper data (kept dynamic)
-  dashboard.getCell('B44').value = 'Metric';
-  dashboard.getCell('C44').value = 'Value';
+  // chart helper data (kept dynamic, hidden on Source Data)
+  source.getCell('D1').value = 'Metric';
+  source.getCell('E1').value = 'Value';
   const chartPairs: Array<[string, number]> = [
     ['Revenue', totalIncome],
     ['Gross Profit', input.pnl.gross_profit],
@@ -390,9 +391,9 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     ['Net VAT Payable', vatTotal],
   ];
   chartPairs.forEach(([metric, value], idx) => {
-    const r = 45 + idx;
-    dashboard.getCell(`B${r}`).value = metric;
-    dashboard.getCell(`C${r}`).value = value;
+    const r = 2 + idx;
+    source.getCell(`D${r}`).value = metric;
+    source.getCell(`E${r}`).value = value;
   });
 
   // Dynamic chart rendering
@@ -402,7 +403,11 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      dashboard.addImage(imageId, 'E30:H42');
+      dashboard.addImage(imageId, {
+        tl: { col: 4.3, row: 29.4 } as never,
+        br: { col: 8.6, row: 41.1 } as never,
+        editAs: 'oneCell',
+      });
     } else {
       placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
     }
