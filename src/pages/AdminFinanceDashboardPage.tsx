@@ -15,6 +15,7 @@ import { Bar } from 'react-chartjs-2';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
+import api from '../services/api';
 import {
   createInvoice,
   fetchInvoices,
@@ -103,6 +104,18 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const todayDate = (): string => new Date().toISOString().slice(0, 10);
+const parsePositiveRate = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+};
 
 const parsePositiveNumber = (value: string): number | null => {
   const parsed = Number(value);
@@ -226,9 +239,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const { user } = useAuth();
   const baseCurrency = normalizeCurrency(user?.restaurant?.currency ?? 'USD');
   const [currency, setCurrency] = useState<CurrencyCode>(baseCurrency);
-  const dollarRate = typeof user?.restaurant?.dollar_rate === 'number' && user.restaurant.dollar_rate > 0
-    ? user.restaurant.dollar_rate
-    : 1;
+  const [dollarRate, setDollarRate] = useState<number>(() => (
+    parsePositiveRate(user?.restaurant?.dollar_rate) ?? 1
+  ));
 
   const [range, setRange] = useState<RevenueRange>('monthly');
   const [dateFrom, setDateFrom] = useState('');
@@ -276,6 +289,33 @@ const AdminFinanceDashboardPage: React.FC = () => {
   useEffect(() => {
     setCurrency(baseCurrency);
   }, [baseCurrency]);
+
+  useEffect(() => {
+    const userRate = parsePositiveRate(user?.restaurant?.dollar_rate);
+    if (userRate) {
+      setDollarRate(userRate);
+      return;
+    }
+
+    const loadRate = async () => {
+      try {
+        const response = await api.get<{
+          dollar_rate?: number | string | null;
+          restaurant?: { dollar_rate?: number | string | null };
+        }>('/restaurant/currency-settings');
+        const payload = response.data;
+        const resolved = parsePositiveRate(payload?.dollar_rate)
+          ?? parsePositiveRate(payload?.restaurant?.dollar_rate);
+        if (resolved) {
+          setDollarRate(resolved);
+        }
+      } catch {
+        // keep fallback rate = 1 if unavailable
+      }
+    };
+
+    void loadRate();
+  }, [user?.restaurant?.dollar_rate]);
 
   const convertFinanceAmount = useCallback((amount: number): number => {
     const safeAmount = Number.isFinite(amount) ? amount : 0;
