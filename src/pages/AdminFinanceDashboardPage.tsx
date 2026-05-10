@@ -852,27 +852,14 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div className="flex flex-wrap gap-3">
               <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
-                <div className="mt-1 flex gap-2">
-                  {[
-                    { code: 'USD' as CurrencyCode, label: '$ USD' },
-                    { code: 'LBP' as CurrencyCode, label: 'LBP' },
-                    { code: 'SYP' as CurrencyCode, label: 'LS' },
-                  ].map((option) => (
-                    <button
-                      key={option.code}
-                      type="button"
-                      onClick={() => setCurrency(option.code)}
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                        currency === option.code
-                          ? 'border-gold/70 bg-gold/20 text-text'
-                          : 'border-stroke text-muted hover:text-text'
-                      }`}
-                      title={`Switch finance currency display to ${option.label}`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrency((current) => (current === 'USD' ? 'LBP' : 'USD'))}
+                  className="mt-1 rounded-full border border-gold/70 bg-gold/20 px-3 py-1 text-xs font-semibold text-text transition hover:bg-gold/30"
+                  title="Toggle finance currency between USD and LBP"
+                >
+                  {currency === 'USD' ? '$ USD -> LBP' : 'LBP -> $ USD'}
+                </button>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
