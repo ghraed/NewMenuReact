@@ -403,11 +403,8 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      dashboard.addImage(imageId, {
-        tl: { col: 4.3, row: 29.4 } as never,
-        br: { col: 8.6, row: 41.1 } as never,
-        editAs: 'oneCell',
-      });
+      // Use range anchoring for consistent rendering across Excel viewers.
+      dashboard.addImage(imageId, 'E30:I42');
     } else {
       placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
     }
