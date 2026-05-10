@@ -1,5 +1,14 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import {
+  BarController,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from 'chart.js';
 import type { FinanceProfitAndLossSummary, FinanceTaxSummary, PayrollSummaryTotals } from '../types';
 
 const COLORS = {
@@ -16,6 +25,8 @@ const COLORS = {
 
 const currencyFormat = '"$"#,##0.00;[Red]-"$"#,##0.00';
 const percentFormat = '0.00%';
+
+ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, Tooltip, Legend);
 
 export interface FinanceExecutiveWorkbookInput {
   companyName: string;
@@ -59,6 +70,88 @@ const sourceRows = (input: FinanceExecutiveWorkbookInput): Array<[string, string
     ['Payroll Net', input.payroll.net_pay],
     ['Employees Paid', input.payroll.employee_count],
   ];
+};
+
+const buildFinancialOverviewChartPng = async (
+  input: FinanceExecutiveWorkbookInput
+): Promise<string | null> => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280;
+  canvas.height = 720;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    return null;
+  }
+
+  const values = [
+    input.pnl.revenue,
+    input.pnl.gross_profit,
+    input.pnl.operating_expenses,
+    input.pnl.net_profit,
+    input.tax.net_vat_payable,
+  ];
+  const labels = ['Revenue', 'Gross Profit', 'Operating Expenses', 'Net Profit', 'Net VAT Payable'];
+  const maxAbs = Math.max(...values.map((v) => Math.abs(v)), 1);
+  const pad = maxAbs * 0.25;
+
+  const chart = new ChartJS(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Amount',
+        data: values,
+        borderWidth: 0,
+        borderRadius: 8,
+        backgroundColor: values.map((v) => {
+          if (v < 0) return '#DC2626';
+          if (v === input.pnl.operating_expenses || v === input.tax.net_vat_payable) return '#0B1120';
+          return '#C9A227';
+        }),
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: 'Financial Performance Overview',
+          color: '#0B1120',
+          font: { size: 30, weight: 'bold', family: 'Arial' },
+          padding: { bottom: 20 },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => `${Number(context.parsed.x ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          min: -pad,
+          max: maxAbs + pad,
+          grid: { color: '#D1D5DB' },
+          ticks: { color: '#111827', font: { size: 11, family: 'Arial' } },
+        },
+        y: {
+          grid: { color: '#E5E7EB' },
+          ticks: { color: '#111827', font: { size: 12, family: 'Arial' } },
+        },
+      },
+    },
+  });
+
+  const pngDataUrl = chart.toBase64Image('image/png', 1);
+  chart.destroy();
+  return pngDataUrl;
 };
 
 const styleKpiCard = (sheet: ExcelJS.Worksheet, fromCol: number, toCol: number, rowStart: number, rowEnd: number) => {
@@ -213,29 +306,24 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     });
   }
 
-  // Section E: Chart placeholders / no-data states
-  placeNoDataCard(dashboard, 'B30', 'B31', 'Income vs Expenses');
-  placeNoDataCard(dashboard, 'E30', 'E31', 'Net Profit');
-  if (vatTotal !== 0) {
-    dashboard.getCell('H30').value = 'VAT Summary';
-    dashboard.getCell('H30').font = { name: 'Aptos', bold: true, size: 12, color: { argb: COLORS.charcoal } };
-    dashboard.getCell('H31').value = 'Uses data range F19:F200';
-    dashboard.getCell('H31').font = { name: 'Aptos', color: { argb: COLORS.muted } };
+  // Section E: Dynamic chart rendering (real data-driven values)
+  const hasChartData = [totalIncome, input.pnl.gross_profit, input.pnl.operating_expenses, netProfit, vatTotal]
+    .some((value) => value !== 0);
+  if (hasChartData) {
+    const pngDataUrl = await buildFinancialOverviewChartPng(input);
+    if (pngDataUrl) {
+      const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
+      dashboard.addImage(imageId, 'B29:J47');
+    } else {
+      placeNoDataCard(dashboard, 'B30', 'B31', 'Financial Performance Overview');
+    }
   } else {
-    placeNoDataCard(dashboard, 'H30', 'H31', 'VAT Summary');
-  }
-  if (payrollTotal !== 0) {
-    dashboard.getCell('B35').value = 'Payroll Summary';
-    dashboard.getCell('B35').font = { name: 'Aptos', bold: true, size: 12, color: { argb: COLORS.charcoal } };
-    dashboard.getCell('B36').value = 'Uses data range G19:G200';
-    dashboard.getCell('B36').font = { name: 'Aptos', color: { argb: COLORS.muted } };
-  } else {
-    placeNoDataCard(dashboard, 'B35', 'B36', 'Payroll Summary');
+    placeNoDataCard(dashboard, 'B30', 'B31', 'Financial Performance Overview');
   }
 
   // Section F: Executive insights area
-  dashboard.getCell('B40').value = 'Executive Insights';
-  dashboard.getCell('B40').font = { name: 'Aptos', bold: true, size: 13, color: { argb: COLORS.charcoal } };
+  dashboard.getCell('B50').value = 'Executive Insights';
+  dashboard.getCell('B50').font = { name: 'Aptos', bold: true, size: 13, color: { argb: COLORS.charcoal } };
   const insights: Array<[string, string | number]> = [
     ['Total income', totalIncome],
     ['Total expenses', totalExpenses],
@@ -247,7 +335,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     ['Payroll total', payrollTotal],
   ];
   insights.forEach(([label, value], index) => {
-    const row = 41 + index;
+    const row = 51 + index;
     dashboard.getCell(`B${row}`).value = label;
     dashboard.getCell(`B${row}`).font = { name: 'Aptos', color: { argb: COLORS.charcoal } };
     dashboard.getCell(`E${row}`).value = value;
