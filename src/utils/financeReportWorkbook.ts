@@ -107,11 +107,18 @@ const buildFinancialOverviewChartPng = async (
         label: 'Amount',
         data: values,
         borderWidth: 0,
-        borderRadius: 8,
+        borderRadius: 6,
+        barThickness: 22,
+        maxBarThickness: 24,
+        categoryPercentage: 0.58,
         backgroundColor: values.map((v) => {
           if (v < 0) return '#DC2626';
-          if (v === input.pnl.operating_expenses || v === input.tax.net_vat_payable) return '#0B1120';
-          return '#C9A227';
+          if (v === input.pnl.revenue) return 'rgba(201, 162, 90, 0.80)'; // finance page revenue
+          if (v === input.pnl.gross_profit) return 'rgba(164, 201, 152, 0.94)'; // finance page profit green
+          if (v === input.pnl.operating_expenses) return 'rgba(189, 163, 138, 0.94)'; // finance page operating expenses
+          if (v === input.pnl.net_profit) return 'rgba(122, 156, 115, 0.34)'; // finance page net profit
+          if (v === input.tax.net_vat_payable) return 'rgba(170, 121, 73, 0.76)'; // finance page cogs-like bronze
+          return '#0B1120';
         }),
       }],
     },
