@@ -145,11 +145,11 @@ const buildFinancialOverviewChartPng = async (
           min: -pad,
           max: maxAbs + pad,
           grid: { color: '#D1D5DB' },
-          ticks: { color: '#111827', font: { size: 11, family: 'Arial' } },
+          ticks: { color: '#111827', font: { size: 16, family: 'Arial', weight: '600' } },
         },
         y: {
           grid: { color: '#E5E7EB' },
-          ticks: { color: '#111827', font: { size: 12, family: 'Arial' } },
+          ticks: { color: '#111827', font: { size: 22, family: 'Arial', weight: '700' } },
         },
       },
     },
