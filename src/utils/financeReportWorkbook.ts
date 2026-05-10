@@ -188,15 +188,15 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   });
 
   dashboard.columns = [
-    { width: 2 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 },
-    { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 2 },
+    { width: 2 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 },
+    { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 2 },
   ];
   source.columns = [{ width: 40 }, { width: 22 }];
 
-  for (let row = 1; row <= 60; row += 1) {
+  for (let row = 1; row <= 80; row += 1) {
     dashboard.getRow(row).height = 22;
     for (let col = 2; col <= 12; col += 1) {
-      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F0EC' } };
+      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8FAFC' } };
     }
   }
 
@@ -218,14 +218,17 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   const operatingMargin = totalIncome !== 0 ? input.pnl.operating_expenses / totalIncome : 0;
   const payrollMargin = totalIncome !== 0 ? payrollTotal / totalIncome : 0;
 
-  // Header
+  const paintRow = (row: number, startCol: number, endCol: number, color: string) => {
+    for (let c = startCol; c <= endCol; c += 1) {
+      dashboard.getCell(row, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: color } };
+    }
+  };
+
+  // Header (luxury modern)
   dashboard.mergeCells('B1:L1');
   dashboard.mergeCells('B2:L2');
-  for (let row = 1; row <= 2; row += 1) {
-    for (let col = 2; col <= 12; col += 1) {
-      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
-    }
-  }
+  paintRow(1, 2, 12, COLORS.darkNavy);
+  paintRow(2, 2, 12, COLORS.darkNavy);
   dashboard.getCell('B1').value = 'FINANCIAL PERFORMANCE REPORT';
   dashboard.getCell('B1').font = { name: 'Arial', bold: true, size: 18, color: { argb: 'F6DEA3' } };
   dashboard.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
@@ -235,7 +238,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   dashboard.getCell('B2').font = { name: 'Arial', size: 11, color: { argb: COLORS.white } };
   dashboard.getCell('B2').alignment = { horizontal: 'center', vertical: 'middle' };
 
-  // KPI row
+  // KPI row cards
   const kpiStarts = ['B5', 'D5', 'F5', 'H5', 'J5'];
   const kpiData = [
     { label: 'Revenue', value: moneyText(totalIncome), hint: 'Total top-line revenue', isNegative: totalIncome < 0 },
@@ -249,6 +252,12 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     for (let r = 5; r <= 9; r += 1) {
       for (let c = col; c <= col + 1; c += 1) {
         dashboard.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.white } };
+        dashboard.getCell(r, c).border = {
+          top: { style: 'thin', color: { argb: COLORS.borderGray } },
+          left: { style: 'thin', color: { argb: COLORS.borderGray } },
+          bottom: { style: 'thin', color: { argb: COLORS.borderGray } },
+          right: { style: 'thin', color: { argb: COLORS.borderGray } },
+        };
       }
     }
     dashboard.mergeCells(`${String.fromCharCode(64 + col)}5:${String.fromCharCode(64 + col + 1)}5`);
@@ -360,6 +369,17 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   });
 
   sectionHeader('B28:L28', 'PERFORMANCE INDICATORS');
+  for (let r = 29; r <= 35; r += 1) {
+    for (let c = 2; c <= 12; c += 1) {
+      dashboard.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.white } };
+      dashboard.getCell(r, c).border = {
+        top: { style: 'thin', color: { argb: COLORS.borderGray } },
+        left: { style: 'thin', color: { argb: COLORS.borderGray } },
+        bottom: { style: 'thin', color: { argb: COLORS.borderGray } },
+        right: { style: 'thin', color: { argb: COLORS.borderGray } },
+      };
+    }
+  }
   dashboard.mergeCells('B30:E30');
   dashboard.getCell('B30').value = 'Expense / Revenue';
   dashboard.getCell('B30').font = { name: 'Arial', bold: true, size: 11, color: { argb: '7A5313' } };
@@ -380,7 +400,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   dashboard.getCell('I34').value = 'Net payroll divided by revenue';
   dashboard.getCell('I34').font = { name: 'Arial', size: 9, color: { argb: COLORS.muted } };
 
-  // chart helper data (kept dynamic, hidden on Source Data)
+  // Dynamic chart rendering
   source.getCell('D1').value = 'Metric';
   source.getCell('E1').value = 'Value';
   const chartPairs: Array<[string, number]> = [
@@ -403,8 +423,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      // Use range anchoring for consistent rendering across Excel viewers.
-      dashboard.addImage(imageId, 'E30:I42');
+      dashboard.addImage(imageId, 'E30:H35');
     } else {
       placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
     }
@@ -412,7 +431,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
   }
 
-  // Bottom metric table + note
+  // Bottom metric table + note (organized summary)
   sectionHeader('B37:D37', 'Metric');
   dashboard.getCell('E37').value = 'Amount';
   dashboard.getCell('E37').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
