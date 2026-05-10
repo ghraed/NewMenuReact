@@ -218,7 +218,8 @@ const EXPENSE_PAGE_SIZE = 200;
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const currency = user?.restaurant?.currency ?? 'USD';
+  const baseCurrency = user?.restaurant?.currency ?? 'USD';
+  const [currency, setCurrency] = useState(baseCurrency);
 
   const [range, setRange] = useState<RevenueRange>('monthly');
   const [dateFrom, setDateFrom] = useState('');
@@ -262,6 +263,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrency(baseCurrency);
+  }, [baseCurrency]);
 
   const loadInvoiceTablePage = useCallback(async () => {
     setInvoiceTableLoading(true);
@@ -763,7 +768,16 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 Track revenue momentum and manage invoice lifecycle from one elegant control panel.
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrency('USD')}
+                className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3 text-left transition hover:border-gold/60"
+                title="Switch finance currency display to USD"
+              >
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
+                <p className="mt-1 text-xl font-semibold text-text">$ USD</p>
+              </button>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
                 <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(totalRevenue, currency)}</p>
