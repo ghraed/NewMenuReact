@@ -402,7 +402,7 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      dashboard.addImage(imageId, 'E30:I42');
+      dashboard.addImage(imageId, 'E30:H42');
     } else {
       placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
     }
