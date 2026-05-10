@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { createStaffMember, fetchStaffMembers, updateStaffMemberTables } from '../services/staffService';
 import { fetchTableManagement, updateManualTableCount } from '../services/tableManagementService';
-import type { StaffMember, TableManagementSummary } from '../types';
+import type { StaffMember, TableManagementSummary, UserRole } from '../types';
 import { GlassCard, GlassChip, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 
 type AssignmentState = Record<number, number[]>;
@@ -42,6 +42,21 @@ const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.te
 
 const normalizePhone = (value: string): string => value.replace(/[^\d+]/g, '');
 
+const staffCreationRoles: Array<{ value: Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>; label: string }> = [
+  { value: 'staff', label: 'Staff' },
+  { value: 'chef', label: 'Chef' },
+  { value: 'stock_manager', label: 'Stock Manager' },
+  { value: 'accountant', label: 'Accountant' },
+];
+
+const roleLabelByValue: Record<UserRole, string> = {
+  admin: 'Admin',
+  staff: 'Staff',
+  chef: 'Chef',
+  stock_manager: 'Stock Manager',
+  accountant: 'Accountant',
+};
+
 const AdminStaffPage: React.FC = () => {
   const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
@@ -49,7 +64,7 @@ const AdminStaffPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'staff' | 'chef'>('staff');
+  const [role, setRole] = useState<Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>>('staff');
   const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [staffAssignments, setStaffAssignments] = useState<AssignmentState>({});
@@ -237,8 +252,18 @@ const AdminStaffPage: React.FC = () => {
             <div>
               <div className="mb-2 block text-sm font-medium text-text">Role</div>
               <div className="flex flex-wrap gap-2">
-                <GlassChip type="button" active={role === 'staff'} onClick={() => setRole('staff')} className="px-4 py-2 text-sm" disabled={creating}>Staff</GlassChip>
-                <GlassChip type="button" active={role === 'chef'} onClick={() => setRole('chef')} className="px-4 py-2 text-sm" disabled={creating}>Chef</GlassChip>
+                {staffCreationRoles.map((roleOption) => (
+                  <GlassChip
+                    key={roleOption.value}
+                    type="button"
+                    active={role === roleOption.value}
+                    onClick={() => setRole(roleOption.value)}
+                    className="px-4 py-2 text-sm"
+                    disabled={creating}
+                  >
+                    {roleOption.label}
+                  </GlassChip>
+                ))}
               </div>
             </div>
 
@@ -303,7 +328,7 @@ const AdminStaffPage: React.FC = () => {
               <div className="mt-4 space-y-3 text-sm text-muted">
                 <div className="relative isolate overflow-hidden rounded-xl2 border border-sage/35 bg-sage/10 p-4">
                   <p className="text-base font-semibold text-text">{createdStaff.name}</p>
-                  <p className="mt-1">Role: {createdStaff.role === 'chef' ? 'Chef' : 'Staff'}</p>
+                  <p className="mt-1">Role: {roleLabelByValue[createdStaff.role]}</p>
                   <p>Email: {createdStaff.email || 'Not provided'}</p>
                   <p>Phone: {createdStaff.phone || 'Not provided'}</p>
                   <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
