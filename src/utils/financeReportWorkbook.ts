@@ -79,8 +79,8 @@ const buildFinancialOverviewChartPng = async (
   }
 
   const canvas = document.createElement('canvas');
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = 900;
+  canvas.height = 520;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) {
@@ -106,10 +106,10 @@ const buildFinancialOverviewChartPng = async (
         label: 'Amount',
         data: values,
         borderWidth: 0,
-        borderRadius: 6,
-        barThickness: 22,
-        maxBarThickness: 24,
-        categoryPercentage: 0.58,
+        borderRadius: 7,
+        barThickness: 28,
+        maxBarThickness: 32,
+        categoryPercentage: 0.72,
         backgroundColor: values.map((v) => {
           if (v < 0) return '#DC2626';
           if (v === input.pnl.revenue) return 'rgba(201, 162, 90, 0.80)'; // finance page revenue
@@ -131,7 +131,7 @@ const buildFinancialOverviewChartPng = async (
           display: true,
           text: 'Financial Performance Overview',
           color: '#0B1120',
-          font: { size: 30, weight: 'bold', family: 'Arial' },
+          font: { size: 44, weight: 'bold', family: 'Arial' },
           padding: { bottom: 20 },
         },
         tooltip: {
@@ -145,11 +145,11 @@ const buildFinancialOverviewChartPng = async (
           min: -pad,
           max: maxAbs + pad,
           grid: { color: '#D1D5DB' },
-          ticks: { color: '#111827', font: { size: 16, family: 'Arial', weight: '600' } },
+          ticks: { color: '#111827', font: { size: 24, family: 'Arial', weight: '700' } },
         },
         y: {
           grid: { color: '#E5E7EB' },
-          ticks: { color: '#111827', font: { size: 22, family: 'Arial', weight: '700' } },
+          ticks: { color: '#111827', font: { size: 34, family: 'Arial', weight: '700' } },
         },
       },
     },
