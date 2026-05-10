@@ -3,7 +3,7 @@ import type { CurrencyCode } from '../types';
 export const CURRENCY_OPTIONS: Array<{ value: CurrencyCode; label: string; symbol: string }> = [
   { value: 'USD', label: 'Dollar (USD)', symbol: '$' },
   { value: 'LBP', label: 'Lebanese Pound (LBP)', symbol: 'LBP' },
-  { value: 'SYP', label: 'Syrian Lira (SYP)', symbol: 'SYP' },
+  { value: 'SYP', label: 'Syrian Lira (LS)', symbol: 'LS' },
 ];
 
 export const normalizeCurrency = (value?: string | null): CurrencyCode => {

@@ -26,6 +26,7 @@ import { fetchExpenses } from '../services/financeExpenseService';
 import { fetchPayrollPeriods, fetchPayrollSummary } from '../services/payrollService';
 import { fetchStaffSchedules } from '../services/staffScheduleService';
 import type {
+  CurrencyCode,
   FinanceInvoice,
   FinanceInvoiceStatus,
   FinanceProfitAndLossSummary,
@@ -33,7 +34,12 @@ import type {
   FinanceTaxSummary,
   PayrollSummaryTotals,
 } from '../types';
-import { formatPriceWithCurrency } from '../utils/currency';
+import {
+  convertPriceFromUsdToCurrency,
+  convertPriceToUsd,
+  formatPriceWithCurrency,
+  normalizeCurrency,
+} from '../utils/currency';
 import { validateFinanceDateRange } from '../utils/financeReporting';
 import { downloadFinanceExecutiveWorkbook } from '../utils/financeReportWorkbook';
 
@@ -218,8 +224,11 @@ const EXPENSE_PAGE_SIZE = 200;
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const baseCurrency = user?.restaurant?.currency ?? 'USD';
-  const [currency, setCurrency] = useState(baseCurrency);
+  const baseCurrency = normalizeCurrency(user?.restaurant?.currency ?? 'USD');
+  const [currency, setCurrency] = useState<CurrencyCode>(baseCurrency);
+  const dollarRate = typeof user?.restaurant?.dollar_rate === 'number' && user.restaurant.dollar_rate > 0
+    ? user.restaurant.dollar_rate
+    : 1;
 
   const [range, setRange] = useState<RevenueRange>('monthly');
   const [dateFrom, setDateFrom] = useState('');
@@ -267,6 +276,19 @@ const AdminFinanceDashboardPage: React.FC = () => {
   useEffect(() => {
     setCurrency(baseCurrency);
   }, [baseCurrency]);
+
+  const convertFinanceAmount = useCallback((amount: number): number => {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    if (currency === baseCurrency) {
+      return safeAmount;
+    }
+    const usdValue = convertPriceToUsd(safeAmount, baseCurrency, dollarRate);
+    return convertPriceFromUsdToCurrency(usdValue, currency, dollarRate);
+  }, [baseCurrency, currency, dollarRate]);
+
+  const formatFinanceAmount = useCallback((amount: number): string => (
+    formatPriceWithCurrency(convertFinanceAmount(amount), currency)
+  ), [convertFinanceAmount, currency]);
 
   const loadInvoiceTablePage = useCallback(async () => {
     setInvoiceTableLoading(true);
@@ -528,7 +550,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       return {
         type: 'bar' as const,
         label: metricLabels[metric],
-        data: chartMetrics[metric],
+        data: chartMetrics[metric].map((value) => convertFinanceAmount(value)),
         backgroundColor: palette[metric].bg,
         borderColor: palette[metric].border,
         borderWidth: isNetProfit ? 2.4 : 1.4,
@@ -540,7 +562,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         hoverBorderColor: '#fff4d6',
       };
     }),
-  }), [chartLabels, chartMetrics, selectedMetrics]);
+  }), [chartLabels, chartMetrics, selectedMetrics, convertFinanceAmount]);
 
   const chartOptions = useMemo<ChartOptions<'bar'>>(() => ({
     responsive: true,
@@ -732,17 +754,36 @@ const AdminFinanceDashboardPage: React.FC = () => {
       currency,
       dateFrom,
       dateTo,
-      pnl: pnlSummary,
-      tax: taxSummary,
-      payroll: payrollTotals,
+      pnl: {
+        ...pnlSummary,
+        revenue: convertFinanceAmount(pnlSummary.revenue),
+        cogs: convertFinanceAmount(pnlSummary.cogs),
+        gross_profit: convertFinanceAmount(pnlSummary.gross_profit),
+        operating_expenses: convertFinanceAmount(pnlSummary.operating_expenses),
+        net_profit: convertFinanceAmount(pnlSummary.net_profit),
+      },
+      tax: {
+        ...taxSummary,
+        taxable_sales: convertFinanceAmount(taxSummary.taxable_sales),
+        output_vat: convertFinanceAmount(taxSummary.output_vat),
+        input_vat: convertFinanceAmount(taxSummary.input_vat),
+        net_vat_payable: convertFinanceAmount(taxSummary.net_vat_payable),
+      },
+      payroll: {
+        ...payrollTotals,
+        gross_pay: convertFinanceAmount(payrollTotals.gross_pay),
+        deductions: convertFinanceAmount(payrollTotals.deductions),
+        tax: convertFinanceAmount(payrollTotals.tax),
+        net_pay: convertFinanceAmount(payrollTotals.net_pay),
+      },
       chartLabels,
       chartMetrics: {
-        revenue: chartMetrics.revenue,
-        totalCosts: chartMetrics.totalCosts,
-        netProfit: chartMetrics.netProfit,
-        cogs: chartMetrics.cogs,
-        operatingExpenses: chartMetrics.operatingExpenses,
-        payroll: chartMetrics.payroll,
+        revenue: chartMetrics.revenue.map((value) => convertFinanceAmount(value)),
+        totalCosts: chartMetrics.totalCosts.map((value) => convertFinanceAmount(value)),
+        netProfit: chartMetrics.netProfit.map((value) => convertFinanceAmount(value)),
+        cogs: chartMetrics.cogs.map((value) => convertFinanceAmount(value)),
+        operatingExpenses: chartMetrics.operatingExpenses.map((value) => convertFinanceAmount(value)),
+        payroll: chartMetrics.payroll.map((value) => convertFinanceAmount(value)),
       },
     });
   };
@@ -769,18 +810,33 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </p>
             </div>
               <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setCurrency('USD')}
-                className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3 text-left transition hover:border-gold/60"
-                title="Switch finance currency display to USD"
-              >
+              <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
-                <p className="mt-1 text-xl font-semibold text-text">$ USD</p>
-              </button>
+                <div className="mt-1 flex gap-2">
+                  {[
+                    { code: 'USD' as CurrencyCode, label: '$ USD' },
+                    { code: 'LBP' as CurrencyCode, label: 'LBP' },
+                    { code: 'SYP' as CurrencyCode, label: 'LS' },
+                  ].map((option) => (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => setCurrency(option.code)}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                        currency === option.code
+                          ? 'border-gold/70 bg-gold/20 text-text'
+                          : 'border-stroke text-muted hover:text-text'
+                      }`}
+                      title={`Switch finance currency display to ${option.label}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(totalRevenue, currency)}</p>
+                <p className="mt-1 text-xl font-semibold text-text">{formatFinanceAmount(totalRevenue)}</p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
@@ -788,7 +844,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Net Payroll</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(payrollTotals.net_pay, currency)}</p>
+                <p className="mt-1 text-xl font-semibold text-text">{formatFinanceAmount(payrollTotals.net_pay)}</p>
               </div>
             </div>
           </div>
@@ -954,7 +1010,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Payroll</p>
-                <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(payrollTotals.gross_pay, currency)}</p>
+                <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(payrollTotals.gross_pay)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
@@ -980,36 +1036,33 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Revenue</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(pnlSummary.revenue, currency)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(pnlSummary.revenue)}</p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">COGS</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(pnlSummary.cogs, currency)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(pnlSummary.cogs)}</p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Profit</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatPriceWithCurrency(pnlSummary.gross_profit, currency)}
+                    {formatFinanceAmount(pnlSummary.gross_profit)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Operating Expenses</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatPriceWithCurrency(pnlSummary.operating_expenses, currency)}
+                    {formatFinanceAmount(pnlSummary.operating_expenses)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatPriceWithCurrency(
-                      chartMetrics.payroll.reduce((sum, value) => sum + value, 0),
-                      currency
-                    )}
+                    {formatFinanceAmount(chartMetrics.payroll.reduce((sum, value) => sum + value, 0))}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3 sm:col-span-2">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Profit</p>
-                  <p className="mt-1 text-lg font-semibold text-text">{formatPriceWithCurrency(pnlSummary.net_profit, currency)}</p>
+                  <p className="mt-1 text-lg font-semibold text-text">{formatFinanceAmount(pnlSummary.net_profit)}</p>
                 </div>
               </div>
             </GlassCard>
@@ -1023,21 +1076,21 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Taxable Sales</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatPriceWithCurrency(taxSummary.taxable_sales, currency)}
+                    {formatFinanceAmount(taxSummary.taxable_sales)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Output VAT</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(taxSummary.output_vat, currency)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(taxSummary.output_vat)}</p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Input VAT</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatPriceWithCurrency(taxSummary.input_vat, currency)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(taxSummary.input_vat)}</p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net VAT Payable</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatPriceWithCurrency(taxSummary.net_vat_payable, currency)}
+                    {formatFinanceAmount(taxSummary.net_vat_payable)}
                   </p>
                 </div>
               </div>
@@ -1148,7 +1201,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                   Add Item
                 </button>
                 <p className="text-sm font-semibold text-text">
-                  {formatPriceWithCurrency(draftInvoiceTotal, currency)}
+                  {formatFinanceAmount(draftInvoiceTotal)}
                 </p>
               </div>
 
@@ -1224,7 +1277,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                           {invoice.items.length} item{invoice.items.length === 1 ? '' : 's'}
                         </td>
                         <td className="px-4 py-4 font-semibold text-text">
-                          {formatPriceWithCurrency(Number(invoice.total), currency)}
+                          {formatFinanceAmount(Number(invoice.total))}
                         </td>
                         <td className="px-4 py-4">
                           <select
