@@ -320,7 +320,8 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      dashboard.addImage(imageId, 'B29:J47');
+      // Match compact executive card sizing similar to the reference image.
+      dashboard.addImage(imageId, 'E30:H41');
     } else {
       placeNoDataCard(dashboard, 'B30', 'B31', 'Financial Performance Overview');
     }
