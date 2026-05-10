@@ -34,7 +34,8 @@ import type {
   PayrollSummaryTotals,
 } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
-import { buildFinanceReportCsv, validateFinanceDateRange } from '../utils/financeReporting';
+import { validateFinanceDateRange } from '../utils/financeReporting';
+import { downloadFinanceExecutiveWorkbook } from '../utils/financeReportWorkbook';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -720,25 +721,25 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
   };
 
-  const handleDownloadFinanceReport = () => {
-    const csv = buildFinanceReportCsv({
+  const handleDownloadFinanceReport = async () => {
+    await downloadFinanceExecutiveWorkbook({
+      companyName: user?.restaurant?.name ?? 'Executive Finance',
       currency,
       dateFrom,
       dateTo,
       pnl: pnlSummary,
       tax: taxSummary,
       payroll: payrollTotals,
+      chartLabels,
+      chartMetrics: {
+        revenue: chartMetrics.revenue,
+        totalCosts: chartMetrics.totalCosts,
+        netProfit: chartMetrics.netProfit,
+        cogs: chartMetrics.cogs,
+        operatingExpenses: chartMetrics.operatingExpenses,
+        payroll: chartMetrics.payroll,
+      },
     });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const objectUrl = window.URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = `finance-report-${dateFrom || 'all'}-${dateTo || 'all'}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    window.URL.revokeObjectURL(objectUrl);
   };
 
   return (
@@ -931,8 +932,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
                   {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
                 </LiquidButton>
-                <LiquidButton type="button" tone="tertiary" onClick={handleDownloadFinanceReport}>
-                  Download Finance CSV
+                <LiquidButton type="button" tone="tertiary" onClick={() => void handleDownloadFinanceReport()}>
+                  Download Finance Excel
                 </LiquidButton>
               </div>
             </div>
