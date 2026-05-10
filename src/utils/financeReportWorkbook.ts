@@ -24,7 +24,6 @@ const COLORS = {
 };
 
 const currencyFormat = '"$"#,##0.00;[Red]-"$"#,##0.00';
-const percentFormat = '0.00%';
 
 ChartJS.register(CategoryScale, LinearScale, BarController, BarElement, Tooltip, Legend);
 
@@ -161,30 +160,6 @@ const buildFinancialOverviewChartPng = async (
   return pngDataUrl;
 };
 
-const styleKpiCard = (sheet: ExcelJS.Worksheet, fromCol: number, toCol: number, rowStart: number, rowEnd: number) => {
-  for (let row = rowStart; row <= rowEnd; row += 1) {
-    for (let col = fromCol; col <= toCol; col += 1) {
-      const cell = sheet.getCell(row, col);
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.white } };
-      cell.border = {
-        top: { style: 'thin', color: { argb: COLORS.borderGray } },
-        left: { style: 'thin', color: { argb: COLORS.borderGray } },
-        bottom: { style: 'thin', color: { argb: COLORS.borderGray } },
-        right: { style: 'thin', color: { argb: COLORS.borderGray } },
-      };
-    }
-  }
-
-  for (let col = fromCol; col <= toCol; col += 1) {
-    sheet.getCell(rowStart, col).border = {
-      top: { style: 'medium', color: { argb: COLORS.gold } },
-      left: { style: 'thin', color: { argb: COLORS.borderGray } },
-      bottom: { style: 'thin', color: { argb: COLORS.borderGray } },
-      right: { style: 'thin', color: { argb: COLORS.borderGray } },
-    };
-  }
-};
-
 const placeNoDataCard = (
   sheet: ExcelJS.Worksheet,
   titleCell: string,
@@ -213,145 +188,251 @@ export const downloadFinanceExecutiveWorkbook = async (input: FinanceExecutiveWo
   });
 
   dashboard.columns = [
-    { width: 4 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 },
-    { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 4 }, { width: 4 },
+    { width: 2 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 },
+    { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 2 },
   ];
   source.columns = [{ width: 40 }, { width: 22 }];
 
-  for (let row = 1; row <= 140; row += 1) {
-    dashboard.getRow(row).height = row === 1 ? 28 : 22;
-    for (let col = 1; col <= 10; col += 1) {
-      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.lightBg } };
+  for (let row = 1; row <= 60; row += 1) {
+    dashboard.getRow(row).height = 22;
+    for (let col = 2; col <= 12; col += 1) {
+      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2F0EC' } };
     }
   }
 
-  // Section B: Top luxury header
-  dashboard.mergeCells('B2:J5');
-  for (let row = 2; row <= 5; row += 1) {
-    for (let col = 2; col <= 10; col += 1) {
-      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
+  const moneyText = (value: number): string => {
+    const abs = Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (value < 0) {
+      return `${input.currency} (${abs})`;
     }
-  }
-  dashboard.getCell('B3').value = 'Executive Finance Report';
-  dashboard.getCell('B3').font = { name: 'Aptos', bold: true, size: 24, color: { argb: COLORS.white } };
-  dashboard.getCell('B4').value = input.companyName || 'Company Finance';
-  dashboard.getCell('B4').font = { name: 'Aptos', bold: true, size: 12, color: { argb: COLORS.gold } };
-  dashboard.getCell('I3').value = 'Report Period';
-  dashboard.getCell('I3').font = { name: 'Aptos', bold: true, size: 10, color: { argb: COLORS.gold } };
-  dashboard.getCell('I4').value = input.dateFrom && input.dateTo ? `${input.dateFrom} - ${input.dateTo}` : 'All time';
-  dashboard.getCell('I4').font = { name: 'Aptos', size: 11, color: { argb: COLORS.white } };
+    return `${input.currency} ${abs}`;
+  };
+  const percentText = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
-  dashboard.mergeCells('B6:J6');
-  dashboard.getCell('B6').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.gold } };
-
-  // Section C: KPI summary cards
   const totalIncome = input.pnl.revenue;
-  const totalExpenses = input.pnl.cogs + input.pnl.operating_expenses;
   const netProfit = input.pnl.net_profit;
   const vatTotal = input.tax.net_vat_payable;
   const payrollTotal = input.payroll.net_pay;
-  const profitMargin = totalIncome !== 0 ? netProfit / totalIncome : 0;
+  const grossMargin = totalIncome !== 0 ? input.pnl.gross_profit / totalIncome : 0;
+  const netMargin = totalIncome !== 0 ? netProfit / totalIncome : 0;
+  const operatingMargin = totalIncome !== 0 ? input.pnl.operating_expenses / totalIncome : 0;
+  const payrollMargin = totalIncome !== 0 ? payrollTotal / totalIncome : 0;
 
-  const kpis = [
-    { label: 'TOTAL INCOME', value: totalIncome, format: currencyFormat },
-    { label: 'TOTAL EXPENSES', value: totalExpenses, format: currencyFormat },
-    { label: 'NET PROFIT', value: netProfit, format: currencyFormat },
-    { label: 'VAT TOTAL', value: vatTotal, format: currencyFormat },
-    { label: 'PAYROLL TOTAL', value: payrollTotal, format: currencyFormat },
-    { label: 'PROFIT MARGIN', value: profitMargin, format: percentFormat },
+  // Header
+  dashboard.mergeCells('B1:L2');
+  for (let row = 1; row <= 2; row += 1) {
+    for (let col = 2; col <= 12; col += 1) {
+      dashboard.getCell(row, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
+    }
+  }
+  dashboard.getCell('B1').value = 'FINANCIAL PERFORMANCE REPORT';
+  dashboard.getCell('B1').font = { name: 'Arial', bold: true, size: 18, color: { argb: 'F6DEA3' } };
+  dashboard.getCell('B1').alignment = { horizontal: 'center', vertical: 'middle' };
+  dashboard.mergeCells('B3:L3');
+  dashboard.getCell('B3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.gold } };
+  dashboard.getCell('F2').value = `${input.currency}  |  ${input.dateFrom && input.dateTo ? `${input.dateFrom} - ${input.dateTo}` : 'All time'}  |  Executive Summary`;
+  dashboard.getCell('F2').font = { name: 'Arial', size: 11, color: { argb: COLORS.white } };
+  dashboard.getCell('F2').alignment = { horizontal: 'center' };
+
+  // KPI row
+  const kpiStarts = ['B5', 'D5', 'F5', 'H5', 'J5'];
+  const kpiData = [
+    { label: 'Revenue', value: moneyText(totalIncome), hint: 'Total top-line revenue', isNegative: totalIncome < 0 },
+    { label: 'Gross Profit', value: moneyText(input.pnl.gross_profit), hint: 'Revenue less COGS', isNegative: input.pnl.gross_profit < 0 },
+    { label: 'Operating Expenses', value: moneyText(input.pnl.operating_expenses), hint: 'Total operating costs', isNegative: input.pnl.operating_expenses < 0 },
+    { label: 'Net Profit', value: moneyText(netProfit), hint: 'Final profit / loss', isNegative: netProfit < 0 },
+    { label: 'Net VAT Payable', value: moneyText(vatTotal), hint: 'VAT credit / payable', isNegative: vatTotal < 0 },
   ];
-
-  const starts = ['B8', 'E8', 'H8', 'B12', 'E12', 'H12'];
-  for (let i = 0; i < kpis.length; i += 1) {
-    const start = starts[i];
+  kpiStarts.forEach((start, index) => {
     const col = start.charCodeAt(0) - 64;
-    const row = Number(start.slice(1));
-    styleKpiCard(dashboard, col, col + 2, row, row + 2);
-    dashboard.mergeCells(`${start}:${String.fromCharCode(64 + col + 2)}${row}`);
-    dashboard.mergeCells(`${String.fromCharCode(64 + col)}${row + 1}:${String.fromCharCode(64 + col + 2)}${row + 1}`);
-    dashboard.getCell(start).value = kpis[i].label;
-    dashboard.getCell(start).font = { name: 'Aptos', bold: true, size: 9, color: { argb: COLORS.muted } };
-    dashboard.getCell(start).alignment = { horizontal: 'left', vertical: 'middle' };
-    const valueCell = dashboard.getCell(`${String.fromCharCode(64 + col)}${row + 1}`);
-    valueCell.value = kpis[i].value;
-    valueCell.numFmt = kpis[i].format;
-    valueCell.font = {
-      name: 'Aptos',
+    for (let r = 5; r <= 9; r += 1) {
+      for (let c = col; c <= col + 1; c += 1) {
+        dashboard.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.white } };
+      }
+    }
+    dashboard.mergeCells(`${String.fromCharCode(64 + col)}5:${String.fromCharCode(64 + col + 1)}5`);
+    dashboard.mergeCells(`${String.fromCharCode(64 + col)}7:${String.fromCharCode(64 + col + 1)}7`);
+    dashboard.mergeCells(`${String.fromCharCode(64 + col)}9:${String.fromCharCode(64 + col + 1)}9`);
+    dashboard.getCell(`${String.fromCharCode(64 + col)}5`).value = kpiData[index].label;
+    dashboard.getCell(`${String.fromCharCode(64 + col)}5`).font = { name: 'Arial', bold: true, size: 11, color: { argb: '7A5313' } };
+    dashboard.getCell(`${String.fromCharCode(64 + col)}7`).value = kpiData[index].value;
+    dashboard.getCell(`${String.fromCharCode(64 + col)}7`).font = {
+      name: 'Arial',
       bold: true,
       size: 16,
-      color: { argb: (typeof kpis[i].value === 'number' && kpis[i].value < 0) ? COLORS.red : COLORS.green },
+      color: { argb: kpiData[index].isNegative ? COLORS.red : COLORS.darkNavy },
     };
-  }
-
-  // Section D: Helper chart datasets (real worksheet cells)
-  dashboard.getCell('B17').value = 'Chart Data (Connected to Source Data)';
-  dashboard.getCell('B17').font = { name: 'Aptos', bold: true, size: 11, color: { argb: COLORS.charcoal } };
-  dashboard.getCell('B18').value = 'Period';
-  dashboard.getCell('C18').value = 'Income';
-  dashboard.getCell('D18').value = 'Expenses';
-  dashboard.getCell('E18').value = 'Net Profit';
-  dashboard.getCell('F18').value = 'VAT';
-  dashboard.getCell('G18').value = 'Payroll';
-  ['B18', 'C18', 'D18', 'E18', 'F18', 'G18'].forEach((address) => {
-    const cell = dashboard.getCell(address);
-    cell.font = { name: 'Aptos', bold: true, color: { argb: COLORS.white } };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.charcoal } };
-    cell.border = { bottom: { style: 'medium', color: { argb: COLORS.gold } } };
+    dashboard.getCell(`${String.fromCharCode(64 + col)}9`).value = kpiData[index].hint;
+    dashboard.getCell(`${String.fromCharCode(64 + col)}9`).font = { name: 'Arial', size: 9, color: { argb: COLORS.muted } };
   });
 
-  const periodRows = Math.max(input.chartLabels.length, 1);
-  for (let i = 0; i < periodRows; i += 1) {
-    const row = 19 + i;
-    dashboard.getCell(`B${row}`).value = input.chartLabels[i] || 'N/A';
-    dashboard.getCell(`C${row}`).value = input.chartMetrics.revenue[i] ?? totalIncome;
-    dashboard.getCell(`D${row}`).value = input.chartMetrics.totalCosts[i] ?? totalExpenses;
-    dashboard.getCell(`E${row}`).value = input.chartMetrics.netProfit[i] ?? netProfit;
-    dashboard.getCell(`F${row}`).value = input.tax.net_vat_payable;
-    dashboard.getCell(`G${row}`).value = input.chartMetrics.payroll[i] ?? payrollTotal;
-    ['C', 'D', 'E', 'F', 'G'].forEach((col) => {
-      dashboard.getCell(`${col}${row}`).numFmt = currencyFormat;
-    });
-  }
+  // Status strip
+  dashboard.mergeCells('B11:L11');
+  dashboard.getCell('B11').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '121212' } };
+  dashboard.getCell('B11').value = netProfit < 0
+    ? `Status: Loss Position - net profit is ${moneyText(netProfit)}.`
+    : `Status: Profit Position - net profit is ${moneyText(netProfit)}.`;
+  dashboard.getCell('B11').font = { name: 'Arial', bold: true, size: 12, color: { argb: 'F6DEA3' } };
+  dashboard.getCell('B11').alignment = { horizontal: 'center' };
 
-  // Section E: Dynamic chart rendering (real data-driven values)
+  const sectionHeader = (range: string, title: string) => {
+    dashboard.mergeCells(range);
+    const cell = dashboard.getCell(range.split(':')[0]);
+    cell.value = title;
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
+    cell.font = { name: 'Arial', bold: true, size: 12, color: { argb: 'F6DEA3' } };
+  };
+  sectionHeader('B13:E13', 'Income Statement');
+  sectionHeader('F13:H13', 'VAT Summary');
+  sectionHeader('I13:K13', 'Payroll Summary');
+
+  // Income/VAT/Payroll tables
+  const incomeRows: Array<[string, string, string | number]> = [
+    ['Revenue', moneyText(totalIncome), percentText(totalIncome !== 0 ? 1 : 0)],
+    ['COGS', moneyText(input.pnl.cogs), percentText(totalIncome !== 0 ? input.pnl.cogs / totalIncome : 0)],
+    ['Gross Profit', moneyText(input.pnl.gross_profit), percentText(grossMargin)],
+    ['Operating Expenses', moneyText(input.pnl.operating_expenses), percentText(operatingMargin)],
+    ['Net Profit', moneyText(netProfit), percentText(netMargin)],
+  ];
+  incomeRows.forEach((row, i) => {
+    const r = 14 + i;
+    dashboard.getCell(`B${r}`).value = row[0];
+    dashboard.getCell(`D${r}`).value = row[1];
+    dashboard.getCell(`E${r}`).value = row[2];
+    dashboard.getCell(`B${r}`).font = { name: 'Arial', bold: true, size: 11, color: { argb: COLORS.darkNavy } };
+    dashboard.getCell(`D${r}`).font = { name: 'Arial', size: 11, color: { argb: row[1].includes('(') ? COLORS.red : COLORS.darkNavy } };
+    dashboard.getCell(`E${r}`).font = { name: 'Arial', size: 11, color: { argb: Number(row[2]) < 0 ? COLORS.red : COLORS.darkNavy } };
+    if (r === 17 || r === 18) {
+      for (let c = 2; c <= 5; c += 1) dashboard.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2EAD3' } };
+    }
+  });
+
+  const vatRows: Array<[string, string]> = [
+    ['Taxable Sales', moneyText(input.tax.taxable_sales)],
+    ['Output VAT', moneyText(input.tax.output_vat)],
+    ['Input VAT', moneyText(input.tax.input_vat)],
+    ['Net VAT Payable', moneyText(vatTotal)],
+  ];
+  vatRows.forEach((row, i) => {
+    const r = 14 + i;
+    dashboard.getCell(`F${r}`).value = row[0];
+    dashboard.getCell(`H${r}`).value = row[1];
+    dashboard.getCell(`F${r}`).font = { name: 'Arial', bold: true, size: 11, color: { argb: COLORS.darkNavy } };
+    dashboard.getCell(`H${r}`).font = { name: 'Arial', size: 11, color: { argb: row[1].includes('(') ? COLORS.red : COLORS.darkNavy } };
+  });
+
+  const payrollRows: Array<[string, string]> = [
+    ['Gross Payroll', moneyText(input.payroll.gross_pay)],
+    ['Deductions', moneyText(input.payroll.deductions)],
+    ['Payroll Tax', moneyText(input.payroll.tax)],
+    ['Net Payroll', moneyText(payrollTotal)],
+    ['Employees Paid', `${input.currency} ${input.payroll.employee_count.toFixed(2)}`],
+  ];
+  payrollRows.forEach((row, i) => {
+    const r = 14 + i;
+    dashboard.getCell(`I${r}`).value = row[0];
+    dashboard.getCell(`K${r}`).value = row[1];
+    dashboard.getCell(`I${r}`).font = { name: 'Arial', bold: true, size: 11, color: { argb: COLORS.darkNavy } };
+    dashboard.getCell(`K${r}`).font = { name: 'Arial', size: 11, color: { argb: row[1].includes('(') ? COLORS.red : COLORS.darkNavy } };
+    if (r === 18) {
+      for (let c = 9; c <= 11; c += 1) dashboard.getCell(r, c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2EAD3' } };
+    }
+  });
+
+  // Insights block
+  sectionHeader('B22:L22', 'EXECUTIVE INSIGHTS');
+  const insightRows: Array<[string, string]> = [
+    ['Revenue Strength', `Revenue is ${moneyText(totalIncome)}; gross profit equals ${moneyText(input.pnl.gross_profit)}.`],
+    ['Cost Pressure', `Operating expenses of ${moneyText(input.pnl.operating_expenses)} versus revenue ${moneyText(totalIncome)}.`],
+    ['Profitability', `Net result is ${moneyText(netProfit)} for the selected range.`],
+    ['VAT Position', `Net VAT payable is ${moneyText(vatTotal)}.`],
+  ];
+  insightRows.forEach((row, i) => {
+    const r = 23 + i;
+    dashboard.mergeCells(`C${r}:L${r}`);
+    dashboard.getCell(`B${r}`).value = row[0];
+    dashboard.getCell(`C${r}`).value = row[1];
+    dashboard.getCell(`B${r}`).font = { name: 'Arial', bold: true, size: 11, color: { argb: '7A5313' } };
+    dashboard.getCell(`C${r}`).font = { name: 'Arial', size: 10, color: { argb: COLORS.darkNavy } };
+    dashboard.getCell(`B${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F2EAD3' } };
+    dashboard.getCell(`C${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.white } };
+  });
+
+  sectionHeader('B28:L28', 'PERFORMANCE INDICATORS');
+  dashboard.mergeCells('B30:E30');
+  dashboard.getCell('B30').value = 'Expense / Revenue';
+  dashboard.getCell('B30').font = { name: 'Arial', bold: true, size: 11, color: { argb: '7A5313' } };
+  dashboard.mergeCells('B32:E32');
+  dashboard.getCell('B32').value = percentText(operatingMargin);
+  dashboard.getCell('B32').font = { name: 'Arial', bold: true, size: 16, color: { argb: COLORS.darkNavy } };
+  dashboard.mergeCells('B34:E34');
+  dashboard.getCell('B34').value = 'Operating expenses divided by revenue';
+  dashboard.getCell('B34').font = { name: 'Arial', size: 9, color: { argb: COLORS.muted } };
+
+  dashboard.mergeCells('I30:L30');
+  dashboard.getCell('I30').value = 'Payroll / Revenue';
+  dashboard.getCell('I30').font = { name: 'Arial', bold: true, size: 11, color: { argb: '7A5313' } };
+  dashboard.mergeCells('I32:L32');
+  dashboard.getCell('I32').value = percentText(payrollMargin);
+  dashboard.getCell('I32').font = { name: 'Arial', bold: true, size: 16, color: { argb: COLORS.darkNavy } };
+  dashboard.mergeCells('I34:L34');
+  dashboard.getCell('I34').value = 'Net payroll divided by revenue';
+  dashboard.getCell('I34').font = { name: 'Arial', size: 9, color: { argb: COLORS.muted } };
+
+  // chart helper data (kept dynamic)
+  dashboard.getCell('B44').value = 'Metric';
+  dashboard.getCell('C44').value = 'Value';
+  const chartPairs: Array<[string, number]> = [
+    ['Revenue', totalIncome],
+    ['Gross Profit', input.pnl.gross_profit],
+    ['Operating Expenses', input.pnl.operating_expenses],
+    ['Net Profit', netProfit],
+    ['Net VAT Payable', vatTotal],
+  ];
+  chartPairs.forEach(([metric, value], idx) => {
+    const r = 45 + idx;
+    dashboard.getCell(`B${r}`).value = metric;
+    dashboard.getCell(`C${r}`).value = value;
+  });
+
+  // Dynamic chart rendering
   const hasChartData = [totalIncome, input.pnl.gross_profit, input.pnl.operating_expenses, netProfit, vatTotal]
     .some((value) => value !== 0);
   if (hasChartData) {
     const pngDataUrl = await buildFinancialOverviewChartPng(input);
     if (pngDataUrl) {
       const imageId = workbook.addImage({ base64: pngDataUrl, extension: 'png' });
-      // Match compact executive card sizing similar to the reference image.
-      dashboard.addImage(imageId, 'E30:H41');
+      dashboard.addImage(imageId, 'E30:I42');
     } else {
-      placeNoDataCard(dashboard, 'B30', 'B31', 'Financial Performance Overview');
+      placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
     }
   } else {
-    placeNoDataCard(dashboard, 'B30', 'B31', 'Financial Performance Overview');
+    placeNoDataCard(dashboard, 'E31', 'E32', 'Financial Performance Overview');
   }
 
-  // Section F: Executive insights area
-  dashboard.getCell('B50').value = 'Executive Insights';
-  dashboard.getCell('B50').font = { name: 'Aptos', bold: true, size: 13, color: { argb: COLORS.charcoal } };
-  const insights: Array<[string, string | number]> = [
-    ['Total income', totalIncome],
-    ['Total expenses', totalExpenses],
-    ['Net profit', netProfit],
-    ['Profit margin', profitMargin],
-    ['Largest income category', 'Revenue'],
-    ['Largest expense category', input.pnl.cogs >= input.pnl.operating_expenses ? 'COGS' : 'Operating Expenses'],
-    ['VAT total', vatTotal],
-    ['Payroll total', payrollTotal],
+  // Bottom metric table + note
+  sectionHeader('B37:D37', 'Metric');
+  dashboard.getCell('E37').value = 'Amount';
+  dashboard.getCell('E37').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.darkNavy } };
+  dashboard.getCell('E37').font = { name: 'Arial', bold: true, size: 12, color: { argb: COLORS.white } };
+  const bottomRows: Array<[string, string]> = [
+    ['Revenue', moneyText(totalIncome)],
+    ['Gross Profit', moneyText(input.pnl.gross_profit)],
+    ['Operating Expenses', moneyText(input.pnl.operating_expenses)],
+    ['Net Profit', moneyText(netProfit)],
+    ['Net VAT Payable', moneyText(vatTotal)],
   ];
-  insights.forEach(([label, value], index) => {
-    const row = 51 + index;
-    dashboard.getCell(`B${row}`).value = label;
-    dashboard.getCell(`B${row}`).font = { name: 'Aptos', color: { argb: COLORS.charcoal } };
-    dashboard.getCell(`E${row}`).value = value;
-    dashboard.getCell(`E${row}`).font = { name: 'Aptos', bold: true, color: { argb: COLORS.charcoal } };
-    if (typeof value === 'number') {
-      dashboard.getCell(`E${row}`).numFmt = label.includes('margin') ? percentFormat : currencyFormat;
-    }
+  bottomRows.forEach((row, i) => {
+    const r = 38 + i;
+    dashboard.mergeCells(`B${r}:D${r}`);
+    dashboard.getCell(`B${r}`).value = row[0];
+    dashboard.getCell(`E${r}`).value = row[1];
+    dashboard.getCell(`B${r}`).font = { name: 'Arial', size: 11, color: { argb: COLORS.darkNavy } };
+    dashboard.getCell(`E${r}`).font = { name: 'Arial', size: 11, color: { argb: row[1].includes('(') ? COLORS.red : COLORS.darkNavy } };
   });
+  dashboard.mergeCells('I36:L36');
+  dashboard.getCell('I36').value = 'Prepared from source CSV - styled for executive review.';
+  dashboard.getCell('I36').font = { name: 'Arial', size: 10, italic: true, color: { argb: COLORS.muted } };
 
   // Section G: Source Data styling (preserve exported metrics/values)
   source.getCell('A1').value = 'metric';
