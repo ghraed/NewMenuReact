@@ -31,6 +31,7 @@ import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
 import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
 import AdminRoomPlansPage from './pages/AdminRoomPlansPage';
 import AdminReservationsPage from './pages/AdminReservationsPage';
+import AdminEventsPage from './pages/AdminEventsPage';
 import SuperAdminLoginPage from './pages/SuperAdminLoginPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -81,6 +82,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/profile',
   '/admin/room-plans',
   '/admin/reservations',
+  '/admin/events',
   '/admin/dishes/create',
   '/admin/dish/:dish_id',
   '/admin/dishes/:dish_id/edit',
@@ -242,6 +244,10 @@ const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
             <Route path="/admin/reservations" element={lazyRoute(<AdminReservationsPage />)} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['event_reservations']} />}>
+            <Route path="/admin/events" element={lazyRoute(<AdminEventsPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>

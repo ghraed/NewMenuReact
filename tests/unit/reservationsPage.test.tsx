@@ -84,8 +84,8 @@ describe('ReservationsPage', () => {
 
     fireEvent.click(available);
 
-    fireEvent.change(screen.getByPlaceholderText('Customer name'), { target: { value: 'Rania' } });
-    fireEvent.change(screen.getByPlaceholderText('Customer phone'), { target: { value: '+96170000001' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Maya Hassan'), { target: { value: 'Rania' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. +961 70 000 000'), { target: { value: '+96170000001' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Reserve Selected Table/i }));
 

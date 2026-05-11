@@ -883,6 +883,7 @@ export interface RoomPlanAvailabilityRow {
   status: ReservationVisualStatus;
   color: 'green' | 'orange' | 'red' | 'gray';
   is_selectable: boolean;
+  unavailable_reason?: string | null;
 }
 
 export interface CreateReservationPayload {
@@ -895,4 +896,71 @@ export interface CreateReservationPayload {
   start_time: string;
   end_time: string;
   notes?: string;
+}
+
+export type EventReservationStatus = 'draft' | 'confirmed' | 'cancelled' | 'completed';
+
+export interface EventReservationMenuItem {
+  id?: number;
+  dish_id: number;
+  dish_name?: string;
+  category?: string | null;
+  planned_quantity: number;
+  prep_notes?: string | null;
+}
+
+export interface EventReservationRecord {
+  id: number;
+  restaurant_id: number;
+  room_plan_id?: number | null;
+  invoice_id?: number | null;
+  title: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  status: EventReservationStatus;
+  notes?: string | null;
+  start_at: string;
+  end_at: string;
+  event_date: string;
+  start_time: string;
+  end_time: string;
+  lead_time_warning?: string | null;
+  room_plan?: { id: number; name: string } | null;
+  menu_items: EventReservationMenuItem[];
+  linked_orders?: Array<{
+    order_id: number;
+    order_number?: string | null;
+    status: OrderStatus;
+    table_reference?: string | null;
+    created_at?: string | null;
+  }>;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface EventForecastIngredientTotal {
+  ingredient_id: number;
+  ingredient_name: string;
+  unit: string;
+  required_quantity: string;
+  available_quantity: string;
+  shortage_quantity: string;
+  is_shortage: boolean;
+}
+
+export interface EventForecast {
+  event_id: number;
+  dish_totals: Array<{
+    dish_id: number;
+    dish_name: string;
+    category?: string | null;
+    planned_quantity: number;
+  }>;
+  ingredient_totals: EventForecastIngredientTotal[];
+  summary: {
+    dish_count: number;
+    ingredient_count: number;
+    shortage_count: number;
+  };
 }

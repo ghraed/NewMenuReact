@@ -139,6 +139,11 @@ const ReservationsPage: React.FC = () => {
     [selectedTableItemId, tableItems]
   );
 
+  const venueBlockedReason = useMemo(
+    () => availability.find((row) => typeof row.unavailable_reason === 'string' && row.unavailable_reason.trim() !== '')?.unavailable_reason ?? null,
+    [availability]
+  );
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -290,6 +295,11 @@ const ReservationsPage: React.FC = () => {
             </div>
 
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
+              {venueBlockedReason ? (
+                <div className="mb-3 rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy">
+                  {venueBlockedReason}
+                </div>
+              ) : null}
               {loading ? (
                 <p className="text-sm text-muted">Loading room plans...</p>
               ) : selectedPlan ? (
@@ -412,7 +422,7 @@ const ReservationsPage: React.FC = () => {
               </label>
               <button
                 type="submit"
-                disabled={submitting || !selectedTableItemId}
+                disabled={submitting || !selectedTableItemId || Boolean(venueBlockedReason)}
                 className="w-full rounded-xl border border-gold/45 bg-gold/20 px-3 py-2 text-sm font-semibold text-gold2 transition hover:border-gold/65 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? 'Reserving...' : 'Reserve Selected Table'}
