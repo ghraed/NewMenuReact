@@ -39,6 +39,8 @@ export default defineConfig(({ mode }) => {
       allowedHosts: [
         '2d447bf9e7144f.lhr.lifelife',
         'localhost',
+        'alpha.localhost',
+        'sigma.localhost',
       ],
       proxy: {
         '/api': proxyTarget,
