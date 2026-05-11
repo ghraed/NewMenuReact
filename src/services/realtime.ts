@@ -30,10 +30,10 @@ export const getEcho = (): Echo<'pusher'> | null => {
     return null;
   }
 
-  const key = import.meta.env.VITE_PUSHER_APP_KEY;
+  const key = import.meta.env.VITE_REVERB_APP_KEY || import.meta.env.VITE_PUSHER_APP_KEY;
 
   if (!key) {
-    console.warn('[Realtime] Missing VITE_PUSHER_APP_KEY. Echo will not start.');
+    console.warn('[Realtime] Missing VITE_REVERB_APP_KEY (or fallback VITE_PUSHER_APP_KEY). Echo will not start.');
     return null;
   }
 
@@ -43,9 +43,9 @@ export const getEcho = (): Echo<'pusher'> | null => {
 
   const apiOrigin = getApiOrigin();
   const authToken = localStorage.getItem('admin_auth_token');
-  const wsHost = import.meta.env.VITE_PUSHER_HOST || undefined;
-  const wsPort = toNumber(import.meta.env.VITE_PUSHER_PORT, 443);
-  const forceTls = (import.meta.env.VITE_PUSHER_SCHEME || 'https') === 'https';
+  const wsHost = import.meta.env.VITE_REVERB_HOST || import.meta.env.VITE_PUSHER_HOST || undefined;
+  const wsPort = toNumber(import.meta.env.VITE_REVERB_PORT || import.meta.env.VITE_PUSHER_PORT, 443);
+  const forceTls = ((import.meta.env.VITE_REVERB_SCHEME || import.meta.env.VITE_PUSHER_SCHEME) || 'https') === 'https';
   const cluster = import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1';
 
   window.Pusher = Pusher;
@@ -53,6 +53,7 @@ export const getEcho = (): Echo<'pusher'> | null => {
   logRealtime('Initializing Echo', {
     apiOrigin,
     key,
+    transport: import.meta.env.VITE_REVERB_APP_KEY ? 'reverb' : 'pusher',
     cluster,
     wsHost: wsHost || 'default',
     wsPort,
@@ -68,6 +69,7 @@ export const getEcho = (): Echo<'pusher'> | null => {
     wsPort,
     wssPort: wsPort,
     forceTLS: forceTls,
+    enabledTransports: ['ws', 'wss'],
     disableStats: true,
     authEndpoint: `${apiOrigin}/api/broadcasting/auth`,
     auth: {
@@ -87,15 +89,15 @@ export const getEcho = (): Echo<'pusher'> | null => {
     });
 
     pusherConnection.bind('connected', () => {
-      logRealtime('Connected to Pusher successfully');
+      logRealtime('Realtime transport connected successfully');
     });
 
     pusherConnection.bind('error', (error: unknown) => {
-      console.error('[Realtime] Pusher connection error', error);
+      console.error('[Realtime] Realtime transport connection error', error);
     });
 
     pusherConnection.bind('disconnected', () => {
-      console.warn('[Realtime] Pusher disconnected');
+      console.warn('[Realtime] Realtime transport disconnected');
     });
   }
 
