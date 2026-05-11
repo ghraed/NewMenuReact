@@ -137,6 +137,13 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
     || location.pathname.startsWith('/dish/')
     || location.pathname === '/order/review'
   );
+  const isAdminScopedRoute = (
+    location.pathname.startsWith('/admin')
+    || location.pathname.startsWith('/staff')
+    || location.pathname.startsWith('/chef')
+    || location.pathname.startsWith('/accounting')
+  );
+  const routeHasMobileHamburgerPopup = isAdminScopedRoute && !location.pathname.includes('/login');
   const showLanguageToggle = !isGuestRoute || restaurant?.feature_flags?.multi_language !== false;
 
   return (
@@ -170,8 +177,14 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
         />
       ) : null}
 
-      {showLanguageToggle ? <LanguageToggle /> : null}
-      <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
+      {showLanguageToggle ? (
+        <div className={routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
+          <LanguageToggle />
+        </div>
+      ) : null}
+      <div className={routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
+        <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
+      </div>
 
       <div className="relative min-h-screen">{children}</div>
     </div>

@@ -410,22 +410,55 @@ const AdminEventsPage: React.FC = () => {
               ) : null}
 
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Event title" className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                <input value={draft.customer_name} onChange={(event) => setDraft((current) => ({ ...current, customer_name: event.target.value }))} placeholder="Customer name" className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                <input value={draft.customer_phone} onChange={(event) => setDraft((current) => ({ ...current, customer_phone: event.target.value }))} placeholder="Customer phone" className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                <input type="email" value={draft.customer_email} onChange={(event) => setDraft((current) => ({ ...current, customer_email: event.target.value }))} placeholder="Customer email (optional)" className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                <input type="date" value={draft.event_date} onChange={(event) => setDraft((current) => ({ ...current, event_date: event.target.value }))} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="time" value={draft.start_time} onChange={(event) => setDraft((current) => ({ ...current, start_time: event.target.value }))} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
-                  <input type="time" value={draft.end_time} onChange={(event) => setDraft((current) => ({ ...current, end_time: event.target.value }))} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event title</span>
+                  <input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Event title" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer name</span>
+                  <input value={draft.customer_name} onChange={(event) => setDraft((current) => ({ ...current, customer_name: event.target.value }))} placeholder="Customer name" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer phone</span>
+                  <input value={draft.customer_phone} onChange={(event) => setDraft((current) => ({ ...current, customer_phone: event.target.value }))} placeholder="Customer phone" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer email (optional)</span>
+                  <input type="email" value={draft.customer_email} onChange={(event) => setDraft((current) => ({ ...current, customer_email: event.target.value }))} placeholder="Customer email (optional)" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event date</span>
+                  <input type="date" value={draft.event_date} onChange={(event) => setDraft((current) => ({ ...current, event_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
+                <div>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event time</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-sm text-text">
+                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">Start time</span>
+                      <input type="time" value={draft.start_time} onChange={(event) => setDraft((current) => ({ ...current, start_time: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                    </label>
+                    <label className="text-sm text-text">
+                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">End time</span>
+                      <input type="time" value={draft.end_time} onChange={(event) => setDraft((current) => ({ ...current, end_time: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                    </label>
+                  </div>
                 </div>
-                <select value={draft.room_plan_id} onChange={(event) => setDraft((current) => ({ ...current, room_plan_id: event.target.value === '' ? '' : Number(event.target.value) }))} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text">
-                  <option value="">All Room Plans</option>
-                  {roomPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
-                </select>
-                <input type="number" min={1} value={draft.invoice_id === '' ? '' : draft.invoice_id} onChange={(event) => setDraft((current) => ({ ...current, invoice_id: event.target.value === '' ? '' : Number(event.target.value) }))} placeholder="Invoice ID (optional)" className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Room plan</span>
+                  <select value={draft.room_plan_id} onChange={(event) => setDraft((current) => ({ ...current, room_plan_id: event.target.value === '' ? '' : Number(event.target.value) }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text">
+                    <option value="">All Room Plans</option>
+                    {roomPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+                  </select>
+                </label>
+                <label className="text-sm text-text">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Invoice ID (optional)</span>
+                  <input type="number" min={1} value={draft.invoice_id === '' ? '' : draft.invoice_id} onChange={(event) => setDraft((current) => ({ ...current, invoice_id: event.target.value === '' ? '' : Number(event.target.value) }))} placeholder="Invoice ID (optional)" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                </label>
               </div>
-              <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Operational notes" className="mt-3 w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+              <label className="mt-3 block text-sm text-text">
+                <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Operational notes</span>
+                <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Operational notes" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+              </label>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={() => void handleSaveEvent()} disabled={saving} className="rounded-xl border border-gold/45 bg-gold/20 px-4 py-2 text-sm font-semibold text-gold2 disabled:opacity-60">

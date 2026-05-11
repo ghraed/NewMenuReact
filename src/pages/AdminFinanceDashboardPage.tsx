@@ -163,7 +163,7 @@ const sortFinanceInvoicesNewestFirst = (records: FinanceInvoice[]): FinanceInvoi
 type MetricKey = 'revenue' | 'totalCosts' | 'netProfit' | 'cogs' | 'operatingExpenses' | 'payroll';
 
 const DEFAULT_SELECTED_METRICS: MetricKey[] = ['revenue', 'totalCosts', 'netProfit'];
-const VALID_REVENUE_STATUSES: FinanceInvoiceStatus[] = ['issued', 'paid'];
+const VALID_REVENUE_STATUSES: FinanceInvoiceStatus[] = ['draft', 'issued', 'paid'];
 const INCLUDED_EXPENSE_STATUSES = new Set(['approved', 'paid']);
 const INCLUDED_PAYROLL_STATUSES = new Set(['approved', 'paid']);
 
@@ -231,6 +231,23 @@ const isExpenseCogs = (expense: FinanceExpense): boolean => {
     || name.includes('inventory')
     || name.includes('stock');
 };
+
+const normalizeInvoiceStatusValue = (status: unknown): FinanceInvoiceStatus | null => {
+  if (typeof status !== 'string') {
+    return null;
+  }
+  const normalized = status.trim().toLowerCase();
+  if (
+    normalized === 'draft'
+    || normalized === 'issued'
+    || normalized === 'paid'
+    || normalized === 'cancelled'
+  ) {
+    return normalized as FinanceInvoiceStatus;
+  }
+  return null;
+};
+
 const INVOICE_PAGE_SIZE = 200;
 const EXPENSE_PAGE_SIZE = 200;
 
@@ -452,7 +469,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
       let invoiceCount = 0;
       for (const invoice of allInvoices) {
-        if (!VALID_REVENUE_STATUSES.includes(invoice.status) || !invoice.invoice_date) {
+        const normalizedStatus = normalizeInvoiceStatusValue(invoice.status);
+        if (!normalizedStatus || !VALID_REVENUE_STATUSES.includes(normalizedStatus) || !invoice.invoice_date) {
           continue;
         }
         const periodKey = toPeriodKey(invoice.invoice_date, range);
@@ -1378,7 +1396,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard className="border-gold/15 bg-gradient-to-r from-bg1/82 via-bg1/72 to-bg1/82">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted">
-                Financial performance reflects revenue (`issued`, `paid`) vs costs (COGS + operating + payroll) to show true profit/loss.
+                Financial performance reflects revenue (`draft`, `issued`, `paid`) vs costs (COGS + operating + payroll) to show true profit/loss.
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">
                 Total Bars: {chartLabels.length} • Invoices Counted: {totalInvoicesInRange}

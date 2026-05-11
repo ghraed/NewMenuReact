@@ -177,28 +177,6 @@ const AdminDashboard: React.FC = () => {
     <DashboardLayout title={t('admin.dashboard')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourDishes')}</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link to="/admin/profile">
-            <LiquidButton tone="tertiary">
-              <span>🏷️</span> {t('adminDashboard.profileTitle')}
-            </LiquidButton>
-          </Link>
-          <Link to="/admin/accounting">
-            <LiquidButton tone="tertiary">
-              <span>💳</span> {t('admin.accounting')}
-            </LiquidButton>
-          </Link>
-          <Link to="/admin/staff">
-            <LiquidButton tone="secondary">
-              <span>👥</span> {t('adminDashboard.manageStaff')}
-            </LiquidButton>
-          </Link>
-          <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">
-              <span>➕</span> {t('createDish.pageTitle')}
-            </LiquidButton>
-          </Link>
-        </div>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">

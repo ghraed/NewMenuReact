@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
 import { areFeaturesEnabled } from '../../utils/features';
 import RestaurantBrandMark from '../Common/RestaurantBrandMark';
+import LanguageToggle from '../LanguageToggle';
+import ThemeToggle from '../Guest/ThemeToggle';
+import { useAppTheme } from '../../hooks/useGuestTheme';
 import {
   GlassBoard,
   GlassIconButton,
@@ -59,6 +62,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const { theme, toggleTheme } = useAppTheme();
   const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const lastPathnameRef = useRef(location.pathname);
@@ -93,7 +97,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       ]
       : [
         { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-        { path: '/admin/profile', label: t('adminDashboard.profileTitle'), icon: 'tag' },
         { path: '/admin/room-plans', label: 'Room Plans', icon: 'map', requiredFeatures: ['room_plan_editor'] },
         { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
         { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
@@ -103,9 +106,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
         { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
         { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-        { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
         { path: '/admin/currency', label: 'Currency', icon: 'currency' },
-        { path: '/admin/staff', label: t('admin.staff'), icon: 'users' },
         { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
         { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
         { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
@@ -231,6 +232,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               >
                 <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col">
+                  <div className="relative z-[80] lg:hidden">
+                    <LanguageToggle />
+                  </div>
+                  <div className="relative z-[80] lg:hidden">
+                    <ThemeToggle theme={theme} onToggle={toggleTheme} />
+                  </div>
                   <div className="sticky top-0 z-10 mb-6 bg-gradient-to-b from-bg0 via-bg1/95 to-transparent pb-2 pt-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold2/85">{t('admin.navigation')}</p>
                   </div>
