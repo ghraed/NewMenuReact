@@ -246,7 +246,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/reservations" element={lazyRoute(<AdminReservationsPage />)} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['event_reservations']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager']} requiredFeatures={['event_reservations']} />}>
             <Route path="/admin/events" element={lazyRoute(<AdminEventsPage />)} />
           </Route>
 

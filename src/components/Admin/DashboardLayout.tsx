@@ -68,6 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
       { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
       { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
+      { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
     ]
     : user?.role === 'accountant'
       ? [
@@ -81,6 +82,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       ? [
         { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
         { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
+        { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
         { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
         { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
       ]
