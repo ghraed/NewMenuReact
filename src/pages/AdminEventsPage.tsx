@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { getEcho } from '../services/realtime';
+import { useAuth } from '../contexts/useAuth';
 import {
   createAdminEvent,
   fetchAdminEventForecast,
@@ -94,6 +96,7 @@ const toDraft = (event: EventReservationRecord): EventDraft => ({
 });
 
 const AdminEventsPage: React.FC = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<EventReservationRecord[]>([]);
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
   const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
@@ -154,6 +157,28 @@ const AdminEventsPage: React.FC = () => {
 
     void load();
   }, [reloadEvents]);
+
+  useEffect(() => {
+    if (!user?.restaurant?.id) {
+      return undefined;
+    }
+
+    const echo = getEcho();
+    if (!echo) {
+      return undefined;
+    }
+
+    const channelName = `restaurant.${user.restaurant.id}.events`;
+    const channel = echo.private(channelName);
+
+    channel.listen('.event-planning.updated', () => {
+      void reloadEvents();
+    });
+
+    return () => {
+      echo.leave(channelName);
+    };
+  }, [reloadEvents, user?.restaurant?.id]);
 
   useEffect(() => {
     if (!selectedEvent) {
@@ -516,4 +541,3 @@ const AdminEventsPage: React.FC = () => {
 };
 
 export default AdminEventsPage;
-
