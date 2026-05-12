@@ -81,6 +81,7 @@ const GuestOrdersPage: React.FC = () => {
     enabled: Boolean(activeTableId),
     ttlMs: 10_000,
   });
+  const guestMenuResourceKey = guestMenuResource.key;
   const restaurantName = restaurant?.name || t('guestOrders.title');
   const restaurantLogoUrl = guestMenuResource.data?.restaurant?.logo_url ?? restaurant?.logo_url ?? null;
   const restaurantShortDescription = (guestMenuResource.data?.restaurant?.profile?.short_description || '').trim();
@@ -201,7 +202,7 @@ const GuestOrdersPage: React.FC = () => {
     };
 
     void load();
-  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, guestMenuResource, setGuestContext, t, updateDraft]);
+  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, guestMenuResourceKey, setGuestContext, t, updateDraft]);
 
   const editableItems = invoiceSplit?.editable_items ?? [];
 
