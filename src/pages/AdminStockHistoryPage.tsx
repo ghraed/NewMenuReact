@@ -10,7 +10,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
-import api from '../services/api';
+import api, { resolveAssetUrl } from '../services/api';
 import { fetchExpenses } from '../services/financeExpenseService';
 import { useAuth } from '../contexts/useAuth';
 import type { CurrencyCode, InventoryPagination, InventoryStockMovementRecord } from '../types';
@@ -126,11 +126,6 @@ const convertQuantityByUnit = (value: number, unit?: string | null): { value: nu
   return { value, unit: unit || '-' };
 };
 
-const isPositiveQuantity = (value: number | string | null | undefined): boolean => {
-  const parsed = parseQuantityNumeric(value);
-  return parsed !== null && parsed >= 0;
-};
-
 const movementBadgeTone = (movementType: string): 'restock' | 'consumption' | 'neutral' => {
   const normalized = (movementType || '').toLowerCase();
   if (normalized.includes('restock') || normalized.includes('in')) return 'restock';
@@ -165,6 +160,7 @@ const AdminStockHistoryPage: React.FC = () => {
   const [linkedExpenseAmountById, setLinkedExpenseAmountById] = useState<Record<number, number>>({});
   const [quantityViewMode, setQuantityViewMode] = useState<QuantityViewMode>('base');
   const [ingredientUnitsByName, setIngredientUnitsByName] = useState<Record<string, QuantityUnit>>({});
+  const [ingredientImageByName, setIngredientImageByName] = useState<Record<string, string>>({});
 
   const fetchHistory = useCallback(async (
     page = 1,
@@ -289,14 +285,19 @@ const AdminStockHistoryPage: React.FC = () => {
         const response = await api.get('/inventory/ingredients');
         const rows = Array.isArray(response.data?.ingredients) ? response.data.ingredients : [];
         const map: Record<string, QuantityUnit> = {};
-        rows.forEach((ingredient: { name?: string; unit?: string | null }) => {
+        const imageMap: Record<string, string> = {};
+        rows.forEach((ingredient: { name?: string; unit?: string | null; image_url?: string | null; file_url?: string | null }) => {
           const key = normalizeIngredientName(ingredient?.name);
           if (!key) return;
           map[key] = inferQuantityUnit(undefined, ingredient?.unit);
+          const imageUrl = resolveAssetUrl(ingredient?.image_url || ingredient?.file_url || '');
+          if (imageUrl) imageMap[key] = imageUrl;
         });
         setIngredientUnitsByName(map);
+        setIngredientImageByName(imageMap);
       } catch {
         setIngredientUnitsByName({});
+        setIngredientImageByName({});
       }
     };
 
@@ -484,58 +485,66 @@ const AdminStockHistoryPage: React.FC = () => {
                   ? 'border-[#e2c3c3] bg-[#fbefef] text-[#8d4d4d]'
                   : 'border-[#d9d1c3] bg-[#f6f1e8] text-[#6d6558]';
               const movementIcon = movementTone === 'restock' ? '↑' : movementTone === 'consumption' ? '↓' : '•';
-              const qtyPositive = isPositiveQuantity(record.quantity);
+              const ingredientImage = ingredientImageByName[normalizeIngredientName(record.ingredient_name)] || '';
 
               return (
                 <article key={record.id} className="rounded-[26px] border border-stroke bg-bg1/85 p-0 shadow-[0_10px_25px_-24px_rgba(20,18,12,0.45)]">
                   <div className="grid gap-0 lg:grid-cols-[1fr_1fr_320px]">
                     <div className="flex gap-5 p-6 lg:border-r lg:border-stroke">
                       <div className="flex items-center gap-3">
-                        <span className="inline-flex h-[82px] w-[82px] items-center justify-center rounded-full border border-gold/15 bg-gold/5 text-2xl font-semibold text-gold2">
-                          {getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage).slice(0, 1).toUpperCase()}
-                        </span>
+                        {ingredientImage ? (
+                          <img
+                            src={ingredientImage}
+                            alt={getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage)}
+                            className="h-[82px] w-[82px] rounded-full border border-gold/15 bg-bg1 object-cover"
+                          />
+                        ) : (
+                          <span className="inline-flex h-[82px] w-[82px] items-center justify-center rounded-full border border-gold/15 bg-gold/5 text-2xl font-semibold text-gold2">
+                            {getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage).slice(0, 1).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div className="space-y-3">
                         <div>
-                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.ingredientName')}</p>
-                          <p className="text-3xl font-semibold leading-tight text-text">{getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage)}</p>
+                          <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.ingredientName')}</p>
+                          <p className="text-[14px] leading-tight text-text">{getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage)}</p>
                         </div>
                         <div>
-                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityBefore')}</p>
-                          <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatQuantityValue(record.quantity_before, resolveRecordUnit(record))}</p>
+                          <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityBefore')}</p>
+                          <div className="mt-1">
+                            <span className="inline-flex items-center rounded-xl border border-stroke bg-bg1/60 px-3 py-1.5 text-[14px] leading-none text-text">
+                              {formatQuantityValue(record.quantity_before, resolveRecordUnit(record))}
+                            </span>
+                          </div>
                         </div>
                         <div>
-                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceId')}</p>
-                          <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatNumericValue(record.reference_id)}</p>
+                          <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceId')}</p>
+                          <p className="mt-0.5 text-[14px] leading-tight text-text">{formatNumericValue(record.reference_id)}</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="space-y-3 p-6 lg:border-r lg:border-stroke">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">Movement Type</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">Movement Type</p>
                         <div className="mt-1">
-                          <span className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-lg font-semibold leading-none ${movementBadgeClasses}`}>
+                          <span className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-[14px] leading-none ${movementBadgeClasses}`}>
                             <span>{movementIcon}</span>
                             {t(`stockHistory.movementTypes.${record.movement_type}`)}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantity')}</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantity')}</p>
                         <div className="mt-1">
-                          <span className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-2xl font-semibold leading-none ${
-                            qtyPositive
-                              ? 'border-[#b9d1b5] bg-[#edf6eb] text-[#4a6a45]'
-                              : 'border-[#e2c3c3] bg-[#fbefef] text-[#8d4d4d]'
-                          }`}>
+                          <span className="inline-flex items-center rounded-xl border border-stroke bg-bg1/60 px-3 py-1.5 text-[14px] leading-none text-text">
                             {formatQuantityValue(record.quantity, resolveRecordUnit(record))}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">Linked Expense</p>
-                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">Linked Expense</p>
+                        <p className="mt-0.5 text-[14px] leading-tight text-text">
                           {record.linked_expense_id
                             ? `${formatNumericValue(record.linked_expense_id)} • ${linkedExpenseAmountById[record.linked_expense_id] !== undefined ? formatAmountInSelectedCurrency(linkedExpenseAmountById[record.linked_expense_id]) : '-'}`
                             : '-'}
@@ -545,26 +554,30 @@ const AdminStockHistoryPage: React.FC = () => {
 
                     <div className="space-y-3 p-6">
                       <div>
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceType')}</p>
-                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.reference_type}</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceType')}</p>
+                        <p className="mt-0.5 text-[14px] leading-tight text-text">{record.reference_type}</p>
                       </div>
                       <div>
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityAfter')}</p>
-                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatQuantityValue(record.quantity_after, resolveRecordUnit(record))}</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityAfter')}</p>
+                        <div className="mt-1">
+                          <span className="inline-flex items-center rounded-xl border border-stroke bg-bg1/60 px-3 py-1.5 text-[14px] leading-none text-text">
+                            {formatQuantityValue(record.quantity_after, resolveRecordUnit(record))}
+                          </span>
+                        </div>
                       </div>
                       <div>
-                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.createdAt')}</p>
-                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.created_at ? new Date(record.created_at).toLocaleString() : '-'}</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.createdAt')}</p>
+                        <p className="mt-0.5 text-[14px] leading-tight text-text">{record.created_at ? new Date(record.created_at).toLocaleString() : '-'}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-dashed border-gold/20 px-6 py-3">
-                    <p className="inline-flex items-center gap-1 text-[13px] uppercase tracking-[0.14em] text-muted">
+                    <p className="inline-flex items-center gap-1 text-[15px] font-medium uppercase tracking-[0.14em] text-muted">
                       <span>🗒</span>
                       {t('stockHistory.columns.notes')}
                     </p>
-                    <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.notes || '-'}</p>
+                    <p className="mt-0.5 text-[14px] leading-tight text-text">{record.notes || '-'}</p>
                   </div>
                 </article>
               );
