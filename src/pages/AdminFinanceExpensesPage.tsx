@@ -27,6 +27,9 @@ import type {
 } from '../types';
 import { formatPriceWithCurrency } from '../utils/currency';
 
+type ExpenseTab = 'expenses' | 'vendors' | 'categories' | 'unlinked';
+type DrawerMode = 'expense' | 'vendor' | 'category' | null;
+
 const EXPENSE_STATUSES: FinanceExpenseStatus[] = ['draft', 'approved', 'paid', 'void'];
 const PAYMENT_METHODS: FinanceExpensePaymentMethod[] = ['cash', 'card', 'bank_transfer', 'wallet', 'other'];
 const today = new Date().toISOString().slice(0, 10);
@@ -44,28 +47,19 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   const firstFieldError = maybeAxios.response?.data?.errors
     ? Object.values(maybeAxios.response.data.errors)[0]?.[0]
     : null;
-  if (firstFieldError) {
-    return firstFieldError;
-  }
+  if (firstFieldError) return firstFieldError;
 
   const message = maybeAxios.response?.data?.message;
-  if (typeof message === 'string' && message.trim() !== '') {
-    return message;
-  }
+  if (typeof message === 'string' && message.trim() !== '') return message;
 
-  if (error instanceof Error && error.message.trim() !== '') {
-    return error.message;
-  }
+  if (error instanceof Error && error.message.trim() !== '') return error.message;
 
   return fallback;
 };
 
 const centsFromInput = (value: string): number => {
   const parsed = Number(value.trim());
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return 0;
-  }
-
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
   return Math.round(parsed * 100);
 };
 
@@ -111,26 +105,33 @@ const expenseSortNewestFirst = (records: FinanceExpense[]): FinanceExpense[] => 
     if (Number.isFinite(leftDate) || Number.isFinite(rightDate)) {
       const safeLeft = Number.isFinite(leftDate) ? leftDate : Number.NEGATIVE_INFINITY;
       const safeRight = Number.isFinite(rightDate) ? rightDate : Number.NEGATIVE_INFINITY;
-      if (safeLeft !== safeRight) {
-        return safeRight - safeLeft;
-      }
+      if (safeLeft !== safeRight) return safeRight - safeLeft;
     }
 
     return right.id - left.id;
   })
 );
 
-const AnimatedCurrencyValue: React.FC<{
-  value: number;
-  currency: string;
-  className?: string;
-}> = ({ value, currency, className }) => {
+const formatPriceWithCurrencyDecimals = (amount: number, currency: string, fractionDigits: number): string => {
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const normalized = (currency || 'USD').toUpperCase();
+  const symbol = normalized === 'USD' ? '$' : normalized;
+  const money = safeAmount.toLocaleString(undefined, {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  });
+
+  if (normalized === 'USD') return `${symbol}${money}`;
+  return `${money} ${symbol}`;
+};
+
+const AnimatedCurrencyValue: React.FC<{ value: number; currency: string; className?: string }> = ({ value, currency, className }) => {
   const ref = useRef<HTMLSpanElement | null>(null);
   const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
   const [progress, setProgress] = useState(0);
 
   const targetText = useMemo(
-    () => formatPriceWithCurrency(Number.isFinite(value) ? value : 0, currency),
+    () => formatPriceWithCurrencyDecimals(Number.isFinite(value) ? value : 0, currency, 2),
     [value, currency]
   );
 
@@ -172,54 +173,86 @@ const AnimatedCurrencyValue: React.FC<{
   );
 };
 
-const AnimatedIntegerValue: React.FC<{
-  value: number;
-  className?: string;
-}> = ({ value, className }) => {
-  const ref = useRef<HTMLSpanElement | null>(null);
-  const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
-  const [progress, setProgress] = useState(0);
-
-  const targetText = useMemo(
-    () => Math.max(0, Math.round(Number.isFinite(value) ? value : 0)).toLocaleString(),
-    [value]
-  );
-
-  const animatedText = useMemo(() => {
-    const eased = 0.5 - (Math.cos(Math.PI * progress) / 2);
-    return targetText
-      .split('')
-      .map((char) => {
-        if (!/[0-9]/.test(char)) return char;
-        const targetDigit = Number(char);
-        const nextDigit = Math.floor(targetDigit * eased);
-        return String(Math.min(targetDigit, Math.max(0, nextDigit)));
-      })
-      .join('');
-  }, [targetText, progress]);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const durationMs = 900;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const nextProgress = Math.min(1, (now - start) / durationMs);
-      setProgress(nextProgress);
-      if (nextProgress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [isInView, targetText]);
+const StatCard: React.FC<{
+  label: string;
+  value: React.ReactNode;
+  helper: React.ReactNode;
+  tone: 'neutral' | 'green' | 'blue' | 'amber' | 'red';
+  icon: React.ReactNode;
+}> = ({ label, value, helper, tone, icon }) => {
+  const toneClasses = {
+    neutral: {
+      card: 'border-stroke bg-bg1/85',
+      iconWrap: 'bg-text text-bg1 ring-text/25',
+    },
+    green: {
+      card: 'border-stroke bg-bg1/85',
+      iconWrap: 'bg-emerald-500/12 text-emerald-600 ring-emerald-500/35 dark:text-emerald-300',
+    },
+    blue: {
+      card: 'border-stroke bg-bg1/85',
+      iconWrap: 'bg-sky-500/12 text-sky-600 ring-sky-500/35 dark:text-sky-300',
+    },
+    amber: {
+      card: 'border-stroke bg-bg1/85',
+      iconWrap: 'bg-amber-500/12 text-amber-700 ring-amber-500/35 dark:text-amber-300',
+    },
+    red: {
+      card: 'border-stroke bg-bg1/85',
+      iconWrap: 'bg-rose-500/12 text-rose-600 ring-rose-500/35 dark:text-rose-300',
+    },
+  }[tone];
 
   return (
-    <motion.span
-      ref={ref}
-      className={className}
-      initial={{ y: 12, opacity: 0 }}
-      animate={isInView ? { y: 0, opacity: 1 } : undefined}
-      transition={{ duration: 0.55, ease: 'easeInOut' }}
-    >
-      {animatedText}
-    </motion.span>
+    <div className={`rounded-[26px] border p-4 shadow-[0_14px_40px_rgba(71,59,45,0.08)] backdrop-blur ${toneClasses.card}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="whitespace-nowrap text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
+          <p className="mt-2 whitespace-nowrap text-2xl font-semibold tracking-tight text-text">{value}</p>
+        </div>
+        <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ${toneClasses.iconWrap}`}>
+          {icon}
+        </span>
+      </div>
+      <p className="mt-3 text-xs text-muted">{helper}</p>
+    </div>
+  );
+};
+
+const Drawer: React.FC<{
+  open: boolean;
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ open, title, subtitle, onClose, children }) => {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        type="button"
+        aria-label="Close drawer"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/45"
+      />
+      <div className="absolute right-0 top-0 h-full w-full max-w-2xl overflow-y-auto border-l border-stroke bg-bg1 p-5 shadow-2xl sm:p-6">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-semibold text-text">{title}</h3>
+            {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-bg1/80 text-muted transition hover:text-text"
+          >
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 };
 
@@ -242,6 +275,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<FinanceExpenseStatus | ''>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [vendorFilter, setVendorFilter] = useState<string>('');
+  const [expenseSearch, setExpenseSearch] = useState('');
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [unlinkedSearch, setUnlinkedSearch] = useState('');
 
   const [categoryCode, setCategoryCode] = useState('');
   const [categoryName, setCategoryName] = useState('');
@@ -256,6 +292,8 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
   const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(() => blankDraft(currency));
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<ExpenseTab>('expenses');
+  const [drawerMode, setDrawerMode] = useState<DrawerMode>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
@@ -267,14 +305,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const activeCategories = useMemo(
-    () => categories.filter((category) => category.is_active),
-    [categories]
-  );
-  const activeVendors = useMemo(
-    () => vendors.filter((vendor) => vendor.is_active),
-    [vendors]
-  );
+  const activeCategories = useMemo(() => categories.filter((category) => category.is_active), [categories]);
+  const activeVendors = useMemo(() => vendors.filter((vendor) => vendor.is_active), [vendors]);
+
   const expenseTotals = useMemo(() => {
     const paid = expenses.filter((expense) => expense.status === 'paid');
     const approved = expenses.filter((expense) => expense.status === 'approved');
@@ -295,12 +328,37 @@ const AdminFinanceExpensesPage: React.FC = () => {
     };
   }, [expenses]);
 
-  const loadReferenceData = useCallback(async () => {
-    const [categoriesResponse, vendorsResponse] = await Promise.all([
-      fetchExpenseCategories(),
-      fetchVendors(),
-    ]);
+  const filteredExpenses = useMemo(() => {
+    const q = expenseSearch.trim().toLowerCase();
+    if (!q) return expenses;
+    return expenses.filter((expense) => {
+      const vendor = expense.vendor?.name?.toLowerCase() ?? '';
+      const category = expense.category?.name?.toLowerCase() ?? '';
+      const amount = formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency).toLowerCase();
+      return vendor.includes(q) || category.includes(q) || amount.includes(q);
+    });
+  }, [currency, expenseSearch, expenses]);
 
+  const filteredVendors = useMemo(() => {
+    const q = vendorSearch.trim().toLowerCase();
+    if (!q) return vendors;
+    return vendors.filter((vendor) =>
+      [vendor.name, vendor.contact_name, vendor.phone, vendor.email, vendor.tax_number]
+        .some((field) => (field ?? '').toLowerCase().includes(q))
+    );
+  }, [vendorSearch, vendors]);
+
+  const filteredUnlinkedRestocks = useMemo(() => {
+    const q = unlinkedSearch.trim().toLowerCase();
+    if (!q) return unlinkedRestocks;
+    return unlinkedRestocks.filter((restock) =>
+      [restock.ingredient_name, restock.reference, restock.notes]
+        .some((field) => (field ?? '').toLowerCase().includes(q))
+    );
+  }, [unlinkedRestocks, unlinkedSearch]);
+
+  const loadReferenceData = useCallback(async () => {
+    const [categoriesResponse, vendorsResponse] = await Promise.all([fetchExpenseCategories(), fetchVendors()]);
     setCategories(categoriesResponse);
     setVendors(vendorsResponse);
   }, []);
@@ -343,7 +401,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const loadInitialData = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       await Promise.all([loadReferenceData(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
@@ -356,7 +413,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const loadAll = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       await Promise.all([loadReferenceData(), loadExpenses(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
@@ -379,6 +435,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setExpenseDraft(blankDraft(currency));
   };
 
+  const openExpenseDrawer = () => {
+    resetExpenseForm();
+    setDrawerMode('expense');
+  };
+
   const handleCreateCategory = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
@@ -396,6 +457,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setCategoryName('');
       setCategoryActive(true);
       setSuccess('Expense category created.');
+      setDrawerMode(null);
     } catch (createError: unknown) {
       setError(getErrorMessage(createError, 'Failed to create expense category.'));
     } finally {
@@ -428,6 +490,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setVendorNotes('');
       setVendorActive(true);
       setSuccess('Vendor created.');
+      setDrawerMode(null);
     } catch (createError: unknown) {
       setError(getErrorMessage(createError, 'Failed to create vendor.'));
     } finally {
@@ -484,6 +547,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
         await loadExpenses();
         setSuccess('Expense updated.');
       }
+      setDrawerMode(null);
       void loadUnlinkedRestocks();
     } catch (saveError: unknown) {
       setError(getErrorMessage(saveError, 'Failed to save expense.'));
@@ -509,6 +573,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       due_date: expense.due_date ?? '',
       paid_at: expense.paid_at ? expense.paid_at.slice(0, 10) : '',
     });
+    setDrawerMode('expense');
   };
 
   const handleExpenseStatusUpdate = async (expense: FinanceExpense, nextStatus: FinanceExpenseStatus) => {
@@ -552,570 +617,184 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Expense Management">
-      <div className="space-y-6">
+      <div className="space-y-5">
         <GlassCard>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-text">Manage Categories, Vendors, and Expenses</h2>
-              <p className="mt-1 text-sm text-muted">
-                {totalExpensesCount} expense record{totalExpensesCount === 1 ? '' : 's'} in the current filter range.
+              <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">Finance Operations</p>
+              <h2 className="mt-1 text-3xl font-semibold text-text">Expense Management</h2>
+              <p className="mt-2 max-w-2xl text-sm text-muted">
+                Track expenses, vendors, categories, payment status, and stock-linked expenses.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                aria-label={loading ? 'Refreshing all' : 'Refresh all'}
-                title={loading ? 'Refreshing all' : 'Refresh all'}
-                onClick={() => void loadAll()}
-                disabled={loading}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text disabled:opacity-60"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
-                  <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                aria-label="New expense"
-                title="New expense"
-                onClick={resetExpenseForm}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
-                  <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              <LiquidButton type="button" onClick={openExpenseDrawer}>+ New Expense</LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('vendor')}>New Vendor</LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('category')}>New Category</LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => void loadAll()} disabled={loading}>
+                {loading ? 'Refreshing...' : 'Export'}
+              </LiquidButton>
             </div>
           </div>
         </GlassCard>
 
-        <div className="grid gap-3 md:grid-cols-5">
-          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Expenses Total</p>
-            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.totalAmount} currency={currency} /></p>
-            <p className="text-xs text-muted"><AnimatedIntegerValue value={totalExpensesCount} /> records in range</p>
-          </div>
-          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Paid</p>
-            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.paidAmount} currency={currency} /></p>
-            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.paidCount} /> on this page</p>
-          </div>
-          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Approved</p>
-            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.approvedAmount} currency={currency} /></p>
-            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.approvedCount} /> on this page</p>
-          </div>
-          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Draft</p>
-            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.draftAmount} currency={currency} /></p>
-            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.draftCount} /> on this page</p>
-          </div>
-          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Void</p>
-            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.voidAmount} currency={currency} /></p>
-            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.voidCount} /> on this page</p>
-          </div>
-        </div>
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            label={"Expense\u00A0Total"}
+            value={<AnimatedCurrencyValue value={expenseTotals.totalAmount} currency={currency} />}
+            helper="Across selected range"
+            tone="neutral"
+            icon={(
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                <rect x="3" y="7" width="18" height="10" rx="2" />
+                <circle cx="12" cy="12" r="2.2" />
+                <path d="M7 10.5h.01M17 13.5h.01" strokeLinecap="round" />
+              </svg>
+            )}
+          />
+          <StatCard
+            label="Paid"
+            value={<AnimatedCurrencyValue value={expenseTotals.paidAmount} currency={currency} />}
+            helper={`${expenseTotals.paidCount} on this page`}
+            tone="green"
+            icon={(
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={2.2} aria-hidden="true">
+                <path d="M5 12.5l4.2 4.2L19 7.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          />
+          <StatCard
+            label="Approved"
+            value={<AnimatedCurrencyValue value={expenseTotals.approvedAmount} currency={currency} />}
+            helper={`${expenseTotals.approvedCount} on this page`}
+            tone="blue"
+            icon={(
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={2.2} aria-hidden="true">
+                <path d="M5 12.5l4.2 4.2L19 7.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          />
+          <StatCard
+            label="Draft"
+            value={<AnimatedCurrencyValue value={expenseTotals.draftAmount} currency={currency} />}
+            helper={`${expenseTotals.draftCount} on this page`}
+            tone="amber"
+            icon={(
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9} aria-hidden="true">
+                <circle cx="12" cy="12" r="7.5" />
+                <path d="M12 8.5v4.3l2.7 1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          />
+          <StatCard
+            label="Void"
+            value={<AnimatedCurrencyValue value={expenseTotals.voidAmount} currency={currency} />}
+            helper={`${expenseTotals.voidCount} on this page`}
+            tone="red"
+            icon={(
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9} aria-hidden="true">
+                <path d="M12 4.5L20 18a1.3 1.3 0 0 1-1.1 2H5.1A1.3 1.3 0 0 1 4 18L12 4.5z" />
+                <path d="M12 10v4M12 17h.01" strokeLinecap="round" />
+              </svg>
+            )}
+          />
+        </section>
 
-        <div className="grid gap-5 xl:grid-cols-3">
+        <GlassCard className="p-2">
+          <div className="flex gap-2 overflow-x-auto">
+            {([
+              ['expenses', 'Expenses'],
+              ['vendors', 'Vendors'],
+              ['categories', 'Categories'],
+              ['unlinked', 'Unlinked Stocks'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === key ? 'bg-text text-bg1' : 'text-muted hover:text-text'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </GlassCard>
+
+        {activeTab === 'expenses' ? (
           <GlassCard>
-            <h3 className="text-lg font-semibold text-text">Create Expense Category</h3>
-            <form className="mt-4 space-y-3" onSubmit={handleCreateCategory}>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Code</span>
-                <input
-                  type="text"
-                  value={categoryCode}
-                  onChange={(event) => setCategoryCode(event.target.value)}
-                  placeholder="Code (e.g. utilities)"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Display Name</span>
-                <input
-                  type="text"
-                  value={categoryName}
-                  onChange={(event) => setCategoryName(event.target.value)}
-                  placeholder="Display Name"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  required
-                />
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm text-text">
-                <input
-                  type="checkbox"
-                  checked={categoryActive}
-                  onChange={(event) => setCategoryActive(event.target.checked)}
-                />
-                Active
-              </label>
-              <LiquidButton type="submit" className="w-full" disabled={savingCategory}>
-                {savingCategory ? 'Saving...' : 'Create Category'}
-              </LiquidButton>
-            </form>
-          </GlassCard>
-
-          <GlassCard className="xl:col-span-2">
-            <h3 className="text-lg font-semibold text-text">Create Vendor</h3>
-            <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleCreateVendor}>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor Name</span>
-                <input
-                  type="text"
-                  value={vendorName}
-                  onChange={(event) => setVendorName(event.target.value)}
-                  placeholder="Vendor Name"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  required
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Contact Name</span>
-                <input
-                  type="text"
-                  value={vendorContactName}
-                  onChange={(event) => setVendorContactName(event.target.value)}
-                  placeholder="Contact Name"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Phone</span>
-                <input
-                  type="text"
-                  value={vendorPhone}
-                  onChange={(event) => setVendorPhone(event.target.value)}
-                  placeholder="Phone"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Email</span>
-                <input
-                  type="email"
-                  value={vendorEmail}
-                  onChange={(event) => setVendorEmail(event.target.value)}
-                  placeholder="Email"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Tax Number</span>
-                <input
-                  type="text"
-                  value={vendorTaxNumber}
-                  onChange={(event) => setVendorTaxNumber(event.target.value)}
-                  placeholder="Tax Number"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="inline-flex items-center gap-2 text-sm text-text">
-                <input
-                  type="checkbox"
-                  checked={vendorActive}
-                  onChange={(event) => setVendorActive(event.target.checked)}
-                />
-                Active
+            <div className="mb-4 grid gap-3 md:grid-cols-12 md:items-end">
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Date From</span>
+                <input type="date" value={dateFrom} onChange={(event) => { setExpensePage(1); setDateFrom(event.target.value); }} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Notes</span>
-                <textarea
-                  value={vendorNotes}
-                  onChange={(event) => setVendorNotes(event.target.value)}
-                  placeholder="Notes"
-                  rows={2}
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Date To</span>
+                <input type="date" value={dateTo} onChange={(event) => { setExpensePage(1); setDateTo(event.target.value); }} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               </label>
-              <LiquidButton type="submit" className="md:col-span-2" disabled={savingVendor}>
-                {savingVendor ? 'Saving...' : 'Create Vendor'}
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span>
+                <select value={statusFilter} onChange={(event) => { setExpensePage(1); setStatusFilter(event.target.value as FinanceExpenseStatus | ''); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
+                  <option value="">All statuses</option>
+                  {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                </select>
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Category</span>
+                <select value={categoryFilter} onChange={(event) => { setExpensePage(1); setCategoryFilter(event.target.value); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
+                  <option value="">All categories</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor</span>
+                <select value={vendorFilter} onChange={(event) => { setExpensePage(1); setVendorFilter(event.target.value); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
+                  <option value="">All vendors</option>
+                  {vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
+                </select>
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Rows</span>
+                <select value={String(expensePerPage)} onChange={(event) => { const parsed = Number(event.target.value); setExpensePage(1); setExpensePerPage(Number.isFinite(parsed) && parsed > 0 ? parsed : 25); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
+                  {[25, 50, 100].map((size) => <option key={size} value={size}>{size} / page</option>)}
+                </select>
+              </label>
+            </div>
+
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by category, vendor, or amount" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+              <LiquidButton type="button" tone="tertiary" onClick={() => { setExpensePage(1); setDateFrom(''); setDateTo(''); setStatusFilter(''); setCategoryFilter(''); setVendorFilter(''); setExpenseSearch(''); }}>
+                Clear Filters
               </LiquidButton>
-            </form>
-          </GlassCard>
-        </div>
-
-        <div className="space-y-5">
-          <GlassCard>
-            <h3 className="text-lg font-semibold text-text">{editingExpenseId ? `Edit Expense #${editingExpenseId}` : 'Create Expense'}</h3>
-            <form className="mt-4 space-y-3" onSubmit={handleSaveExpense}>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Category</span>
-                <select
-                  value={expenseDraft.expense_category_id}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))}
-                  className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {activeCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name} ({category.code})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor</span>
-                <select
-                  value={expenseDraft.vendor_id}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))}
-                  className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                >
-                  <option value="">No Vendor</option>
-                  {activeVendors.map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Expense Date</span>
-                <input
-                  type="date"
-                  value={expenseDraft.expense_date}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))}
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  required
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Amount</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={expenseDraft.amount}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))}
-                    placeholder="Amount"
-                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Tax Amount</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={expenseDraft.tax_amount}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))}
-                    placeholder="Tax Amount"
-                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Currency</span>
-                  <input
-                    type="text"
-                    value={expenseDraft.currency}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))}
-                    maxLength={3}
-                    placeholder="USD"
-                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text uppercase outline-none focus:border-gold/55"
-                    required
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Status</span>
-                  <select
-                    value={expenseDraft.status}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus }))}
-                    className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                  >
-                    {EXPENSE_STATUSES.map((status) => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Payment Method</span>
-                <select
-                  value={expenseDraft.payment_method}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))}
-                  className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                >
-                  <option value="">No Payment Method</option>
-                  {PAYMENT_METHODS.map((method) => (
-                    <option key={method} value={method}>{method}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Reference Number</span>
-                <input
-                  type="text"
-                  value={expenseDraft.reference_no}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))}
-                  placeholder="Reference Number"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Description</span>
-                <input
-                  type="text"
-                  value={expenseDraft.description}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))}
-                  placeholder="Description"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Notes</span>
-                <textarea
-                  value={expenseDraft.notes}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))}
-                  placeholder="Notes"
-                  rows={2}
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-
-              <div className="grid grid-cols-2 gap-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Due Date</span>
-                  <input
-                    type="date"
-                    value={expenseDraft.due_date}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))}
-                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Paid At</span>
-                  <input
-                    type="date"
-                    value={expenseDraft.paid_at}
-                    onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))}
-                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  />
-                </label>
-              </div>
-
-              <div className="flex gap-2">
-                <LiquidButton type="submit" className="flex-1" disabled={savingExpense}>
-                  {savingExpense ? 'Saving...' : editingExpenseId ? 'Update Expense' : 'Create Expense'}
-                </LiquidButton>
-                {editingExpenseId ? (
-                  <LiquidButton type="button" tone="tertiary" onClick={resetExpenseForm}>
-                    Cancel
-                  </LiquidButton>
-                ) : null}
-              </div>
-            </form>
-          </GlassCard>
-
-          <GlassCard>
-            <div className="mb-4 rounded-2xl border border-stroke/80 bg-bg1/35 p-3">
-              <div className="grid gap-3">
-                <div className="grid gap-3 md:grid-cols-12 md:items-end">
-                  <label className="block md:col-span-4">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Date From</span>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => {
-                    setExpensePage(1);
-                    setDateFrom(event.target.value);
-                  }}
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-                  <label className="block md:col-span-4">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Date To</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => {
-                    setExpensePage(1);
-                    setDateTo(event.target.value);
-                  }}
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </label>
-                  <div className="flex items-end justify-start gap-2 md:col-span-4 md:justify-end">
-                <button
-                  type="button"
-                  aria-label="Clear filters"
-                  title="Clear filters"
-                  onClick={() => {
-                    setExpensePage(1);
-                    setDateFrom('');
-                    setDateTo('');
-                    setStatusFilter('');
-                    setCategoryFilter('');
-                    setVendorFilter('');
-                  }}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
-                    <path d="M5 5l14 14M19 5L5 19" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Refresh report"
-                  title="Refresh report"
-                  onClick={() => void loadUnlinkedRestocks()}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
-                >
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
-                    <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-8 md:items-end">
-                  <label className="block md:col-span-2">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Status</span>
-                    <select
-                      value={statusFilter}
-                      onChange={(event) => {
-                        setExpensePage(1);
-                        setStatusFilter(event.target.value as FinanceExpenseStatus | '');
-                      }}
-                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                    >
-                      <option value="">All statuses</option>
-                      {EXPENSE_STATUSES.map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block md:col-span-2">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Category</span>
-                    <select
-                      value={categoryFilter}
-                      onChange={(event) => {
-                        setExpensePage(1);
-                        setCategoryFilter(event.target.value);
-                      }}
-                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                    >
-                      <option value="">All categories</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>{category.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block md:col-span-2">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor</span>
-                    <select
-                      value={vendorFilter}
-                      onChange={(event) => {
-                        setExpensePage(1);
-                        setVendorFilter(event.target.value);
-                      }}
-                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                    >
-                      <option value="">All vendors</option>
-                      {vendors.map((vendor) => (
-                        <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block md:col-span-2">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Rows</span>
-                    <select
-                      value={String(expensePerPage)}
-                      onChange={(event) => {
-                        const parsed = Number(event.target.value);
-                        const nextPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
-                        setExpensePage(1);
-                        setExpensePerPage(nextPerPage);
-                      }}
-                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                    >
-                      {[25, 50, 100].map((size) => (
-                        <option key={size} value={size}>{size} / page</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              </div>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-stroke">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-gold2/85">
+              <table className="min-w-[920px] w-full text-left text-sm">
+                <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-muted">
                   <tr>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Category</th>
-                    <th className="px-4 py-3">Vendor</th>
-                    <th className="px-4 py-3">Inventory Link</th>
-                    <th className="px-4 py-3">Total</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Vendor</th><th className="px-4 py-3">Inventory Link</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingExpenses ? (
-                    <tr>
-                      <td className="px-4 py-10 text-center text-muted" colSpan={7}>
-                        Loading expenses...
-                      </td>
-                    </tr>
-                  ) : expenses.length === 0 ? (
-                    <tr>
-                      <td className="px-4 py-10 text-center text-muted" colSpan={7}>
-                        No expenses found for current filters.
-                      </td>
-                    </tr>
-                  ) : expenses.map((expense) => (
+                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>Loading expenses...</td></tr>
+                  ) : filteredExpenses.length === 0 ? (
+                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>No expenses found for current filters.</td></tr>
+                  ) : filteredExpenses.map((expense) => (
                     <tr key={expense.id} className="border-t border-stroke/70 bg-bg1/45">
                       <td className="px-4 py-3 text-muted">{expense.expense_date}</td>
-                      <td className="px-4 py-3 text-text">
-                        {expense.category?.name || `Category #${expense.expense_category_id}`}
-                      </td>
+                      <td className="px-4 py-3 text-text">{expense.category?.name || `Category #${expense.expense_category_id}`}</td>
                       <td className="px-4 py-3 text-muted">{expense.vendor?.name || '-'}</td>
-                      <td className="px-4 py-3 text-xs text-muted">
-                        {expense.linked_stock_movement ? (
-                          <div>
-                            <p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p>
-                            <p>{expense.linked_stock_movement.ingredient_name || '-'}</p>
-                          </div>
-                        ) : 'Not linked'}
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-text">
-                        {formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency)}
-                      </td>
+                      <td className="px-4 py-3 text-xs text-muted">{expense.linked_stock_movement ? <div><p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}</td>
+                      <td className="px-4 py-3 font-semibold text-text">{formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency)}</td>
                       <td className="px-4 py-3">
-                        <select
-                          value={expense.status}
-                          onChange={(event) => void handleExpenseStatusUpdate(expense, event.target.value as FinanceExpenseStatus)}
-                          disabled={updatingStatusId === expense.id}
-                          className="themed-native-select rounded-full border border-gold/35 bg-bg1/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none focus:border-gold disabled:opacity-60"
-                        >
-                          {EXPENSE_STATUSES.map((status) => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
+                        <select value={expense.status} onChange={(event) => void handleExpenseStatusUpdate(expense, event.target.value as FinanceExpenseStatus)} disabled={updatingStatusId === expense.id} className="themed-native-select rounded-full border border-stroke bg-bg1/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
+                          {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          aria-label={`Edit expense ${expense.id}`}
-                          title={`Edit expense ${expense.id}`}
-                          onClick={() => startEditExpense(expense)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
-                        >
-                          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
-                            <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4zM13 7l4 4" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
+                        <button type="button" onClick={() => startEditExpense(expense)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:text-text">✎</button>
                       </td>
                     </tr>
                   ))}
@@ -1124,113 +803,166 @@ const AdminFinanceExpensesPage: React.FC = () => {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-muted">
-                Page {expensePage} of {expenseLastPage} • {totalExpensesCount} total
-              </p>
+              <p className="text-xs text-muted">Page {expensePage} of {expenseLastPage} • {totalExpensesCount} total</p>
               <div className="flex gap-2">
-                <LiquidButton
-                  type="button"
-                  tone="tertiary"
-                  disabled={loadingExpenses || expensePage <= 1}
-                  onClick={() => setExpensePage((current) => Math.max(1, current - 1))}
-                >
-                  Previous
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  tone="tertiary"
-                  disabled={loadingExpenses || expensePage >= expenseLastPage}
-                  onClick={() => setExpensePage((current) => Math.min(expenseLastPage, current + 1))}
-                >
-                  Next
-                </LiquidButton>
+                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage <= 1} onClick={() => setExpensePage((current) => Math.max(1, current - 1))}>Previous</LiquidButton>
+                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage >= expenseLastPage} onClick={() => setExpensePage((current) => Math.min(expenseLastPage, current + 1))}>Next</LiquidButton>
               </div>
             </div>
           </GlassCard>
-        </div>
+        ) : null}
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          <GlassCard className="xl:col-span-2">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        {activeTab === 'vendors' ? (
+          <GlassCard>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-text">Unlinked Restocks</h3>
-                <p className="text-sm text-muted">
-                  {unlinkedRestocksCount} restock movement{unlinkedRestocksCount === 1 ? '' : 's'} without linked expense.
-                </p>
+                <h3 className="text-2xl font-semibold text-text">Vendors</h3>
+                <p className="text-sm text-muted">Manage supplier and service provider records.</p>
               </div>
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()} disabled={loadingUnlinkedRestocks}>
-                {loadingUnlinkedRestocks ? 'Refreshing...' : 'Refresh Unlinked'}
-              </LiquidButton>
+              <div className="flex flex-wrap gap-2">
+                <input value={vendorSearch} onChange={(event) => setVendorSearch(event.target.value)} placeholder="Search vendors" className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+                <LiquidButton type="button" onClick={() => setDrawerMode('vendor')}>+ New Vendor</LiquidButton>
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {filteredVendors.map((vendor) => (
+                <div key={vendor.id} className="rounded-2xl border border-stroke bg-bg1/55 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-lg font-semibold text-text">{vendor.name}</h4>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${vendor.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{vendor.is_active ? 'Active' : 'Inactive'}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted">{vendor.contact_name || '-'}</p>
+                  <p className="mt-3 text-sm text-muted">{vendor.phone || '-'}</p>
+                  <p className="text-sm text-muted">{vendor.email || '-'}</p>
+                  <p className="text-sm text-muted">{vendor.tax_number || '-'}</p>
+                  <div className="mt-3 flex gap-2">
+                    <LiquidButton type="button" tone="tertiary" onClick={() => void toggleVendorActive(vendor)}>{vendor.is_active ? 'Deactivate' : 'Activate'}</LiquidButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        ) : null}
+
+        {activeTab === 'categories' ? (
+          <GlassCard>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-semibold text-text">Expense Categories</h3>
+                <p className="text-sm text-muted">Keep codes and display names clean for reporting.</p>
+              </div>
+              <LiquidButton type="button" onClick={() => setDrawerMode('category')}>+ New Category</LiquidButton>
             </div>
 
-            {unlinkedRestocks.length === 0 ? (
-              <div className="rounded-xl border border-stroke bg-bg1/55 px-4 py-6 text-center text-sm text-muted">
-                No unlinked restocks found.
+            <div className="overflow-x-auto rounded-2xl border border-stroke">
+              <table className="min-w-[720px] w-full text-sm">
+                <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-muted">
+                  <tr><th className="px-4 py-3 text-left">Category</th><th className="px-4 py-3 text-left">Code</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {categories.map((category) => (
+                    <tr key={category.id} className="border-t border-stroke/70 bg-bg1/45">
+                      <td className="px-4 py-3 font-medium text-text">{category.name}</td>
+                      <td className="px-4 py-3 text-muted">{category.code}</td>
+                      <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${category.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{category.is_active ? 'Active' : 'Inactive'}</span></td>
+                      <td className="px-4 py-3 text-right"><LiquidButton type="button" tone="tertiary" onClick={() => void toggleCategoryActive(category)}>{category.is_active ? 'Deactivate' : 'Activate'}</LiquidButton></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        ) : null}
+
+        {activeTab === 'unlinked' ? (
+          <GlassCard>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-2xl font-semibold text-text">Unlinked Stocks</h3>
+                <p className="text-sm text-muted">{unlinkedRestocksCount} stock movements without a linked expense.</p>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {unlinkedRestocks.map((restock) => (
-                  <div key={restock.id} className={`rounded-xl border px-3 py-2 ${restock.is_flagged ? 'border-spicy/45 bg-spicy/10' : 'border-stroke bg-bg1/55'}`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-text">
-                        {restock.ingredient_name} • {restock.quantity_delta} {restock.unit}
-                      </p>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-spicy/20 text-spicy' : 'bg-gold/20 text-gold2'}`}>
-                        {restock.is_flagged ? `Flagged (${restock.age_days}d)` : `Open (${restock.age_days}d)`}
-                      </span>
+              <div className="flex flex-wrap gap-2">
+                <input value={unlinkedSearch} onChange={(event) => setUnlinkedSearch(event.target.value)} placeholder="Search stock item" className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+                <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()} disabled={loadingUnlinkedRestocks}>{loadingUnlinkedRestocks ? 'Refreshing...' : 'Refresh Unlinked'}</LiquidButton>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {filteredUnlinkedRestocks.map((restock) => (
+                <div key={restock.id} className={`rounded-xl border px-3 py-2 ${restock.is_flagged ? 'border-rose-300/50 bg-rose-500/10 dark:border-rose-500/40' : 'border-stroke bg-bg1/55'}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-text">{restock.ingredient_name} • {restock.quantity_delta} {restock.unit}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>{restock.age_days} stage diff</span>
+                      <LiquidButton type="button" tone="tertiary">Link Expense</LiquidButton>
                     </div>
-                    <p className="mt-1 text-xs text-muted">
-                      Ref: {restock.reference || '-'} • {restock.created_at ? new Date(restock.created_at).toLocaleString() : '-'}
-                    </p>
-                    {restock.notes ? <p className="mt-1 text-xs text-muted2">{restock.notes}</p> : null}
                   </div>
-                ))}
-              </div>
-            )}
-          </GlassCard>
-
-          <GlassCard>
-            <h3 className="mb-3 text-lg font-semibold text-text">Expense Categories</h3>
-            <div className="space-y-2">
-              {categories.map((category) => (
-                <div key={category.id} className="flex items-center justify-between rounded-xl border border-stroke bg-bg1/55 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-semibold text-text">{category.name}</p>
-                    <p className="text-xs text-muted">{category.code}</p>
-                  </div>
-                  <LiquidButton type="button" tone="tertiary" onClick={() => void toggleCategoryActive(category)}>
-                    {category.is_active ? 'Deactivate' : 'Activate'}
-                  </LiquidButton>
+                  <p className="mt-1 text-xs text-muted">Ref: {restock.reference || '-'}</p>
                 </div>
               ))}
+              {!loadingUnlinkedRestocks && filteredUnlinkedRestocks.length === 0 ? (
+                <div className="rounded-xl border border-stroke bg-bg1/55 px-4 py-6 text-center text-sm text-muted">No unlinked restocks found.</div>
+              ) : null}
             </div>
           </GlassCard>
-
-          <GlassCard>
-            <h3 className="mb-3 text-lg font-semibold text-text">Vendors</h3>
-            <div className="space-y-2">
-              {vendors.map((vendor) => (
-                <div key={vendor.id} className="flex items-center justify-between rounded-xl border border-stroke bg-bg1/55 px-3 py-2">
-                  <div>
-                    <p className="text-sm font-semibold text-text">{vendor.name}</p>
-                    <p className="text-xs text-muted">{vendor.contact_name || vendor.email || '-'}</p>
-                  </div>
-                  <LiquidButton type="button" tone="tertiary" onClick={() => void toggleVendorActive(vendor)}>
-                    {vendor.is_active ? 'Deactivate' : 'Activate'}
-                  </LiquidButton>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-
-        {error ? (
-          <div className="rounded-xl2 border border-spicy/50 bg-spicy/12 px-4 py-3 text-sm text-spicy">{error}</div>
         ) : null}
-        {success ? (
-          <div className="rounded-xl2 border border-sage/50 bg-sage/12 px-4 py-3 text-sm text-sage">{success}</div>
-        ) : null}
+
+        {error ? <div className="rounded-xl2 border border-spicy/50 bg-spicy/12 px-4 py-3 text-sm text-spicy">{error}</div> : null}
+        {success ? <div className="rounded-xl2 border border-sage/50 bg-sage/12 px-4 py-3 text-sm text-sage">{success}</div> : null}
       </div>
+
+      <Drawer
+        open={drawerMode === 'expense'}
+        title={editingExpenseId ? `Edit Expense #${editingExpenseId}` : 'Create Expense'}
+        subtitle="Capture category, vendor, amount, payment details, and timeline."
+        onClose={() => setDrawerMode(null)}
+      >
+        <form className="space-y-3" onSubmit={handleSaveExpense}>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Category</span><select value={expenseDraft.expense_category_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required><option value="">Select Category</option>{activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name} ({category.code})</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor</span><select value={expenseDraft.vendor_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Vendor</option>{activeVendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Expense Date</span><input type="date" value={expenseDraft.expense_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Tax Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.tax_amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Currency</span><input type="text" maxLength={3} value={expenseDraft.currency} onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm uppercase" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span><select value={expenseDraft.status} onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Payment Method</span><select value={expenseDraft.payment_method} onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Payment Method</option>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Reference Number</span><input type="text" value={expenseDraft.reference_no} onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Description</span><input type="text" value={expenseDraft.description} onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={expenseDraft.notes} onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Due Date</span><input type="date" value={expenseDraft.due_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Paid At</span><input type="date" value={expenseDraft.paid_at} onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
+
+          <div className="mt-5 flex justify-end gap-2 border-t border-stroke pt-4">
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
+            <LiquidButton type="submit" disabled={savingExpense}>{savingExpense ? 'Saving...' : editingExpenseId ? 'Update Expense' : 'Create Expense'}</LiquidButton>
+          </div>
+        </form>
+      </Drawer>
+
+      <Drawer open={drawerMode === 'vendor'} title="Create Vendor" subtitle="Add a new supplier or service provider." onClose={() => setDrawerMode(null)}>
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleCreateVendor}>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor Name</span><input type="text" value={vendorName} onChange={(event) => setVendorName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Contact Name</span><input type="text" value={vendorContactName} onChange={(event) => setVendorContactName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Phone</span><input type="text" value={vendorPhone} onChange={(event) => setVendorPhone(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Email</span><input type="email" value={vendorEmail} onChange={(event) => setVendorEmail(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Tax Number</span><input type="text" value={vendorTaxNumber} onChange={(event) => setVendorTaxNumber(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={vendorActive} onChange={(event) => setVendorActive(event.target.checked)} /> Active</label>
+          <label className="block md:col-span-2"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={vendorNotes} onChange={(event) => setVendorNotes(event.target.value)} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <div className="md:col-span-2 mt-2 flex justify-end gap-2 border-t border-stroke pt-4">
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
+            <LiquidButton type="submit" disabled={savingVendor}>{savingVendor ? 'Saving...' : 'Create Vendor'}</LiquidButton>
+          </div>
+        </form>
+      </Drawer>
+
+      <Drawer open={drawerMode === 'category'} title="Create Category" subtitle="Add a code and display name for expense grouping." onClose={() => setDrawerMode(null)}>
+        <form className="space-y-3" onSubmit={handleCreateCategory}>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Code</span><input type="text" value={categoryCode} onChange={(event) => setCategoryCode(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Display Name</span><input type="text" value={categoryName} onChange={(event) => setCategoryName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={categoryActive} onChange={(event) => setCategoryActive(event.target.checked)} /> Active</label>
+          <div className="mt-2 flex justify-end gap-2 border-t border-stroke pt-4">
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
+            <LiquidButton type="submit" disabled={savingCategory}>{savingCategory ? 'Saving...' : 'Create Category'}</LiquidButton>
+          </div>
+        </form>
+      </Drawer>
     </DashboardLayout>
   );
 };
