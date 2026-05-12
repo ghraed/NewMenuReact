@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   BarElement,
@@ -250,6 +250,126 @@ const normalizeInvoiceStatusValue = (status: unknown): FinanceInvoiceStatus | nu
 
 const INVOICE_PAGE_SIZE = 200;
 const EXPENSE_PAGE_SIZE = 200;
+
+const AnimatedCurrencyValue: React.FC<{
+  value: number;
+  currency: CurrencyCode;
+  className?: string;
+}> = ({ value, currency, className }) => {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
+  const [progress, setProgress] = useState(0);
+
+  const targetText = useMemo(
+    () => formatPriceWithCurrency(Number.isFinite(value) ? value : 0, currency),
+    [value, currency]
+  );
+
+  const animatedText = useMemo(() => {
+    const eased = 0.5 - (Math.cos(Math.PI * progress) / 2);
+
+    return targetText
+      .split('')
+      .map((char) => {
+        if (!/[0-9]/.test(char)) {
+          return char;
+        }
+        const targetDigit = Number(char);
+        const nextDigit = Math.floor(targetDigit * eased);
+        return String(Math.min(targetDigit, Math.max(0, nextDigit)));
+      })
+      .join('');
+  }, [targetText, progress]);
+
+  useEffect(() => {
+    if (!isInView) {
+      return;
+    }
+
+    const durationMs = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const nextProgress = Math.min(1, elapsed / durationMs);
+      setProgress(nextProgress);
+      if (nextProgress < 1) {
+        requestAnimationFrame(tick);
+      }
+    };
+
+    requestAnimationFrame(tick);
+  }, [isInView, targetText]);
+
+  return (
+    <motion.span
+      ref={ref}
+      className={className}
+      initial={{ y: value < 0 ? -16 : 16, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : undefined}
+      transition={{ duration: 0.55, ease: 'easeInOut' }}
+    >
+      {animatedText}
+    </motion.span>
+  );
+};
+
+const AnimatedIntegerValue: React.FC<{
+  value: number;
+  className?: string;
+}> = ({ value, className }) => {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
+  const [progress, setProgress] = useState(0);
+
+  const targetText = useMemo(
+    () => Math.max(0, Math.round(Number.isFinite(value) ? value : 0)).toLocaleString(),
+    [value]
+  );
+
+  const animatedText = useMemo(() => {
+    const eased = 0.5 - (Math.cos(Math.PI * progress) / 2);
+    return targetText
+      .split('')
+      .map((char) => {
+        if (!/[0-9]/.test(char)) {
+          return char;
+        }
+        const targetDigit = Number(char);
+        const nextDigit = Math.floor(targetDigit * eased);
+        return String(Math.min(targetDigit, Math.max(0, nextDigit)));
+      })
+      .join('');
+  }, [targetText, progress]);
+
+  useEffect(() => {
+    if (!isInView) {
+      return;
+    }
+    const durationMs = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const elapsed = now - start;
+      const nextProgress = Math.min(1, elapsed / durationMs);
+      setProgress(nextProgress);
+      if (nextProgress < 1) {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+  }, [isInView, targetText]);
+
+  return (
+    <motion.span
+      ref={ref}
+      className={className}
+      initial={{ y: 12, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : undefined}
+      transition={{ duration: 0.55, ease: 'easeInOut' }}
+    >
+      {animatedText}
+    </motion.span>
+  );
+};
 
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -881,15 +1001,21 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatFinanceAmount(totalRevenue)}</p>
+                <p className="mt-1 text-xl font-semibold text-text">
+                  <AnimatedCurrencyValue value={convertFinanceAmount(totalRevenue)} currency={currency} />
+                </p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
-                <p className="mt-1 text-xl font-semibold text-text">{totalInvoicesInRange}</p>
+                <p className="mt-1 text-xl font-semibold text-text">
+                  <AnimatedIntegerValue value={totalInvoicesInRange} />
+                </p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Net Payroll</p>
-                <p className="mt-1 text-xl font-semibold text-text">{formatFinanceAmount(payrollTotals.net_pay)}</p>
+                <p className="mt-1 text-xl font-semibold text-text">
+                  <AnimatedCurrencyValue value={convertFinanceAmount(payrollTotals.net_pay)} currency={currency} />
+                </p>
               </div>
             </div>
           </div>
@@ -1035,39 +1161,55 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <p className="mt-1 text-sm text-muted">Payroll and staffing metrics for the selected date range.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/finance/expenses')}>
-                  Open Expenses
-                </LiquidButton>
-                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/finance/payroll')}>
-                  Open Payroll
-                </LiquidButton>
-                <LiquidButton type="button" tone="tertiary" onClick={() => navigate('/admin/staff/scheduling')}>
-                  Open Schedule
-                </LiquidButton>
-                <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={operationsLoading}>
-                  {operationsLoading ? 'Refreshing...' : 'Refresh Snapshot'}
-                </LiquidButton>
-                <LiquidButton type="button" tone="tertiary" onClick={() => void handleDownloadFinanceReport()}>
-                  Download Finance Excel
-                </LiquidButton>
+                <button
+                  type="button"
+                  aria-label={operationsLoading ? 'Refreshing snapshot' : 'Refresh snapshot'}
+                  title={operationsLoading ? 'Refreshing snapshot' : 'Refresh snapshot'}
+                  onClick={() => void loadDashboardData()}
+                  disabled={operationsLoading}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text disabled:opacity-60"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Download finance excel"
+                  title="Download finance excel"
+                  onClick={() => void handleDownloadFinanceReport()}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                    <path d="M12 3v12M8 11l4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Payroll</p>
-                <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(payrollTotals.gross_pay)}</p>
+                <p className="mt-1 text-base font-semibold text-text">
+                  <AnimatedCurrencyValue value={convertFinanceAmount(payrollTotals.gross_pay)} currency={currency} />
+                </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
-                <p className="mt-1 text-base font-semibold text-text">{payrollTotals.employee_count}</p>
+                <p className="mt-1 text-base font-semibold text-text">
+                  <AnimatedIntegerValue value={payrollTotals.employee_count} />
+                </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll Periods</p>
-                <p className="mt-1 text-base font-semibold text-text">{payrollPeriodCount}</p>
+                <p className="mt-1 text-base font-semibold text-text">
+                  <AnimatedIntegerValue value={payrollPeriodCount} />
+                </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Scheduled Shifts</p>
-                <p className="mt-1 text-base font-semibold text-text">{scheduledShiftsCount}</p>
+                <p className="mt-1 text-base font-semibold text-text">
+                  <AnimatedIntegerValue value={scheduledShiftsCount} />
+                </p>
               </div>
             </div>
           </GlassCard>
@@ -1081,33 +1223,39 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Revenue</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(pnlSummary.revenue)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.revenue)} currency={currency} />
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">COGS</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(pnlSummary.cogs)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.cogs)} currency={currency} />
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Profit</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatFinanceAmount(pnlSummary.gross_profit)}
+                    <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.gross_profit)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Operating Expenses</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatFinanceAmount(pnlSummary.operating_expenses)}
+                    <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.operating_expenses)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatFinanceAmount(chartMetrics.payroll.reduce((sum, value) => sum + value, 0))}
+                    <AnimatedCurrencyValue value={convertFinanceAmount(chartMetrics.payroll.reduce((sum, val) => sum + val, 0))} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3 sm:col-span-2">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Profit</p>
-                  <p className="mt-1 text-lg font-semibold text-text">{formatFinanceAmount(pnlSummary.net_profit)}</p>
+                  <p className="mt-1 text-lg font-semibold text-text">
+                    <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.net_profit)} currency={currency} />
+                  </p>
                 </div>
               </div>
             </GlassCard>
@@ -1121,21 +1269,25 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Taxable Sales</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatFinanceAmount(taxSummary.taxable_sales)}
+                    <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.taxable_sales)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Output VAT</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(taxSummary.output_vat)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.output_vat)} currency={currency} />
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Input VAT</p>
-                  <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(taxSummary.input_vat)}</p>
+                  <p className="mt-1 text-base font-semibold text-text">
+                    <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.input_vat)} currency={currency} />
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net VAT Payable</p>
                   <p className="mt-1 text-base font-semibold text-text">
-                    {formatFinanceAmount(taxSummary.net_vat_payable)}
+                    <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.net_vat_payable)} currency={currency} />
                   </p>
                 </div>
               </div>
@@ -1399,7 +1551,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 Financial performance reflects revenue (`draft`, `issued`, `paid`) vs costs (COGS + operating + payroll) to show true profit/loss.
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">
-                Total Bars: {chartLabels.length} • Invoices Counted: {totalInvoicesInRange}
+                Total Bars: <AnimatedIntegerValue value={chartLabels.length} className="inline-block" /> • Invoices Counted: <AnimatedIntegerValue value={totalInvoicesInRange} className="inline-block" />
               </p>
             </div>
           </GlassCard>

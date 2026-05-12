@@ -24,7 +24,10 @@ export const getCurrencySymbol = (currency?: string | null): string => {
 
 export const formatMoney = (amount: number): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
-  return safeAmount.toFixed(2);
+  return safeAmount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 export const formatPriceWithCurrency = (amount: number, currency?: string | null): string => {

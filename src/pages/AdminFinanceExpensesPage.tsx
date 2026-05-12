@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useInView } from 'framer-motion';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -119,6 +120,109 @@ const expenseSortNewestFirst = (records: FinanceExpense[]): FinanceExpense[] => 
   })
 );
 
+const AnimatedCurrencyValue: React.FC<{
+  value: number;
+  currency: string;
+  className?: string;
+}> = ({ value, currency, className }) => {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
+  const [progress, setProgress] = useState(0);
+
+  const targetText = useMemo(
+    () => formatPriceWithCurrency(Number.isFinite(value) ? value : 0, currency),
+    [value, currency]
+  );
+
+  const animatedText = useMemo(() => {
+    const eased = 0.5 - (Math.cos(Math.PI * progress) / 2);
+    return targetText
+      .split('')
+      .map((char) => {
+        if (!/[0-9]/.test(char)) return char;
+        const targetDigit = Number(char);
+        const nextDigit = Math.floor(targetDigit * eased);
+        return String(Math.min(targetDigit, Math.max(0, nextDigit)));
+      })
+      .join('');
+  }, [targetText, progress]);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const durationMs = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const nextProgress = Math.min(1, (now - start) / durationMs);
+      setProgress(nextProgress);
+      if (nextProgress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [isInView, targetText]);
+
+  return (
+    <motion.span
+      ref={ref}
+      className={className}
+      initial={{ y: value < 0 ? -16 : 16, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : undefined}
+      transition={{ duration: 0.55, ease: 'easeInOut' }}
+    >
+      {animatedText}
+    </motion.span>
+  );
+};
+
+const AnimatedIntegerValue: React.FC<{
+  value: number;
+  className?: string;
+}> = ({ value, className }) => {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
+  const [progress, setProgress] = useState(0);
+
+  const targetText = useMemo(
+    () => Math.max(0, Math.round(Number.isFinite(value) ? value : 0)).toLocaleString(),
+    [value]
+  );
+
+  const animatedText = useMemo(() => {
+    const eased = 0.5 - (Math.cos(Math.PI * progress) / 2);
+    return targetText
+      .split('')
+      .map((char) => {
+        if (!/[0-9]/.test(char)) return char;
+        const targetDigit = Number(char);
+        const nextDigit = Math.floor(targetDigit * eased);
+        return String(Math.min(targetDigit, Math.max(0, nextDigit)));
+      })
+      .join('');
+  }, [targetText, progress]);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const durationMs = 900;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const nextProgress = Math.min(1, (now - start) / durationMs);
+      setProgress(nextProgress);
+      if (nextProgress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [isInView, targetText]);
+
+  return (
+    <motion.span
+      ref={ref}
+      className={className}
+      initial={{ y: 12, opacity: 0 }}
+      animate={isInView ? { y: 0, opacity: 1 } : undefined}
+      transition={{ duration: 0.55, ease: 'easeInOut' }}
+    >
+      {animatedText}
+    </motion.span>
+  );
+};
+
 const AdminFinanceExpensesPage: React.FC = () => {
   const { user } = useAuth();
   const currency = user?.restaurant?.currency ?? 'USD';
@@ -171,6 +275,25 @@ const AdminFinanceExpensesPage: React.FC = () => {
     () => vendors.filter((vendor) => vendor.is_active),
     [vendors]
   );
+  const expenseTotals = useMemo(() => {
+    const paid = expenses.filter((expense) => expense.status === 'paid');
+    const approved = expenses.filter((expense) => expense.status === 'approved');
+    const draft = expenses.filter((expense) => expense.status === 'draft');
+    const voided = expenses.filter((expense) => expense.status === 'void');
+    const sum = (rows: FinanceExpense[]) => rows.reduce((acc, row) => acc + (row.total_cents ?? 0), 0) / 100;
+
+    return {
+      totalAmount: sum(expenses),
+      paidAmount: sum(paid),
+      approvedAmount: sum(approved),
+      draftAmount: sum(draft),
+      voidAmount: sum(voided),
+      paidCount: paid.length,
+      approvedCount: approved.length,
+      draftCount: draft.length,
+      voidCount: voided.length,
+    };
+  }, [expenses]);
 
   const loadReferenceData = useCallback(async () => {
     const [categoriesResponse, vendorsResponse] = await Promise.all([
@@ -439,36 +562,87 @@ const AdminFinanceExpensesPage: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadAll()} disabled={loading}>
-                {loading ? 'Refreshing...' : 'Refresh All'}
-              </LiquidButton>
-              <LiquidButton type="button" tone="tertiary" onClick={resetExpenseForm}>
-                New Expense
-              </LiquidButton>
+              <button
+                type="button"
+                aria-label={loading ? 'Refreshing all' : 'Refresh all'}
+                title={loading ? 'Refreshing all' : 'Refresh all'}
+                onClick={() => void loadAll()}
+                disabled={loading}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text disabled:opacity-60"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                  <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                aria-label="New expense"
+                title="New expense"
+                onClick={resetExpenseForm}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
           </div>
         </GlassCard>
+
+        <div className="grid gap-3 md:grid-cols-5">
+          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Expenses Total</p>
+            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.totalAmount} currency={currency} /></p>
+            <p className="text-xs text-muted"><AnimatedIntegerValue value={totalExpensesCount} /> records in range</p>
+          </div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Paid</p>
+            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.paidAmount} currency={currency} /></p>
+            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.paidCount} /> on this page</p>
+          </div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Approved</p>
+            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.approvedAmount} currency={currency} /></p>
+            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.approvedCount} /> on this page</p>
+          </div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Draft</p>
+            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.draftAmount} currency={currency} /></p>
+            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.draftCount} /> on this page</p>
+          </div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Void</p>
+            <p className="mt-1 text-base font-semibold text-text"><AnimatedCurrencyValue value={expenseTotals.voidAmount} currency={currency} /></p>
+            <p className="text-xs text-muted"><AnimatedIntegerValue value={expenseTotals.voidCount} /> on this page</p>
+          </div>
+        </div>
 
         <div className="grid gap-5 xl:grid-cols-3">
           <GlassCard>
             <h3 className="text-lg font-semibold text-text">Create Expense Category</h3>
             <form className="mt-4 space-y-3" onSubmit={handleCreateCategory}>
-              <input
-                type="text"
-                value={categoryCode}
-                onChange={(event) => setCategoryCode(event.target.value)}
-                placeholder="Code (e.g. utilities)"
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                required
-              />
-              <input
-                type="text"
-                value={categoryName}
-                onChange={(event) => setCategoryName(event.target.value)}
-                placeholder="Display Name"
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                required
-              />
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Code</span>
+                <input
+                  type="text"
+                  value={categoryCode}
+                  onChange={(event) => setCategoryCode(event.target.value)}
+                  placeholder="Code (e.g. utilities)"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Display Name</span>
+                <input
+                  type="text"
+                  value={categoryName}
+                  onChange={(event) => setCategoryName(event.target.value)}
+                  placeholder="Display Name"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  required
+                />
+              </label>
               <label className="inline-flex items-center gap-2 text-sm text-text">
                 <input
                   type="checkbox"
@@ -486,42 +660,57 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <GlassCard className="xl:col-span-2">
             <h3 className="text-lg font-semibold text-text">Create Vendor</h3>
             <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleCreateVendor}>
-              <input
-                type="text"
-                value={vendorName}
-                onChange={(event) => setVendorName(event.target.value)}
-                placeholder="Vendor Name"
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                required
-              />
-              <input
-                type="text"
-                value={vendorContactName}
-                onChange={(event) => setVendorContactName(event.target.value)}
-                placeholder="Contact Name"
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
-              <input
-                type="text"
-                value={vendorPhone}
-                onChange={(event) => setVendorPhone(event.target.value)}
-                placeholder="Phone"
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
-              <input
-                type="email"
-                value={vendorEmail}
-                onChange={(event) => setVendorEmail(event.target.value)}
-                placeholder="Email"
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
-              <input
-                type="text"
-                value={vendorTaxNumber}
-                onChange={(event) => setVendorTaxNumber(event.target.value)}
-                placeholder="Tax Number"
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor Name</span>
+                <input
+                  type="text"
+                  value={vendorName}
+                  onChange={(event) => setVendorName(event.target.value)}
+                  placeholder="Vendor Name"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Contact Name</span>
+                <input
+                  type="text"
+                  value={vendorContactName}
+                  onChange={(event) => setVendorContactName(event.target.value)}
+                  placeholder="Contact Name"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Phone</span>
+                <input
+                  type="text"
+                  value={vendorPhone}
+                  onChange={(event) => setVendorPhone(event.target.value)}
+                  placeholder="Phone"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Email</span>
+                <input
+                  type="email"
+                  value={vendorEmail}
+                  onChange={(event) => setVendorEmail(event.target.value)}
+                  placeholder="Email"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Tax Number</span>
+                <input
+                  type="text"
+                  value={vendorTaxNumber}
+                  onChange={(event) => setVendorTaxNumber(event.target.value)}
+                  placeholder="Tax Number"
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
               <label className="inline-flex items-center gap-2 text-sm text-text">
                 <input
                   type="checkbox"
@@ -530,13 +719,16 @@ const AdminFinanceExpensesPage: React.FC = () => {
                 />
                 Active
               </label>
-              <textarea
-                value={vendorNotes}
-                onChange={(event) => setVendorNotes(event.target.value)}
-                placeholder="Notes"
-                rows={2}
-                className="rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55 md:col-span-2"
-              />
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Notes</span>
+                <textarea
+                  value={vendorNotes}
+                  onChange={(event) => setVendorNotes(event.target.value)}
+                  placeholder="Notes"
+                  rows={2}
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
               <LiquidButton type="submit" className="md:col-span-2" disabled={savingVendor}>
                 {savingVendor ? 'Saving...' : 'Create Vendor'}
               </LiquidButton>
@@ -544,134 +736,173 @@ const AdminFinanceExpensesPage: React.FC = () => {
           </GlassCard>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-3">
-          <GlassCard className="xl:col-span-1">
+        <div className="space-y-5">
+          <GlassCard>
             <h3 className="text-lg font-semibold text-text">{editingExpenseId ? `Edit Expense #${editingExpenseId}` : 'Create Expense'}</h3>
             <form className="mt-4 space-y-3" onSubmit={handleSaveExpense}>
-              <select
-                value={expenseDraft.expense_category_id}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))}
-                className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-                required
-              >
-                <option value="">Select Category</option>
-                {activeCategories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name} ({category.code})
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={expenseDraft.vendor_id}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))}
-                className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                <option value="">No Vendor</option>
-                {activeVendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>
-                    {vendor.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="date"
-                value={expenseDraft.expense_date}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))}
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                required
-              />
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={expenseDraft.amount}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))}
-                  placeholder="Amount"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                  required
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={expenseDraft.tax_amount}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))}
-                  placeholder="Tax Amount"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  value={expenseDraft.currency}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))}
-                  maxLength={3}
-                  placeholder="USD"
-                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text uppercase outline-none focus:border-gold/55"
-                  required
-                />
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Category</span>
                 <select
-                  value={expenseDraft.status}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus }))}
+                  value={expenseDraft.expense_category_id}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))}
                   className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                  required
                 >
-                  {EXPENSE_STATUSES.map((status) => (
-                    <option key={status} value={status}>{status}</option>
+                  <option value="">Select Category</option>
+                  {activeCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name} ({category.code})
+                    </option>
                   ))}
                 </select>
-              </div>
+              </label>
 
-              <select
-                value={expenseDraft.payment_method}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))}
-                className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                <option value="">No Payment Method</option>
-                {PAYMENT_METHODS.map((method) => (
-                  <option key={method} value={method}>{method}</option>
-                ))}
-              </select>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor</span>
+                <select
+                  value={expenseDraft.vendor_id}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))}
+                  className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                >
+                  <option value="">No Vendor</option>
+                  {activeVendors.map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>
+                      {vendor.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <input
-                type="text"
-                value={expenseDraft.reference_no}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))}
-                placeholder="Reference Number"
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
-              <input
-                type="text"
-                value={expenseDraft.description}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))}
-                placeholder="Description"
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
-              <textarea
-                value={expenseDraft.notes}
-                onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Notes"
-                rows={2}
-                className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
-              />
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Expense Date</span>
+                <input
+                  type="date"
+                  value={expenseDraft.expense_date}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))}
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  required
+                />
+              </label>
 
               <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Amount</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={expenseDraft.amount}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))}
+                    placeholder="Amount"
+                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                    required
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Tax Amount</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={expenseDraft.tax_amount}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))}
+                    placeholder="Tax Amount"
+                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Currency</span>
+                  <input
+                    type="text"
+                    value={expenseDraft.currency}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))}
+                    maxLength={3}
+                    placeholder="USD"
+                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text uppercase outline-none focus:border-gold/55"
+                    required
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Status</span>
+                  <select
+                    value={expenseDraft.status}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus }))}
+                    className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                  >
+                    {EXPENSE_STATUSES.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Payment Method</span>
+                <select
+                  value={expenseDraft.payment_method}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))}
+                  className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                >
+                  <option value="">No Payment Method</option>
+                  {PAYMENT_METHODS.map((method) => (
+                    <option key={method} value={method}>{method}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Reference Number</span>
                 <input
-                  type="date"
-                  value={expenseDraft.due_date}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))}
+                  type="text"
+                  value={expenseDraft.reference_no}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))}
+                  placeholder="Reference Number"
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Description</span>
                 <input
-                  type="date"
-                  value={expenseDraft.paid_at}
-                  onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))}
+                  type="text"
+                  value={expenseDraft.description}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))}
+                  placeholder="Description"
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Notes</span>
+                <textarea
+                  value={expenseDraft.notes}
+                  onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))}
+                  placeholder="Notes"
+                  rows={2}
+                  className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                />
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Due Date</span>
+                  <input
+                    type="date"
+                    value={expenseDraft.due_date}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))}
+                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Paid At</span>
+                  <input
+                    type="date"
+                    value={expenseDraft.paid_at}
+                    onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))}
+                    className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
+                  />
+                </label>
               </div>
 
               <div className="flex gap-2">
@@ -687,9 +918,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
             </form>
           </GlassCard>
 
-          <GlassCard className="xl:col-span-2">
-            <div className="mb-4 grid gap-3 md:grid-cols-5 md:items-end">
-              <label className="block">
+          <GlassCard>
+            <div className="mb-4 rounded-2xl border border-stroke/80 bg-bg1/35 p-3">
+              <div className="grid gap-3">
+                <div className="grid gap-3 md:grid-cols-12 md:items-end">
+                  <label className="block md:col-span-4">
                 <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Date From</span>
                 <input
                   type="date"
@@ -701,7 +934,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
               </label>
-              <label className="block">
+                  <label className="block md:col-span-4">
                 <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Date To</span>
                 <input
                   type="date"
@@ -713,76 +946,106 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   className="w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm text-text outline-none focus:border-gold/55"
                 />
               </label>
-              <select
-                value={statusFilter}
-                onChange={(event) => {
-                  setExpensePage(1);
-                  setStatusFilter(event.target.value as FinanceExpenseStatus | '');
-                }}
-                className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                <option value="">All statuses</option>
-                {EXPENSE_STATUSES.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-              <select
-                value={categoryFilter}
-                onChange={(event) => {
-                  setExpensePage(1);
-                  setCategoryFilter(event.target.value);
-                }}
-                className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                <option value="">All categories</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-              </select>
-              <select
-                value={vendorFilter}
-                onChange={(event) => {
-                  setExpensePage(1);
-                  setVendorFilter(event.target.value);
-                }}
-                className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                <option value="">All vendors</option>
-                {vendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
-                ))}
-              </select>
-              <LiquidButton
-                type="button"
-                tone="tertiary"
-                onClick={() => {
-                  setExpensePage(1);
-                  setDateFrom('');
-                  setDateTo('');
-                  setStatusFilter('');
-                  setCategoryFilter('');
-                  setVendorFilter('');
-                }}
-              >
-                Clear
-              </LiquidButton>
-              <select
-                value={String(expensePerPage)}
-                onChange={(event) => {
-                  const parsed = Number(event.target.value);
-                  const nextPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
-                  setExpensePage(1);
-                  setExpensePerPage(nextPerPage);
-                }}
-                className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
-              >
-                {[25, 50, 100].map((size) => (
-                  <option key={size} value={size}>{size} / page</option>
-                ))}
-              </select>
-              <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()}>
-                Refresh Report
-              </LiquidButton>
+                  <div className="flex items-end justify-start gap-2 md:col-span-4 md:justify-end">
+                <button
+                  type="button"
+                  aria-label="Clear filters"
+                  title="Clear filters"
+                  onClick={() => {
+                    setExpensePage(1);
+                    setDateFrom('');
+                    setDateTo('');
+                    setStatusFilter('');
+                    setCategoryFilter('');
+                    setVendorFilter('');
+                  }}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                    <path d="M5 5l14 14M19 5L5 19" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Refresh report"
+                  title="Refresh report"
+                  onClick={() => void loadUnlinkedRestocks()}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v6h-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-8 md:items-end">
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Status</span>
+                    <select
+                      value={statusFilter}
+                      onChange={(event) => {
+                        setExpensePage(1);
+                        setStatusFilter(event.target.value as FinanceExpenseStatus | '');
+                      }}
+                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                    >
+                      <option value="">All statuses</option>
+                      {EXPENSE_STATUSES.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Category</span>
+                    <select
+                      value={categoryFilter}
+                      onChange={(event) => {
+                        setExpensePage(1);
+                        setCategoryFilter(event.target.value);
+                      }}
+                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                    >
+                      <option value="">All categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Vendor</span>
+                    <select
+                      value={vendorFilter}
+                      onChange={(event) => {
+                        setExpensePage(1);
+                        setVendorFilter(event.target.value);
+                      }}
+                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                    >
+                      <option value="">All vendors</option>
+                      {vendors.map((vendor) => (
+                        <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block md:col-span-2">
+                    <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-gold2/85">Rows</span>
+                    <select
+                      value={String(expensePerPage)}
+                      onChange={(event) => {
+                        const parsed = Number(event.target.value);
+                        const nextPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
+                        setExpensePage(1);
+                        setExpensePerPage(nextPerPage);
+                      }}
+                      className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
+                    >
+                      {[25, 50, 100].map((size) => (
+                        <option key={size} value={size}>{size} / page</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-stroke">
@@ -842,9 +1105,17 @@ const AdminFinanceExpensesPage: React.FC = () => {
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <LiquidButton type="button" tone="tertiary" onClick={() => startEditExpense(expense)}>
-                          Edit
-                        </LiquidButton>
+                        <button
+                          type="button"
+                          aria-label={`Edit expense ${expense.id}`}
+                          title={`Edit expense ${expense.id}`}
+                          onClick={() => startEditExpense(expense)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
+                            <path d="M4 20h4l10-10a2 2 0 0 0-4-4L4 16v4zM13 7l4 4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
                       </td>
                     </tr>
                   ))}
