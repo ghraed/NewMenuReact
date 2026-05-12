@@ -640,8 +640,8 @@ const ChatBot: React.FC = () => {
     const hydrateDishes = async () => {
       const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
       if (!onGuestMenuRoute) {
-        setIsAiChatbotEnabled(true);
-        setChatDishes([]);
+        setIsAiChatbotEnabled((current) => (current === true ? current : true));
+        setChatDishes((current) => (current.length === 0 ? current : []));
         return;
       }
 
@@ -663,11 +663,12 @@ const ChatBot: React.FC = () => {
           return;
         }
 
-        if (featureFlags && typeof featureFlags.ai_chatbot === 'boolean') {
-          setIsAiChatbotEnabled(featureFlags.ai_chatbot);
-        } else if (isAiChatbotEnabled === null) {
-          setIsAiChatbotEnabled(true);
-        }
+        setIsAiChatbotEnabled((current) => {
+          if (featureFlags && typeof featureFlags.ai_chatbot === 'boolean') {
+            return featureFlags.ai_chatbot;
+          }
+          return current === null ? true : current;
+        });
 
         const dedupe = new Map<string, ChatDishLink>();
 
@@ -692,13 +693,31 @@ const ChatBot: React.FC = () => {
         });
 
         if (isOpen) {
-          setChatDishes(Array.from(dedupe.values()));
+          const nextDishes = Array.from(dedupe.values());
+          setChatDishes((current) => {
+            if (current.length !== nextDishes.length) {
+              return nextDishes;
+            }
+            for (let index = 0; index < current.length; index += 1) {
+              const left = current[index];
+              const right = nextDishes[index];
+              if (
+                left.id !== right.id
+                || left.name !== right.name
+                || left.normalized !== right.normalized
+                || left.imageUrl !== right.imageUrl
+              ) {
+                return nextDishes;
+              }
+            }
+            return current;
+          });
         }
       } catch {
         if (!cancelled) {
           setIsAiChatbotEnabled(false);
           if (isOpen) {
-            setChatDishes([]);
+            setChatDishes((current) => (current.length === 0 ? current : []));
           }
         }
       }
@@ -715,7 +734,6 @@ const ChatBot: React.FC = () => {
     isOpen,
     location.pathname,
     restaurant?.feature_flags,
-    isAiChatbotEnabled,
   ]);
 
   const pushMessage = (role: Role, content: string): string => {
