@@ -58,12 +58,25 @@ const NavIcon: React.FC<{ name: string }> = ({ name }) => {
   );
 };
 
+const SunIcon = () => (
+  <svg viewBox="0 0 24 24" className={navIconClass} strokeWidth={1.8} aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.75v2.5M12 18.75v2.5M4.75 12h-2.5M21.75 12h-2.5M5.88 5.88 4.1 4.1M19.9 19.9l-1.78-1.78M18.12 5.88 19.9 4.1M4.1 19.9l1.78-1.78" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const MoonIcon = () => (
+  <svg viewBox="0 0 24 24" className={navIconClass} strokeWidth={1.8} aria-hidden="true">
+    <path d="M20.3 14.1A8.7 8.7 0 1 1 9.9 3.7a7.1 7.1 0 0 0 10.4 10.4Z" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useAppTheme();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const lastPathnameRef = useRef(location.pathname);
 
@@ -118,6 +131,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const visibleNavItems = navItems.filter((item) => (
     areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures)
   ));
+  const activeLanguage = (i18n.resolvedLanguage || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
   useEffect(() => {
     if (location.pathname !== lastPathnameRef.current) {
@@ -129,6 +143,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const handleLogout = async () => {
     await logout();
     navigate('/admin/login', { replace: true });
+  };
+
+  const toggleLanguage = () => {
+    const nextLanguage = activeLanguage === 'en' ? 'ar' : 'en';
+    void i18n.changeLanguage(nextLanguage);
   };
 
   return (
@@ -169,6 +188,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               <a href="/" target="_blank" rel="noreferrer">
                 <GlassIconButton aria-label={t('admin.guestView')}>👁️</GlassIconButton>
               </a>
+              <button
+                type="button"
+                aria-label={`Language: ${activeLanguage.toUpperCase()}`}
+                onClick={toggleLanguage}
+                className="inline-flex h-11 min-w-[3.2rem] items-center justify-center rounded-full border border-stroke bg-bg1/70 px-3 text-xs font-semibold tracking-[0.12em] text-gold2 shadow-lux2 transition hover:border-gold/35 hover:text-text"
+              >
+                {activeLanguage === 'en' ? 'EN' : 'AR'}
+              </button>
               <LiquidButton tone="tertiary" onClick={handleLogout} className="px-4 py-2 text-sm">
                 {t('admin.logout')}
               </LiquidButton>
@@ -177,36 +204,55 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         </GlassBoard>
 
         <div className="sticky top-4 z-[70] mb-6 hidden lg:block">
-          <GlassBoard className="p-3">
+          <div className="flex items-stretch gap-3">
+            <GlassBoard className="min-w-0 flex-1 p-3">
             {/* <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
                 {t('admin.navigation')}
               </div> */}
-            <ul className="flex min-w-0 flex-nowrap items-center justify-start gap-2">
-              {visibleNavItems.map((item) => {
-                const isActive = location.pathname === item.path;
+              <div className="max-w-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
+                <ul className="flex w-max min-w-max flex-nowrap items-center justify-start gap-2 whitespace-nowrap pr-1">
+                  {visibleNavItems.map((item) => {
+                    const isActive = location.pathname === item.path;
 
-                return (
-                  <li key={item.path} className="relative shrink-0">
-                    <Link
-                      to={item.path}
-                      aria-label={item.label}
-                      className={`group relative flex h-11 w-11 items-center justify-center rounded-full text-base transition ${isActive
-                        ? 'bg-gold/40 text-bg0 shadow-[0_12px_28px_rgba(215,180,106,0.3)]'
-                        : 'border border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
-                        }`}
-                    >
-                      <span className="inline-flex items-center justify-center text-gold">
-                        <NavIcon name={item.icon} />
-                      </span>
-                      <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-                        {item.label}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </GlassBoard>
+                    return (
+                      <li key={item.path} className="relative shrink-0">
+                        <Link
+                          to={item.path}
+                          aria-label={item.label}
+                          className={`group relative flex h-11 w-11 items-center justify-center rounded-full text-base transition ${isActive
+                            ? 'bg-gold/40 text-bg0 shadow-[0_12px_28px_rgba(215,180,106,0.3)]'
+                            : 'border border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
+                            }`}
+                        >
+                          <span className="inline-flex items-center justify-center text-gold">
+                            <NavIcon name={item.icon} />
+                          </span>
+                          <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                            {item.label}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </GlassBoard>
+            <GlassBoard className="shrink-0 p-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+                className="group relative flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted transition hover:border-gold/35 hover:text-text"
+              >
+                <span className="inline-flex items-center justify-center text-gold">
+                  {theme === 'light' ? <SunIcon /> : <MoonIcon />}
+                </span>
+                <span className="pointer-events-none absolute right-0 top-full z-30 mt-2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                  Theme
+                </span>
+              </button>
+            </GlassBoard>
+          </div>
         </div>
 
         <AnimatePresence>

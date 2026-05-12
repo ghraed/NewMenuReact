@@ -230,6 +230,7 @@ export interface InventoryIngredient {
 export interface InventoryStockMovementRecord {
   id: number;
   ingredient_name: string;
+  unit?: string | null;
   movement_type: string;
   quantity: string;
   quantity_before: string | null;

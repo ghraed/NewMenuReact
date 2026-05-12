@@ -178,11 +178,11 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
       ) : null}
 
       {showLanguageToggle ? (
-        <div className={routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
+        <div className={isAdminScopedRoute ? 'hidden' : routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
           <LanguageToggle />
         </div>
       ) : null}
-      <div className={routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
+      <div className={isAdminScopedRoute ? 'hidden' : routeHasMobileHamburgerPopup ? 'hidden md:block' : undefined}>
         <ThemeToggle theme={theme} onToggle={handleThemeToggle} />
       </div>
 
