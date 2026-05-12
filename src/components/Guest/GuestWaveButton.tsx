@@ -43,6 +43,7 @@ const GuestWaveButton: React.FC = () => {
     enabled: Boolean(activeTableId),
     ttlMs: 10_000,
   });
+  const guestMenuResourceKey = guestMenuResource.key;
 
   const actionWrapperClassName = useMemo(() => (
     hasCartShortcut
@@ -127,7 +128,7 @@ const GuestWaveButton: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTableId, draft.guestAccessVerified, guestMenuResource, guestMenuResource.data?.protected_actions]);
+  }, [activeTableId, draft.guestAccessVerified, guestMenuResourceKey, guestMenuResource.data?.protected_actions]);
 
   const handleProtectedAction = async (action: 'waiter' | 'bill') => {
     if ((action === 'waiter' && !canCallWaiter) || (action === 'bill' && !canRequestBill)) {

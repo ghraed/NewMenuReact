@@ -54,6 +54,7 @@ const OrderReviewPage: React.FC = () => {
     enabled: Boolean(activeTableId) && !submittedOrder,
     ttlMs: 10_000,
   });
+  const guestMenuResourceKey = guestMenuResource.key;
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug;
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
   const restaurantLogoUrl = guestMenuResource.data?.restaurant?.logo_url ?? restaurant?.logo_url ?? null;
@@ -112,7 +113,7 @@ const OrderReviewPage: React.FC = () => {
       .finally(() => {
         setSessionLoading(false);
       });
-  }, [activeTableId, submittedOrder, guestMenuResource, setGuestContext, updateDraft, clearGuestAccess, t]);
+  }, [activeTableId, submittedOrder, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
