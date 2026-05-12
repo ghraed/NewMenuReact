@@ -126,6 +126,18 @@ const convertQuantityByUnit = (value: number, unit?: string | null): { value: nu
   return { value, unit: unit || '-' };
 };
 
+const isPositiveQuantity = (value: number | string | null | undefined): boolean => {
+  const parsed = parseQuantityNumeric(value);
+  return parsed !== null && parsed >= 0;
+};
+
+const movementBadgeTone = (movementType: string): 'restock' | 'consumption' | 'neutral' => {
+  const normalized = (movementType || '').toLowerCase();
+  if (normalized.includes('restock') || normalized.includes('in')) return 'restock';
+  if (normalized.includes('consumption') || normalized.includes('order') || normalized.includes('out')) return 'consumption';
+  return 'neutral';
+};
+
 const AdminStockHistoryPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -337,12 +349,26 @@ const AdminStockHistoryPage: React.FC = () => {
 
   return (
     <DashboardLayout title={t('stockHistory.pageTitle')}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <section className="rounded-[34px] border border-gold/20 bg-bg1/90 p-5 shadow-[0_24px_45px_-32px_rgba(20,18,12,0.35)] sm:p-8">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('stockHistory.inventoryEyebrow')}</p>
-          <h2 className="mt-2 text-2xl font-semibold text-text">{t('stockHistory.heading')}</h2>
-          <p className="mt-2 text-sm leading-6 text-muted">{t('stockHistory.description')}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-gold2/80">{t('stockHistory.inventoryEyebrow')}</p>
+          <div className="mt-1.5 flex items-center gap-3">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gold/25 bg-gold/85 text-xl text-white shadow-sm">▣</span>
+            <h2 className="text-4xl font-semibold leading-none text-text">{t('stockHistory.heading')}</h2>
+          </div>
+          <span className="mt-4 block h-[2px] w-20 rounded-full bg-gold/30" />
         </div>
+        <p className="pt-3 text-lg font-medium leading-none text-text/80">
+          {t('stockHistory.pagination.summary', {
+            from: pagination.from ?? 0,
+            to: pagination.to ?? 0,
+            total: pagination.total,
+          })}
+        </p>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
           <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
           <GlassSelect
@@ -439,16 +465,9 @@ const AdminStockHistoryPage: React.FC = () => {
         </div>
       </GlassCard>
 
-      <GlassCard className="p-5 sm:p-6">
+      <GlassCard className="border-gold/20 bg-bg1/70 p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-text">{t('stockHistory.tableTitle')}</h3>
-          <p className="text-sm text-muted">
-            {t('stockHistory.pagination.summary', {
-              from: pagination.from ?? 0,
-              to: pagination.to ?? 0,
-              total: pagination.total,
-            })}
-          </p>
+          <h3 className="text-xl font-semibold text-[#2f2a20]">{t('stockHistory.tableTitle')}</h3>
         </div>
 
         {loading ? (
@@ -457,61 +476,99 @@ const AdminStockHistoryPage: React.FC = () => {
           <div className="py-12 text-center text-muted">{t('stockHistory.empty')}</div>
         ) : (
           <div className="mt-5 space-y-3">
-            {records.map((record) => (
-              <article key={record.id} className="rounded-[24px] border border-white/12 bg-white/6 p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
-                  <p className="text-sm font-semibold text-text">
-                    Movement #{formatNumericValue(record.id)}
-                  </p>
-                  <span className="rounded-full border border-gold/35 bg-gold/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-gold2">
-                    {t(`stockHistory.movementTypes.${record.movement_type}`)}
-                  </span>
-                </div>
+            {records.map((record) => {
+              const movementTone = movementBadgeTone(record.movement_type);
+              const movementBadgeClasses = movementTone === 'restock'
+                ? 'border-[#b9d1b5] bg-[#edf6eb] text-[#4a6a45]'
+                : movementTone === 'consumption'
+                  ? 'border-[#e2c3c3] bg-[#fbefef] text-[#8d4d4d]'
+                  : 'border-[#d9d1c3] bg-[#f6f1e8] text-[#6d6558]';
+              const movementIcon = movementTone === 'restock' ? '↑' : movementTone === 'consumption' ? '↓' : '•';
+              const qtyPositive = isPositiveQuantity(record.quantity);
 
-                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.ingredientName')}</p>
-                    <p className="mt-1 text-sm text-text">{getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage)}</p>
+              return (
+                <article key={record.id} className="rounded-[26px] border border-stroke bg-bg1/85 p-0 shadow-[0_10px_25px_-24px_rgba(20,18,12,0.45)]">
+                  <div className="grid gap-0 lg:grid-cols-[1fr_1fr_320px]">
+                    <div className="flex gap-5 p-6 lg:border-r lg:border-stroke">
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex h-[82px] w-[82px] items-center justify-center rounded-full border border-gold/15 bg-gold/5 text-2xl font-semibold text-gold2">
+                          {getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage).slice(0, 1).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.ingredientName')}</p>
+                          <p className="text-3xl font-semibold leading-tight text-text">{getIngredientDisplayName({ name: record.ingredient_name }, i18n.resolvedLanguage)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityBefore')}</p>
+                          <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatQuantityValue(record.quantity_before, resolveRecordUnit(record))}</p>
+                        </div>
+                        <div>
+                          <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceId')}</p>
+                          <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatNumericValue(record.reference_id)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 p-6 lg:border-r lg:border-stroke">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">Movement Type</p>
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-lg font-semibold leading-none ${movementBadgeClasses}`}>
+                            <span>{movementIcon}</span>
+                            {t(`stockHistory.movementTypes.${record.movement_type}`)}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantity')}</p>
+                        <div className="mt-1">
+                          <span className={`inline-flex items-center rounded-xl border px-3 py-1.5 text-2xl font-semibold leading-none ${
+                            qtyPositive
+                              ? 'border-[#b9d1b5] bg-[#edf6eb] text-[#4a6a45]'
+                              : 'border-[#e2c3c3] bg-[#fbefef] text-[#8d4d4d]'
+                          }`}>
+                            {formatQuantityValue(record.quantity, resolveRecordUnit(record))}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">Linked Expense</p>
+                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">
+                          {record.linked_expense_id
+                            ? `${formatNumericValue(record.linked_expense_id)} • ${linkedExpenseAmountById[record.linked_expense_id] !== undefined ? formatAmountInSelectedCurrency(linkedExpenseAmountById[record.linked_expense_id]) : '-'}`
+                            : '-'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 p-6">
+                      <div>
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceType')}</p>
+                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.reference_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityAfter')}</p>
+                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{formatQuantityValue(record.quantity_after, resolveRecordUnit(record))}</p>
+                      </div>
+                      <div>
+                        <p className="text-[13px] uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.createdAt')}</p>
+                        <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.created_at ? new Date(record.created_at).toLocaleString() : '-'}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.referenceType')}</p>
-                    <p className="mt-1 text-sm text-text">{record.reference_type}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.createdAt')}</p>
-                    <p className="mt-1 text-sm text-text">{record.created_at ? new Date(record.created_at).toLocaleString() : '-'}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.quantityBefore')}</p>
-                    <p className="mt-1 text-sm text-text">{formatQuantityValue(record.quantity_before, resolveRecordUnit(record))}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.quantity')}</p>
-                    <p className="mt-1 text-sm text-text">{formatQuantityValue(record.quantity, resolveRecordUnit(record))}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.quantityAfter')}</p>
-                    <p className="mt-1 text-sm text-text">{formatQuantityValue(record.quantity_after, resolveRecordUnit(record))}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.referenceId')}</p>
-                    <p className="mt-1 text-sm text-text">{formatNumericValue(record.reference_id)}</p>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">Linked Expense</p>
-                    <p className="mt-1 text-sm text-text">
-                      {record.linked_expense_id
-                        ? `${formatNumericValue(record.linked_expense_id)} • ${linkedExpenseAmountById[record.linked_expense_id] !== undefined ? formatAmountInSelectedCurrency(linkedExpenseAmountById[record.linked_expense_id]) : '-'}`
-                        : '-'}
+
+                  <div className="border-t border-dashed border-gold/20 px-6 py-3">
+                    <p className="inline-flex items-center gap-1 text-[13px] uppercase tracking-[0.14em] text-muted">
+                      <span>🗒</span>
+                      {t('stockHistory.columns.notes')}
                     </p>
+                    <p className="mt-0.5 text-2xl font-medium leading-tight text-text">{record.notes || '-'}</p>
                   </div>
-                  <div className="rounded-xl border border-white/10 bg-bg1/45 px-3 py-2 md:col-span-2 xl:col-span-1">
-                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted2">{t('stockHistory.columns.notes')}</p>
-                    <p className="mt-1 text-sm text-text">{record.notes || '-'}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
 
@@ -585,6 +642,7 @@ const AdminStockHistoryPage: React.FC = () => {
       </GlassCard>
 
       <GlassToast toast={toast} onClose={dismiss} />
+      </section>
     </DashboardLayout>
   );
 };
