@@ -243,7 +243,7 @@ const SuperAdminDashboardPage: React.FC = () => {
 
   return (
     <LiquidBackground>
-      <div className="mx-auto min-h-screen max-w-7xl px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto min-h-screen max-w-7xl pb-8 pt-6">
         <GlassBoard className="mb-6 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>

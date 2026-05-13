@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -227,9 +228,10 @@ const Drawer: React.FC<{
   children: React.ReactNode;
 }> = ({ open, title, subtitle, onClose, children }) => {
   if (!open) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50">
+  return createPortal(
+    <div className="fixed inset-0 z-[1200]">
       <button
         type="button"
         aria-label="Close drawer"
@@ -252,7 +254,8 @@ const Drawer: React.FC<{
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

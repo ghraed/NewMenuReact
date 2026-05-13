@@ -152,7 +152,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
   return (
     <LiquidBackground>
-      <div className="mx-auto max-w-7xl px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl pb-8 pt-6">
         <GlassBoard className="mb-6 p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -205,12 +205,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
         <div className="sticky top-4 z-[70] mb-6 hidden lg:block">
           <div className="flex items-stretch gap-3">
-            <GlassBoard className="min-w-0 flex-1 p-3">
+            <GlassBoard className="min-w-0 flex-1 overflow-visible p-3">
               {/* <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
                 {t('admin.navigation')}
               </div> */}
-              <div className="max-w-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
-                <ul className="flex w-max min-w-max flex-nowrap items-center justify-start gap-2 whitespace-nowrap pr-1">
+              <div className="max-w-full overflow-visible [scrollbar-width:thin]">
+                <ul className="flex w-full flex-nowrap items-center justify-start gap-2 whitespace-nowrap pr-1">
                   {visibleNavItems.map((item) => {
                     const isActive = location.pathname === item.path;
 
@@ -227,7 +227,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                           <span className="inline-flex items-center justify-center text-gold">
                             <NavIcon name={item.icon} />
                           </span>
-                          <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                          <span className="pointer-events-none absolute bottom-full left-1/2 z-[120] mb-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                             {item.label}
                           </span>
                         </Link>
@@ -247,7 +247,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <span className="inline-flex items-center justify-center text-gold">
                   {theme === 'light' ? <SunIcon /> : <MoonIcon />}
                 </span>
-                <span className="pointer-events-none absolute right-0 top-full z-30 mt-2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+                <span className="pointer-events-none absolute bottom-full right-0 z-[120] mb-2 whitespace-nowrap rounded-full border border-gold/25 bg-bg1/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gold2 opacity-0 shadow-lux2 transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
                   Theme
                 </span>
               </button>
