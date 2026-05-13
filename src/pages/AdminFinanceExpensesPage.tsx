@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   createExpense,
@@ -19,6 +19,7 @@ import {
   type UpdateExpensePayload,
 } from '../services/financeExpenseService';
 import type {
+  CurrencyCode,
   FinanceExpense,
   FinanceExpenseCategory,
   FinanceExpensePaymentMethod,
@@ -26,7 +27,7 @@ import type {
   FinanceUnlinkedRestockRecord,
   FinanceVendor,
 } from '../types';
-import { formatPriceWithCurrency } from '../utils/currency';
+import { CURRENCY_OPTIONS, formatPriceWithCurrency, normalizeCurrency } from '../utils/currency';
 
 type ExpenseTab = 'expenses' | 'vendors' | 'categories' | 'unlinked';
 type DrawerMode = 'expense' | 'vendor' | 'category' | null;
@@ -65,6 +66,7 @@ const centsFromInput = (value: string): number => {
 };
 
 const centsToInput = (value: number): string => (value / 100).toFixed(2);
+const toDateValue = (value: string): string => value.trim();
 
 interface ExpenseDraft {
   expense_category_id: string;
@@ -81,6 +83,34 @@ interface ExpenseDraft {
   due_date: string;
   paid_at: string;
 }
+
+const validateExpenseDates = (draft: ExpenseDraft): string | null => {
+  const expenseDate = toDateValue(draft.expense_date);
+  const dueDate = toDateValue(draft.due_date);
+  const paidAt = toDateValue(draft.paid_at);
+
+  if (!expenseDate) {
+    return 'Expense date is required.';
+  }
+
+  if (dueDate && dueDate < expenseDate) {
+    return 'Due date must be the same day or after expense date.';
+  }
+
+  if (draft.status === 'paid' && !paidAt) {
+    return 'Paid At date is required when status is paid.';
+  }
+
+  if (paidAt && paidAt < expenseDate) {
+    return 'Paid At date cannot be before expense date.';
+  }
+
+  if (draft.status !== 'paid' && paidAt) {
+    return 'Paid At should only be set when status is paid.';
+  }
+
+  return null;
+};
 
 const blankDraft = (currency: string): ExpenseDraft => ({
   expense_category_id: '',
@@ -307,9 +337,19 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const { toast, showToast, dismiss } = useGlassToast(4800);
+
+  const showFormError = useCallback((message: string) => {
+    setError(message);
+    showToast(message, 'secondary', 5200);
+  }, [showToast]);
 
   const activeCategories = useMemo(() => categories.filter((category) => category.is_active), [categories]);
   const activeVendors = useMemo(() => vendors.filter((vendor) => vendor.is_active), [vendors]);
+  const allowedCurrencies = useMemo(
+    () => CURRENCY_OPTIONS.map((option) => option.value),
+    []
+  );
 
   const expenseTotals = useMemo(() => {
     const paid = expenses.filter((expense) => expense.status === 'paid');
@@ -407,11 +447,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     try {
       await Promise.all([loadReferenceData(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
-      setError(getErrorMessage(loadError, 'Failed to load expense management data.'));
+      showFormError(getErrorMessage(loadError, 'Failed to load expense management data.'));
     } finally {
       setLoading(false);
     }
-  }, [loadReferenceData, loadUnlinkedRestocks]);
+  }, [loadReferenceData, loadUnlinkedRestocks, showFormError]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -419,11 +459,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     try {
       await Promise.all([loadReferenceData(), loadExpenses(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
-      setError(getErrorMessage(loadError, 'Failed to load expense management data.'));
+      showFormError(getErrorMessage(loadError, 'Failed to load expense management data.'));
     } finally {
       setLoading(false);
     }
-  }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks]);
+  }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks, showFormError]);
 
   useEffect(() => {
     void loadInitialData();
@@ -462,7 +502,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setSuccess('Expense category created.');
       setDrawerMode(null);
     } catch (createError: unknown) {
-      setError(getErrorMessage(createError, 'Failed to create expense category.'));
+      showFormError(getErrorMessage(createError, 'Failed to create expense category.'));
     } finally {
       setSavingCategory(false);
     }
@@ -495,7 +535,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setSuccess('Vendor created.');
       setDrawerMode(null);
     } catch (createError: unknown) {
-      setError(getErrorMessage(createError, 'Failed to create vendor.'));
+      showFormError(getErrorMessage(createError, 'Failed to create vendor.'));
     } finally {
       setSavingVendor(false);
     }
@@ -523,15 +563,24 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setSuccess(null);
 
     if (!expenseDraft.expense_category_id) {
-      setError('Please select an expense category.');
+      showFormError('Please select an expense category.');
       return;
     }
     if (!expenseDraft.expense_date) {
-      setError('Please select the expense date.');
+      showFormError('Please select the expense date.');
+      return;
+    }
+    if (!allowedCurrencies.includes(normalizeCurrency(expenseDraft.currency) as CurrencyCode)) {
+      showFormError('Please select a valid currency.');
       return;
     }
     if (!expenseDraft.amount || centsFromInput(expenseDraft.amount) <= 0) {
-      setError('Expense amount must be greater than 0.');
+      showFormError('Expense amount must be greater than 0.');
+      return;
+    }
+    const dateValidationError = validateExpenseDates(expenseDraft);
+    if (dateValidationError) {
+      showFormError(dateValidationError);
       return;
     }
 
@@ -553,7 +602,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setDrawerMode(null);
       void loadUnlinkedRestocks();
     } catch (saveError: unknown) {
-      setError(getErrorMessage(saveError, 'Failed to save expense.'));
+      showFormError(getErrorMessage(saveError, 'Failed to save expense.'));
     } finally {
       setSavingExpense(false);
     }
@@ -590,7 +639,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
       void loadUnlinkedRestocks();
     } catch (updateError: unknown) {
-      setError(getErrorMessage(updateError, 'Failed to update expense status.'));
+      showFormError(getErrorMessage(updateError, 'Failed to update expense status.'));
     } finally {
       setUpdatingStatusId(null);
     }
@@ -603,7 +652,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       const updated = await updateExpenseCategory(category.id, { is_active: !category.is_active });
       setCategories((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (updateError: unknown) {
-      setError(getErrorMessage(updateError, 'Failed to update category status.'));
+      showFormError(getErrorMessage(updateError, 'Failed to update category status.'));
     }
   };
 
@@ -614,7 +663,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       const updated = await updateVendor(vendor.id, { is_active: !vendor.is_active });
       setVendors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (updateError: unknown) {
-      setError(getErrorMessage(updateError, 'Failed to update vendor status.'));
+      showFormError(getErrorMessage(updateError, 'Failed to update vendor status.'));
     }
   };
 
@@ -925,12 +974,13 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor</span><select value={expenseDraft.vendor_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Vendor</option>{activeVendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</select></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Expense Date</span><input type="date" value={expenseDraft.expense_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
           <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Tax Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.tax_amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
-          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Currency</span><input type="text" maxLength={3} value={expenseDraft.currency} onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: event.target.value.toUpperCase() }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm uppercase" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span><select value={expenseDraft.status} onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Currency</span><select value={normalizeCurrency(expenseDraft.currency)} onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: normalizeCurrency(event.target.value) }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm uppercase" required>{CURRENCY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span><select value={expenseDraft.status} onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus, paid_at: event.target.value === 'paid' ? current.paid_at : '' }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Payment Method</span><select value={expenseDraft.payment_method} onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Payment Method</option>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Reference Number</span><input type="text" value={expenseDraft.reference_no} onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Description</span><input type="text" value={expenseDraft.description} onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={expenseDraft.notes} onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Due Date</span><input type="date" value={expenseDraft.due_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Paid At</span><input type="date" value={expenseDraft.paid_at} onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Due Date</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.due_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Paid At</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.paid_at} onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))} disabled={expenseDraft.status !== 'paid'} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-55" /></label></div>
+          <p className="rounded-xl border border-stroke bg-bg1/45 px-3 py-2 text-xs text-muted">Date rules: Expense Date is required. Due Date is optional but cannot be before Expense Date. Paid At is required only when Status is paid, and cannot be before Expense Date.</p>
 
           <div className="mt-5 flex justify-end gap-2 border-t border-stroke pt-4">
             <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
@@ -966,6 +1016,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
           </div>
         </form>
       </Drawer>
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };
