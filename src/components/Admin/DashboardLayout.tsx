@@ -95,38 +95,38 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
         { path: '/admin/currency', label: 'Currency', icon: 'currency' },
       ]
-    : user?.role === 'stock_manager'
-      ? [
-        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
-        { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
-        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
-        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
-      ]
-    : user?.role === 'staff'
-      ? [
-        { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
-        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar' },
-      ]
-      : [
-        { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-        { path: '/admin/room-plans', label: 'Room Plans', icon: 'map', requiredFeatures: ['room_plan_editor'] },
-        { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
-        { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
-        { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-        { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
-        { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
-        { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
-        { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
-        { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-        { path: '/admin/currency', label: 'Currency', icon: 'currency' },
-        { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
-        { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
-        { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
-        { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: 'leaf' },
-        { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: 'globe' },
-        // { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
-      ];
+      : user?.role === 'stock_manager'
+        ? [
+          { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
+          { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
+          { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
+          { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
+          { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+        ]
+        : user?.role === 'staff'
+          ? [
+            { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
+            { path: '/admin/reservations', label: 'Reservations', icon: 'calendar' },
+          ]
+          : [
+            { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
+            { path: '/admin/room-plans', label: 'Room Plans', icon: 'map', requiredFeatures: ['room_plan_editor'] },
+            { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
+            { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
+            { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+            { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
+            { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
+            { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
+            { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
+            { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+            { path: '/admin/currency', label: 'Currency', icon: 'currency' },
+            { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
+            { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
+            { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+            { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: 'leaf' },
+            { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: 'globe' },
+            // { path: '/liquid-glass-preview', label: t('admin.themePreview'), icon: '✨' },
+          ];
 
   const visibleNavItems = navItems.filter((item) => (
     areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures)
@@ -167,9 +167,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <h1 className="text-2xl font-semibold text-text">
                   {user?.role === 'chef' ? 'Kitchen Team'
                     : user?.role === 'accountant' ? 'Accounting Team'
-                    : user?.role === 'stock_manager' ? 'Stock Manager'
-                    : user?.role === 'staff' ? t('admin.staffTitle')
-                      : t('admin.adminTitle')}
+                      : user?.role === 'stock_manager' ? 'Stock Manager'
+                        : user?.role === 'staff' ? t('admin.staffTitle')
+                          : t('admin.adminTitle')}
                 </h1>
                 <p className="text-xs text-muted">{user?.restaurant?.name || t('admin.dashboard')}</p>
               </div>
@@ -206,7 +206,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         <div className="sticky top-4 z-[70] mb-6 hidden lg:block">
           <div className="flex items-stretch gap-3">
             <GlassBoard className="min-w-0 flex-1 p-3">
-            {/* <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
+              {/* <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-gold2/80">
                 {t('admin.navigation')}
               </div> */}
               <div className="max-w-full overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
