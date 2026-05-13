@@ -322,6 +322,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [vendorTaxNumber, setVendorTaxNumber] = useState('');
   const [vendorNotes, setVendorNotes] = useState('');
   const [vendorActive, setVendorActive] = useState(true);
+  const [editingVendorId, setEditingVendorId] = useState<number | null>(null);
 
   const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>(() => blankDraft(currency));
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
@@ -336,12 +337,15 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [loadingUnlinkedRestocks, setLoadingUnlinkedRestocks] = useState(false);
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const { toast, showToast, dismiss } = useGlassToast(4800);
 
   const showFormError = useCallback((message: string) => {
     setError(message);
     showToast(message, 'secondary', 5200);
+  }, [showToast]);
+
+  const showFormSuccess = useCallback((message: string) => {
+    showToast(message, 'primary', 3600);
   }, [showToast]);
 
   const activeCategories = useMemo(() => categories.filter((category) => category.is_active), [categories]);
@@ -478,6 +482,17 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setExpenseDraft(blankDraft(currency));
   };
 
+  const resetVendorForm = () => {
+    setEditingVendorId(null);
+    setVendorName('');
+    setVendorContactName('');
+    setVendorPhone('');
+    setVendorEmail('');
+    setVendorTaxNumber('');
+    setVendorNotes('');
+    setVendorActive(true);
+  };
+
   const openExpenseDrawer = () => {
     resetExpenseForm();
     setDrawerMode('expense');
@@ -486,7 +501,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const handleCreateCategory = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
     setSavingCategory(true);
 
     try {
@@ -499,7 +513,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setCategoryCode('');
       setCategoryName('');
       setCategoryActive(true);
-      setSuccess('Expense category created.');
+      showFormSuccess('Expense category created.');
       setDrawerMode(null);
     } catch (createError: unknown) {
       showFormError(getErrorMessage(createError, 'Failed to create expense category.'));
@@ -508,31 +522,38 @@ const AdminFinanceExpensesPage: React.FC = () => {
     }
   };
 
-  const handleCreateVendor = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveVendor = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
     setSavingVendor(true);
 
     try {
-      const created = await createVendor({
-        name: vendorName.trim(),
-        contact_name: vendorContactName.trim() || undefined,
-        phone: vendorPhone.trim() || undefined,
-        email: vendorEmail.trim() || undefined,
-        tax_number: vendorTaxNumber.trim() || undefined,
-        notes: vendorNotes.trim() || undefined,
-        is_active: vendorActive,
-      });
-      setVendors((current) => [created, ...current]);
-      setVendorName('');
-      setVendorContactName('');
-      setVendorPhone('');
-      setVendorEmail('');
-      setVendorTaxNumber('');
-      setVendorNotes('');
-      setVendorActive(true);
-      setSuccess('Vendor created.');
+      if (editingVendorId === null) {
+        const created = await createVendor({
+          name: vendorName.trim(),
+          contact_name: vendorContactName.trim() || undefined,
+          phone: vendorPhone.trim() || undefined,
+          email: vendorEmail.trim() || undefined,
+          tax_number: vendorTaxNumber.trim() || undefined,
+          notes: vendorNotes.trim() || undefined,
+          is_active: vendorActive,
+        });
+        setVendors((current) => [created, ...current]);
+        showFormSuccess('Vendor created.');
+      } else {
+        const updated = await updateVendor(editingVendorId, {
+          name: vendorName.trim(),
+          contact_name: vendorContactName.trim() || null,
+          phone: vendorPhone.trim() || null,
+          email: vendorEmail.trim() || null,
+          tax_number: vendorTaxNumber.trim() || null,
+          notes: vendorNotes.trim() || null,
+          is_active: vendorActive,
+        });
+        setVendors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+        showFormSuccess('Vendor updated.');
+      }
+      resetVendorForm();
       setDrawerMode(null);
     } catch (createError: unknown) {
       showFormError(getErrorMessage(createError, 'Failed to create vendor.'));
@@ -560,7 +581,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const handleSaveExpense = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
 
     if (!expenseDraft.expense_category_id) {
       showFormError('Please select an expense category.');
@@ -591,13 +611,13 @@ const AdminFinanceExpensesPage: React.FC = () => {
         await createExpense(expensePayloadFromDraft(expenseDraft));
         setExpensePage(1);
         await loadExpenses();
-        setSuccess('Expense created.');
+        showFormSuccess('Expense created.');
         resetExpenseForm();
       } else {
         const updatePayload: UpdateExpensePayload = expensePayloadFromDraft(expenseDraft);
         await updateExpense(editingExpenseId, updatePayload);
         await loadExpenses();
-        setSuccess('Expense updated.');
+        showFormSuccess('Expense updated.');
       }
       setDrawerMode(null);
       void loadUnlinkedRestocks();
@@ -628,15 +648,26 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setDrawerMode('expense');
   };
 
+  const startEditVendor = (vendor: FinanceVendor) => {
+    setEditingVendorId(vendor.id);
+    setVendorName(vendor.name || '');
+    setVendorContactName(vendor.contact_name || '');
+    setVendorPhone(vendor.phone || '');
+    setVendorEmail(vendor.email || '');
+    setVendorTaxNumber(vendor.tax_number || '');
+    setVendorNotes(vendor.notes || '');
+    setVendorActive(vendor.is_active);
+    setDrawerMode('vendor');
+  };
+
   const handleExpenseStatusUpdate = async (expense: FinanceExpense, nextStatus: FinanceExpenseStatus) => {
     setUpdatingStatusId(expense.id);
     setError(null);
-    setSuccess(null);
 
     try {
       const updated = await updateExpense(expense.id, { status: nextStatus });
       setExpenses((current) => expenseSortNewestFirst(current.map((item) => (item.id === updated.id ? updated : item))));
-      setSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
+      showFormSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
       void loadUnlinkedRestocks();
     } catch (updateError: unknown) {
       showFormError(getErrorMessage(updateError, 'Failed to update expense status.'));
@@ -647,7 +678,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
   const toggleCategoryActive = async (category: FinanceExpenseCategory) => {
     setError(null);
-    setSuccess(null);
     try {
       const updated = await updateExpenseCategory(category.id, { is_active: !category.is_active });
       setCategories((current) => current.map((item) => (item.id === updated.id ? updated : item)));
@@ -658,7 +688,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
   const toggleVendorActive = async (vendor: FinanceVendor) => {
     setError(null);
-    setSuccess(null);
     try {
       const updated = await updateVendor(vendor.id, { is_active: !vendor.is_active });
       setVendors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
@@ -873,7 +902,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 <input value={vendorSearch} onChange={(event) => setVendorSearch(event.target.value)} placeholder="Search vendors" className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
-                <LiquidButton type="button" onClick={() => setDrawerMode('vendor')}>+ New Vendor</LiquidButton>
+                <LiquidButton type="button" onClick={() => { resetVendorForm(); setDrawerMode('vendor'); }}>+ New Vendor</LiquidButton>
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -888,6 +917,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   <p className="text-sm text-muted">{vendor.email || '-'}</p>
                   <p className="text-sm text-muted">{vendor.tax_number || '-'}</p>
                   <div className="mt-3 flex gap-2">
+                    <LiquidButton type="button" tone="tertiary" onClick={() => startEditVendor(vendor)}>Edit</LiquidButton>
                     <LiquidButton type="button" tone="tertiary" onClick={() => void toggleVendorActive(vendor)}>{vendor.is_active ? 'Deactivate' : 'Activate'}</LiquidButton>
                   </div>
                 </div>
@@ -960,7 +990,6 @@ const AdminFinanceExpensesPage: React.FC = () => {
         ) : null}
 
         {error ? <div className="rounded-xl2 border border-spicy/50 bg-spicy/12 px-4 py-3 text-sm text-spicy">{error}</div> : null}
-        {success ? <div className="rounded-xl2 border border-sage/50 bg-sage/12 px-4 py-3 text-sm text-sage">{success}</div> : null}
       </div>
 
       <Drawer
@@ -989,8 +1018,8 @@ const AdminFinanceExpensesPage: React.FC = () => {
         </form>
       </Drawer>
 
-      <Drawer open={drawerMode === 'vendor'} title="Create Vendor" subtitle="Add a new supplier or service provider." onClose={() => setDrawerMode(null)}>
-        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleCreateVendor}>
+      <Drawer open={drawerMode === 'vendor'} title={editingVendorId ? `Edit Vendor #${editingVendorId}` : 'Create Vendor'} subtitle={editingVendorId ? 'Update supplier or service provider details.' : 'Add a new supplier or service provider.'} onClose={() => setDrawerMode(null)}>
+        <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSaveVendor}>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor Name</span><input type="text" value={vendorName} onChange={(event) => setVendorName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Contact Name</span><input type="text" value={vendorContactName} onChange={(event) => setVendorContactName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
           <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Phone</span><input type="text" value={vendorPhone} onChange={(event) => setVendorPhone(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
@@ -1000,7 +1029,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <label className="block md:col-span-2"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={vendorNotes} onChange={(event) => setVendorNotes(event.target.value)} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
           <div className="md:col-span-2 mt-2 flex justify-end gap-2 border-t border-stroke pt-4">
             <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
-            <LiquidButton type="submit" disabled={savingVendor}>{savingVendor ? 'Saving...' : 'Create Vendor'}</LiquidButton>
+            <LiquidButton type="submit" disabled={savingVendor}>{savingVendor ? 'Saving...' : editingVendorId ? 'Update Vendor' : 'Create Vendor'}</LiquidButton>
           </div>
         </form>
       </Drawer>
