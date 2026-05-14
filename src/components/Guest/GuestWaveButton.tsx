@@ -391,7 +391,7 @@ const GuestWaveButton: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsActionsOpen((open) => !open)}
-            className="inline-flex h-14 w-14 items-center justify-center rounded-full border text-2xl font-semibold transition duration-300 hover:-translate-y-0.5 hover:scale-105"
+            className="relative inline-flex h-14 w-14 items-center justify-center rounded-full border text-2xl font-semibold transition duration-300 hover:-translate-y-0.5 hover:scale-105"
             style={{
               backgroundColor: 'rgb(15 23 42 / 92%)',
               borderColor: 'rgb(255 255 255 / 30%)',
@@ -406,6 +406,13 @@ const GuestWaveButton: React.FC = () => {
             >
               +
             </span>
+            {totalItems > 0 ? (
+              <span
+                className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--guest-accent)' }}
+                aria-hidden="true"
+              />
+            ) : null}
           </button>
         </div>
       </div>

@@ -537,16 +537,37 @@ const AccountingOrdersPage: React.FC = () => {
     ), 0)
   ), [selectedTableOrders]);
 
+  const selectedTableLocalComplimentaryDeduction = useMemo(() => {
+    if (!selectedTable) {
+      return 0;
+    }
+
+    const giftItems = localGiftItemsByTable[selectedTable] || [];
+    return giftItems.reduce((sum, item) => {
+      const originalUnit = Number(item.original_unit_price || item.unit_price || 0);
+      const quantity = Number(item.quantity || 0);
+      if (!Number.isFinite(originalUnit) || !Number.isFinite(quantity) || originalUnit <= 0 || quantity <= 0) {
+        return sum;
+      }
+      return sum + (originalUnit * quantity);
+    }, 0);
+  }, [localGiftItemsByTable, selectedTable]);
+
+  const selectedTableEffectiveSubtotal = useMemo(
+    () => Math.max(selectedTableInvoiceSubtotal - selectedTableLocalComplimentaryDeduction, 0),
+    [selectedTableInvoiceSubtotal, selectedTableLocalComplimentaryDeduction]
+  );
+
   const selectedTablePreview = useMemo(() => (
     selectedTable
       ? calculateInvoicePreview({
-          subtotal: selectedTableInvoiceSubtotal,
+          subtotal: selectedTableEffectiveSubtotal,
           discountType: selectedTableDraft.discountType,
           discountValue: selectedTableDraft.discountValue,
           vatRate: selectedTableDraft.vatRate,
         })
       : null
-  ), [selectedTable, selectedTableDraft, selectedTableInvoiceSubtotal]);
+  ), [selectedTable, selectedTableDraft, selectedTableEffectiveSubtotal]);
 
   const isViewingSelectedInvoice = selectedTable !== '' && selectedTableOrders.length > 0;
   const isShowingSelectedInvoicePreview = isViewingSelectedInvoice && visibleInvoiceTable === selectedTable;
@@ -917,6 +938,17 @@ const AccountingOrdersPage: React.FC = () => {
     if (selectedTablePreview.discountType) {
       payload.discount_type = selectedTablePreview.discountType;
       payload.discount_value = selectedTablePreview.discountValue;
+    }
+
+    if (selectedTableLocalComplimentaryDeduction > 0) {
+      const backendSubtotal = orders
+        .filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
+        .reduce((sum, order) => (
+          sum + order.items.reduce((lineSum, item) => lineSum + Number(item.line_subtotal || 0), 0)
+        ), 0);
+      const alignedDiscountValue = Math.max(backendSubtotal - selectedTablePreview.taxableSubtotal, 0);
+      payload.discount_type = 'fixed';
+      payload.discount_value = Number(alignedDiscountValue.toFixed(2));
     }
 
     setProcessingTarget(`table:${selectedTable}`);
@@ -1606,6 +1638,12 @@ const AccountingOrdersPage: React.FC = () => {
                       <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
+                    {selectedTableLocalComplimentaryDeduction > 0 ? (
+                      <div className="flex items-center justify-between gap-3 text-emerald-100">
+                        <span>Complimentary deduction</span>
+                        <span className="font-medium">- {formatMoney(selectedTableLocalComplimentaryDeduction)}</span>
+                      </div>
+                    ) : null}
                     <div className="flex items-center justify-between gap-3">
                       <span>
                         {selectedTablePreview.discountType === 'percentage'
@@ -1859,6 +1897,12 @@ const AccountingOrdersPage: React.FC = () => {
                       <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
+                    {selectedTableLocalComplimentaryDeduction > 0 ? (
+                      <div className="flex items-center justify-between gap-3 text-emerald-100">
+                        <span>Complimentary deduction</span>
+                        <span className="font-medium">- {formatMoney(selectedTableLocalComplimentaryDeduction)}</span>
+                      </div>
+                    ) : null}
                     <div className="flex items-center justify-between gap-3">
                       <span>
                         {selectedTablePreview.discountType === 'percentage'

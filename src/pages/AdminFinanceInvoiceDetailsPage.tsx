@@ -20,6 +20,17 @@ const valueOrDash = (value?: string | null): string => {
   return value;
 };
 
+const toLineOriginalTotal = (item: FinanceInvoiceDetails['items'][number]): number => {
+  const explicitOriginal = Number((item as { original_line_total?: string | number | null }).original_line_total ?? 0);
+  if (Number.isFinite(explicitOriginal) && explicitOriginal > 0) {
+    return explicitOriginal;
+  }
+
+  const quantity = asNumber(item.quantity);
+  const unit = asNumber(item.unit_price);
+  return Math.max(quantity * unit, 0);
+};
+
 const AdminFinanceInvoiceDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { invoice_id } = useParams<{ invoice_id: string }>();
@@ -60,8 +71,19 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
       return [];
     }
 
+    const complimentaryDeduction = invoice.items.reduce((sum, item) => {
+      const lineTotal = asNumber(item.line_total);
+      const originalLineTotal = toLineOriginalTotal(item);
+      return sum + Math.max(originalLineTotal - lineTotal, 0);
+    }, 0);
+
     return [
       { label: 'Subtotal', value: formatPriceWithCurrency(asNumber(invoice.subtotal), currency) },
+      ...(complimentaryDeduction > 0 ? [{
+        label: 'Complimentary deduction',
+        value: formatPriceWithCurrency(complimentaryDeduction, currency),
+        tone: 'complimentary' as const,
+      }] : []),
       {
         label: invoice.discount_type === 'percentage'
           ? `Discount (${asNumber(invoice.discount_value).toFixed(2)}%)`
@@ -69,6 +91,7 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
             ? 'Discount (fixed)'
             : 'Discount',
         value: formatPriceWithCurrency(asNumber(invoice.discount_amount), currency),
+        tone: 'discount' as const,
       },
       { label: 'Taxable Subtotal', value: formatPriceWithCurrency(asNumber(invoice.taxable_subtotal), currency) },
       { label: `VAT (${asNumber(invoice.vat_rate).toFixed(2)}%)`, value: formatPriceWithCurrency(asNumber(invoice.vat_amount), currency) },
@@ -146,14 +169,33 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {invoice.items.map((item) => (
-                      <tr key={item.id} className="border-t border-stroke/70 bg-bg1/45">
-                        <td className="px-4 py-3 text-text">{item.name}</td>
+                    {invoice.items.map((item) => {
+                      const lineTotal = asNumber(item.line_total);
+                      const originalLineTotal = toLineOriginalTotal(item);
+                      const hasDeduction = originalLineTotal > lineTotal;
+                      const isComplimentary = (
+                        (item as { is_complimentary?: boolean | null }).is_complimentary === true
+                        || lineTotal === 0
+                      );
+                      return (
+                      <tr
+                        key={item.id}
+                        className={`border-t border-stroke/70 ${isComplimentary ? 'bg-emerald-500/10' : 'bg-bg1/45'}`}
+                      >
+                        <td className={isComplimentary ? 'px-4 py-3 text-emerald-100' : 'px-4 py-3 text-text'}>
+                          {item.name}
+                        </td>
                         <td className="px-4 py-3 text-muted">{item.quantity}</td>
                         <td className="px-4 py-3 text-muted">{formatPriceWithCurrency(asNumber(item.unit_price), currency)}</td>
-                        <td className="px-4 py-3 font-semibold text-text">{formatPriceWithCurrency(asNumber(item.line_total), currency)}</td>
+                        <td className={isComplimentary ? 'px-4 py-3 font-semibold text-emerald-100' : 'px-4 py-3 font-semibold text-text'}>
+                          {formatPriceWithCurrency(lineTotal, currency)}
+                          {hasDeduction ? (
+                            <div className="text-xs text-muted line-through">{formatPriceWithCurrency(originalLineTotal, currency)}</div>
+                          ) : null}
+                        </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -163,9 +205,19 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-text">Invoice Summary</h3>
               <div className="mt-3 grid gap-2">
                 {summaryRows.map((row) => (
-                  <div key={row.label} className="flex items-center justify-between rounded-xl border border-stroke bg-bg1/55 px-4 py-2.5">
+                  <div
+                    key={row.label}
+                    className={`flex items-center justify-between rounded-xl border px-4 py-2.5 ${
+                      row.tone === 'complimentary'
+                        ? 'border-emerald-400/30 bg-emerald-500/10'
+                        : 'border-stroke bg-bg1/55'
+                    }`}
+                  >
                     <span className="text-sm text-muted">{row.label}</span>
-                    <span className="text-sm font-semibold text-text">{row.value}</span>
+                    <span className={`text-sm font-semibold ${row.tone === 'complimentary' ? 'text-emerald-100' : 'text-text'}`}>
+                      {row.tone === 'complimentary' || row.tone === 'discount' ? '- ' : ''}
+                      {row.value}
+                    </span>
                   </div>
                 ))}
               </div>
