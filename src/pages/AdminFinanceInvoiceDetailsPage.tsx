@@ -173,21 +173,34 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                       const lineTotal = asNumber(item.line_total);
                       const originalLineTotal = toLineOriginalTotal(item);
                       const hasDeduction = originalLineTotal > lineTotal;
+                      const compensationType = (item as { compensation_type?: string | null }).compensation_type || null;
+                      const compensationNote = (item as { compensation_note?: string | null }).compensation_note || null;
+                      const accountingBucket = (item as { accounting_bucket?: string | null }).accounting_bucket || null;
                       const isComplimentary = (
                         (item as { is_complimentary?: boolean | null }).is_complimentary === true
-                        || lineTotal === 0
+                        || compensationType === 'complimentary'
                       );
+                      const isCompensated = compensationType !== null && compensationType !== 'none';
                       return (
                       <tr
                         key={item.id}
-                        className={`border-t border-stroke/70 ${isComplimentary ? 'bg-emerald-500/10' : 'bg-bg1/45'}`}
+                        className={`border-t border-stroke/70 ${isComplimentary ? 'bg-emerald-500/10' : isCompensated ? 'bg-rose-500/10' : 'bg-bg1/45'}`}
                       >
-                        <td className={isComplimentary ? 'px-4 py-3 text-emerald-100' : 'px-4 py-3 text-text'}>
-                          {item.name}
+                        <td className={isComplimentary ? 'px-4 py-3 text-emerald-100' : isCompensated ? 'px-4 py-3 text-rose-100' : 'px-4 py-3 text-text'}>
+                          <div>
+                            <p>{item.name}</p>
+                            {isCompensated ? (
+                              <p className="mt-1 text-xs text-muted">
+                                {`Compensation: ${compensationType?.replaceAll('_', ' ') || 'unknown'}`}
+                                {accountingBucket ? ` • Bucket: ${accountingBucket.replaceAll('_', ' ')}` : ''}
+                                {compensationNote ? ` • ${compensationNote}` : ''}
+                              </p>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-muted">{item.quantity}</td>
                         <td className="px-4 py-3 text-muted">{formatPriceWithCurrency(asNumber(item.unit_price), currency)}</td>
-                        <td className={isComplimentary ? 'px-4 py-3 font-semibold text-emerald-100' : 'px-4 py-3 font-semibold text-text'}>
+                        <td className={isComplimentary ? 'px-4 py-3 font-semibold text-emerald-100' : isCompensated ? 'px-4 py-3 font-semibold text-rose-100' : 'px-4 py-3 font-semibold text-text'}>
                           {formatPriceWithCurrency(lineTotal, currency)}
                           {hasDeduction ? (
                             <div className="text-xs text-muted line-through">{formatPriceWithCurrency(originalLineTotal, currency)}</div>
@@ -210,11 +223,19 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                     className={`flex items-center justify-between rounded-xl border px-4 py-2.5 ${
                       row.tone === 'complimentary'
                         ? 'border-emerald-400/30 bg-emerald-500/10'
+                        : row.tone === 'discount'
+                          ? 'border-rose-400/30 bg-rose-500/10'
                         : 'border-stroke bg-bg1/55'
                     }`}
                   >
                     <span className="text-sm text-muted">{row.label}</span>
-                    <span className={`text-sm font-semibold ${row.tone === 'complimentary' ? 'text-emerald-100' : 'text-text'}`}>
+                    <span className={`text-sm font-semibold ${
+                      row.tone === 'complimentary'
+                        ? 'text-emerald-100'
+                        : row.tone === 'discount'
+                          ? 'text-rose-100'
+                          : 'text-text'
+                    }`}>
                       {row.tone === 'complimentary' || row.tone === 'discount' ? '- ' : ''}
                       {row.value}
                     </span>

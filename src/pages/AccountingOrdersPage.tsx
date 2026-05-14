@@ -19,6 +19,7 @@ import {
   finalizeGuestTableSession,
 } from '../services/orderService';
 import { fetchInvoices } from '../services/invoiceService';
+import { createExpense, fetchExpenseCategories } from '../services/financeExpenseService';
 import { ensureEchoConnection, getEcho } from '../services/realtime';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
@@ -41,6 +42,7 @@ import type {
   ComplaintReasonCode,
   DiscountType,
   FinalizeInvoiceStatusMode,
+  FinanceExpenseCategory,
   FinancePaymentMethod,
   InvoiceSplitSummary,
   OrderRecord,
@@ -71,6 +73,21 @@ const emptyAccountingDraft = {
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
 
+const resolveGiftExpenseCategoryId = (categories: FinanceExpenseCategory[]): number | null => {
+  const exactGoodwill = categories.find((category) => category.code?.toLowerCase() === 'goodwill_expense');
+  if (exactGoodwill) {
+    return exactGoodwill.id;
+  }
+
+  const goodwillByName = categories.find((category) => category.name?.toLowerCase().includes('goodwill'));
+  if (goodwillByName) {
+    return goodwillByName.id;
+  }
+
+  const retentionFallback = categories.find((category) => category.code?.toLowerCase() === 'customer_retention');
+  return retentionFallback?.id ?? null;
+};
+
 interface AccountingCompDraft {
   status: OrderItemIssueStatus;
   compensationType: OrderItemCompensationType;
@@ -78,6 +95,8 @@ interface AccountingCompDraft {
   category: ComplaintCategory | '';
   note: string;
   partialDiscountPercent: string;
+  partialDiscountType: DiscountType;
+  partialDiscountValue: string;
   accountingBucket: ComplaintAccountingBucket | '';
 }
 
@@ -88,6 +107,8 @@ const makeDefaultCompDraft = (): AccountingCompDraft => ({
   category: '',
   note: '',
   partialDiscountPercent: '0',
+  partialDiscountType: 'percentage',
+  partialDiscountValue: '0',
   accountingBucket: '',
 });
 
@@ -537,31 +558,12 @@ const AccountingOrdersPage: React.FC = () => {
     ), 0)
   ), [selectedTableOrders]);
 
-  const selectedTableLocalComplimentaryDeduction = useMemo(() => {
-    if (!selectedTable) {
-      return 0;
-    }
-
-    const giftItems = localGiftItemsByTable[selectedTable] || [];
-    return giftItems.reduce((sum, item) => {
-      const originalUnit = Number(item.original_unit_price || item.unit_price || 0);
-      const quantity = Number(item.quantity || 0);
-      if (!Number.isFinite(originalUnit) || !Number.isFinite(quantity) || originalUnit <= 0 || quantity <= 0) {
-        return sum;
-      }
-      return sum + (originalUnit * quantity);
-    }, 0);
-  }, [localGiftItemsByTable, selectedTable]);
-
-  const selectedTableEffectiveSubtotal = useMemo(
-    () => Math.max(selectedTableInvoiceSubtotal - selectedTableLocalComplimentaryDeduction, 0),
-    [selectedTableInvoiceSubtotal, selectedTableLocalComplimentaryDeduction]
-  );
+  const selectedTableEffectiveSubtotal = selectedTableInvoiceSubtotal;
 
   const selectedTablePreview = useMemo(() => (
     selectedTable
       ? calculateInvoicePreview({
-          subtotal: selectedTableEffectiveSubtotal,
+        subtotal: selectedTableEffectiveSubtotal,
           discountType: selectedTableDraft.discountType,
           discountValue: selectedTableDraft.discountValue,
           vatRate: selectedTableDraft.vatRate,
@@ -592,6 +594,9 @@ const AccountingOrdersPage: React.FC = () => {
       compensation_note: string | null;
       approved_by_name: string | null;
       approved_at: string | null;
+      partial_discount_percentage: string | null;
+      partial_discount_type: DiscountType | null;
+      partial_discount_value: string | null;
       is_complimentary: boolean;
       accounting_bucket: string | null;
     }>();
@@ -604,6 +609,9 @@ const AccountingOrdersPage: React.FC = () => {
         const note = item.compensation_note || null;
         const approvedByName = item.approved_by?.name || null;
         const approvedAt = item.approved_at || null;
+        const partialDiscountPercentage = item.partial_discount_percentage || null;
+        const partialDiscountType = item.partial_discount_type || null;
+        const partialDiscountValue = item.partial_discount_value || null;
         const isComplimentary = item.is_complimentary === true || compensationType === 'complimentary';
         const accountingBucket = item.accounting_bucket || null;
         const key = [
@@ -642,6 +650,9 @@ const AccountingOrdersPage: React.FC = () => {
           compensation_note: note,
           approved_by_name: approvedByName,
           approved_at: approvedAt,
+          partial_discount_percentage: partialDiscountPercentage,
+          partial_discount_type: partialDiscountType,
+          partial_discount_value: partialDiscountValue,
           is_complimentary: isComplimentary,
           accounting_bucket: accountingBucket,
         });
@@ -664,7 +675,13 @@ const AccountingOrdersPage: React.FC = () => {
       reason: (line.compensation_reason as ComplaintReasonCode | null) || '',
       category: '',
       note: line.compensation_note || '',
-      partialDiscountPercent: '0',
+      partialDiscountPercent: (line as { partial_discount_percentage?: string | null }).partial_discount_percentage || '0',
+      partialDiscountType: (
+        (line as { partial_discount_type?: DiscountType | null }).partial_discount_type === 'fixed'
+          ? 'fixed'
+          : 'percentage'
+      ),
+      partialDiscountValue: (line as { partial_discount_value?: string | null }).partial_discount_value || '0',
       accountingBucket: (line.accounting_bucket as ComplaintAccountingBucket | null) || '',
     });
   };
@@ -690,6 +707,8 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     const partialDiscountPercent = Math.max(0, Math.min(100, Number(compDraft.partialDiscountPercent || '0')));
+    const partialDiscountType: DiscountType = compDraft.partialDiscountType === 'fixed' ? 'fixed' : 'percentage';
+    const partialDiscountValue = Math.max(0, Number(compDraft.partialDiscountValue || '0'));
     const approvedAt = new Date().toISOString();
     const refSet = new Set(line.source_refs.map((ref) => `${ref.order_id}:${ref.order_item_id}`));
 
@@ -708,6 +727,8 @@ const AccountingOrdersPage: React.FC = () => {
       approved_at?: string | null;
       original_unit_price?: string | null;
       final_unit_price?: string | null;
+      partial_discount_type?: DiscountType | null;
+      partial_discount_value?: string | null;
       is_complimentary?: boolean;
       accounting_bucket?: ComplaintAccountingBucket | null;
       local_only?: boolean;
@@ -726,7 +747,11 @@ const AccountingOrdersPage: React.FC = () => {
           if (compDraft.compensationType === 'complimentary' || compDraft.compensationType === 'full_waiver' || compDraft.status === 'cancelled') {
             nextFinalUnit = 0;
           } else if (compDraft.compensationType === 'partial_discount') {
-            nextFinalUnit = normalizedOriginalUnit * (1 - (partialDiscountPercent / 100));
+            if (partialDiscountType === 'fixed') {
+              nextFinalUnit = Math.max(normalizedOriginalUnit - partialDiscountValue, 0);
+            } else {
+              nextFinalUnit = normalizedOriginalUnit * (1 - (partialDiscountPercent / 100));
+            }
           }
         }
 
@@ -747,6 +772,12 @@ const AccountingOrdersPage: React.FC = () => {
           approved_at: compDraft.status === 'normal' ? null : approvedAt,
           original_unit_price: normalizedOriginalUnit.toFixed(2),
           final_unit_price: compDraft.status === 'normal' ? normalizedOriginalUnit.toFixed(2) : nextFinalUnit.toFixed(2),
+          partial_discount_type: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
+            ? partialDiscountType
+            : null,
+          partial_discount_value: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
+            ? partialDiscountValue.toFixed(2)
+            : null,
           is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
           accounting_bucket: compDraft.status === 'normal'
             ? null
@@ -772,7 +803,13 @@ const AccountingOrdersPage: React.FC = () => {
           original_unit_price: normalizedOriginalUnit.toFixed(2),
           final_unit_price: compDraft.status === 'normal' ? normalizedOriginalUnit.toFixed(2) : nextFinalUnit.toFixed(2),
           partial_discount_percentage: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
-            ? partialDiscountPercent.toFixed(2)
+            ? (partialDiscountType === 'percentage' ? partialDiscountPercent.toFixed(2) : null)
+            : null,
+          partial_discount_type: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
+            ? partialDiscountType
+            : null,
+          partial_discount_value: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
+            ? partialDiscountValue.toFixed(2)
             : null,
           is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
           accounting_bucket: compDraft.status === 'normal'
@@ -792,7 +829,15 @@ const AccountingOrdersPage: React.FC = () => {
 
     setEditingLineKey(null);
     setCompDraft(makeDefaultCompDraft());
-    showToast('Item compensation updated from accounting.', 'secondary');
+    if (compDraft.status !== 'normal' && compDraft.compensationType === 'partial_discount' && partialDiscountType === 'fixed') {
+      showToast(
+        'Item compensation updated. Fixed partial discount is applied in invoice totals; if backend lacks partial discount fields, finance will use finalized net values.',
+        'tertiary',
+        6200
+      );
+    } else {
+      showToast('Item compensation updated from accounting.', 'secondary');
+    }
   };
 
   const addComplimentaryDishFromAccounting = () => {
@@ -813,7 +858,9 @@ const AccountingOrdersPage: React.FC = () => {
       return;
     }
 
-    const targetOrderId = selectedTableOrders[0]?.id;
+    const targetOrder = selectedTableOrders[0];
+    const targetOrderId = targetOrder?.id;
+    const targetOrderReference = targetOrder?.order_number || (targetOrderId ? String(targetOrderId) : null);
     if (!targetOrderId) {
       showToast('No target order found for this table.', 'secondary');
       return;
@@ -850,6 +897,7 @@ const AccountingOrdersPage: React.FC = () => {
 
     upsertBillAdjustmentsForTable(selectedTable, [{
       key: `gift:${selectedTable}:${generatedItemId}`,
+      source_order_reference: targetOrderReference,
       dish_name: selectedDish.name,
       quantity: 1,
       status: 'compensated',
@@ -940,17 +988,6 @@ const AccountingOrdersPage: React.FC = () => {
       payload.discount_value = selectedTablePreview.discountValue;
     }
 
-    if (selectedTableLocalComplimentaryDeduction > 0) {
-      const backendSubtotal = orders
-        .filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
-        .reduce((sum, order) => (
-          sum + order.items.reduce((lineSum, item) => lineSum + Number(item.line_subtotal || 0), 0)
-        ), 0);
-      const alignedDiscountValue = Math.max(backendSubtotal - selectedTablePreview.taxableSubtotal, 0);
-      payload.discount_type = 'fixed';
-      payload.discount_value = Number(alignedDiscountValue.toFixed(2));
-    }
-
     setProcessingTarget(`table:${selectedTable}`);
     setError(null);
 
@@ -1033,7 +1070,62 @@ const AccountingOrdersPage: React.FC = () => {
       }
 
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
+
+      const localGiftItems = selectedTable ? (localGiftItemsByTable[selectedTable] || []) : [];
+      if (localGiftItems.length > 0) {
+        try {
+          const categories = await fetchExpenseCategories();
+          const giftCategoryId = resolveGiftExpenseCategoryId(categories);
+          if (!giftCategoryId) {
+            showToast(
+              'Invoice finalized. Gift dishes were not posted to finance expenses because no goodwill/customer-retention category is configured.',
+              'tertiary',
+              6200
+            );
+          } else {
+            const primaryInvoiceNumber = finalizedInvoiceNumbers[0] || 'N/A';
+            await Promise.all(localGiftItems.map(async (giftItem, index) => {
+              const quantity = Math.max(1, Number(giftItem.quantity || 1));
+              const originalUnit = Math.max(0, Number(giftItem.original_unit_price || giftItem.unit_price || 0));
+              const totalValue = originalUnit * quantity;
+              if (totalValue <= 0) {
+                return;
+              }
+
+              await createExpense({
+                expense_category_id: giftCategoryId,
+                expense_date: (giftItem.approved_at || new Date().toISOString()).slice(0, 10),
+                amount_cents: Math.round(totalValue * 100),
+                tax_amount_cents: 0,
+                currency: (user?.restaurant?.currency || 'USD').toUpperCase(),
+                status: 'approved',
+                payment_method: null,
+                reference_no: `GIFT-${primaryInvoiceNumber}-${index + 1}`,
+                description: `Gift compensation: ${giftItem.dish_name}`,
+                notes: `Auto-created from accounting gift dish. Table: ${selectedTable}; invoice: ${primaryInvoiceNumber}; source: gift_compensation`,
+                due_date: null,
+                paid_at: null,
+              });
+            }));
+          }
+        } catch {
+          showToast(
+            'Invoice finalized. Gift dish finance expense sync could not be completed; please review Finance > Expenses.',
+            'tertiary',
+            6200
+          );
+        }
+      }
+
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
+      setLocalGiftItemsByTable((current) => {
+        if (!selectedTable) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[selectedTable];
+        return next;
+      });
       showToast(
         t('accountingPage.finalizedOrders', { count: selectedTableOrders.length, table: selectedTable }),
         'secondary',
@@ -1359,7 +1451,7 @@ const AccountingOrdersPage: React.FC = () => {
                             {item.dish_name}
                           </p>
                           <p className="text-sm text-muted">
-                            {item.quantity} × ${item.unit_price}
+                            {item.quantity} × <span className={isComplimentary ? 'line-through text-emerald-100/80' : ''}>${item.unit_price}</span>
                             {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
                           </p>
                           {reasonLabel ? (
@@ -1500,18 +1592,40 @@ const AccountingOrdersPage: React.FC = () => {
                             </div>
 
                             {compDraft.compensationType === 'partial_discount' ? (
-                              <label className="block">
-                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Partial Discount %</span>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  step="1"
-                                  value={compDraft.partialDiscountPercent}
-                                  onChange={(event) => setCompDraft((current) => ({ ...current, partialDiscountPercent: event.target.value }))}
-                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
-                                />
-                              </label>
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <label className="block">
+                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Partial Discount Type</span>
+                                  <select
+                                    value={compDraft.partialDiscountType}
+                                    onChange={(event) => setCompDraft((current) => ({
+                                      ...current,
+                                      partialDiscountType: event.target.value as DiscountType,
+                                    }))}
+                                    className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                  >
+                                    <option value="percentage">Percentage</option>
+                                    <option value="fixed">Fixed Value (per unit)</option>
+                                  </select>
+                                </label>
+                                <label className="block">
+                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">
+                                    {compDraft.partialDiscountType === 'percentage' ? 'Partial Discount %' : 'Partial Discount Value'}
+                                  </span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={compDraft.partialDiscountType === 'percentage' ? '100' : undefined}
+                                    step="0.01"
+                                    value={compDraft.partialDiscountType === 'percentage' ? compDraft.partialDiscountPercent : compDraft.partialDiscountValue}
+                                    onChange={(event) => setCompDraft((current) => (
+                                      current.partialDiscountType === 'percentage'
+                                        ? { ...current, partialDiscountPercent: event.target.value }
+                                        : { ...current, partialDiscountValue: event.target.value }
+                                    ))}
+                                    className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                  />
+                                </label>
+                              </div>
                             ) : null}
 
                             <label className="block">
@@ -1638,19 +1752,13 @@ const AccountingOrdersPage: React.FC = () => {
                       <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
-                    {selectedTableLocalComplimentaryDeduction > 0 ? (
-                      <div className="flex items-center justify-between gap-3 text-emerald-100">
-                        <span>Complimentary deduction</span>
-                        <span className="font-medium">- {formatMoney(selectedTableLocalComplimentaryDeduction)}</span>
-                      </div>
-                    ) : null}
                     <div className="flex items-center justify-between gap-3">
                       <span>
                         {selectedTablePreview.discountType === 'percentage'
                           ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
                           : t('accountingPage.discount')}
                       </span>
-                      <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
+                      <span className="font-medium text-rose-200">- {formatMoney(selectedTablePreview.discountAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('accountingPage.taxableSubtotal')}</span>
@@ -1847,7 +1955,11 @@ const AccountingOrdersPage: React.FC = () => {
                           <div className="min-w-0">
                             <p className={`truncate font-medium ${isCancelledOrProblematic ? 'line-through' : ''}`}>{item.dish_name}</p>
                             <p className="mt-1 text-xs text-muted">
-                              {t('common.eachPrice', { price: item.unit_price })}
+                              {isComplimentary ? (
+                                <span className="line-through text-emerald-100/80">{t('common.eachPrice', { price: item.unit_price })}</span>
+                              ) : (
+                                t('common.eachPrice', { price: item.unit_price })
+                              )}
                               {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
                             </p>
                             {reasonLabel ? (
@@ -1897,19 +2009,13 @@ const AccountingOrdersPage: React.FC = () => {
                       <span>{t('accountingPage.subtotal')}</span>
                       <span className="font-medium text-text">{formatMoney(selectedTablePreview.subtotal)}</span>
                     </div>
-                    {selectedTableLocalComplimentaryDeduction > 0 ? (
-                      <div className="flex items-center justify-between gap-3 text-emerald-100">
-                        <span>Complimentary deduction</span>
-                        <span className="font-medium">- {formatMoney(selectedTableLocalComplimentaryDeduction)}</span>
-                      </div>
-                    ) : null}
                     <div className="flex items-center justify-between gap-3">
                       <span>
                         {selectedTablePreview.discountType === 'percentage'
                           ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
                           : t('accountingPage.discount')}
                       </span>
-                      <span className="font-medium text-text">- {formatMoney(selectedTablePreview.discountAmount)}</span>
+                      <span className="font-medium text-rose-200">- {formatMoney(selectedTablePreview.discountAmount)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('accountingPage.taxableSubtotal')}</span>

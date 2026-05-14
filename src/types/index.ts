@@ -466,6 +466,8 @@ export interface PosCheckoutRequest {
     original_unit_price?: number | null;
     final_unit_price?: number | null;
     partial_discount_percentage?: number | null;
+    partial_discount_type?: DiscountType | null;
+    partial_discount_value?: number | null;
     is_complimentary?: boolean;
     accounting_bucket?: ComplaintAccountingBucket | null;
     customer_satisfaction_rating?: number | null;
@@ -527,6 +529,8 @@ export interface OrderLineItem {
   original_unit_price?: string | null;
   final_unit_price?: string | null;
   partial_discount_percentage?: string | null;
+  partial_discount_type?: DiscountType | null;
+  partial_discount_value?: string | null;
   is_complimentary?: boolean;
   accounting_bucket?: ComplaintAccountingBucket | null;
   customer_satisfaction_rating?: number | null;

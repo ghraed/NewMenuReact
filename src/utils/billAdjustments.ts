@@ -2,12 +2,14 @@ import type {
   ComplaintAccountingBucket,
   ComplaintCategory,
   ComplaintReasonCode,
+  DiscountType,
   OrderItemCompensationType,
   OrderItemIssueStatus,
 } from '../types';
 
 export interface BillItemAdjustment {
   key: string;
+  source_order_reference?: string | null;
   order_item_id?: number | null;
   dish_name: string;
   quantity?: number;
@@ -20,6 +22,8 @@ export interface BillItemAdjustment {
   approved_at?: string | null;
   original_unit_price?: string | null;
   final_unit_price?: string | null;
+  partial_discount_type?: DiscountType | null;
+  partial_discount_value?: string | null;
   is_complimentary?: boolean;
   accounting_bucket?: ComplaintAccountingBucket | null;
   local_only?: boolean;
@@ -52,6 +56,32 @@ export const readBillAdjustmentsForTable = (tableName: string): BillItemAdjustme
   return readStore()[tableName] || [];
 };
 
+const normalizeOrderReference = (value: string): string => value.trim().toLowerCase();
+
+export const readBillAdjustmentsForTableInvoice = (
+  tableName: string,
+  includedOrders: string[]
+): BillItemAdjustment[] => {
+  const adjustments = readBillAdjustmentsForTable(tableName);
+  if (includedOrders.length === 0) {
+    return adjustments;
+  }
+
+  const included = new Set(includedOrders.map(normalizeOrderReference));
+
+  return adjustments.filter((adjustment) => {
+    if (adjustment.local_only !== true) {
+      return true;
+    }
+
+    if (!adjustment.source_order_reference) {
+      return false;
+    }
+
+    return included.has(normalizeOrderReference(adjustment.source_order_reference));
+  });
+};
+
 export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments: BillItemAdjustment[]): void => {
   if (!tableName || nextAdjustments.length === 0) return;
 
@@ -65,4 +95,3 @@ export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments
   store[tableName] = Array.from(map.values());
   writeStore(store);
 };
-

@@ -166,6 +166,25 @@ const formatPriceWithCurrencyDecimals = (amount: number, currency: string, fract
   return `${money} ${symbol}`;
 };
 
+const isGiftCompensationExpense = (expense: FinanceExpense): boolean => {
+  const sourceHints = [
+    expense.reference_no,
+    expense.description,
+    expense.notes,
+    expense.category?.code,
+    expense.category?.name,
+  ]
+    .map((value) => (value || '').toLowerCase());
+
+  return sourceHints.some((value) => (
+    value.includes('gift compensation')
+    || value.includes('gift_compensation')
+    || value.includes('goodwill')
+    || value.includes('customer retention')
+    || value.includes('customer_retention')
+  ));
+};
+
 const AnimatedCurrencyValue: React.FC<{ value: number; currency: string; className?: string }> = ({ value, currency, className }) => {
   const ref = useRef<HTMLSpanElement | null>(null);
   const isInView = useInView(ref, { once: true, margin: '-12% 0px -12% 0px' });
@@ -417,9 +436,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     return expenses.filter((expense) => {
       const vendor = expense.vendor?.name?.toLowerCase() ?? '';
       const category = expense.category?.name?.toLowerCase() ?? '';
+      const description = expense.description?.toLowerCase() ?? '';
+      const notes = expense.notes?.toLowerCase() ?? '';
       const convertedAmount = convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency);
       const amount = formatPriceWithCurrency(convertedAmount, currency).toLowerCase();
-      return vendor.includes(q) || category.includes(q) || amount.includes(q);
+      return vendor.includes(q) || category.includes(q) || description.includes(q) || notes.includes(q) || amount.includes(q);
     });
   }, [convertAmountToDefaultCurrency, currency, expenseSearch, expenses]);
 
@@ -914,13 +935,20 @@ const AdminFinanceExpensesPage: React.FC = () => {
                     <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>Loading expenses...</td></tr>
                   ) : filteredExpenses.length === 0 ? (
                     <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>No expenses found for current filters.</td></tr>
-                  ) : filteredExpenses.map((expense) => (
-                    <tr key={expense.id} className="border-t border-stroke/70 bg-bg1/45">
+                  ) : filteredExpenses.map((expense) => {
+                    const isGiftExpense = isGiftCompensationExpense(expense);
+                    return (
+                    <tr key={expense.id} className={`border-t border-stroke/70 ${isGiftExpense ? 'bg-emerald-500/10' : 'bg-bg1/45'}`}>
                       <td className="px-4 py-3 text-muted">{expense.expense_date}</td>
-                      <td className="px-4 py-3 text-text">{expense.category?.name || `Category #${expense.expense_category_id}`}</td>
+                      <td className={isGiftExpense ? 'px-4 py-3 text-emerald-100' : 'px-4 py-3 text-text'}>
+                        {expense.category?.name || `Category #${expense.expense_category_id}`}
+                      </td>
                       <td className="px-4 py-3 text-muted">{expense.vendor?.name || '-'}</td>
-                      <td className="px-4 py-3 text-xs text-muted">{expense.linked_stock_movement ? <div><p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}</td>
-                      <td className="px-4 py-3 font-semibold text-text">
+                      <td className="px-4 py-3 text-xs text-muted">
+                        {expense.linked_stock_movement ? <div><p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}
+                        {isGiftExpense ? <p className="mt-1 font-semibold text-emerald-200">Source: Gift compensation</p> : null}
+                      </td>
+                      <td className={isGiftExpense ? 'px-4 py-3 font-semibold text-emerald-100' : 'px-4 py-3 font-semibold text-text'}>
                         {formatPriceWithCurrency(convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency), currency)}
                       </td>
                       <td className="px-4 py-3">
@@ -932,7 +960,8 @@ const AdminFinanceExpensesPage: React.FC = () => {
                         <button type="button" onClick={() => startEditExpense(expense)} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:text-text">✎</button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>

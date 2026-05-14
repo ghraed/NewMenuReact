@@ -5,7 +5,7 @@ import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { callGuestTableWaiter, requestGuestTableBill } from '../../services/orderService';
 import { savePrintableInvoice } from '../../utils/printableInvoice';
-import { readBillAdjustmentsForTable } from '../../utils/billAdjustments';
+import { readBillAdjustmentsForTableInvoice } from '../../utils/billAdjustments';
 import { useGuestMenuResource } from '../../contexts/GuestMenuResourceContext';
 import { buildGuestOrderReviewPath } from '../../utils/guestTableRoutes';
 
@@ -18,6 +18,17 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return fallback;
+};
+
+const parseMoneyValue = (value: string | number | null | undefined): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value !== 'string') {
+    return 0;
+  }
+  const normalized = Number(value.replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(normalized) ? normalized : 0;
 };
 
 const GuestWaveButton: React.FC = () => {
@@ -154,7 +165,10 @@ const GuestWaveButton: React.FC = () => {
       const response = await requestGuestTableBill(sessionId, draft.guestAccessToken);
 
       if (response.invoice_preview && activeTableId) {
-        const adjustments = readBillAdjustmentsForTable(response.invoice_preview.table_name);
+        const adjustments = readBillAdjustmentsForTableInvoice(
+          response.invoice_preview.table_name,
+          response.invoice_preview.included_orders
+        );
         const byOrderItemId = new Map<number, (typeof adjustments)[number]>();
         const localOnlyGifts: Array<(typeof adjustments)[number]> = [];
 
@@ -222,6 +236,15 @@ const GuestWaveButton: React.FC = () => {
           });
         });
 
+        const adjustedSubtotal = printableItems.reduce((sum, item) => (
+          sum + parseMoneyValue(item.lineSubtotal)
+        ), 0);
+        const discountAmount = parseMoneyValue(response.invoice_preview.summary.discount_amount);
+        const vatRate = parseMoneyValue(response.invoice_preview.summary.vat_rate);
+        const adjustedTaxableSubtotal = Math.max(0, adjustedSubtotal - discountAmount);
+        const adjustedVatAmount = adjustedTaxableSubtotal * (vatRate / 100);
+        const adjustedTotal = adjustedTaxableSubtotal + adjustedVatAmount;
+
         savePrintableInvoice({
           sourceTableId: activeTableId,
           restaurantName: response.invoice_preview.restaurant_name,
@@ -231,13 +254,13 @@ const GuestWaveButton: React.FC = () => {
           items: printableItems,
           includedOrders: response.invoice_preview.included_orders,
           summary: {
-            subtotal: `$${response.invoice_preview.summary.subtotal}`,
+            subtotal: `$${adjustedSubtotal.toFixed(2)}`,
             discountLabel: t('accountingPage.discount'),
-            discountAmount: `$${response.invoice_preview.summary.discount_amount}`,
-            taxableSubtotal: `$${response.invoice_preview.summary.taxable_subtotal}`,
-            vatLabel: t('accountingPage.vatWithValue', { value: response.invoice_preview.summary.vat_rate }),
-            vatAmount: `$${response.invoice_preview.summary.vat_amount}`,
-            total: `$${response.invoice_preview.summary.total}`,
+            discountAmount: `$${discountAmount.toFixed(2)}`,
+            taxableSubtotal: `$${adjustedTaxableSubtotal.toFixed(2)}`,
+            vatLabel: t('accountingPage.vatWithValue', { value: vatRate.toFixed(2) }),
+            vatAmount: `$${adjustedVatAmount.toFixed(2)}`,
+            total: `$${adjustedTotal.toFixed(2)}`,
           },
           split: response.invoice_preview.invoice_split ? {
             enabled: response.invoice_preview.invoice_split.enabled,

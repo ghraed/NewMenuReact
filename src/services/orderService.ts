@@ -104,6 +104,8 @@ interface TableSessionActionResponse {
       original_unit_price?: string | null;
       final_unit_price?: string | null;
       partial_discount_percentage?: string | null;
+      partial_discount_type?: 'fixed' | 'percentage' | null;
+      partial_discount_value?: string | null;
       is_complimentary?: boolean;
       accounting_bucket?: ComplaintAccountingBucket | null;
     }>;
