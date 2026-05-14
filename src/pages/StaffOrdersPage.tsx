@@ -832,6 +832,10 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (user?.restaurant?.finalize_invoice_status_mode === 'paid') {
+        throw new Error(t('staffOrdersPage.finalizeRequiresAccountingPaidMode'));
+      }
+
       const response = await finalizeGuestTableSession(session.id);
 
       if (

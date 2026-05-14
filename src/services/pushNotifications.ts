@@ -26,6 +26,7 @@ interface PushConfigResponse {
 }
 
 const SERVICE_WORKER_URL = '/sw.js';
+const SERVICE_WORKER_READY_TIMEOUT_MS = 10000;
 
 export class PushSetupError extends Error {
   code: PushSetupIssueCode;
@@ -144,7 +145,7 @@ export const registerPushServiceWorker = async (): Promise<ServiceWorkerRegistra
   ensureSecurePushContext();
   await ensureServiceWorkerScriptIsReachable();
 
-  const existingRegistration = await navigator.serviceWorker.getRegistration('/');
+  const existingRegistration = await navigator.serviceWorker.getRegistration();
 
   if (existingRegistration) {
     return existingRegistration;
@@ -158,6 +159,29 @@ export const registerPushServiceWorker = async (): Promise<ServiceWorkerRegistra
       'service_worker_registration_failed',
       'The app could not register its background notification service.'
     );
+  }
+};
+
+const waitForReadyPushRegistration = async (
+  fallbackRegistration: ServiceWorkerRegistration
+): Promise<ServiceWorkerRegistration> => {
+  if (fallbackRegistration.active) {
+    return fallbackRegistration;
+  }
+
+  try {
+    const readyRegistration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) => {
+        window.setTimeout(() => {
+          reject(new Error('Timed out while waiting for service worker readiness.'));
+        }, SERVICE_WORKER_READY_TIMEOUT_MS);
+      }),
+    ]);
+
+    return readyRegistration;
+  } catch {
+    return fallbackRegistration;
   }
 };
 
@@ -269,11 +293,12 @@ export const enableStaffPushNotifications = async (): Promise<StaffPushState> =>
     );
   }
 
-  let subscription = await registration.pushManager.getSubscription();
+  const readyRegistration = await waitForReadyPushRegistration(registration);
+  let subscription = await readyRegistration.pushManager.getSubscription();
 
   if (!subscription) {
     try {
-      subscription = await registration.pushManager.subscribe({
+      subscription = await readyRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: toUint8Array(config.public_key),
       });

@@ -436,7 +436,7 @@ export const finalizeGuestTableSession = async (
   sessionId: number | string,
   payload?: FinalizeGuestTableSessionPayload
 ): Promise<TableSessionActionResponse> => {
-  const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`, payload);
+  const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`, payload ?? {});
   return response.data;
 };
 
