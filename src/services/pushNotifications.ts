@@ -185,6 +185,54 @@ const waitForReadyPushRegistration = async (
   }
 };
 
+const decodeApplicationServerKey = (publicKey: string): Uint8Array<ArrayBuffer> => {
+  try {
+    return toUint8Array(publicKey);
+  } catch (error) {
+    console.warn('[Push] Invalid VAPID public key from server.', error);
+    throw new PushSetupError(
+      'server_not_configured',
+      'The server provided an invalid web push public key.'
+    );
+  }
+};
+
+const createPushSubscription = async (
+  registration: ServiceWorkerRegistration,
+  applicationServerKey: Uint8Array<ArrayBuffer>
+): Promise<PushSubscription> => {
+  try {
+    return await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  } catch (firstError) {
+    console.warn('[Push] First subscribe attempt failed. Retrying after SW update.', firstError);
+
+    try {
+      await registration.update();
+    } catch (updateError) {
+      console.warn('[Push] Service worker update before retry failed.', updateError);
+    }
+
+    const readyRegistration = await waitForReadyPushRegistration(registration);
+    const staleSubscription = await readyRegistration.pushManager.getSubscription();
+
+    if (staleSubscription) {
+      try {
+        await staleSubscription.unsubscribe();
+      } catch (unsubscribeError) {
+        console.warn('[Push] Failed to remove stale subscription before retry.', unsubscribeError);
+      }
+    }
+
+    return readyRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    });
+  }
+};
+
 const fetchPushConfig = async (): Promise<PushConfigResponse> => {
   const response = await api.get<PushConfigResponse>('/push/config');
   return response.data;
@@ -293,15 +341,13 @@ export const enableStaffPushNotifications = async (): Promise<StaffPushState> =>
     );
   }
 
+  const applicationServerKey = decodeApplicationServerKey(config.public_key);
   const readyRegistration = await waitForReadyPushRegistration(registration);
   let subscription = await readyRegistration.pushManager.getSubscription();
 
   if (!subscription) {
     try {
-      subscription = await readyRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: toUint8Array(config.public_key),
-      });
+      subscription = await createPushSubscription(readyRegistration, applicationServerKey);
     } catch (error) {
       console.warn('[Push] Push subscription creation failed.', error);
       throw new PushSetupError(
