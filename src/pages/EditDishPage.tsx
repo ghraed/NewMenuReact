@@ -7,7 +7,7 @@ import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish, InventoryIngredient } from '../types';
-import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 
 const guestPreviewTableId = import.meta.env.VITE_GUEST_TABLE_ID || '50';
@@ -63,6 +63,7 @@ const extractDishOptions = (payload: unknown): Dish[] => {
 };
 
 const EditDishPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -126,6 +127,12 @@ const EditDishPage: React.FC = () => {
 
     fetchDish();
   }, [dish_id]);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
 
   const handleUpdate = async (data: DishFormData) => {
     if (!dish_id || !dish) return;
@@ -404,6 +411,7 @@ const EditDishPage: React.FC = () => {
           submittingLabel="Updating..."
         />
       )}
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

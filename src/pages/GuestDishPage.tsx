@@ -16,6 +16,33 @@ import {
   getGuestRestaurantCandidateSlugs,
   getPreferredGuestRestaurantSlug,
 } from '../utils/guestRestaurant';
+import { normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
+
+const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string | null; dollar_rate?: number | null }>(
+  dish: Dish,
+  restaurant: TRestaurant
+): Dish => {
+  const storedSettings = readGuestCurrencySettings();
+  const restaurantCurrency = normalizeCurrency(storedSettings?.currency || restaurant.currency || dish.currency);
+  const restaurantDollarRate = typeof storedSettings?.dollar_rate === 'number'
+    ? storedSettings.dollar_rate
+    : (typeof restaurant.dollar_rate === 'number'
+      ? restaurant.dollar_rate
+      : (restaurantCurrency === 'USD' ? 1 : null));
+  const dishCurrency = normalizeCurrency(dish.currency || restaurant.currency);
+  const basePrice = Number(dish.price);
+
+  return {
+    ...dish,
+    price: Number.isFinite(basePrice) ? basePrice : 0,
+    currency: dishCurrency,
+    original_currency: restaurantCurrency,
+    price_is_usd_base: dishCurrency === 'USD',
+    dollar_rate: typeof dish.dollar_rate === 'number'
+      ? dish.dollar_rate
+      : (restaurantDollarRate ?? null),
+  };
+};
 
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
@@ -58,7 +85,7 @@ const GuestDishPage: React.FC = () => {
             return;
           }
 
-          setDish(response.dish);
+          setDish(applyRestaurantCurrencyToDish(response.dish, response.restaurant));
           setResolvedRestaurantSlug(response.restaurant.slug);
           setRestaurantName(response.restaurant.name || formatRestaurantLabel(response.restaurant.slug));
           setRestaurantLogoUrl(response.restaurant.logo_url ?? null);
@@ -105,7 +132,7 @@ const GuestDishPage: React.FC = () => {
                 return;
               }
 
-              setDish(response.data);
+              setDish(applyRestaurantCurrencyToDish(response.data, response.data?.restaurant || {}));
               setResolvedRestaurantSlug(response.data?.restaurant?.slug || candidateSlug);
               setRestaurantName(
                 response.data?.restaurant?.name
@@ -133,7 +160,7 @@ const GuestDishPage: React.FC = () => {
             return;
           }
 
-          setDish(response.data);
+          setDish(applyRestaurantCurrencyToDish(response.data, response.data?.restaurant || {}));
           setResolvedRestaurantSlug(response.data?.restaurant?.slug);
           setRestaurantName(
             response.data?.restaurant?.name

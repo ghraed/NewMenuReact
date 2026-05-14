@@ -5,6 +5,16 @@ export interface PrintableInvoiceItem {
   quantity: number;
   unitPrice: string;
   lineSubtotal: string;
+  originalLineSubtotal?: string;
+  status?: 'normal' | 'problematic' | 'cancelled' | 'compensated';
+  compensationType?: 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
+  reasonLabel?: string;
+  note?: string;
+  badgeLabel?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  accountingBucketLabel?: string;
+  isComplimentary?: boolean;
 }
 
 export interface PrintableInvoiceSummary {

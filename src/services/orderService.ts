@@ -3,6 +3,9 @@ import axios from 'axios';
 import type {
   ActiveTableSessionRecord,
   AccountOrderRequest,
+  ComplaintAccountingBucket,
+  ComplaintCategory,
+  ComplaintReasonCode,
   CreateGuestOrderRequest,
   FinancePaymentMethod,
   FinanceInvoiceStatus,
@@ -91,6 +94,18 @@ interface TableSessionActionResponse {
       quantity: number;
       unit_price: string;
       line_subtotal: string;
+      status?: 'normal' | 'problematic' | 'cancelled' | 'compensated';
+      compensation_type?: 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
+      compensation_reason?: ComplaintReasonCode | null;
+      complaint_category?: ComplaintCategory | null;
+      compensation_note?: string | null;
+      approved_by_staff_name?: string | null;
+      approved_at?: string | null;
+      original_unit_price?: string | null;
+      final_unit_price?: string | null;
+      partial_discount_percentage?: string | null;
+      is_complimentary?: boolean;
+      accounting_bucket?: ComplaintAccountingBucket | null;
     }>;
     included_orders: string[];
     summary: {

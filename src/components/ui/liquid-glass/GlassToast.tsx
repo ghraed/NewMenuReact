@@ -9,21 +9,12 @@ interface GlassToastProps {
   className?: string;
 }
 
-const toneTextClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#f8e6b8]',
-  secondary: 'text-[#f6edd8]',
-  tertiary: 'text-[#ffe6e3]',
-};
-
-const toneCloseClass: Record<NonNullable<ToastState['tone']>, string> = {
-  primary: 'text-[#f8e6b8]/80 hover:text-[#f8e6b8]',
-  secondary: 'text-[#f6edd8]/80 hover:text-[#f6edd8]',
-  tertiary: 'text-[#ffe6e3]/85 hover:text-[#ffe6e3]',
-};
-
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
   const tone = toast.tone || 'primary';
   const durationMs = Math.max(600, toast.durationMs ?? 2200);
+  const isDarkTheme = typeof document !== 'undefined'
+    ? window.getComputedStyle(document.documentElement).colorScheme === 'dark'
+    : true;
 
   if (!toast.open) {
     return null;
@@ -32,29 +23,38 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
   const toneIcon: Record<NonNullable<ToastState['tone']>, string> = {
     primary: '✓',
     secondary: 'i',
-    tertiary: '!',
+    tertiary: '×',
+  };
+
+  const toneTitle: Record<NonNullable<ToastState['tone']>, string> = {
+    primary: 'Update',
+    secondary: 'Info',
+    tertiary: 'Error',
   };
 
   const toneShell: Record<NonNullable<ToastState['tone']>, string> = {
-    primary:
-      'border-[#e4c16d]/70 bg-[linear-gradient(135deg,rgba(24,18,6,0.88),rgba(44,32,8,0.9))] text-[#f8e6b8] ring-[#f3d79a]/25',
-    secondary:
-      'border-[#dcc28a]/60 bg-[linear-gradient(135deg,rgba(14,20,33,0.88),rgba(18,32,52,0.9))] text-[#f6edd8] ring-white/20',
-    tertiary:
-      'border-[#ff8a80]/60 bg-[linear-gradient(135deg,rgba(65,12,16,0.9),rgba(88,20,24,0.92))] text-[#ffe6e3] ring-[#ffb8b1]/25',
+    primary: '',
+    secondary: '',
+    tertiary: '',
   };
 
   const toneBadge: Record<NonNullable<ToastState['tone']>, string> = {
-    primary: 'border-[#f3d79a]/55 bg-[#f3d79a]/18 text-[#ffe9b7]',
-    secondary: 'border-white/35 bg-white/10 text-[#f8f0df]',
-    tertiary: 'border-[#ffc4bd]/45 bg-[#ffb4aa]/20 text-[#ffe9e6]',
+    primary: 'border-emerald-200 bg-emerald-500 text-white',
+    secondary: 'border-sky-200 bg-sky-500 text-white',
+    tertiary: 'border-rose-200 bg-rose-500 text-white',
   };
 
   const toneProgress: Record<NonNullable<ToastState['tone']>, string> = {
-    primary: 'bg-[linear-gradient(90deg,#f3d79a,#d9ab43)]',
-    secondary: 'bg-[linear-gradient(90deg,#d9d0b9,#f1e8d2)]',
-    tertiary: 'bg-[linear-gradient(90deg,#ff9e96,#ffd2cd)]',
+    primary: 'bg-[linear-gradient(90deg,#27c279,#1da965)]',
+    secondary: 'bg-[linear-gradient(90deg,#2f98ff,#1f7ae0)]',
+    tertiary: 'bg-[linear-gradient(90deg,#f14668,#de2f52)]',
   };
+  const surfaceClass = isDarkTheme
+    ? 'border-white/10 bg-[linear-gradient(180deg,rgba(18,18,22,0.96),rgba(10,10,14,0.96))] ring-white/10'
+    : 'border-black/5 bg-[linear-gradient(180deg,#ffffff,#fbfbfd)] ring-black/5';
+  const titleTextClass = isDarkTheme ? 'text-white/94' : 'text-black/88';
+  const mutedTextClass = isDarkTheme ? 'text-white/68' : 'text-black/60';
+  const closeTextClass = isDarkTheme ? 'text-white/55 hover:text-white/88' : 'text-black/45 hover:text-black/75';
 
   const content = (
     <div
@@ -66,37 +66,45 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
     >
       <div
         className={cx(
-          'relative w-[min(92vw,30rem)] overflow-hidden rounded-2xl border px-4 py-3 shadow-[0_18px_46px_rgba(0,0,0,0.34)] ring-1 backdrop-blur-xl',
+          'relative w-[min(92vw,22rem)] overflow-hidden rounded-xl border px-4 py-3 shadow-[0_10px_26px_rgba(14,20,30,0.12)] ring-1 backdrop-blur-md',
+          surfaceClass,
           toneShell[tone],
           className
         )}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_0%_0%,rgba(255,255,255,0.18),transparent_55%)]" />
+        <div className={cx('pointer-events-none absolute inset-0', isDarkTheme
+          ? 'bg-[radial-gradient(120%_90%_at_0%_0%,rgba(255,255,255,0.12),transparent_58%)]'
+          : 'bg-[radial-gradient(120%_90%_at_0%_0%,rgba(255,255,255,0.6),transparent_58%)]')}
+        />
         <div className="relative z-10 flex items-center gap-3">
           <span
             className={cx(
-              'inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border text-sm font-semibold',
+              'inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[11px] font-bold',
               toneBadge[tone]
             )}
           >
             {toneIcon[tone]}
           </span>
-          <span className={cx('text-sm font-medium leading-5', toneTextClass[tone])}>{toast.message}</span>
+          <div className="min-w-0">
+            <p className={cx('text-[13px] font-semibold leading-4', titleTextClass)}>{toneTitle[tone]}</p>
+            <p className={cx('mt-1 text-[12px] leading-4', mutedTextClass)}>{toast.message}</p>
+          </div>
           {onClose && (
             <button
               type="button"
               onClick={onClose}
               aria-label="Close toast"
               className={cx(
-                'ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-black/10 text-sm font-semibold leading-none transition hover:bg-black/20',
-                toneCloseClass[tone]
+                'ml-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-sm font-semibold leading-none transition',
+                isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5',
+                closeTextClass
               )}
             >
               ×
             </button>
           )}
         </div>
-        <div className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden bg-white/10">
+        <div className={cx('absolute inset-x-0 bottom-0 h-[3px] overflow-hidden', isDarkTheme ? 'bg-white/10' : 'bg-black/[0.04]')}>
           <div
             key={toast.nonce}
             className={cx('h-full origin-left', toneProgress[tone])}

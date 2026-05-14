@@ -21,5 +21,9 @@ export const roleCanAccess = (role: UserRole | null | undefined, allowedRoles?: 
     return false;
   }
 
+  if (role === 'add' && allowedRoles.includes('admin')) {
+    return true;
+  }
+
   return allowedRoles.includes(role);
 };

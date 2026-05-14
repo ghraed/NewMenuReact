@@ -22,6 +22,7 @@ import {
   formatDollarRate,
   formatPriceWithCurrency,
   normalizeCurrency,
+  readGuestCurrencySettings,
 } from '../utils/currency';
 
 interface IngredientFilterItem {
@@ -137,7 +138,8 @@ const AdminStockHistoryPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
-  const baseCurrency = normalizeCurrency(user?.restaurant?.currency ?? 'USD');
+  const storedGuestCurrency = readGuestCurrencySettings()?.currency;
+  const baseCurrency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
   const [currency, setCurrency] = useState<CurrencyCode>(baseCurrency);
   const [dollarRate] = useState<number>(() => {
     const parsed = Number(user?.restaurant?.dollar_rate ?? 1);

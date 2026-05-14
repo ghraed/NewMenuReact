@@ -5,6 +5,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import DishForm, { type DishFormData } from '../components/Admin/DishForm';
 import api from '../services/api';
 import type { Dish, InventoryIngredient } from '../types';
+import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -37,6 +38,7 @@ const extractDishOptions = (payload: unknown): Dish[] => {
 };
 
 const CreateDishPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +83,12 @@ const CreateDishPage: React.FC = () => {
 
     fetchFormOptions();
   }, []);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
 
   const handleSubmit = async (dishData: DishFormData) => {
     setError(null);
@@ -154,6 +162,7 @@ const CreateDishPage: React.FC = () => {
         submitLabel={t('createDish.submit')}
         submittingLabel={t('createDish.submitting')}
       />
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

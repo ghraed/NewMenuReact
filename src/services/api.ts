@@ -38,6 +38,12 @@ export const getApiOrigin = (): string => {
 export const resolveAssetUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
   const apiOrigin = getApiOrigin();
+  const isLoopbackHost = (hostname: string): boolean => (
+    hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '::1'
+    || hostname === '[::1]'
+  );
 
   if (/^https?:\/\//i.test(url)) {
     try {
@@ -47,6 +53,22 @@ export const resolveAssetUrl = (url?: string | null): string | undefined => {
       // Keep absolute URLs for cross-origin frontend deployments (e.g. app on another domain/subdomain).
       if (currentOrigin && parsed.origin === currentOrigin) {
         return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      }
+
+      // Local dev safety: backend may emit loopback absolute URLs using stale APP_URL
+      // (e.g. http://localhost/storage/..). If both are loopback but ports differ,
+      // remap to the configured API origin so assets stay reachable.
+      try {
+        const apiParsed = new URL(apiOrigin);
+        if (
+          isLoopbackHost(parsed.hostname)
+          && isLoopbackHost(apiParsed.hostname)
+          && parsed.origin !== apiParsed.origin
+        ) {
+          return new URL(`${parsed.pathname}${parsed.search}${parsed.hash}`, apiOrigin).toString();
+        }
+      } catch {
+        // fall through
       }
     } catch {
       // fall through

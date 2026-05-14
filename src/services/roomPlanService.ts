@@ -174,6 +174,18 @@ export const fetchTableAvailability = async (params: {
   return response.data.availability ?? [];
 };
 
+export const fetchAdminTableAvailability = async (params: {
+  room_plan_id: number;
+  reservation_date: string;
+  start_time: string;
+  end_time: string;
+}): Promise<RoomPlanAvailabilityRow[]> => {
+  // Backend currently exposes availability on the public reservations route.
+  // Keep a dedicated admin helper so callers stay semantic and we can switch
+  // endpoints later without touching page logic.
+  return fetchTableAvailability(params);
+};
+
 export const createPublicReservation = async (payload: CreateReservationPayload): Promise<ReservationRecord> => {
   const response = await api.post<ReservationResponse>('/reservations', payload);
   return response.data.reservation;

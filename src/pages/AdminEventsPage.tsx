@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import { getEcho } from '../services/realtime';
 import { useAuth } from '../contexts/useAuth';
 import {
@@ -96,6 +97,7 @@ const toDraft = (event: EventReservationRecord): EventDraft => ({
 });
 
 const AdminEventsPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const { user } = useAuth();
   const [events, setEvents] = useState<EventReservationRecord[]>([]);
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
@@ -199,6 +201,18 @@ const AdminEventsPage: React.FC = () => {
     setMenuDraft(nextMenuDraft);
     setForecast(null);
   }, [selectedEvent]);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
 
   const handleCreateNew = () => {
     setSelectedEventId(null);
@@ -569,6 +583,7 @@ const AdminEventsPage: React.FC = () => {
         {error ? <div className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy">{error}</div> : null}
         {success ? <div className="rounded-xl border border-sage/45 bg-sage/10 px-3 py-2 text-sm text-sage">{success}</div> : null}
       </div>
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

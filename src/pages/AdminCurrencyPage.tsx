@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import api from '../services/api';
 import type { CurrencyCode } from '../types';
-import { GlassInput, GlassSelect, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassInput, GlassSelect, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { CURRENCY_OPTIONS, normalizeCurrency, persistGuestCurrencySettings, readGuestCurrencySettings } from '../utils/currency';
 
 interface CurrencySettingsResponse {
   currency?: string;
+  other_currency?: string | null;
   dollar_rate?: number | string | null;
   restaurant?: {
     currency?: string;
+    other_currency?: string | null;
     dollar_rate?: number | string | null;
   };
 }
@@ -30,7 +32,9 @@ const parseDollarRate = (value: unknown): string => {
 };
 
 const AdminCurrencyPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const [originalCurrency, setOriginalCurrency] = useState<CurrencyCode>('USD');
+  const [otherCurrency, setOtherCurrency] = useState<CurrencyCode>('EUR');
   const [dollarRate, setDollarRate] = useState('1');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,16 +50,25 @@ const AdminCurrencyPage: React.FC = () => {
         const response = await api.get<CurrencySettingsResponse>('/restaurant/currency-settings');
         const payload = response.data;
         const nextCurrency = normalizeCurrency(payload.currency || payload.restaurant?.currency);
+        const nextOtherCurrency = normalizeCurrency(
+          payload.other_currency || payload.restaurant?.other_currency || (nextCurrency === 'USD' ? 'EUR' : 'USD')
+        );
         const nextRate = parseDollarRate(payload.dollar_rate ?? payload.restaurant?.dollar_rate);
 
         setOriginalCurrency(nextCurrency);
+        setOtherCurrency(nextOtherCurrency === nextCurrency ? (nextCurrency === 'USD' ? 'EUR' : 'USD') : nextOtherCurrency);
         setDollarRate(nextRate);
-        persistGuestCurrencySettings(nextCurrency, Number(nextRate));
+        persistGuestCurrencySettings(nextCurrency, Number(nextRate), nextOtherCurrency);
       } catch (err) {
         console.error(err);
         const stored = readGuestCurrencySettings();
         if (stored) {
           setOriginalCurrency(stored.currency);
+          setOtherCurrency(
+            stored.other_currency
+              ? (stored.other_currency === stored.currency ? (stored.currency === 'USD' ? 'EUR' : 'USD') : stored.other_currency)
+              : (stored.currency === 'USD' ? 'EUR' : 'USD')
+          );
           setDollarRate(String(stored.dollar_rate));
         } else {
           setError('Failed to load currency settings.');
@@ -68,6 +81,18 @@ const AdminCurrencyPage: React.FC = () => {
     void fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -77,6 +102,9 @@ const AdminCurrencyPage: React.FC = () => {
       const normalizedRate = dollarRate.trim();
       const parsedRate = Number(normalizedRate);
       const safeDollarRate = originalCurrency === 'USD' ? 1 : parsedRate;
+      const safeOtherCurrency = otherCurrency === originalCurrency
+        ? (originalCurrency === 'USD' ? 'EUR' : 'USD')
+        : otherCurrency;
 
       if (!Number.isFinite(safeDollarRate) || safeDollarRate <= 0) {
         setError('Exchange rate must be a number greater than 0.');
@@ -85,10 +113,11 @@ const AdminCurrencyPage: React.FC = () => {
       }
 
       // Keep guest view consistent immediately on this device, even if API sync fails.
-      persistGuestCurrencySettings(originalCurrency, safeDollarRate);
+      persistGuestCurrencySettings(originalCurrency, safeDollarRate, safeOtherCurrency);
 
       await api.patch('/restaurant/currency-settings', {
         currency: originalCurrency,
+        other_currency: safeOtherCurrency,
         dollar_rate: safeDollarRate,
       });
 
@@ -97,6 +126,7 @@ const AdminCurrencyPage: React.FC = () => {
       } else {
         setDollarRate(String(safeDollarRate));
       }
+      setOtherCurrency(safeOtherCurrency);
 
       setSuccess('Currency settings saved.');
     } catch (err: unknown) {
@@ -115,16 +145,16 @@ const AdminCurrencyPage: React.FC = () => {
       ) : (
         <div className="max-w-2xl space-y-6">
           <div className="rounded-[24px] border border-stroke bg-bg1/60 p-5">
-            <h2 className="text-lg font-semibold text-text">Guest Menu Currency</h2>
+            <h2 className="text-lg font-semibold text-text">Default App Currency</h2>
             <p className="mt-2 text-sm text-muted">
-              Pick the original currency and the exchange rate shown to guests when they tap a dish price.
+              Choose the default currency used across finance, expenses, and the guest menu view.
             </p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
-                Base Menu Currency
+                Default Currency
               </label>
               <GlassSelect
                 id="currency"
@@ -133,6 +163,9 @@ const AdminCurrencyPage: React.FC = () => {
                 onChange={(event) => {
                   const nextCurrency = normalizeCurrency(event.target.value);
                   setOriginalCurrency(nextCurrency);
+                  if (otherCurrency === nextCurrency) {
+                    setOtherCurrency(nextCurrency === 'USD' ? 'EUR' : 'USD');
+                  }
                   if (nextCurrency === 'USD') {
                     setDollarRate('1');
                   }
@@ -142,6 +175,33 @@ const AdminCurrencyPage: React.FC = () => {
                   label: option.label,
                 }))}
               />
+            </div>
+
+            <div>
+              <label htmlFor="other_currency" className="mb-1 block text-sm font-medium text-text">
+                Other Currency
+              </label>
+              <GlassSelect
+                id="other_currency"
+                name="other_currency"
+                value={otherCurrency}
+                onChange={(event) => {
+                  const nextCurrency = normalizeCurrency(event.target.value);
+                  if (nextCurrency === originalCurrency) {
+                    return;
+                  }
+                  setOtherCurrency(nextCurrency);
+                }}
+                options={CURRENCY_OPTIONS
+                  .filter((option) => option.value !== originalCurrency)
+                  .map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+              />
+              <p className="mt-2 text-xs text-muted">
+                Secondary currency used in the system for alternate currency views.
+              </p>
             </div>
 
             <div>
@@ -161,7 +221,7 @@ const AdminCurrencyPage: React.FC = () => {
               />
               <p className="mt-2 text-xs text-muted">
                 {originalCurrency === 'USD'
-                  ? 'This value is fixed at 1 when the base menu currency is USD.'
+                  ? 'This value is fixed at 1 when the default currency is USD.'
                   : `Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
               </p>
             </div>
@@ -182,6 +242,7 @@ const AdminCurrencyPage: React.FC = () => {
           </div>
         </div>
       )}
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

@@ -5,6 +5,7 @@ import { GlassToast, useGlassToast } from '../ui/liquid-glass';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { callGuestTableWaiter, requestGuestTableBill } from '../../services/orderService';
 import { savePrintableInvoice } from '../../utils/printableInvoice';
+import { readBillAdjustmentsForTable } from '../../utils/billAdjustments';
 import { useGuestMenuResource } from '../../contexts/GuestMenuResourceContext';
 import { buildGuestOrderReviewPath } from '../../utils/guestTableRoutes';
 
@@ -153,20 +154,81 @@ const GuestWaveButton: React.FC = () => {
       const response = await requestGuestTableBill(sessionId, draft.guestAccessToken);
 
       if (response.invoice_preview && activeTableId) {
+        const adjustments = readBillAdjustmentsForTable(response.invoice_preview.table_name);
+        const byOrderItemId = new Map<number, (typeof adjustments)[number]>();
+        const localOnlyGifts: Array<(typeof adjustments)[number]> = [];
+
+        adjustments.forEach((adjustment) => {
+          if (adjustment.local_only) {
+            localOnlyGifts.push(adjustment);
+            return;
+          }
+          if (typeof adjustment.order_item_id === 'number') {
+            byOrderItemId.set(adjustment.order_item_id, adjustment);
+          }
+        });
+
+        const printableItems = response.invoice_preview.items.map((item) => {
+          const adjustment = typeof item.order_item_id === 'number'
+            ? byOrderItemId.get(item.order_item_id)
+            : undefined;
+          const quantity = item.quantity;
+          const originalUnitPrice = Number(adjustment?.original_unit_price ?? item.original_unit_price ?? item.unit_price);
+          const finalUnitPrice = Number(adjustment?.final_unit_price ?? item.final_unit_price ?? item.unit_price);
+          const lineSubtotal = Number.isFinite(finalUnitPrice) ? (finalUnitPrice * quantity).toFixed(2) : item.line_subtotal;
+          const originalLineSubtotal = Number.isFinite(originalUnitPrice) ? (originalUnitPrice * quantity).toFixed(2) : undefined;
+
+          return {
+            key: item.key,
+            dishName: item.dish_name,
+            dishNameArabic: item.dish_name_ar || undefined,
+            quantity,
+            unitPrice: `$${Number.isFinite(finalUnitPrice) ? finalUnitPrice.toFixed(2) : item.unit_price}`,
+            lineSubtotal: `$${lineSubtotal}`,
+            originalLineSubtotal: originalLineSubtotal ? `$${originalLineSubtotal}` : undefined,
+            status: adjustment?.status || item.status || 'normal',
+            compensationType: adjustment?.compensation_type || item.compensation_type || 'none',
+            reasonLabel: adjustment?.compensation_reason || item.compensation_reason || undefined,
+            note: adjustment?.compensation_note || item.compensation_note || undefined,
+            badgeLabel: adjustment?.status
+              ? adjustment.status.replace(/_/g, ' ')
+              : (item.status ? item.status.replace(/_/g, ' ') : undefined),
+            approvedBy: adjustment?.approved_by_staff_name || item.approved_by_staff_name || undefined,
+            approvedAt: adjustment?.approved_at || item.approved_at || undefined,
+            accountingBucketLabel: adjustment?.accounting_bucket || item.accounting_bucket || undefined,
+            isComplimentary: adjustment?.is_complimentary === true || item.is_complimentary === true,
+          };
+        });
+
+        localOnlyGifts.forEach((gift, index) => {
+          const qty = gift.quantity || 1;
+          printableItems.push({
+            key: `gift-local-${index + 1}-${gift.key}`,
+            dishName: gift.dish_name,
+            dishNameArabic: undefined,
+            quantity: qty,
+            unitPrice: `$${Number(gift.final_unit_price || 0).toFixed(2)}`,
+            lineSubtotal: '$0.00',
+            originalLineSubtotal: `$${(Number(gift.original_unit_price || 0) * qty).toFixed(2)}`,
+            status: gift.status,
+            compensationType: gift.compensation_type,
+            reasonLabel: gift.compensation_reason || undefined,
+            note: gift.compensation_note || undefined,
+            badgeLabel: gift.status.replace(/_/g, ' '),
+            approvedBy: gift.approved_by_staff_name || undefined,
+            approvedAt: gift.approved_at || undefined,
+            accountingBucketLabel: gift.accounting_bucket || undefined,
+            isComplimentary: true,
+          });
+        });
+
         savePrintableInvoice({
           sourceTableId: activeTableId,
           restaurantName: response.invoice_preview.restaurant_name,
           tableName: response.invoice_preview.table_name,
           generatedAt: new Date(response.invoice_preview.generated_at).toLocaleString(),
           notes: response.invoice_preview.notes,
-          items: response.invoice_preview.items.map((item) => ({
-            key: item.key,
-            dishName: item.dish_name,
-            dishNameArabic: item.dish_name_ar || undefined,
-            quantity: item.quantity,
-            unitPrice: `$${item.unit_price}`,
-            lineSubtotal: `$${item.line_subtotal}`,
-          })),
+          items: printableItems,
           includedOrders: response.invoice_preview.included_orders,
           summary: {
             subtotal: `$${response.invoice_preview.summary.subtotal}`,

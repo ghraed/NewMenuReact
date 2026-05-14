@@ -3,13 +3,33 @@ import type { CurrencyCode } from '../types';
 export const CURRENCY_OPTIONS: Array<{ value: CurrencyCode; label: string; symbol: string }> = [
   { value: 'USD', label: 'Dollar (USD)', symbol: '$' },
   { value: 'LBP', label: 'Lebanese Pound (LBP)', symbol: 'LBP' },
-  { value: 'SYP', label: 'Syrian Lira (LS)', symbol: 'LS' },
+  { value: 'SYP', label: 'Syrian Lira (LS)', symbol: 'SYP' },
+  { value: 'SAR', label: 'Saudi Riyal (SAR)', symbol: '﷼' },
+  { value: 'AED', label: 'UAE Dirham (AED)', symbol: 'د.إ' },
+  { value: 'EUR', label: 'Euro (EUR)', symbol: '€' },
+  { value: 'QAR', label: 'Qatari Riyal (QAR)', symbol: '﷼' },
 ];
 
 export const normalizeCurrency = (value?: string | null): CurrencyCode => {
   const normalized = (value || '').trim().toUpperCase();
 
-  if (normalized === 'LBP' || normalized === 'SYP' || normalized === 'USD') {
+  if (normalized === 'EUA' || normalized === 'UAE') {
+    return 'AED';
+  }
+
+  if (normalized === 'EURO') {
+    return 'EUR';
+  }
+
+  if (
+    normalized === 'LBP'
+    || normalized === 'SYP'
+    || normalized === 'USD'
+    || normalized === 'SAR'
+    || normalized === 'AED'
+    || normalized === 'EUR'
+    || normalized === 'QAR'
+  ) {
     return normalized;
   }
 
@@ -107,9 +127,13 @@ export const formatUsdEquivalent = (
   return `USD: $${formatMoney(usdAmount)}`;
 };
 
-const GUEST_CURRENCY_SETTINGS_KEY = 'guest_currency_settings_v1';
+const GUEST_CURRENCY_SETTINGS_KEY = 'guest_currency_settings_v2';
 
-export const persistGuestCurrencySettings = (currency: CurrencyCode, dollarRate: number): void => {
+export const persistGuestCurrencySettings = (
+  currency: CurrencyCode,
+  dollarRate: number,
+  otherCurrency?: CurrencyCode | null
+): void => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -120,6 +144,7 @@ export const persistGuestCurrencySettings = (currency: CurrencyCode, dollarRate:
       JSON.stringify({
         currency: normalizeCurrency(currency),
         dollar_rate: dollarRate > 0 ? dollarRate : 1,
+        other_currency: otherCurrency ? normalizeCurrency(otherCurrency) : undefined,
       })
     );
   } catch {
@@ -127,7 +152,7 @@ export const persistGuestCurrencySettings = (currency: CurrencyCode, dollarRate:
   }
 };
 
-export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_rate: number } | null => {
+export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_rate: number; other_currency?: CurrencyCode } | null => {
   if (typeof window === 'undefined') {
     return null;
   }
@@ -138,8 +163,9 @@ export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_ra
       return null;
     }
 
-    const parsed = JSON.parse(raw) as { currency?: string; dollar_rate?: unknown };
+    const parsed = JSON.parse(raw) as { currency?: string; dollar_rate?: unknown; other_currency?: string };
     const currency = normalizeCurrency(parsed.currency);
+    const otherCurrency = parsed.other_currency ? normalizeCurrency(parsed.other_currency) : undefined;
     const dollarRate = typeof parsed.dollar_rate === 'number' && Number.isFinite(parsed.dollar_rate) && parsed.dollar_rate > 0
       ? parsed.dollar_rate
       : 1;
@@ -147,6 +173,7 @@ export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_ra
     return {
       currency,
       dollar_rate: dollarRate,
+      other_currency: otherCurrency,
     };
   } catch {
     return null;

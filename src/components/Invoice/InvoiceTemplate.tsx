@@ -119,14 +119,30 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                 {invoice.items.map((item) => (
                   <div
                     key={item.key}
-                    className={`grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 px-4 py-4 text-sm ${isGuest ? '' : 'text-[#f1ede4] print:text-black'}`}
+                    className={`grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 px-4 py-4 text-sm ${
+                      item.isComplimentary
+                        ? isGuest
+                          ? ''
+                          : 'bg-emerald-500/[0.08] text-emerald-100 print:bg-emerald-100/40 print:text-black'
+                        : item.status === 'cancelled' || item.status === 'problematic'
+                          ? isGuest
+                            ? ''
+                            : 'bg-rose-500/[0.08] text-rose-100 print:bg-rose-100/40 print:text-black'
+                          : isGuest
+                            ? ''
+                            : 'text-[#f1ede4] print:text-black'
+                    }`}
                     style={isGuest ? {
-                      color: 'var(--guest-text)',
+                      color: item.isComplimentary
+                        ? '#3bd48b'
+                        : item.status === 'cancelled' || item.status === 'problematic'
+                          ? '#ff7e93'
+                          : 'var(--guest-text)',
                       borderTop: '1px solid var(--guest-border)',
                     } : undefined}
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">
+                      <p className={`truncate font-medium ${item.status === 'cancelled' || item.status === 'problematic' ? 'line-through' : ''}`}>
                         {translateDishLabel(item.dishName, i18n.resolvedLanguage, item.dishNameArabic)}
                       </p>
                       <p
@@ -135,6 +151,36 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                       >
                         {item.unitPrice}
                       </p>
+                      {item.badgeLabel ? (
+                        <p
+                          className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] ${
+                            isGuest ? '' : 'border-white/15 bg-white/5 text-[#c8c0b2] print:border-black/20 print:bg-black/[0.04] print:text-black/70'
+                          }`}
+                          style={isGuest ? {
+                            borderColor: 'var(--guest-border)',
+                            color: 'var(--guest-muted)',
+                          } : undefined}
+                        >
+                          {item.badgeLabel}
+                        </p>
+                      ) : null}
+                      {item.reasonLabel ? (
+                        <p
+                          className={`mt-1 text-[11px] ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/65'}`}
+                          style={isGuest ? { color: 'var(--guest-muted)' } : undefined}
+                        >
+                          Reason: {item.reasonLabel}
+                          {item.note ? ` • ${item.note}` : ''}
+                        </p>
+                      ) : null}
+                      {item.approvedBy ? (
+                        <p
+                          className={`mt-1 text-[11px] ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/65'}`}
+                          style={isGuest ? { color: 'var(--guest-muted)' } : undefined}
+                        >
+                          Approved by {item.approvedBy}
+                        </p>
+                      ) : null}
                     </div>
                     <span
                       className={`text-right ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/75'}`}
@@ -142,7 +188,14 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                     >
                       {item.quantity}
                     </span>
-                    <span className="text-right font-medium">{item.lineSubtotal}</span>
+                    <span className="text-right font-medium">
+                      {item.lineSubtotal}
+                      {item.originalLineSubtotal && item.originalLineSubtotal !== item.lineSubtotal ? (
+                        <span className={`block text-xs line-through ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/65'}`}>
+                          {item.originalLineSubtotal}
+                        </span>
+                      ) : null}
+                    </span>
                   </div>
                 ))}
               </div>

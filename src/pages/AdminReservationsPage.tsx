@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   createAdminReservation,
   fetchAdminReservations,
+  fetchAdminTableAvailability,
   fetchRoomPlan,
   fetchRoomPlans,
-  fetchTableAvailability,
   setAdminReservationStatus,
 } from '../services/roomPlanService';
 import type { ReservationRecord, RoomPlan, RoomPlanAvailabilityRow } from '../types';
@@ -16,6 +17,7 @@ const today = new Date().toISOString().slice(0, 10);
 const timeSlots = toTimeSlots(15);
 
 const AdminReservationsPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const { user } = useAuth();
   const isStaffView = user?.role === 'staff';
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
@@ -53,7 +55,7 @@ const AdminReservationsPage: React.FC = () => {
 
     setCreateAvailabilityLoading(true);
     try {
-      const rows = await fetchTableAvailability({
+      const rows = await fetchAdminTableAvailability({
         room_plan_id: createRoomPlanId,
         reservation_date: createReservationDate,
         start_time: createStartTime,
@@ -117,6 +119,18 @@ const AdminReservationsPage: React.FC = () => {
   useEffect(() => {
     void refreshCreateAvailability();
   }, [refreshCreateAvailability]);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
 
   const createTableOptions = useMemo(() => {
     const availableLookup = new Map(createAvailability.map((row) => [row.room_plan_item_id, row]));
@@ -486,6 +500,7 @@ const AdminReservationsPage: React.FC = () => {
         {error ? <div className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy">{error}</div> : null}
         {success ? <div className="rounded-xl border border-sage/45 bg-sage/10 px-3 py-2 text-sm text-sage">{success}</div> : null}
       </div>
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

@@ -9,11 +9,14 @@ import {
 import type { RoomPlan, RoomPlanAvailabilityRow } from '../types';
 import { roomPlanStatusColor, toTimeSlots } from '../utils/roomPlan';
 import NotFoundView from '../components/Common/NotFoundView';
+import { resolveAssetUrl } from '../services/api';
+import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 
 const today = new Date().toISOString().slice(0, 10);
 const timeSlots = toTimeSlots(15);
 
 const ReservationsPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const [roomPlans, setRoomPlans] = useState<RoomPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<RoomPlan | null>(null);
@@ -143,6 +146,19 @@ const ReservationsPage: React.FC = () => {
     () => availability.find((row) => typeof row.unavailable_reason === 'string' && row.unavailable_reason.trim() !== '')?.unavailable_reason ?? null,
     [availability]
   );
+  const selectedPlanBackgroundImageUrl = resolveAssetUrl(selectedPlan?.background_image_url);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -312,9 +328,9 @@ const ReservationsPage: React.FC = () => {
                       backgroundColor: 'rgba(8, 10, 20, 0.35)',
                     }}
                   >
-                    {selectedPlan.background_image_url ? (
+                    {selectedPlanBackgroundImageUrl ? (
                       <img
-                        src={selectedPlan.background_image_url}
+                        src={selectedPlanBackgroundImageUrl}
                         alt=""
                         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
                         style={{ objectFit: 'fill' }}
@@ -434,6 +450,7 @@ const ReservationsPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <GlassToast toast={toast} onClose={dismiss} />
     </div>
   );
 };

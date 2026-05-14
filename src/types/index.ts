@@ -1,14 +1,33 @@
 // src/types/index.ts
 export type DishAssetType = 'usdz' | 'glb' | 'preview_image' | 'ingredient_image';
-export type UserRole = 'admin' | 'staff' | 'chef' | 'stock_manager' | 'accountant';
+export type UserRole = 'admin' | 'add' | 'staff' | 'chef' | 'stock_manager' | 'accountant';
 export type OrderStatus = 'pending_staff_confirmation' | 'staff_confirmed' | 'staff_cancelled' | 'accounted';
 export type KitchenOrderStatus = 'new' | 'in_progress' | 'ready' | 'served';
 export type DiscountType = 'fixed' | 'percentage';
+export type OrderItemIssueStatus = 'normal' | 'problematic' | 'cancelled' | 'compensated';
+export type OrderItemCompensationType = 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
+export type ComplaintCategory = 'quality_control' | 'service' | 'safety' | 'other';
+export type ComplaintReasonCode =
+  | 'quality_issue'
+  | 'wrong_cooking'
+  | 'foreign_object'
+  | 'fly_or_hair'
+  | 'allergy_risk'
+  | 'late_service'
+  | 'temperature_issue'
+  | 'other';
+export type ComplaintAccountingBucket =
+  | 'wastage'
+  | 'customer_complaint_loss'
+  | 'quality_control_loss'
+  | 'marketing_expense'
+  | 'customer_retention'
+  | 'goodwill_expense';
 export type TableWaveStatus = 'pending' | 'resolved';
 export type TableWaveRequestType = 'call_waiter' | 'request_bill';
 export type TableSessionStatus = 'active' | 'closed' | 'expired' | 'suspended';
 export type InvoiceSplitMode = 'none' | 'equal' | 'by_person_order';
-export type CurrencyCode = 'USD' | 'LBP' | 'SYP';
+export type CurrencyCode = 'USD' | 'LBP' | 'SYP' | 'SAR' | 'AED' | 'EUR' | 'QAR';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 export type FinalizeInvoiceStatusMode = 'issued' | 'paid';
 export type FinancePaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
@@ -145,6 +164,7 @@ export interface RestaurantSummary {
   slug: string;
   logo_url?: string | null;
   currency?: CurrencyCode | null;
+  other_currency?: CurrencyCode | null;
   dollar_rate?: number | null;
   max_tables?: number;
   profile?: RestaurantProfile | null;
@@ -434,6 +454,22 @@ export interface PosCheckoutRequest {
   items: Array<{
     dish_id: number;
     quantity: number;
+    status?: OrderItemIssueStatus;
+    compensation_type?: OrderItemCompensationType;
+    compensation_reason?: ComplaintReasonCode | null;
+    complaint_category?: ComplaintCategory | null;
+    compensation_note?: string | null;
+    approved_by_staff_id?: number | null;
+    approved_by_staff_name?: string | null;
+    approved_by_staff_role?: UserRole | null;
+    approved_at?: string | null;
+    original_unit_price?: number | null;
+    final_unit_price?: number | null;
+    partial_discount_percentage?: number | null;
+    is_complimentary?: boolean;
+    accounting_bucket?: ComplaintAccountingBucket | null;
+    customer_satisfaction_rating?: number | null;
+    evidence_photo_url?: string | null;
   }>;
   vat_rate?: number;
   discount_type?: DiscountType;
@@ -481,6 +517,20 @@ export interface OrderLineItem {
   line_subtotal: string;
   modifiers?: string[];
   dish_notes?: string | null;
+  status?: OrderItemIssueStatus;
+  compensation_type?: OrderItemCompensationType;
+  compensation_reason?: ComplaintReasonCode | null;
+  complaint_category?: ComplaintCategory | null;
+  compensation_note?: string | null;
+  approved_by?: OrderActorSummary | null;
+  approved_at?: string | null;
+  original_unit_price?: string | null;
+  final_unit_price?: string | null;
+  partial_discount_percentage?: string | null;
+  is_complimentary?: boolean;
+  accounting_bucket?: ComplaintAccountingBucket | null;
+  customer_satisfaction_rating?: number | null;
+  evidence_photo_url?: string | null;
 }
 
 export interface OrderRecord {

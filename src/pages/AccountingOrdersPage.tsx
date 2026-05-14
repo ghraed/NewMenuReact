@@ -14,25 +14,44 @@ import {
   accountConfirmedOrder,
   fetchAccountingOrders,
   fetchGuestTables,
-  fetchPendingWaves,
+  fetchPublishedDishes,
   fetchStaffTableSessionInvoiceSplit,
   finalizeGuestTableSession,
 } from '../services/orderService';
 import { fetchInvoices } from '../services/invoiceService';
+import { ensureEchoConnection, getEcho } from '../services/realtime';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import { calculateInvoicePreview } from '../utils/financeMath';
+import { upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
+import {
+  COMPLAINT_CATEGORY_LABELS,
+  COMPLAINT_REASON_OPTIONS,
+  COMPLAINT_ACCOUNTING_BUCKET_LABELS,
+  COMPLAINT_REASON_LABELS,
+  COMPENSATION_TYPE_LABELS,
+  ISSUE_STATUS_LABELS,
+  getComplaintCategoryFromReason,
+  getDefaultComplaintBucket,
+} from '../utils/orderItemCompensation';
 import type {
   AccountOrderRequest,
+  ComplaintAccountingBucket,
+  ComplaintCategory,
+  ComplaintReasonCode,
   DiscountType,
   FinalizeInvoiceStatusMode,
   FinancePaymentMethod,
   InvoiceSplitSummary,
   OrderRecord,
+  OrderItemCompensationType,
+  OrderItemIssueStatus,
+  OrderLineItem,
+  PublishedDishSummary,
   RestaurantTableSummary,
 } from '../types';
 
-const ACCOUNTING_POLL_INTERVAL_MS = 5000;
+const ACCOUNTING_FALLBACK_POLL_INTERVAL_MS = 30000;
 
 type TableDraftState = Record<string, {
   vatRate: string;
@@ -52,6 +71,26 @@ const emptyAccountingDraft = {
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
 
+interface AccountingCompDraft {
+  status: OrderItemIssueStatus;
+  compensationType: OrderItemCompensationType;
+  reason: ComplaintReasonCode | '';
+  category: ComplaintCategory | '';
+  note: string;
+  partialDiscountPercent: string;
+  accountingBucket: ComplaintAccountingBucket | '';
+}
+
+const makeDefaultCompDraft = (): AccountingCompDraft => ({
+  status: 'normal',
+  compensationType: 'none',
+  reason: '',
+  category: '',
+  note: '',
+  partialDiscountPercent: '0',
+  accountingBucket: '',
+});
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -62,6 +101,26 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
   return fallback;
 };
+
+const parseDateToMillis = (value?: string | null): number => {
+  if (!value) {
+    return 0;
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const sortAccountingOrders = (rows: OrderRecord[]): OrderRecord[] => (
+  [...rows].sort((left, right) => {
+    const confirmedDifference = parseDateToMillis(right.confirmed_at) - parseDateToMillis(left.confirmed_at);
+    if (confirmedDifference !== 0) {
+      return confirmedDifference;
+    }
+
+    return parseDateToMillis(right.created_at) - parseDateToMillis(left.created_at);
+  })
+);
 
 const AccountingOrdersPage: React.FC = () => {
   const { t } = useTranslation();
@@ -83,12 +142,19 @@ const AccountingOrdersPage: React.FC = () => {
   const [splitLoading, setSplitLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<FinancePaymentMethod>('cash');
   const [paymentReference, setPaymentReference] = useState('');
+  const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
+  const [selectedGiftDishId, setSelectedGiftDishId] = useState<string>('');
+  const [localItemOverrides, setLocalItemOverrides] = useState<Record<string, Partial<OrderLineItem>>>({});
+  const [localGiftItemsByTable, setLocalGiftItemsByTable] = useState<Record<string, OrderLineItem[]>>({});
+  const [editingLineKey, setEditingLineKey] = useState<string | null>(null);
+  const [compDraft, setCompDraft] = useState<AccountingCompDraft>(makeDefaultCompDraft());
+  const [isRealtimeDegraded, setIsRealtimeDegraded] = useState(false);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasLoadedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
-  const knownBillRequestIdsRef = useRef<Set<number>>(new Set());
   const refreshInFlightRef = useRef(false);
+  const canManageCompensation = user?.role === 'admin' || user?.role === 'staff' || user?.role === 'accountant';
 
   const discountOptions = useMemo(() => ([
     { value: '', label: t('accountingPage.noDiscount') },
@@ -99,6 +165,31 @@ const AccountingOrdersPage: React.FC = () => {
   const getOrderLabel = useCallback((order: OrderRecord): string => (
     order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })
   ), [t]);
+
+  const upsertAccountingOrder = useCallback((nextOrder: OrderRecord) => {
+    setOrders((current) => {
+      const existingIndex = current.findIndex((order) => order.id === nextOrder.id);
+      if (existingIndex === -1) {
+        const nextRows = sortAccountingOrders([nextOrder, ...current]);
+        knownOrderIdsRef.current = new Set(nextRows.map((order) => order.id));
+        return nextRows;
+      }
+
+      const nextRows = [...current];
+      nextRows[existingIndex] = nextOrder;
+      const sortedRows = sortAccountingOrders(nextRows);
+      knownOrderIdsRef.current = new Set(sortedRows.map((order) => order.id));
+      return sortedRows;
+    });
+  }, []);
+
+  const removeAccountingOrder = useCallback((orderId: number) => {
+    setOrders((current) => {
+      const nextRows = current.filter((order) => order.id !== orderId);
+      knownOrderIdsRef.current = new Set(nextRows.map((order) => order.id));
+      return nextRows;
+    });
+  }, []);
 
   const loadOrders = useCallback(async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
@@ -115,25 +206,16 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     try {
-      const canReadPendingWaves = user?.role === 'admin' || user?.role === 'staff';
       const nextOrders = await fetchAccountingOrders();
-      const pendingWaves = canReadPendingWaves
-        ? await fetchPendingWaves()
-        : [];
       const previousKnownOrderIds = knownOrderIdsRef.current;
       const newOrders = hasLoadedOrdersRef.current
         ? nextOrders.filter((order) => !previousKnownOrderIds.has(order.id))
         : [];
-      const nextBillRequests = pendingWaves.filter((wave) => wave.request_type === 'request_bill');
-      const previousKnownBillRequestIds = knownBillRequestIdsRef.current;
-      const newBillRequests = hasLoadedOrdersRef.current
-        ? nextBillRequests.filter((wave) => !previousKnownBillRequestIds.has(wave.id))
-        : [];
 
-      setOrders(nextOrders);
+      const sortedOrders = sortAccountingOrders(nextOrders);
+      setOrders(sortedOrders);
       setError(null);
-      knownOrderIdsRef.current = new Set(nextOrders.map((order) => order.id));
-      knownBillRequestIdsRef.current = new Set(nextBillRequests.map((wave) => wave.id));
+      knownOrderIdsRef.current = new Set(sortedOrders.map((order) => order.id));
       hasLoadedOrdersRef.current = true;
 
       if (newOrders.length === 1) {
@@ -144,20 +226,6 @@ const AccountingOrdersPage: React.FC = () => {
         );
       } else if (newOrders.length > 1) {
         showToast(t('accountingPage.newOrdersArrived', { count: newOrders.length }), 'secondary', 4200);
-      }
-
-      if (newBillRequests.length === 1) {
-        showToast(
-          t('accountingPage.billRequested', { table: newBillRequests[0].table_reference }),
-          'secondary',
-          4200
-        );
-      } else if (newBillRequests.length > 1) {
-        showToast(
-          t('accountingPage.billRequestsArrived', { count: newBillRequests.length }),
-          'secondary',
-          4200
-        );
       }
     } catch (err: unknown) {
       if (!silent) {
@@ -170,7 +238,7 @@ const AccountingOrdersPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [getOrderLabel, showToast, t, user?.role]);
+  }, [getOrderLabel, showToast, t]);
 
   useEffect(() => {
     void loadOrders();
@@ -178,6 +246,31 @@ const AccountingOrdersPage: React.FC = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const handleResume = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+
+      ensureEchoConnection();
+      void loadOrders({ silent: true });
+    };
+
+    window.addEventListener('focus', handleResume);
+    window.addEventListener('online', handleResume);
+    document.addEventListener('visibilitychange', handleResume);
+
+    return () => {
+      window.removeEventListener('focus', handleResume);
+      window.removeEventListener('online', handleResume);
+      document.removeEventListener('visibilitychange', handleResume);
+    };
+  }, [loadOrders]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isRealtimeDegraded) {
       return undefined;
     }
 
@@ -189,20 +282,76 @@ const AccountingOrdersPage: React.FC = () => {
       void loadOrders({ silent: true });
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void loadOrders({ silent: true });
-      }
-    };
-
-    const intervalId = window.setInterval(runSilentRefresh, ACCOUNTING_POLL_INTERVAL_MS);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    const intervalId = window.setInterval(runSilentRefresh, ACCOUNTING_FALLBACK_POLL_INTERVAL_MS);
     return () => {
       window.clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [loadOrders]);
+  }, [isRealtimeDegraded, loadOrders]);
+
+  useEffect(() => {
+    if (!user?.restaurant?.id) {
+      return undefined;
+    }
+
+    const echo = getEcho();
+    if (!echo) {
+      setIsRealtimeDegraded(true);
+      return undefined;
+    }
+
+    const channelName = `restaurant.${user.restaurant.id}.accounting`;
+    const channel = echo.private(channelName);
+
+    setIsRealtimeDegraded(false);
+
+    channel.listen('.accounting-order.created', (event: { order?: OrderRecord }) => {
+      if (!event.order) return;
+      const isNewOrder = !knownOrderIdsRef.current.has(event.order.id);
+      upsertAccountingOrder(event.order);
+
+      if (isNewOrder) {
+        showToast(
+          t('accountingPage.newOrderArrived', { order: getOrderLabel(event.order), table: event.order.table_reference }),
+          'secondary',
+          4200
+        );
+      }
+    });
+
+    channel.listen('.accounting-order.updated', (event: { order?: OrderRecord }) => {
+      if (!event.order) return;
+      upsertAccountingOrder(event.order);
+    });
+
+    channel.listen('.accounting-order.removed', (event: { order?: OrderRecord }) => {
+      if (!event.order) return;
+      removeAccountingOrder(event.order.id);
+    });
+
+    const pusherConnection = (echo.connector as { pusher?: { connection?: { bind: (event: string, cb: (...args: unknown[]) => void) => void; unbind: (event: string, cb: (...args: unknown[]) => void) => void } } }).pusher?.connection;
+
+    const handleConnected = () => {
+      setIsRealtimeDegraded(false);
+      void loadOrders({ silent: true });
+    };
+    const handleDisconnected = () => {
+      setIsRealtimeDegraded(true);
+    };
+    const handleError = () => {
+      setIsRealtimeDegraded(true);
+    };
+
+    pusherConnection?.bind('connected', handleConnected);
+    pusherConnection?.bind('disconnected', handleDisconnected);
+    pusherConnection?.bind('error', handleError);
+
+    return () => {
+      pusherConnection?.unbind('connected', handleConnected);
+      pusherConnection?.unbind('disconnected', handleDisconnected);
+      pusherConnection?.unbind('error', handleError);
+      echo.leave(channelName);
+    };
+  }, [getOrderLabel, loadOrders, removeAccountingOrder, showToast, t, upsertAccountingOrder, user?.restaurant?.id]);
 
   useEffect(() => {
     const restaurantSlug = user?.restaurant?.slug;
@@ -228,6 +377,23 @@ const AccountingOrdersPage: React.FC = () => {
 
     loadTables();
   }, [t, user?.restaurant?.slug]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPublishedDishes()
+      .then((dishes) => {
+        if (cancelled) return;
+        setPublishedDishes(dishes.filter((dish) => dish.is_orderable !== false));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPublishedDishes([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isTableMenuOpen) {
@@ -289,7 +455,9 @@ const AccountingOrdersPage: React.FC = () => {
       return null;
     }
 
-    const total = filteredOrders.reduce((sum, order) => sum + Number(order.invoice.subtotal || 0), 0);
+    const total = filteredOrders.reduce((sum, order) => (
+      sum + order.items.reduce((lineSum, item) => lineSum + Number(item.line_subtotal || 0), 0)
+    ), 0);
 
     return {
       orderCount: filteredOrders.length,
@@ -315,9 +483,33 @@ const AccountingOrdersPage: React.FC = () => {
 
   const selectedTableOrders = useMemo(() => (
     selectedTable
-      ? orders.filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable)
+      ? (() => {
+          const tableOrders = orders.filter((order) => order.table?.name === selectedTable || order.table_reference === selectedTable);
+          const giftItems = localGiftItemsByTable[selectedTable] || [];
+          let giftAttached = false;
+
+          return tableOrders.map((order) => {
+            const nextItems = order.items.map((item) => {
+              const override = localItemOverrides[`${order.id}:${item.id}`];
+              return override ? { ...item, ...override } : item;
+            });
+
+            if (!giftAttached && giftItems.length > 0) {
+              giftAttached = true;
+              return {
+                ...order,
+                items: [...nextItems, ...giftItems],
+              };
+            }
+
+            return {
+              ...order,
+              items: nextItems,
+            };
+          });
+        })()
       : []
-  ), [orders, selectedTable]);
+  ), [localGiftItemsByTable, localItemOverrides, orders, selectedTable]);
 
   const splitFeatureEnabled = user?.restaurant?.feature_flags?.invoice_splitting === true;
   const finalizeInvoiceStatusMode: FinalizeInvoiceStatusMode = (
@@ -340,7 +532,9 @@ const AccountingOrdersPage: React.FC = () => {
   ), [selectedTable, tableDrafts]);
 
   const selectedTableInvoiceSubtotal = useMemo(() => (
-    selectedTableOrders.reduce((sum, order) => sum + Number(order.invoice.subtotal || 0), 0)
+    selectedTableOrders.reduce((sum, order) => (
+      sum + order.items.reduce((lineSum, item) => lineSum + Number(item.line_subtotal || 0), 0)
+    ), 0)
   ), [selectedTableOrders]);
 
   const selectedTablePreview = useMemo(() => (
@@ -365,30 +559,299 @@ const AccountingOrdersPage: React.FC = () => {
     const grouped = new Map<string, {
       key: string;
       dish_name: string;
+      dish_name_ar?: string | null;
+      source_refs: Array<{ order_id: number; order_item_id: number }>;
       quantity: number;
       unit_price: string;
       line_subtotal: string;
+      original_line_subtotal: string;
+      status: 'normal' | 'problematic' | 'cancelled' | 'compensated';
+      compensation_type: 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
+      compensation_reason: string | null;
+      compensation_note: string | null;
+      approved_by_name: string | null;
+      approved_at: string | null;
+      is_complimentary: boolean;
+      accounting_bucket: string | null;
     }>();
 
     selectedTableOrders.forEach((order) => {
       order.items.forEach((item) => {
-        const key = `${item.dish_id ?? item.dish_name}-${item.unit_price}`;
+        const status = item.status || 'normal';
+        const compensationType = item.compensation_type || 'none';
+        const reason = item.compensation_reason || null;
+        const note = item.compensation_note || null;
+        const approvedByName = item.approved_by?.name || null;
+        const approvedAt = item.approved_at || null;
+        const isComplimentary = item.is_complimentary === true || compensationType === 'complimentary';
+        const accountingBucket = item.accounting_bucket || null;
+        const key = [
+          item.dish_id ?? item.dish_name,
+          item.unit_price,
+          status,
+          compensationType,
+          reason || 'none',
+          note || 'none',
+          accountingBucket || 'none',
+        ].join('-');
         const existing = grouped.get(key);
         const quantity = (existing?.quantity || 0) + item.quantity;
         const lineSubtotal = (Number(existing?.line_subtotal || 0) + Number(item.line_subtotal || 0)).toFixed(2);
+        const itemOriginalUnit = Number(item.original_unit_price || item.unit_price || 0);
+        const originalLineSubtotal = (
+          Number(existing?.original_line_subtotal || 0)
+          + (itemOriginalUnit * item.quantity)
+        ).toFixed(2);
 
         grouped.set(key, {
           key,
           dish_name: item.dish_name,
+          dish_name_ar: null,
+          source_refs: [
+            ...(existing?.source_refs || []),
+            { order_id: order.id, order_item_id: item.id },
+          ],
           quantity,
           unit_price: item.unit_price,
           line_subtotal: lineSubtotal,
+          original_line_subtotal: originalLineSubtotal,
+          status,
+          compensation_type: compensationType,
+          compensation_reason: reason,
+          compensation_note: note,
+          approved_by_name: approvedByName,
+          approved_at: approvedAt,
+          is_complimentary: isComplimentary,
+          accounting_bucket: accountingBucket,
         });
       });
     });
 
     return Array.from(grouped.values()).sort((a, b) => a.dish_name.localeCompare(b.dish_name));
   }, [selectedTable, selectedTableOrders]);
+
+  const openCompensationEditor = (lineKey: string) => {
+    const line = selectedTableLineItems.find((entry) => entry.key === lineKey);
+    if (!line) {
+      return;
+    }
+
+    setEditingLineKey(lineKey);
+    setCompDraft({
+      status: line.status,
+      compensationType: line.compensation_type,
+      reason: (line.compensation_reason as ComplaintReasonCode | null) || '',
+      category: '',
+      note: line.compensation_note || '',
+      partialDiscountPercent: '0',
+      accountingBucket: (line.accounting_bucket as ComplaintAccountingBucket | null) || '',
+    });
+  };
+
+  const applyLineCompensationFromAccounting = () => {
+    if (!selectedTable || !editingLineKey) {
+      return;
+    }
+
+    if (!canManageCompensation) {
+      showToast('You are not authorized to edit item compensation.', 'secondary');
+      return;
+    }
+
+    const line = selectedTableLineItems.find((entry) => entry.key === editingLineKey);
+    if (!line) {
+      return;
+    }
+
+    if (compDraft.status !== 'normal' && !compDraft.reason) {
+      showToast('Please select a complaint reason before saving.', 'secondary');
+      return;
+    }
+
+    const partialDiscountPercent = Math.max(0, Math.min(100, Number(compDraft.partialDiscountPercent || '0')));
+    const approvedAt = new Date().toISOString();
+    const refSet = new Set(line.source_refs.map((ref) => `${ref.order_id}:${ref.order_item_id}`));
+
+    const updates: Record<string, Partial<OrderLineItem>> = {};
+    const persistedAdjustments: Array<{
+      key: string;
+      order_item_id?: number | null;
+      dish_name: string;
+      quantity?: number;
+      status: OrderItemIssueStatus;
+      compensation_type: OrderItemCompensationType;
+      compensation_reason?: ComplaintReasonCode | null;
+      complaint_category?: ComplaintCategory | null;
+      compensation_note?: string | null;
+      approved_by_staff_name?: string | null;
+      approved_at?: string | null;
+      original_unit_price?: string | null;
+      final_unit_price?: string | null;
+      is_complimentary?: boolean;
+      accounting_bucket?: ComplaintAccountingBucket | null;
+      local_only?: boolean;
+    }> = [];
+    selectedTableOrders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (!refSet.has(`${order.id}:${item.id}`)) {
+          return;
+        }
+
+        const originalUnit = Number(item.original_unit_price || item.unit_price || 0);
+        const normalizedOriginalUnit = Number.isFinite(originalUnit) ? originalUnit : 0;
+
+        let nextFinalUnit = normalizedOriginalUnit;
+        if (compDraft.status !== 'normal') {
+          if (compDraft.compensationType === 'complimentary' || compDraft.compensationType === 'full_waiver' || compDraft.status === 'cancelled') {
+            nextFinalUnit = 0;
+          } else if (compDraft.compensationType === 'partial_discount') {
+            nextFinalUnit = normalizedOriginalUnit * (1 - (partialDiscountPercent / 100));
+          }
+        }
+
+        const nextLineSubtotal = Number((nextFinalUnit * item.quantity).toFixed(2));
+        const nextAdjustment = {
+          key: `${order.id}:${item.id}`,
+          order_item_id: item.id,
+          dish_name: item.dish_name,
+          quantity: item.quantity,
+          status: compDraft.status,
+          compensation_type: compDraft.status === 'normal' ? 'none' : compDraft.compensationType,
+          compensation_reason: compDraft.status === 'normal' ? null : (compDraft.reason || null),
+          complaint_category: compDraft.status === 'normal'
+            ? null
+            : (compDraft.category || getComplaintCategoryFromReason(compDraft.reason || null) || 'other'),
+          compensation_note: compDraft.note.trim() || null,
+          approved_by_staff_name: compDraft.status === 'normal' ? null : (user?.name || null),
+          approved_at: compDraft.status === 'normal' ? null : approvedAt,
+          original_unit_price: normalizedOriginalUnit.toFixed(2),
+          final_unit_price: compDraft.status === 'normal' ? normalizedOriginalUnit.toFixed(2) : nextFinalUnit.toFixed(2),
+          is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
+          accounting_bucket: compDraft.status === 'normal'
+            ? null
+            : (compDraft.accountingBucket || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType) || null),
+        };
+        persistedAdjustments.push(nextAdjustment);
+        updates[`${order.id}:${item.id}`] = {
+          status: nextAdjustment.status,
+          compensation_type: nextAdjustment.compensation_type,
+          compensation_reason: nextAdjustment.compensation_reason,
+          complaint_category: nextAdjustment.complaint_category,
+          compensation_note: compDraft.note.trim() || null,
+          approved_at: compDraft.status === 'normal' ? null : approvedAt,
+          approved_by: compDraft.status === 'normal'
+            ? null
+            : (user ? {
+                id: user.id,
+                name: user.name,
+                role: user.role,
+                email: user.email,
+                phone: user.phone ?? null,
+              } : null),
+          original_unit_price: normalizedOriginalUnit.toFixed(2),
+          final_unit_price: compDraft.status === 'normal' ? normalizedOriginalUnit.toFixed(2) : nextFinalUnit.toFixed(2),
+          partial_discount_percentage: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
+            ? partialDiscountPercent.toFixed(2)
+            : null,
+          is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
+          accounting_bucket: compDraft.status === 'normal'
+            ? null
+            : (compDraft.accountingBucket || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType) || null),
+          line_subtotal: nextLineSubtotal.toFixed(2),
+        };
+      });
+    });
+
+    upsertBillAdjustmentsForTable(selectedTable, persistedAdjustments);
+
+    setLocalItemOverrides((current) => ({
+      ...current,
+      ...updates,
+    }));
+
+    setEditingLineKey(null);
+    setCompDraft(makeDefaultCompDraft());
+    showToast('Item compensation updated from accounting.', 'secondary');
+  };
+
+  const addComplimentaryDishFromAccounting = () => {
+    if (!selectedTable || selectedTableOrders.length === 0) {
+      showToast('Select a table with active orders before adding a complimentary item.', 'secondary');
+      return;
+    }
+
+    if (!canManageCompensation) {
+      showToast('You are not authorized to add complimentary items.', 'secondary');
+      return;
+    }
+
+    const dishId = Number(selectedGiftDishId);
+    const selectedDish = publishedDishes.find((dish) => dish.id === dishId);
+    if (!selectedDish) {
+      showToast('Choose a dish to add as complimentary.', 'secondary');
+      return;
+    }
+
+    const targetOrderId = selectedTableOrders[0]?.id;
+    if (!targetOrderId) {
+      showToast('No target order found for this table.', 'secondary');
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const generatedItemId = -Date.now();
+
+    const giftItem: OrderLineItem = {
+      id: generatedItemId,
+      dish_id: selectedDish.id,
+      dish_name: selectedDish.name,
+      unit_price: selectedDish.price.toFixed(2),
+      quantity: 1,
+      line_subtotal: '0.00',
+      status: 'compensated',
+      compensation_type: 'complimentary',
+      compensation_reason: 'other',
+      complaint_category: 'service',
+      compensation_note: 'Customer compensation',
+      approved_by: user ? {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        phone: user.phone ?? null,
+      } : null,
+      approved_at: now,
+      original_unit_price: selectedDish.price.toFixed(2),
+      final_unit_price: '0.00',
+      is_complimentary: true,
+      accounting_bucket: 'goodwill_expense',
+    };
+
+    upsertBillAdjustmentsForTable(selectedTable, [{
+      key: `gift:${selectedTable}:${generatedItemId}`,
+      dish_name: selectedDish.name,
+      quantity: 1,
+      status: 'compensated',
+      compensation_type: 'complimentary',
+      compensation_reason: 'other',
+      complaint_category: 'service',
+      compensation_note: 'Customer compensation',
+      approved_by_staff_name: user?.name || null,
+      approved_at: now,
+      original_unit_price: selectedDish.price.toFixed(2),
+      final_unit_price: '0.00',
+      is_complimentary: true,
+      accounting_bucket: 'goodwill_expense',
+      local_only: true,
+    }]);
+
+    setLocalGiftItemsByTable((current) => ({
+      ...current,
+      [selectedTable]: [ ...(current[selectedTable] || []), giftItem ],
+    }));
+
+    showToast(`${selectedDish.name} added as complimentary.`, 'secondary');
+  };
 
   const selectedTableNotes = useMemo(() => (
     selectedTableOrders
@@ -570,9 +1033,24 @@ const AccountingOrdersPage: React.FC = () => {
       items: selectedTableLineItems.map((item) => ({
         key: item.key,
         dishName: item.dish_name,
+        dishNameArabic: item.dish_name_ar || undefined,
         quantity: item.quantity,
         unitPrice: `$${item.unit_price}`,
         lineSubtotal: formatMoney(Number(item.line_subtotal)),
+        originalLineSubtotal: formatMoney(Number(item.original_line_subtotal)),
+        status: item.status,
+        compensationType: item.compensation_type,
+        reasonLabel: item.compensation_reason
+          ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
+          : undefined,
+        note: item.compensation_note || undefined,
+        badgeLabel: item.status !== 'normal' ? ISSUE_STATUS_LABELS[item.status] : undefined,
+        approvedBy: item.approved_by_name || undefined,
+        approvedAt: item.approved_at || undefined,
+        accountingBucketLabel: item.accounting_bucket
+          ? COMPLAINT_ACCOUNTING_BUCKET_LABELS[item.accounting_bucket as keyof typeof COMPLAINT_ACCOUNTING_BUCKET_LABELS]
+          : undefined,
+        isComplimentary: item.is_complimentary,
       })),
       includedOrders: selectedTableOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })),
       summary: {
@@ -797,19 +1275,261 @@ const AccountingOrdersPage: React.FC = () => {
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
             <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-text">{t('accountingPage.itemsAcrossTable')}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-text">{t('accountingPage.itemsAcrossTable')}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={selectedGiftDishId}
+                    onChange={(event) => setSelectedGiftDishId(event.target.value)}
+                    className="themed-native-select rounded-full border border-white/10 bg-bg1/70 px-3 py-1.5 text-xs text-text outline-none transition focus:border-gold"
+                    disabled={!canManageCompensation}
+                  >
+                    <option value="">Select complimentary dish</option>
+                    {publishedDishes.map((dish) => (
+                      <option key={dish.id} value={dish.id}>
+                        {dish.name} (${dish.price.toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                  <LiquidButton
+                    tone="tertiary"
+                    className="px-3 py-1.5 text-xs"
+                    disabled={!canManageCompensation}
+                    onClick={addComplimentaryDishFromAccounting}
+                  >
+                    Add Gift Dish
+                  </LiquidButton>
+                </div>
+              </div>
               <div className="mt-3 space-y-3">
-                {selectedTableLineItems.map((item) => (
-                  <div key={item.key} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-text">{item.dish_name}</p>
-                      <p className="text-sm text-muted">
-                        {item.quantity} × ${item.unit_price}
-                      </p>
+                {selectedTableLineItems.map((item) => {
+                  const isCancelledOrProblematic = item.status === 'cancelled' || item.status === 'problematic';
+                  const isComplimentary = item.is_complimentary;
+                  const reasonLabel = item.compensation_reason
+                    ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
+                    : null;
+                  const hasDiscountedLine = Number(item.original_line_subtotal) > Number(item.line_subtotal);
+
+                  return (
+                    <div
+                      key={item.key}
+                      className={`rounded-[20px] border px-4 py-3 ${
+                        isComplimentary
+                          ? 'border-emerald-400/30 bg-emerald-500/10'
+                          : isCancelledOrProblematic
+                            ? 'border-rose-400/30 bg-rose-500/10'
+                            : 'border-white/10 bg-black/10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={`truncate font-medium ${isCancelledOrProblematic ? 'text-rose-100 line-through' : 'text-text'}`}>
+                            {item.dish_name}
+                          </p>
+                          <p className="text-sm text-muted">
+                            {item.quantity} × ${item.unit_price}
+                            {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
+                          </p>
+                          {reasonLabel ? (
+                            <p className="text-xs text-muted2">
+                              Reason: {reasonLabel}
+                              {item.compensation_note ? ` • ${item.compensation_note}` : ''}
+                            </p>
+                          ) : null}
+                          {item.approved_by_name ? (
+                            <p className="text-[11px] text-muted2">
+                              Approved by {item.approved_by_name}
+                              {item.approved_at ? ` • ${new Date(item.approved_at).toLocaleString()}` : ''}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className={`text-sm font-semibold ${
+                            isComplimentary
+                              ? 'text-emerald-100'
+                              : isCancelledOrProblematic
+                                ? 'text-rose-100'
+                                : 'text-gold2'
+                          }`}
+                          >
+                            ${item.line_subtotal}
+                          </div>
+                          {hasDiscountedLine ? (
+                            <div className="text-xs text-muted line-through">${item.original_line_subtotal}</div>
+                          ) : null}
+                          {item.status !== 'normal' ? (
+                            <div className="mt-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted2">
+                              {ISSUE_STATUS_LABELS[item.status]}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex justify-end">
+                        <LiquidButton
+                          tone="tertiary"
+                          className="px-3 py-1.5 text-xs"
+                          disabled={!canManageCompensation}
+                          onClick={() => openCompensationEditor(item.key)}
+                        >
+                          Edit Issue / Compensation
+                        </LiquidButton>
+                      </div>
+
+                      {editingLineKey === item.key ? (
+                        <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                          <div className="grid gap-3">
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Status</span>
+                                <select
+                                  value={compDraft.status}
+                                  onChange={(event) => {
+                                    const nextStatus = event.target.value as OrderItemIssueStatus;
+                                    const defaultType: OrderItemCompensationType = nextStatus === 'normal'
+                                      ? 'none'
+                                      : nextStatus === 'cancelled'
+                                        ? 'full_waiver'
+                                        : 'partial_discount';
+                                    setCompDraft((current) => ({
+                                      ...current,
+                                      status: nextStatus,
+                                      compensationType: defaultType,
+                                      accountingBucket: nextStatus === 'normal'
+                                        ? ''
+                                        : (getDefaultComplaintBucket(nextStatus, defaultType) || ''),
+                                    }));
+                                  }}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                >
+                                  {(['normal', 'problematic', 'cancelled', 'compensated'] as OrderItemIssueStatus[]).map((status) => (
+                                    <option key={status} value={status}>{ISSUE_STATUS_LABELS[status]}</option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Compensation Type</span>
+                                <select
+                                  value={compDraft.compensationType}
+                                  disabled={compDraft.status === 'normal'}
+                                  onChange={(event) => {
+                                    const nextType = event.target.value as OrderItemCompensationType;
+                                    setCompDraft((current) => ({
+                                      ...current,
+                                      compensationType: nextType,
+                                      accountingBucket: getDefaultComplaintBucket(current.status, nextType) || current.accountingBucket,
+                                    }));
+                                  }}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45 disabled:opacity-60"
+                                >
+                                  {(['none', 'full_waiver', 'partial_discount', 'complimentary'] as OrderItemCompensationType[]).map((type) => (
+                                    <option key={type} value={type}>{COMPENSATION_TYPE_LABELS[type]}</option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Reason</span>
+                                <select
+                                  value={compDraft.reason}
+                                  onChange={(event) => {
+                                    const nextReason = event.target.value as ComplaintReasonCode | '';
+                                    setCompDraft((current) => ({
+                                      ...current,
+                                      reason: nextReason,
+                                      category: getComplaintCategoryFromReason(nextReason || null) || current.category,
+                                    }));
+                                  }}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                >
+                                  <option value="">Select reason</option>
+                                  {COMPLAINT_REASON_OPTIONS.map((reasonOption) => (
+                                    <option key={reasonOption.value} value={reasonOption.value}>{reasonOption.label}</option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Category</span>
+                                <select
+                                  value={compDraft.category}
+                                  onChange={(event) => setCompDraft((current) => ({ ...current, category: event.target.value as ComplaintCategory | '' }))}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                >
+                                  <option value="">Auto from reason</option>
+                                  {(['quality_control', 'service', 'safety', 'other'] as ComplaintCategory[]).map((category) => (
+                                    <option key={category} value={category}>{COMPLAINT_CATEGORY_LABELS[category]}</option>
+                                  ))}
+                                </select>
+                              </label>
+                            </div>
+
+                            {compDraft.compensationType === 'partial_discount' ? (
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Partial Discount %</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  step="1"
+                                  value={compDraft.partialDiscountPercent}
+                                  onChange={(event) => setCompDraft((current) => ({ ...current, partialDiscountPercent: event.target.value }))}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                />
+                              </label>
+                            ) : null}
+
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Accounting Bucket</span>
+                              <select
+                                value={compDraft.accountingBucket}
+                                onChange={(event) => setCompDraft((current) => ({ ...current, accountingBucket: event.target.value as ComplaintAccountingBucket | '' }))}
+                                className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                              >
+                                <option value="">Auto bucket</option>
+                                {(['wastage', 'customer_complaint_loss', 'quality_control_loss', 'marketing_expense', 'customer_retention', 'goodwill_expense'] as ComplaintAccountingBucket[]).map((bucket) => (
+                                  <option key={bucket} value={bucket}>{COMPLAINT_ACCOUNTING_BUCKET_LABELS[bucket]}</option>
+                                ))}
+                              </select>
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Note (optional)</span>
+                              <textarea
+                                value={compDraft.note}
+                                rows={2}
+                                onChange={(event) => setCompDraft((current) => ({ ...current, note: event.target.value }))}
+                                className="w-full rounded-2xl border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                              />
+                            </label>
+
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <LiquidButton
+                                tone="secondary"
+                                className="px-3 py-1.5 text-xs"
+                                onClick={() => {
+                                  setEditingLineKey(null);
+                                  setCompDraft(makeDefaultCompDraft());
+                                }}
+                              >
+                                Cancel
+                              </LiquidButton>
+                              <LiquidButton
+                                className="px-3 py-1.5 text-xs"
+                                onClick={applyLineCompensationFromAccounting}
+                              >
+                                Save Compensation
+                              </LiquidButton>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="shrink-0 text-sm font-semibold text-gold2">${item.line_subtotal}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="mt-4 rounded-[22px] border border-white/10 bg-black/10 p-4">
@@ -1067,19 +1787,55 @@ const AccountingOrdersPage: React.FC = () => {
                     <span className="text-right">{t('accountingPage.total')}</span>
                   </div>
                   <div className="divide-y divide-white/10">
-                    {selectedTableLineItems.map((item) => (
-                      <div
-                        key={`invoice-${item.key}`}
-                        className="grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 px-4 py-4 text-sm text-text"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{item.dish_name}</p>
-                          <p className="mt-1 text-xs text-muted">{t('common.eachPrice', { price: item.unit_price })}</p>
+                    {selectedTableLineItems.map((item) => {
+                      const isCancelledOrProblematic = item.status === 'cancelled' || item.status === 'problematic';
+                      const isComplimentary = item.is_complimentary;
+                      const reasonLabel = item.compensation_reason
+                        ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
+                        : null;
+                      const hasDiscountedLine = Number(item.original_line_subtotal) > Number(item.line_subtotal);
+
+                      return (
+                        <div
+                          key={`invoice-${item.key}`}
+                          className={`grid grid-cols-[minmax(0,1fr)_100px_110px] gap-3 px-4 py-4 text-sm ${
+                            isComplimentary
+                              ? 'bg-emerald-500/[0.08] text-emerald-100'
+                              : isCancelledOrProblematic
+                                ? 'bg-rose-500/[0.08] text-rose-100'
+                                : 'text-text'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className={`truncate font-medium ${isCancelledOrProblematic ? 'line-through' : ''}`}>{item.dish_name}</p>
+                            <p className="mt-1 text-xs text-muted">
+                              {t('common.eachPrice', { price: item.unit_price })}
+                              {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
+                            </p>
+                            {reasonLabel ? (
+                              <p className="mt-1 text-xs text-muted2">
+                                Reason: {reasonLabel}
+                                {item.compensation_note ? ` • ${item.compensation_note}` : ''}
+                              </p>
+                            ) : null}
+                            {item.status !== 'normal' ? (
+                              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-muted2">
+                                {ISSUE_STATUS_LABELS[item.status]}
+                              </p>
+                            ) : null}
+                          </div>
+                          <span className="text-right text-muted">{item.quantity}</span>
+                          <span className="text-right font-medium">
+                            {formatMoney(Number(item.line_subtotal))}
+                            {hasDiscountedLine ? (
+                              <span className="block text-xs text-muted line-through">
+                                {formatMoney(Number(item.original_line_subtotal))}
+                              </span>
+                            ) : null}
+                          </span>
                         </div>
-                        <span className="text-right text-muted">{item.quantity}</span>
-                        <span className="text-right font-medium">{formatMoney(Number(item.line_subtotal))}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

@@ -53,6 +53,7 @@ export interface UpdateVendorPayload {
 export interface CreateExpensePayload {
   expense_category_id: number;
   vendor_id?: number | null;
+  linked_stock_movement_id?: number | null;
   expense_date: string;
   amount_cents: number;
   tax_amount_cents?: number;
@@ -69,6 +70,7 @@ export interface CreateExpensePayload {
 export interface UpdateExpensePayload {
   expense_category_id?: number;
   vendor_id?: number | null;
+  linked_stock_movement_id?: number | null;
   expense_date?: string;
   amount_cents?: number;
   tax_amount_cents?: number;

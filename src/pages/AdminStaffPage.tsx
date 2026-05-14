@@ -51,6 +51,7 @@ const staffCreationRoles: Array<{ value: Extract<UserRole, 'staff' | 'chef' | 's
 
 const roleLabelByValue: Record<UserRole, string> = {
   admin: 'Admin',
+  add: 'ADD',
   staff: 'Staff',
   chef: 'Chef',
   stock_manager: 'Stock Manager',

@@ -15,6 +15,7 @@ import { Bar } from 'react-chartjs-2';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
+import { buildCompensationDashboardReport, readCompensationLedger } from '../services/complaintCompensationService';
 import api from '../services/api';
 import {
   createInvoice,
@@ -40,6 +41,7 @@ import {
   convertPriceToUsd,
   formatPriceWithCurrency,
   normalizeCurrency,
+  readGuestCurrencySettings,
 } from '../utils/currency';
 import { validateFinanceDateRange } from '../utils/financeReporting';
 import { downloadFinanceExecutiveWorkbook } from '../utils/financeReportWorkbook';
@@ -374,7 +376,8 @@ const AnimatedIntegerValue: React.FC<{
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const baseCurrency = normalizeCurrency(user?.restaurant?.currency ?? 'USD');
+  const storedGuestCurrency = readGuestCurrencySettings()?.currency;
+  const baseCurrency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
   const [currency, setCurrency] = useState<CurrencyCode>(baseCurrency);
   const [dollarRate, setDollarRate] = useState<number>(() => (
     parsePositiveRate(user?.restaurant?.dollar_rate) ?? 1
@@ -466,6 +469,15 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const formatFinanceAmount = useCallback((amount: number): string => (
     formatPriceWithCurrency(convertFinanceAmount(amount), currency)
   ), [convertFinanceAmount, currency]);
+
+  const compensationReport = useMemo(
+    () => buildCompensationDashboardReport(readCompensationLedger()),
+    [loading, operationsLoading, dateFrom, dateTo, statusFilter]
+  );
+
+  const latestDailyComplaintLoss = compensationReport.daily_losses[compensationReport.daily_losses.length - 1]?.amount ?? 0;
+  const latestWeeklyComplaintLoss = compensationReport.weekly_losses[compensationReport.weekly_losses.length - 1]?.amount ?? 0;
+  const latestMonthlyComplaintLoss = compensationReport.monthly_losses[compensationReport.monthly_losses.length - 1]?.amount ?? 0;
 
   const loadInvoiceTablePage = useCallback(async () => {
     setInvoiceTableLoading(true);
@@ -1210,6 +1222,84 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <p className="mt-1 text-base font-semibold text-text">
                   <AnimatedIntegerValue value={scheduledShiftsCount} />
                 </p>
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard>
+            <div className="mb-3">
+              <h3 className="text-lg font-semibold text-text">Complaint & Compensation</h3>
+              <p className="mt-1 text-sm text-muted">Loss analytics from cancelled dishes and complimentary goodwill actions.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Total Compensation Cost</p>
+                <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(compensationReport.total_compensation_cost)}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Cancelled Items</p>
+                <p className="mt-1 text-base font-semibold text-rose-200">{compensationReport.cancelled_item_count}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Complimentary Items</p>
+                <p className="mt-1 text-base font-semibold text-emerald-200">{compensationReport.complimentary_item_count}</p>
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Daily Loss</p>
+                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestDailyComplaintLoss)}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Weekly Loss</p>
+                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestWeeklyComplaintLoss)}</p>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Monthly Loss</p>
+                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestMonthlyComplaintLoss)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Most Cancelled Dishes</p>
+                <div className="mt-2 space-y-1 text-sm text-muted">
+                  {compensationReport.most_cancelled_dishes.length === 0 ? (
+                    <p>No complaint records yet.</p>
+                  ) : compensationReport.most_cancelled_dishes.slice(0, 5).map((dish) => (
+                    <p key={dish.dish_name} className="flex items-center justify-between">
+                      <span className="text-text">{dish.dish_name}</span>
+                      <span className="text-rose-200">{dish.count}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Common Reasons</p>
+                <div className="mt-2 space-y-1 text-sm text-muted">
+                  {compensationReport.most_common_reasons.length === 0 ? (
+                    <p>No reason data yet.</p>
+                  ) : compensationReport.most_common_reasons.slice(0, 5).map((reason) => (
+                    <p key={reason.reason} className="flex items-center justify-between">
+                      <span className="text-text">{reason.reason.replace(/_/g, ' ')}</span>
+                      <span>{reason.count}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Top Approvals</p>
+                <div className="mt-2 space-y-1 text-sm text-muted">
+                  {compensationReport.staff_approvals.length === 0 ? (
+                    <p>No approvals recorded yet.</p>
+                  ) : compensationReport.staff_approvals.slice(0, 5).map((staff) => (
+                    <p key={`${staff.staff_name}-${staff.role}`} className="flex items-center justify-between">
+                      <span className="text-text">{staff.staff_name} ({staff.role})</span>
+                      <span>{staff.approvals}</span>
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </GlassCard>

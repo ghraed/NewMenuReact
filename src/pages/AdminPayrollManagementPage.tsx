@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import {
   createPayrollPeriod,
@@ -12,7 +12,7 @@ import {
 } from '../services/payrollService';
 import { fetchStaffMembers } from '../services/staffService';
 import type { PayrollPeriod, PayrollPeriodStatus, StaffMember } from '../types';
-import { formatPriceWithCurrency } from '../utils/currency';
+import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
 
 const today = new Date().toISOString().slice(0, 10);
 const monthStart = today.slice(0, 8) + '01';
@@ -94,8 +94,10 @@ const IconGlyph: React.FC<{ d: string }> = ({ d }) => (
 );
 
 const AdminPayrollManagementPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const { user } = useAuth();
-  const currency = user?.restaurant?.currency ?? 'USD';
+  const storedGuestCurrency = readGuestCurrencySettings()?.currency;
+  const currency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
 
   const [records, setRecords] = useState<PayrollPeriod[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -149,6 +151,18 @@ const AdminPayrollManagementPage: React.FC = () => {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
 
   const resolveRange = (form: SalaryDraft): { start: string; end: string } => {
     if (!form.monthly) {
@@ -556,6 +570,7 @@ const AdminPayrollManagementPage: React.FC = () => {
         {error ? <div className="rounded-xl border border-spicy/45 bg-spicy/10 px-4 py-3 text-sm text-spicy">{error}</div> : null}
         {success ? <div className="rounded-xl border border-sage/45 bg-sage/10 px-4 py-3 text-sm text-sage">{success}</div> : null}
       </div>
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

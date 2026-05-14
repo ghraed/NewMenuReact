@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import {
   createRoomPlan,
   deleteRoomPlan,
@@ -27,6 +28,7 @@ import {
   type BorderGuidePoint,
   type DetectedContour,
 } from '../utils/roomPlanEdgeOverlay';
+import { resolveAssetUrl } from '../services/api';
 
 type DragMode = 'free' | 'window';
 
@@ -96,7 +98,12 @@ const parsePersistedBorderPoints = (value: string): BorderGuidePoint[] | null =>
   }
 };
 
+const primaryButtonClass = 'rounded-xl border border-gold/45 bg-gold/20 px-3 py-2 text-sm font-semibold text-gold2 transition hover:border-gold/65 disabled:cursor-not-allowed disabled:opacity-60';
+const neutralButtonClass = 'rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text transition hover:border-gold/35 disabled:cursor-not-allowed disabled:opacity-60';
+const dangerButtonClass = 'rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-60';
+
 const AdminRoomPlansPage: React.FC = () => {
+  const { toast, showToast, dismiss } = useGlassToast(4200);
   const roomRef = useRef<HTMLDivElement | null>(null);
   const borderOverlayRef = useRef<HTMLCanvasElement | null>(null);
   const borderInputRef = useRef<HTMLInputElement | null>(null);
@@ -137,6 +144,7 @@ const AdminRoomPlansPage: React.FC = () => {
   );
 
   const selectedType = pendingType;
+  const selectedPlanBackgroundImageUrl = resolveAssetUrl(selectedPlan?.background_image_url);
 
   const constrainItemToPlan = useCallback((item: RoomPlanItem, preferredSnapIndex: number | null = null): RoomPlanItem => {
     if (!selectedPlan) return item;
@@ -239,6 +247,18 @@ const AdminRoomPlansPage: React.FC = () => {
 
     void loadPlan();
   }, [selectedPlanId]);
+
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'tertiary', 4800);
+    }
+  }, [error, showToast]);
+
+  useEffect(() => {
+    if (success) {
+      showToast(success, 'secondary', 3600);
+    }
+  }, [showToast, success]);
 
   useEffect(() => {
     if (!selectedPlan) {
@@ -452,7 +472,7 @@ const AdminRoomPlansPage: React.FC = () => {
   }, [detectedContours, selectedContourId, selectedPlan, showBorderOverlay, showContours, simplifyTolerance, uploadedBorderPoints]);
 
   const runContourDetection = useCallback(async () => {
-    if (!selectedPlan?.background_image_url || !borderOverlayRef.current) {
+    if (!selectedPlan || !selectedPlanBackgroundImageUrl || !borderOverlayRef.current) {
       setError('Please upload/select a background image before detection.');
       return;
     }
@@ -460,7 +480,7 @@ const AdminRoomPlansPage: React.FC = () => {
     try {
       const image = new Image();
       image.crossOrigin = 'anonymous';
-      image.src = selectedPlan.background_image_url;
+      image.src = selectedPlanBackgroundImageUrl;
       await new Promise<void>((resolve, reject) => {
         image.onload = () => resolve();
         image.onerror = () => reject(new Error('Failed to load image.'));
@@ -497,7 +517,7 @@ const AdminRoomPlansPage: React.FC = () => {
     } catch {
       setError('Failed to detect contours from image.');
     }
-  }, [edgeThreshold, selectedPlan?.background_image_url, selectedPlan?.height, selectedPlan?.width]);
+  }, [edgeThreshold, selectedPlan?.height, selectedPlan?.width, selectedPlanBackgroundImageUrl]);
 
   const exportSelectedContour = useCallback(() => {
     const selectedRaw = detectedContours.find((contour) => contour.id === selectedContourId)?.points;
@@ -735,7 +755,7 @@ const AdminRoomPlansPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCreatePlan}
-                className="w-full rounded-xl border border-gold/40 bg-gold/20 px-3 py-2 text-sm font-semibold text-gold2 transition hover:border-gold/60"
+                className={`w-full ${primaryButtonClass}`}
               >
                 Create Plan
               </button>
@@ -799,7 +819,7 @@ const AdminRoomPlansPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleUpdatePlanMeta}
-                  className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text transition hover:border-gold/35"
+                  className={`w-full ${neutralButtonClass}`}
                 >
                   Update Plan Details
                 </button>
@@ -807,14 +827,14 @@ const AdminRoomPlansPage: React.FC = () => {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="w-full rounded-xl border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-sm text-sky-200 transition hover:border-sky-400/55"
+                  className={`w-full ${neutralButtonClass}`}
                 >
                   {uploading ? 'Uploading image...' : 'Upload Background Image'}
                 </button>
                 <button
                   type="button"
                   onClick={handleDeletePlan}
-                  className="w-full rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy transition hover:border-spicy/65"
+                  className={`w-full ${dangerButtonClass}`}
                 >
                   Delete Plan
                 </button>
@@ -852,7 +872,7 @@ const AdminRoomPlansPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="rounded-xl border border-gold/45 bg-gold/15 px-3 py-2 text-sm font-semibold text-gold2 transition hover:border-gold/65"
+                    className={primaryButtonClass}
                   >
                     Add Item
                   </button>
@@ -861,7 +881,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     type="button"
                     onClick={handleDuplicateSelected}
                     disabled={!selectedItem}
-                    className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text transition hover:border-gold/35 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={neutralButtonClass}
                   >
                     Duplicate
                   </button>
@@ -870,7 +890,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     type="button"
                     onClick={handleDeleteSelected}
                     disabled={!selectedItem}
-                    className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={dangerButtonClass}
                   >
                     Delete
                   </button>
@@ -960,86 +980,90 @@ const AdminRoomPlansPage: React.FC = () => {
                     type="button"
                     onClick={handleSaveLayout}
                     disabled={saving}
-                    className="rounded-xl border border-gold/45 bg-gold/20 px-4 py-2 text-sm font-semibold text-gold2 transition hover:border-gold/65 disabled:cursor-not-allowed disabled:opacity-60"
+                    className={`${primaryButtonClass} px-4`}
                   >
                     {saving ? 'Saving...' : 'Save Layout'}
                   </button>
                 </div>
-                <div className="mb-3 grid gap-2 lg:grid-cols-[auto_auto_auto_auto_auto_minmax(0,220px)]">
-                  <button
-                    type="button"
-                    onClick={() => void runContourDetection()}
-                    className="rounded-xl border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:border-sky-400/55"
-                  >
-                    Detect Edges
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowContours((current) => !current)}
-                    className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-text transition hover:border-gold/35"
-                  >
-                    {showContours ? 'Hide Contours' : 'Show Contours'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => borderInputRef.current?.click()}
-                    className="rounded-xl border border-sky-400/35 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:border-sky-400/55"
-                  >
-                    Upload Border
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowBorderOverlay((current) => !current)}
-                    className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-text transition hover:border-gold/35"
-                  >
-                    {showBorderOverlay ? 'Hide Border' : 'Show Border'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClearBorder}
-                    disabled={uploadedBorderPoints.length === 0}
-                    className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-xs font-semibold text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Clear Border
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exportSelectedContour}
-                    disabled={!selectedContourId}
-                    className="rounded-xl border border-emerald-400/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:border-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Export Selected Contour
-                  </button>
-                  <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                    Simplify: {simplifyTolerance}
-                    <input
-                      type="range"
-                      min={1}
-                      max={14}
-                      value={simplifyTolerance}
-                      onChange={(event) => setSimplifyTolerance(Number(event.target.value))}
-                      className="mt-1 w-full"
-                    />
-                  </label>
-                  <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                    Edge Threshold: {edgeThreshold}
-                    <input
-                      type="range"
-                      min={8}
-                      max={96}
-                      value={edgeThreshold}
-                      onChange={(event) => setEdgeThreshold(Number(event.target.value))}
-                      className="mt-1 w-full"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleClearDetection}
-                    disabled={detectedContours.length === 0}
-                    className="rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-xs font-semibold text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Clear Detection
-                  </button>
+                <div className="mb-3 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void runContourDetection()}
+                      className={primaryButtonClass}
+                    >
+                      Detect Edges
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowContours((current) => !current)}
+                      className={neutralButtonClass}
+                    >
+                      {showContours ? 'Hide Contours' : 'Show Contours'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => borderInputRef.current?.click()}
+                      className={neutralButtonClass}
+                    >
+                      Upload Border
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBorderOverlay((current) => !current)}
+                      className={neutralButtonClass}
+                    >
+                      {showBorderOverlay ? 'Hide Border' : 'Show Border'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exportSelectedContour}
+                      disabled={!selectedContourId}
+                      className={primaryButtonClass}
+                    >
+                      Export Selected Contour
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearBorder}
+                      disabled={uploadedBorderPoints.length === 0}
+                      className={dangerButtonClass}
+                    >
+                      Clear Border
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearDetection}
+                      disabled={detectedContours.length === 0}
+                      className={dangerButtonClass}
+                    >
+                      Clear Detection
+                    </button>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
+                      Simplify: {simplifyTolerance}
+                      <input
+                        type="range"
+                        min={1}
+                        max={14}
+                        value={simplifyTolerance}
+                        onChange={(event) => setSimplifyTolerance(Number(event.target.value))}
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                    <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
+                      Edge Threshold: {edgeThreshold}
+                      <input
+                        type="range"
+                        min={8}
+                        max={96}
+                        value={edgeThreshold}
+                        onChange={(event) => setEdgeThreshold(Number(event.target.value))}
+                        className="mt-1 w-full"
+                      />
+                    </label>
+                  </div>
                   <input
                     ref={borderInputRef}
                     id="borderInput"
@@ -1050,7 +1074,7 @@ const AdminRoomPlansPage: React.FC = () => {
                   />
                 </div>
                 {uploadedBorderPoints.length > 0 ? (
-                  <div className="mb-3 rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+                  <div className="mb-3 rounded-xl border border-gold/35 bg-gold/10 px-3 py-2 text-xs text-gold2">
                     Border loaded: {uploadedBorderPoints.length} points
                   </div>
                 ) : null}
@@ -1075,9 +1099,9 @@ const AdminRoomPlansPage: React.FC = () => {
                       backgroundColor: 'rgba(8, 10, 20, 0.35)',
                     }}
                   >
-                    {selectedPlan.background_image_url ? (
+                    {selectedPlanBackgroundImageUrl ? (
                       <img
-                        src={selectedPlan.background_image_url}
+                        src={selectedPlanBackgroundImageUrl}
                         alt=""
                         onLoad={(event) => {
                           const image = event.currentTarget;
@@ -1164,6 +1188,7 @@ const AdminRoomPlansPage: React.FC = () => {
           {success ? <div className="rounded-xl border border-sage/45 bg-sage/10 px-3 py-2 text-sm text-sage">{success}</div> : null}
         </div>
       </div>
+      <GlassToast toast={toast} onClose={dismiss} />
     </DashboardLayout>
   );
 };

@@ -5,7 +5,7 @@ import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { fetchInvoiceById } from '../services/invoiceService';
 import type { FinanceInvoiceDetails } from '../types';
-import { formatPriceWithCurrency } from '../utils/currency';
+import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
 
 const asNumber = (value?: string | number | null): number => {
   const parsed = Number(value ?? 0);
@@ -24,7 +24,8 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { invoice_id } = useParams<{ invoice_id: string }>();
   const { user } = useAuth();
-  const currency = user?.restaurant?.currency ?? 'USD';
+  const storedGuestCurrency = readGuestCurrencySettings()?.currency;
+  const currency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
 
   const [invoice, setInvoice] = useState<FinanceInvoiceDetails | null>(null);
   const [loading, setLoading] = useState(true);

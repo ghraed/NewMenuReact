@@ -27,7 +27,15 @@ import type {
   FinanceUnlinkedRestockRecord,
   FinanceVendor,
 } from '../types';
-import { CURRENCY_OPTIONS, formatPriceWithCurrency, normalizeCurrency } from '../utils/currency';
+import {
+  CURRENCY_OPTIONS,
+  convertPriceFromUsdToCurrency,
+  convertPriceToUsd,
+  formatPriceWithCurrency,
+  getCurrencySymbol,
+  normalizeCurrency,
+  readGuestCurrencySettings,
+} from '../utils/currency';
 
 type ExpenseTab = 'expenses' | 'vendors' | 'categories' | 'unlinked';
 type DrawerMode = 'expense' | 'vendor' | 'category' | null;
@@ -71,6 +79,7 @@ const toDateValue = (value: string): string => value.trim();
 interface ExpenseDraft {
   expense_category_id: string;
   vendor_id: string;
+  linked_stock_movement_id: string;
   expense_date: string;
   amount: string;
   tax_amount: string;
@@ -115,6 +124,7 @@ const validateExpenseDates = (draft: ExpenseDraft): string | null => {
 const blankDraft = (currency: string): ExpenseDraft => ({
   expense_category_id: '',
   vendor_id: '',
+  linked_stock_movement_id: '',
   expense_date: today,
   amount: '',
   tax_amount: '0.00',
@@ -145,8 +155,8 @@ const expenseSortNewestFirst = (records: FinanceExpense[]): FinanceExpense[] => 
 
 const formatPriceWithCurrencyDecimals = (amount: number, currency: string, fractionDigits: number): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
-  const normalized = (currency || 'USD').toUpperCase();
-  const symbol = normalized === 'USD' ? '$' : normalized;
+  const normalized = normalizeCurrency(currency);
+  const symbol = getCurrencySymbol(normalized);
   const money = safeAmount.toLocaleString(undefined, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
@@ -291,7 +301,20 @@ const Drawer: React.FC<{
 
 const AdminFinanceExpensesPage: React.FC = () => {
   const { user } = useAuth();
-  const currency = user?.restaurant?.currency ?? 'USD';
+  const storedGuestSettings = readGuestCurrencySettings();
+  const storedGuestCurrency = storedGuestSettings?.currency;
+  const currency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
+  const dollarRate = useMemo(() => {
+    const storedRate = Number(storedGuestSettings?.dollar_rate ?? 0);
+    if (Number.isFinite(storedRate) && storedRate > 0) {
+      return storedRate;
+    }
+    const userRate = Number(user?.restaurant?.dollar_rate ?? 0);
+    if (Number.isFinite(userRate) && userRate > 0) {
+      return userRate;
+    }
+    return 1;
+  }, [storedGuestSettings?.dollar_rate, user?.restaurant?.dollar_rate]);
 
   const [categories, setCategories] = useState<FinanceExpenseCategory[]>([]);
   const [vendors, setVendors] = useState<FinanceVendor[]>([]);
@@ -355,12 +378,25 @@ const AdminFinanceExpensesPage: React.FC = () => {
     []
   );
 
+  const convertAmountToDefaultCurrency = useCallback((amount: number, fromCurrency?: string | null): number => {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const sourceCurrency = normalizeCurrency(fromCurrency || currency);
+    if (sourceCurrency === currency) {
+      return safeAmount;
+    }
+    const usdValue = convertPriceToUsd(safeAmount, sourceCurrency, dollarRate);
+    return convertPriceFromUsdToCurrency(usdValue, currency, dollarRate);
+  }, [currency, dollarRate]);
+
   const expenseTotals = useMemo(() => {
     const paid = expenses.filter((expense) => expense.status === 'paid');
     const approved = expenses.filter((expense) => expense.status === 'approved');
     const draft = expenses.filter((expense) => expense.status === 'draft');
     const voided = expenses.filter((expense) => expense.status === 'void');
-    const sum = (rows: FinanceExpense[]) => rows.reduce((acc, row) => acc + (row.total_cents ?? 0), 0) / 100;
+    const sum = (rows: FinanceExpense[]) => rows.reduce((acc, row) => {
+      const rowAmount = (row.total_cents ?? 0) / 100;
+      return acc + convertAmountToDefaultCurrency(rowAmount, row.currency);
+    }, 0);
 
     return {
       totalAmount: sum(expenses),
@@ -373,7 +409,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       draftCount: draft.length,
       voidCount: voided.length,
     };
-  }, [expenses]);
+  }, [convertAmountToDefaultCurrency, expenses]);
 
   const filteredExpenses = useMemo(() => {
     const q = expenseSearch.trim().toLowerCase();
@@ -381,10 +417,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     return expenses.filter((expense) => {
       const vendor = expense.vendor?.name?.toLowerCase() ?? '';
       const category = expense.category?.name?.toLowerCase() ?? '';
-      const amount = formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency).toLowerCase();
+      const convertedAmount = convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency);
+      const amount = formatPriceWithCurrency(convertedAmount, currency).toLowerCase();
       return vendor.includes(q) || category.includes(q) || amount.includes(q);
     });
-  }, [currency, expenseSearch, expenses]);
+  }, [convertAmountToDefaultCurrency, currency, expenseSearch, expenses]);
 
   const filteredVendors = useMemo(() => {
     const q = vendorSearch.trim().toLowerCase();
@@ -565,6 +602,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const expensePayloadFromDraft = (draft: ExpenseDraft): CreateExpensePayload => ({
     expense_category_id: Number(draft.expense_category_id),
     vendor_id: draft.vendor_id ? Number(draft.vendor_id) : null,
+    linked_stock_movement_id: draft.linked_stock_movement_id ? Number(draft.linked_stock_movement_id) : null,
     expense_date: draft.expense_date,
     amount_cents: centsFromInput(draft.amount),
     tax_amount_cents: centsFromInput(draft.tax_amount),
@@ -633,6 +671,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setExpenseDraft({
       expense_category_id: String(expense.expense_category_id),
       vendor_id: expense.vendor_id ? String(expense.vendor_id) : '',
+      linked_stock_movement_id: expense.linked_stock_movement?.id ? String(expense.linked_stock_movement.id) : '',
       expense_date: expense.expense_date || today,
       amount: centsToInput(expense.amount_cents),
       tax_amount: centsToInput(expense.tax_amount_cents),
@@ -644,6 +683,19 @@ const AdminFinanceExpensesPage: React.FC = () => {
       notes: expense.notes ?? '',
       due_date: expense.due_date ?? '',
       paid_at: expense.paid_at ? expense.paid_at.slice(0, 10) : '',
+    });
+    setDrawerMode('expense');
+  };
+
+  const startLinkExpenseFromRestock = (restock: FinanceUnlinkedRestockRecord) => {
+    setEditingExpenseId(null);
+    setExpenseDraft({
+      ...blankDraft(currency),
+      linked_stock_movement_id: String(restock.id),
+      expense_date: (restock.created_at || today).slice(0, 10),
+      reference_no: restock.reference || '',
+      description: `Restock for ${restock.ingredient_name}`,
+      notes: restock.notes || '',
     });
     setDrawerMode('expense');
   };
@@ -868,7 +920,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
                       <td className="px-4 py-3 text-text">{expense.category?.name || `Category #${expense.expense_category_id}`}</td>
                       <td className="px-4 py-3 text-muted">{expense.vendor?.name || '-'}</td>
                       <td className="px-4 py-3 text-xs text-muted">{expense.linked_stock_movement ? <div><p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}</td>
-                      <td className="px-4 py-3 font-semibold text-text">{formatPriceWithCurrency(expense.total_cents / 100, expense.currency || currency)}</td>
+                      <td className="px-4 py-3 font-semibold text-text">
+                        {formatPriceWithCurrency(convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency), currency)}
+                      </td>
                       <td className="px-4 py-3">
                         <select value={expense.status} onChange={(event) => void handleExpenseStatusUpdate(expense, event.target.value as FinanceExpenseStatus)} disabled={updatingStatusId === expense.id} className="themed-native-select rounded-full border border-stroke bg-bg1/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
                           {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
@@ -976,7 +1030,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                     <p className="text-sm font-semibold text-text">{restock.ingredient_name} • {restock.quantity_delta} {restock.unit}</p>
                     <div className="flex items-center gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>{restock.age_days} stage diff</span>
-                      <LiquidButton type="button" tone="tertiary">Link Expense</LiquidButton>
+                      <LiquidButton type="button" tone="tertiary" onClick={() => startLinkExpenseFromRestock(restock)}>Link Expense</LiquidButton>
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-muted">Ref: {restock.reference || '-'}</p>
