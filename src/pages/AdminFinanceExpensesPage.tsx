@@ -36,6 +36,12 @@ import {
   normalizeCurrency,
   readGuestCurrencySettings,
 } from '../utils/currency';
+import {
+  ADJUSTMENT_ACTION_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_LABELS,
+} from '../utils/orderItemCompensation';
+import { parseInvoiceAdjustmentExpenseMeta } from '../utils/financeAdjustmentMeta';
 
 type ExpenseTab = 'expenses' | 'vendors' | 'categories' | 'unlinked';
 type DrawerMode = 'expense' | 'vendor' | 'category' | null;
@@ -164,34 +170,6 @@ const formatPriceWithCurrencyDecimals = (amount: number, currency: string, fract
 
   if (normalized === 'USD') return `${symbol}${money}`;
   return `${money} ${symbol}`;
-};
-
-const isInvoiceAdjustmentExpense = (expense: FinanceExpense): boolean => {
-  const sourceHints = [
-    expense.reference_no,
-    expense.description,
-    expense.notes,
-    expense.category?.code,
-    expense.category?.name,
-  ]
-    .map((value) => (value || '').toLowerCase());
-
-  return sourceHints.some((value) => (
-    value.includes('invoice adjustment')
-    || value.includes('source: invoice adjustment')
-    || value.includes('adj-')
-    || value.includes('customer complaint loss')
-    || value.includes('quality control loss')
-    || value.includes('quality_control_loss')
-    || value.includes('customer_complaint_loss')
-    || value.includes('wastage')
-    || value.includes('complimentary')
-    || value.includes('gift compensation')
-    || value.includes('gift_compensation')
-    || value.includes('goodwill')
-    || value.includes('customer retention')
-    || value.includes('customer_retention')
-  ));
 };
 
 const AnimatedCurrencyValue: React.FC<{ value: number; currency: string; className?: string }> = ({ value, currency, className }) => {
@@ -443,13 +421,32 @@ const AdminFinanceExpensesPage: React.FC = () => {
     const q = expenseSearch.trim().toLowerCase();
     if (!q) return expenses;
     return expenses.filter((expense) => {
+      const meta = parseInvoiceAdjustmentExpenseMeta(expense);
       const vendor = expense.vendor?.name?.toLowerCase() ?? '';
       const category = expense.category?.name?.toLowerCase() ?? '';
       const description = expense.description?.toLowerCase() ?? '';
       const notes = expense.notes?.toLowerCase() ?? '';
+      const reference = expense.reference_no?.toLowerCase() ?? '';
+      const adjustmentReference = meta.adjustmentReference?.toLowerCase() ?? '';
+      const invoiceNumber = meta.invoiceNumber?.toLowerCase() ?? '';
+      const operationalCategoryLabel = meta.operationalLossCategory
+        ? OPERATIONAL_LOSS_CATEGORY_LABELS[meta.operationalLossCategory].toLowerCase()
+        : '';
+      const adjustmentActionLabel = meta.actionType
+        ? ADJUSTMENT_ACTION_LABELS[meta.actionType].toLowerCase()
+        : '';
       const convertedAmount = convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency);
       const amount = formatPriceWithCurrency(convertedAmount, currency).toLowerCase();
-      return vendor.includes(q) || category.includes(q) || description.includes(q) || notes.includes(q) || amount.includes(q);
+      return vendor.includes(q)
+        || category.includes(q)
+        || description.includes(q)
+        || notes.includes(q)
+        || reference.includes(q)
+        || adjustmentReference.includes(q)
+        || invoiceNumber.includes(q)
+        || operationalCategoryLabel.includes(q)
+        || adjustmentActionLabel.includes(q)
+        || amount.includes(q);
     });
   }, [convertAmountToDefaultCurrency, currency, expenseSearch, expenses]);
 
@@ -926,7 +923,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by category, vendor, reference, description, or amount" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by invoice #, adjustment ref, category, complimentary, guest recovery, quality complaint, burned food, wrong order sent, kitchen mistake" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               <LiquidButton type="button" tone="tertiary" onClick={() => { setExpensePage(1); setDateFrom(''); setDateTo(''); setStatusFilter(''); setCategoryFilter(''); setVendorFilter(''); setExpenseSearch(''); }}>
                 Clear Filters
               </LiquidButton>
@@ -945,21 +942,42 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   ) : filteredExpenses.length === 0 ? (
                     <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>No expenses found for current filters.</td></tr>
                   ) : filteredExpenses.map((expense) => {
-                    const isAdjustmentExpense = isInvoiceAdjustmentExpense(expense);
+                    const adjustmentMeta = parseInvoiceAdjustmentExpenseMeta(expense);
+                    const isAdjustmentExpense = adjustmentMeta.isAdjustment;
                     return (
                     <tr key={expense.id} className={`border-t border-stroke/70 ${isAdjustmentExpense ? 'bg-amber-500/15' : 'bg-bg1/45'}`}>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-muted'}>{expense.expense_date}</td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-text'}>
-                        {expense.category?.name || `Category #${expense.expense_category_id}`}
+                        <div>{expense.category?.name || `Category #${expense.expense_category_id}`}</div>
+                        {adjustmentMeta.operationalLossCategory ? (
+                          <span className="mt-1 inline-flex rounded-full border border-amber-400/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-amber-800">
+                            {OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS[adjustmentMeta.operationalLossCategory]}
+                          </span>
+                        ) : null}
                       </td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-muted'}>
                         <div>{expense.vendor?.name || '-'}</div>
                         {expense.reference_no ? <p className="mt-1 text-[11px]">Ref: {expense.reference_no}</p> : null}
+                        {adjustmentMeta.adjustmentReference ? <p className="mt-1 text-[11px]">Adjustment: {adjustmentMeta.adjustmentReference}</p> : null}
+                        {adjustmentMeta.invoiceNumber ? <p className="mt-1 text-[11px]">Invoice: {adjustmentMeta.invoiceNumber}</p> : null}
                       </td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-xs text-amber-900' : 'px-4 py-3 text-xs text-muted'}>
                         {expense.linked_stock_movement ? <div><p className={isAdjustmentExpense ? 'text-amber-900' : 'text-text'}>Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}
                         {expense.description ? <p className="mt-1">{expense.description}</p> : null}
-                        {isAdjustmentExpense ? <p className="mt-1 font-semibold text-amber-700">Source: Invoice issue/gift adjustment</p> : null}
+                        {isAdjustmentExpense ? (
+                          <div className="mt-1 space-y-1">
+                            <p className="font-semibold text-amber-700">Source: Invoice/order adjustment (not supplier bill)</p>
+                            {adjustmentMeta.actionType ? (
+                              <p className="text-[11px]">Type: {ADJUSTMENT_ACTION_LABELS[adjustmentMeta.actionType]}</p>
+                            ) : null}
+                            {adjustmentMeta.approvedBy ? (
+                              <p className="text-[11px]">
+                                Approved by: {adjustmentMeta.approvedBy}
+                                {adjustmentMeta.approvedAt ? ` • ${new Date(adjustmentMeta.approvedAt).toLocaleString()}` : ''}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 font-semibold text-amber-900' : 'px-4 py-3 font-semibold text-text'}>
                         {formatPriceWithCurrency(convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency), currency)}

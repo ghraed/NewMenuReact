@@ -24,18 +24,26 @@ import { ensureEchoConnection, getEcho } from '../services/realtime';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import { calculateInvoicePreview } from '../utils/financeMath';
-import { upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
+import { clearBillAdjustmentsForTable, upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
 import {
+  ADJUSTMENT_ACTION_LABELS,
   COMPLAINT_CATEGORY_LABELS,
   COMPLAINT_REASON_OPTIONS,
   COMPLAINT_ACCOUNTING_BUCKET_LABELS,
   COMPLAINT_REASON_LABELS,
   COMPENSATION_TYPE_LABELS,
   ISSUE_STATUS_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_LABELS,
+  getDefaultAccountingBucketFromOperationalLoss,
   getComplaintCategoryFromReason,
   getDefaultComplaintBucket,
+  getDefaultOperationalLossCategory,
+  getOperationalLossCategoryFromReason,
+  inferAdjustmentActionType,
 } from '../utils/orderItemCompensation';
 import type {
+  AdjustmentActionType,
   AccountOrderRequest,
   ComplaintAccountingBucket,
   ComplaintCategory,
@@ -49,6 +57,7 @@ import type {
   OrderItemCompensationType,
   OrderItemIssueStatus,
   OrderLineItem,
+  OperationalLossCategory,
   PublishedDishSummary,
   RestaurantTableSummary,
 } from '../types';
@@ -159,6 +168,7 @@ interface AccountingCompDraft {
   compensationType: OrderItemCompensationType;
   reason: ComplaintReasonCode | '';
   category: ComplaintCategory | '';
+  operationalLossCategory: OperationalLossCategory | '';
   note: string;
   partialDiscountPercent: string;
   partialDiscountType: DiscountType;
@@ -171,6 +181,7 @@ const makeDefaultCompDraft = (): AccountingCompDraft => ({
   compensationType: 'none',
   reason: '',
   category: '',
+  operationalLossCategory: '',
   note: '',
   partialDiscountPercent: '0',
   partialDiscountType: 'percentage',
@@ -241,7 +252,7 @@ const AccountingOrdersPage: React.FC = () => {
   const hasLoadedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const refreshInFlightRef = useRef(false);
-  const canManageCompensation = user?.role === 'admin' || user?.role === 'staff' || user?.role === 'accountant';
+  const canManageCompensation = user?.role === 'admin' || user?.role === 'accountant';
 
   const discountOptions = useMemo(() => ([
     { value: '', label: t('accountingPage.noDiscount') },
@@ -659,12 +670,15 @@ const AccountingOrdersPage: React.FC = () => {
       compensation_reason: string | null;
       compensation_note: string | null;
       approved_by_name: string | null;
+      approved_by_role: string | null;
       approved_at: string | null;
       partial_discount_percentage: string | null;
       partial_discount_type: DiscountType | null;
       partial_discount_value: string | null;
       is_complimentary: boolean;
       accounting_bucket: string | null;
+      operational_loss_category: OperationalLossCategory | null;
+      adjustment_action_type: AdjustmentActionType | null;
     }>();
 
     selectedTableOrders.forEach((order) => {
@@ -674,12 +688,23 @@ const AccountingOrdersPage: React.FC = () => {
         const reason = item.compensation_reason || null;
         const note = item.compensation_note || null;
         const approvedByName = item.approved_by?.name || null;
+        const approvedByRole = item.approved_by?.role || null;
         const approvedAt = item.approved_at || null;
         const partialDiscountPercentage = item.partial_discount_percentage || null;
         const partialDiscountType = item.partial_discount_type || null;
         const partialDiscountValue = item.partial_discount_value || null;
         const isComplimentary = item.is_complimentary === true || compensationType === 'complimentary';
         const accountingBucket = item.accounting_bucket || null;
+        const operationalLossCategory = item.operational_loss_category
+          || getOperationalLossCategoryFromReason(reason as ComplaintReasonCode | null)
+          || getDefaultOperationalLossCategory(status, compensationType);
+        const adjustmentActionType = item.adjustment_action_type
+          || inferAdjustmentActionType({
+            status,
+            compensationType,
+            isComplimentary,
+            operationalLossCategory,
+          });
         const key = [
           item.dish_id ?? item.dish_name,
           item.unit_price,
@@ -688,6 +713,8 @@ const AccountingOrdersPage: React.FC = () => {
           reason || 'none',
           note || 'none',
           accountingBucket || 'none',
+          operationalLossCategory || 'none',
+          adjustmentActionType || 'none',
         ].join('-');
         const existing = grouped.get(key);
         const quantity = (existing?.quantity || 0) + item.quantity;
@@ -715,12 +742,15 @@ const AccountingOrdersPage: React.FC = () => {
           compensation_reason: reason,
           compensation_note: note,
           approved_by_name: approvedByName,
+          approved_by_role: approvedByRole,
           approved_at: approvedAt,
           partial_discount_percentage: partialDiscountPercentage,
           partial_discount_type: partialDiscountType,
           partial_discount_value: partialDiscountValue,
           is_complimentary: isComplimentary,
           accounting_bucket: accountingBucket,
+          operational_loss_category: operationalLossCategory,
+          adjustment_action_type: adjustmentActionType,
         });
       });
     });
@@ -741,6 +771,8 @@ const AccountingOrdersPage: React.FC = () => {
               dish_name: item.dish_name,
               status: item.status,
               compensation_type: item.compensation_type,
+              operational_loss_category: item.operational_loss_category,
+              adjustment_action_type: item.adjustment_action_type,
               lossValue,
             }
           : null;
@@ -750,11 +782,18 @@ const AccountingOrdersPage: React.FC = () => {
         dish_name: string;
         status: OrderItemIssueStatus;
         compensation_type: OrderItemCompensationType;
+        operational_loss_category: OperationalLossCategory | null;
+        adjustment_action_type: AdjustmentActionType | null;
         lossValue: number;
       } => Boolean(item))
   ), [selectedTableLineItems]);
 
   const openCompensationEditor = (lineKey: string) => {
+    if (!canManageCompensation) {
+      showToast('Only Admin or Accountant can create or approve complimentary/recovery adjustments.', 'secondary');
+      return;
+    }
+
     const line = selectedTableLineItems.find((entry) => entry.key === lineKey);
     if (!line) {
       return;
@@ -766,6 +805,7 @@ const AccountingOrdersPage: React.FC = () => {
       compensationType: line.compensation_type,
       reason: (line.compensation_reason as ComplaintReasonCode | null) || '',
       category: '',
+      operationalLossCategory: (line.operational_loss_category as OperationalLossCategory | null) || '',
       note: line.compensation_note || '',
       partialDiscountPercent: (line as { partial_discount_percentage?: string | null }).partial_discount_percentage || '0',
       partialDiscountType: (
@@ -814,8 +854,11 @@ const AccountingOrdersPage: React.FC = () => {
       compensation_type: OrderItemCompensationType;
       compensation_reason?: ComplaintReasonCode | null;
       complaint_category?: ComplaintCategory | null;
+      operational_loss_category?: OperationalLossCategory | null;
+      adjustment_action_type?: AdjustmentActionType | null;
       compensation_note?: string | null;
       approved_by_staff_name?: string | null;
+      approved_by_staff_role?: string | null;
       approved_at?: string | null;
       original_unit_price?: string | null;
       final_unit_price?: string | null;
@@ -848,6 +891,22 @@ const AccountingOrdersPage: React.FC = () => {
         }
 
         const nextLineSubtotal = Number((nextFinalUnit * item.quantity).toFixed(2));
+        const nextOperationalLossCategory: OperationalLossCategory = compDraft.status === 'normal'
+          ? getDefaultOperationalLossCategory(compDraft.status, compDraft.compensationType)
+          : (
+            compDraft.operationalLossCategory
+            || getOperationalLossCategoryFromReason(compDraft.reason || null)
+            || getDefaultOperationalLossCategory(compDraft.status, compDraft.compensationType)
+          );
+        const nextIsComplimentary = compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary';
+        const nextActionType: AdjustmentActionType = compDraft.status === 'normal'
+          ? 'issue_refund'
+          : inferAdjustmentActionType({
+            status: compDraft.status,
+            compensationType: compDraft.compensationType,
+            isComplimentary: nextIsComplimentary,
+            operationalLossCategory: nextOperationalLossCategory,
+          });
         const nextAdjustment = {
           key: `${order.id}:${item.id}`,
           order_item_id: item.id,
@@ -859,8 +918,11 @@ const AccountingOrdersPage: React.FC = () => {
           complaint_category: compDraft.status === 'normal'
             ? null
             : (compDraft.category || getComplaintCategoryFromReason(compDraft.reason || null) || 'other'),
+          operational_loss_category: compDraft.status === 'normal' ? null : nextOperationalLossCategory,
+          adjustment_action_type: compDraft.status === 'normal' ? null : nextActionType,
           compensation_note: compDraft.note.trim() || null,
           approved_by_staff_name: compDraft.status === 'normal' ? null : (user?.name || null),
+          approved_by_staff_role: compDraft.status === 'normal' ? null : (user?.role || null),
           approved_at: compDraft.status === 'normal' ? null : approvedAt,
           original_unit_price: normalizedOriginalUnit.toFixed(2),
           final_unit_price: compDraft.status === 'normal' ? normalizedOriginalUnit.toFixed(2) : nextFinalUnit.toFixed(2),
@@ -870,10 +932,15 @@ const AccountingOrdersPage: React.FC = () => {
           partial_discount_value: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
             ? partialDiscountValue.toFixed(2)
             : null,
-          is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
+          is_complimentary: nextIsComplimentary,
           accounting_bucket: compDraft.status === 'normal'
             ? null
-            : (compDraft.accountingBucket || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType) || null),
+            : (
+              compDraft.accountingBucket
+              || getDefaultAccountingBucketFromOperationalLoss(nextOperationalLossCategory)
+              || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType)
+              || null
+            ),
         };
         persistedAdjustments.push(nextAdjustment);
         updates[`${order.id}:${item.id}`] = {
@@ -881,6 +948,8 @@ const AccountingOrdersPage: React.FC = () => {
           compensation_type: nextAdjustment.compensation_type,
           compensation_reason: nextAdjustment.compensation_reason,
           complaint_category: nextAdjustment.complaint_category,
+          operational_loss_category: nextAdjustment.operational_loss_category,
+          adjustment_action_type: nextAdjustment.adjustment_action_type,
           compensation_note: compDraft.note.trim() || null,
           approved_at: compDraft.status === 'normal' ? null : approvedAt,
           approved_by: compDraft.status === 'normal'
@@ -903,10 +972,15 @@ const AccountingOrdersPage: React.FC = () => {
           partial_discount_value: compDraft.compensationType === 'partial_discount' && compDraft.status !== 'normal'
             ? partialDiscountValue.toFixed(2)
             : null,
-          is_complimentary: compDraft.status !== 'normal' && compDraft.compensationType === 'complimentary',
+          is_complimentary: nextIsComplimentary,
           accounting_bucket: compDraft.status === 'normal'
             ? null
-            : (compDraft.accountingBucket || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType) || null),
+            : (
+              compDraft.accountingBucket
+              || getDefaultAccountingBucketFromOperationalLoss(nextOperationalLossCategory)
+              || getDefaultComplaintBucket(compDraft.status, compDraft.compensationType)
+              || null
+            ),
           line_subtotal: nextLineSubtotal.toFixed(2),
         };
       });
@@ -970,9 +1044,11 @@ const AccountingOrdersPage: React.FC = () => {
       line_subtotal: '0.00',
       status: 'compensated',
       compensation_type: 'complimentary',
-      compensation_reason: 'other',
+      compensation_reason: 'customer_satisfaction_recovery',
       complaint_category: 'service',
-      compensation_note: 'Customer compensation',
+      operational_loss_category: 'customer_satisfaction_recovery',
+      adjustment_action_type: 'service_recovery',
+      compensation_note: 'Customer satisfaction recovery',
       approved_by: user ? {
         id: user.id,
         name: user.name,
@@ -994,10 +1070,13 @@ const AccountingOrdersPage: React.FC = () => {
       quantity: 1,
       status: 'compensated',
       compensation_type: 'complimentary',
-      compensation_reason: 'other',
+      compensation_reason: 'customer_satisfaction_recovery',
       complaint_category: 'service',
-      compensation_note: 'Customer compensation',
+      operational_loss_category: 'customer_satisfaction_recovery',
+      adjustment_action_type: 'service_recovery',
+      compensation_note: 'Customer satisfaction recovery',
       approved_by_staff_name: user?.name || null,
+      approved_by_staff_role: user?.role || null,
       approved_at: now,
       original_unit_price: selectedDish.price.toFixed(2),
       final_unit_price: '0.00',
@@ -1099,12 +1178,15 @@ const AccountingOrdersPage: React.FC = () => {
           items: order.items
             .filter((item) => typeof item.dish_id === 'number')
             .map((item) => ({
+              order_item_id: item.id > 0 ? item.id : null,
               dish_id: Number(item.dish_id),
               quantity: Math.max(1, Number(item.quantity || 1)),
               status: item.status || 'normal',
               compensation_type: item.compensation_type || 'none',
               compensation_reason: item.compensation_reason || null,
               complaint_category: item.complaint_category || null,
+              operational_loss_category: item.operational_loss_category || null,
+              adjustment_action_type: item.adjustment_action_type || null,
               compensation_note: item.compensation_note || null,
               approved_by_staff_id: item.approved_by?.id || null,
               approved_by_staff_name: item.approved_by?.name || null,
@@ -1239,6 +1321,17 @@ const AccountingOrdersPage: React.FC = () => {
             const primaryInvoiceNumber = finalizedInvoiceNumbers[0] || 'N/A';
             await Promise.all(expenseAdjustmentCandidates.map(async ({ line, lossValue, original, final }, index) => {
               const expenseCategoryId = resolveExpenseCategoryIdByBucket(categories, line.accounting_bucket) ?? anyExpenseCategoryId;
+              const operationalLossCategory = (line.operational_loss_category as OperationalLossCategory | null)
+                || getOperationalLossCategoryFromReason(line.compensation_reason as ComplaintReasonCode | null)
+                || getDefaultOperationalLossCategory(line.status, line.compensation_type);
+              const actionType = (line.adjustment_action_type as AdjustmentActionType | null)
+                || inferAdjustmentActionType({
+                  status: line.status,
+                  compensationType: line.compensation_type,
+                  isComplimentary: line.is_complimentary === true,
+                  operationalLossCategory,
+                });
+              const adjustmentReference = `ADJ-${primaryInvoiceNumber}-${index + 1}`;
 
               await createExpense({
                 expense_category_id: expenseCategoryId,
@@ -1248,14 +1341,22 @@ const AccountingOrdersPage: React.FC = () => {
                 currency: (user?.restaurant?.currency || 'USD').toUpperCase(),
                 status: 'approved',
                 payment_method: null,
-                reference_no: `ADJ-${primaryInvoiceNumber}-${index + 1}`,
-                description: `Invoice adjustment: ${line.dish_name}`,
+                reference_no: adjustmentReference,
+                description: `Invoice adjustment (${ADJUSTMENT_ACTION_LABELS[actionType]}): ${line.dish_name}`,
                 notes: [
                   `Source: invoice adjustment.`,
+                  `Adjustment ref: ${adjustmentReference};`,
+                  `Invoice number: ${primaryInvoiceNumber};`,
                   `Auto-created from accounting adjustment.`,
                   `Table: ${selectedTable}; invoice: ${primaryInvoiceNumber};`,
                   `status: ${line.status}; compensation: ${line.compensation_type};`,
+                  `action_type: ${actionType};`,
+                  `operational_loss_category: ${operationalLossCategory};`,
+                  `operational_loss_label: ${OPERATIONAL_LOSS_CATEGORY_LABELS[operationalLossCategory]};`,
                   `original: ${original.toFixed(2)}; final: ${final.toFixed(2)}; loss: ${lossValue.toFixed(2)};`,
+                  line.approved_by_name ? `approved_by: ${line.approved_by_name};` : null,
+                  line.approved_by_role ? `approved_role: ${line.approved_by_role};` : null,
+                  line.approved_at ? `approved_at: ${line.approved_at};` : null,
                   line.compensation_reason ? `reason: ${line.compensation_reason};` : null,
                   line.compensation_note ? `note: ${line.compensation_note};` : null,
                 ].filter(Boolean).join(' '),
@@ -1282,6 +1383,7 @@ const AccountingOrdersPage: React.FC = () => {
         delete next[selectedTable];
         return next;
       });
+      clearBillAdjustmentsForTable(selectedTable);
       showToast(
         t('accountingPage.finalizedOrders', { count: selectedTableOrders.length, table: selectedTable }),
         'secondary',
@@ -1323,7 +1425,11 @@ const AccountingOrdersPage: React.FC = () => {
         reasonLabel: item.compensation_reason
           ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
           : undefined,
-        note: item.compensation_note || undefined,
+        note: [
+          item.compensation_note,
+          item.operational_loss_category ? `Loss: ${OPERATIONAL_LOSS_CATEGORY_LABELS[item.operational_loss_category]}` : null,
+          item.adjustment_action_type ? `Type: ${ADJUSTMENT_ACTION_LABELS[item.adjustment_action_type]}` : null,
+        ].filter(Boolean).join(' • ') || undefined,
         badgeLabel: item.status !== 'normal' ? ISSUE_STATUS_LABELS[item.status] : undefined,
         approvedBy: item.approved_by_name || undefined,
         approvedAt: item.approved_at || undefined,
@@ -1581,6 +1687,11 @@ const AccountingOrdersPage: React.FC = () => {
                   </LiquidButton>
                 </div>
               </div>
+              {!canManageCompensation ? (
+                <p className="mt-2 text-xs text-amber-200">
+                  Complimentary, refund, and service-recovery adjustments are restricted to Admin and Accountant roles.
+                </p>
+              ) : null}
               <div className="mt-3 space-y-3">
                 {selectedTableIssueItems.length > 0 ? (
                   <div className="rounded-[20px] border border-amber-300/30 bg-amber-500/10 px-4 py-3">
@@ -1596,6 +1707,8 @@ const AccountingOrdersPage: React.FC = () => {
                           {item.dish_name}
                           {` • ${ISSUE_STATUS_LABELS[item.status]}`}
                           {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
+                          {item.operational_loss_category ? ` • ${OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS[item.operational_loss_category]}` : ''}
+                          {item.adjustment_action_type ? ` • ${ADJUSTMENT_ACTION_LABELS[item.adjustment_action_type]}` : ''}
                           {item.lossValue > 0 ? ` • loss ${formatMoney(item.lossValue)}` : ''}
                         </span>
                       ))}
@@ -1640,6 +1753,12 @@ const AccountingOrdersPage: React.FC = () => {
                             <p className="text-xs text-muted2">
                               Reason: {reasonLabel}
                               {item.compensation_note ? ` • ${item.compensation_note}` : ''}
+                            </p>
+                          ) : null}
+                          {item.operational_loss_category ? (
+                            <p className="text-[11px] text-muted2">
+                              Internal Loss: {OPERATIONAL_LOSS_CATEGORY_LABELS[item.operational_loss_category]}
+                              {item.adjustment_action_type ? ` • ${ADJUSTMENT_ACTION_LABELS[item.adjustment_action_type]}` : ''}
                             </p>
                           ) : null}
                           {item.approved_by_name ? (
@@ -1701,9 +1820,12 @@ const AccountingOrdersPage: React.FC = () => {
                                       ...current,
                                       status: nextStatus,
                                       compensationType: defaultType,
+                                      operationalLossCategory: nextStatus === 'normal'
+                                        ? ''
+                                        : (getDefaultOperationalLossCategory(nextStatus, defaultType) || ''),
                                       accountingBucket: nextStatus === 'normal'
                                         ? ''
-                                        : (getDefaultComplaintBucket(nextStatus, defaultType) || ''),
+                                        : (getDefaultComplaintBucket(nextStatus, defaultType) || getDefaultAccountingBucketFromOperationalLoss(getDefaultOperationalLossCategory(nextStatus, defaultType))),
                                     }));
                                   }}
                                   className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
@@ -1724,7 +1846,12 @@ const AccountingOrdersPage: React.FC = () => {
                                     setCompDraft((current) => ({
                                       ...current,
                                       compensationType: nextType,
-                                      accountingBucket: getDefaultComplaintBucket(current.status, nextType) || current.accountingBucket,
+                                      operationalLossCategory: current.status === 'normal'
+                                        ? current.operationalLossCategory
+                                        : (current.operationalLossCategory || getDefaultOperationalLossCategory(current.status, nextType)),
+                                      accountingBucket: getDefaultComplaintBucket(current.status, nextType)
+                                        || getDefaultAccountingBucketFromOperationalLoss(current.operationalLossCategory || getDefaultOperationalLossCategory(current.status, nextType))
+                                        || current.accountingBucket,
                                     }));
                                   }}
                                   className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45 disabled:opacity-60"
@@ -1736,7 +1863,7 @@ const AccountingOrdersPage: React.FC = () => {
                               </label>
                             </div>
 
-                            <div className="grid gap-2 md:grid-cols-2">
+                            <div className="grid gap-2 md:grid-cols-3">
                               <label className="block">
                                 <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Reason</span>
                                 <select
@@ -1747,6 +1874,7 @@ const AccountingOrdersPage: React.FC = () => {
                                       ...current,
                                       reason: nextReason,
                                       category: getComplaintCategoryFromReason(nextReason || null) || current.category,
+                                      operationalLossCategory: getOperationalLossCategoryFromReason(nextReason || null) || current.operationalLossCategory,
                                     }));
                                   }}
                                   className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
@@ -1768,6 +1896,29 @@ const AccountingOrdersPage: React.FC = () => {
                                   <option value="">Auto from reason</option>
                                   {(['quality_control', 'service', 'safety', 'other'] as ComplaintCategory[]).map((category) => (
                                     <option key={category} value={category}>{COMPLAINT_CATEGORY_LABELS[category]}</option>
+                                  ))}
+                                </select>
+                              </label>
+
+                              <label className="block">
+                                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Operational Loss</span>
+                                <select
+                                  value={compDraft.operationalLossCategory}
+                                  onChange={(event) => {
+                                    const nextLossCategory = event.target.value as OperationalLossCategory | '';
+                                    setCompDraft((current) => ({
+                                      ...current,
+                                      operationalLossCategory: nextLossCategory,
+                                      accountingBucket: nextLossCategory
+                                        ? (getDefaultAccountingBucketFromOperationalLoss(nextLossCategory) || current.accountingBucket)
+                                        : current.accountingBucket,
+                                    }));
+                                  }}
+                                  className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
+                                >
+                                  <option value="">Auto from reason</option>
+                                  {(['kitchen_mistake', 'burned_food', 'wrong_order_sent', 'quality_complaint', 'customer_satisfaction_recovery'] as OperationalLossCategory[]).map((lossCategory) => (
+                                    <option key={lossCategory} value={lossCategory}>{OPERATIONAL_LOSS_CATEGORY_LABELS[lossCategory]}</option>
                                   ))}
                                 </select>
                               </label>
@@ -1823,6 +1974,16 @@ const AccountingOrdersPage: React.FC = () => {
                                 ))}
                               </select>
                             </label>
+                            {compDraft.status !== 'normal' ? (
+                              <p className="text-xs text-muted2">
+                                Action Type: {ADJUSTMENT_ACTION_LABELS[inferAdjustmentActionType({
+                                  status: compDraft.status,
+                                  compensationType: compDraft.compensationType,
+                                  isComplimentary: compDraft.compensationType === 'complimentary',
+                                  operationalLossCategory: compDraft.operationalLossCategory || getOperationalLossCategoryFromReason(compDraft.reason || null) || null,
+                                })]}
+                              </p>
+                            ) : null}
 
                             <label className="block">
                               <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Note (optional)</span>
@@ -2148,6 +2309,12 @@ const AccountingOrdersPage: React.FC = () => {
                               <p className="mt-1 text-xs text-muted2">
                                 Reason: {reasonLabel}
                                 {item.compensation_note ? ` • ${item.compensation_note}` : ''}
+                              </p>
+                            ) : null}
+                            {item.operational_loss_category ? (
+                              <p className="mt-1 text-[11px] text-muted2">
+                                Internal Loss: {OPERATIONAL_LOSS_CATEGORY_LABELS[item.operational_loss_category]}
+                                {item.adjustment_action_type ? ` • ${ADJUSTMENT_ACTION_LABELS[item.adjustment_action_type]}` : ''}
                               </p>
                             ) : null}
                             {item.status !== 'normal' ? (

@@ -85,7 +85,7 @@ interface CompensationDraft {
 }
 
 const QUICK_TABLE_OPTIONS = ['POS-WALK-IN', 'PICKUP', 'DELIVERY'];
-const AUTHORIZED_COMPENSATION_ROLES: UserRole[] = ['admin', 'staff', 'accountant'];
+const AUTHORIZED_COMPENSATION_ROLES: UserRole[] = ['admin', 'accountant'];
 
 const makeLineId = (): string => `POS-LINE-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 

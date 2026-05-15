@@ -6,8 +6,24 @@ export type KitchenOrderStatus = 'new' | 'in_progress' | 'ready' | 'served';
 export type DiscountType = 'fixed' | 'percentage';
 export type OrderItemIssueStatus = 'normal' | 'problematic' | 'cancelled' | 'compensated';
 export type OrderItemCompensationType = 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
+export type OperationalLossCategory =
+  | 'kitchen_mistake'
+  | 'burned_food'
+  | 'wrong_order_sent'
+  | 'quality_complaint'
+  | 'customer_satisfaction_recovery';
+export type AdjustmentActionType =
+  | 'issue_refund'
+  | 'complimentary_gift'
+  | 'service_recovery'
+  | 'operational_waste';
 export type ComplaintCategory = 'quality_control' | 'service' | 'safety' | 'other';
 export type ComplaintReasonCode =
+  | 'kitchen_mistake'
+  | 'burned_food'
+  | 'wrong_order_sent'
+  | 'quality_complaint'
+  | 'customer_satisfaction_recovery'
   | 'quality_issue'
   | 'wrong_cooking'
   | 'foreign_object'
@@ -445,12 +461,15 @@ export interface AccountOrderRequest {
   discount_type?: DiscountType;
   discount_value?: number;
   items?: Array<{
+    order_item_id?: number | null;
     dish_id: number;
     quantity: number;
     status?: OrderItemIssueStatus;
     compensation_type?: OrderItemCompensationType;
     compensation_reason?: ComplaintReasonCode | null;
     complaint_category?: ComplaintCategory | null;
+    operational_loss_category?: OperationalLossCategory | null;
+    adjustment_action_type?: AdjustmentActionType | null;
     compensation_note?: string | null;
     approved_by_staff_id?: number | null;
     approved_by_staff_name?: string | null;
@@ -474,12 +493,15 @@ export interface PosCheckoutRequest {
   table_reference?: string;
   notes?: string;
   items: Array<{
+    order_item_id?: number | null;
     dish_id: number;
     quantity: number;
     status?: OrderItemIssueStatus;
     compensation_type?: OrderItemCompensationType;
     compensation_reason?: ComplaintReasonCode | null;
     complaint_category?: ComplaintCategory | null;
+    operational_loss_category?: OperationalLossCategory | null;
+    adjustment_action_type?: AdjustmentActionType | null;
     compensation_note?: string | null;
     approved_by_staff_id?: number | null;
     approved_by_staff_name?: string | null;
@@ -545,6 +567,8 @@ export interface OrderLineItem {
   compensation_type?: OrderItemCompensationType;
   compensation_reason?: ComplaintReasonCode | null;
   complaint_category?: ComplaintCategory | null;
+  operational_loss_category?: OperationalLossCategory | null;
+  adjustment_action_type?: AdjustmentActionType | null;
   compensation_note?: string | null;
   approved_by?: OrderActorSummary | null;
   approved_at?: string | null;
@@ -600,6 +624,20 @@ export interface FinanceInvoiceItem {
   unit_price: string;
   line_total: string;
   order_index: number;
+  order_item_id?: number | null;
+  status?: OrderItemIssueStatus;
+  compensation_type?: OrderItemCompensationType;
+  compensation_reason?: ComplaintReasonCode | null;
+  complaint_category?: ComplaintCategory | null;
+  operational_loss_category?: OperationalLossCategory | null;
+  adjustment_action_type?: AdjustmentActionType | null;
+  compensation_note?: string | null;
+  approved_by_staff_name?: string | null;
+  approved_at?: string | null;
+  original_unit_price?: string | null;
+  final_unit_price?: string | null;
+  is_complimentary?: boolean;
+  accounting_bucket?: ComplaintAccountingBucket | null;
 }
 
 export interface FinanceInvoice {

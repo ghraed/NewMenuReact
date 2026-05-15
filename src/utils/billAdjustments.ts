@@ -1,8 +1,10 @@
 import type {
+  AdjustmentActionType,
   ComplaintAccountingBucket,
   ComplaintCategory,
   ComplaintReasonCode,
   DiscountType,
+  OperationalLossCategory,
   OrderItemCompensationType,
   OrderItemIssueStatus,
 } from '../types';
@@ -17,8 +19,11 @@ export interface BillItemAdjustment {
   compensation_type: OrderItemCompensationType;
   compensation_reason?: ComplaintReasonCode | null;
   complaint_category?: ComplaintCategory | null;
+  operational_loss_category?: OperationalLossCategory | null;
+  adjustment_action_type?: AdjustmentActionType | null;
   compensation_note?: string | null;
   approved_by_staff_name?: string | null;
+  approved_by_staff_role?: string | null;
   approved_at?: string | null;
   original_unit_price?: string | null;
   final_unit_price?: string | null;
@@ -93,5 +98,17 @@ export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments
   nextAdjustments.forEach((item) => map.set(item.key, item));
 
   store[tableName] = Array.from(map.values());
+  writeStore(store);
+};
+
+export const clearBillAdjustmentsForTable = (tableName: string): void => {
+  if (!tableName) {
+    return;
+  }
+  const store = readStore();
+  if (!(tableName in store)) {
+    return;
+  }
+  delete store[tableName];
   writeStore(store);
 };

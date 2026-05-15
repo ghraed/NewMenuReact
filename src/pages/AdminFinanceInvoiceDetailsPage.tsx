@@ -4,9 +4,15 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
 import { fetchInvoiceById } from '../services/invoiceService';
-import type { FinanceInvoiceDetails } from '../types';
+import type { AdjustmentActionType, FinanceInvoiceDetails, OperationalLossCategory } from '../types';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
-import { readBillAdjustmentsForTable, type BillItemAdjustment } from '../utils/billAdjustments';
+import {
+  ADJUSTMENT_ACTION_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS,
+  getDefaultOperationalLossCategory,
+  getOperationalLossCategoryFromReason,
+  inferAdjustmentActionType,
+} from '../utils/orderItemCompensation';
 
 const asNumber = (value?: string | number | null): number => {
   const parsed = Number(value ?? 0);
@@ -32,35 +38,6 @@ const toLineOriginalTotal = (item: FinanceInvoiceDetails['items'][number]): numb
   return Math.max(quantity * unit, 0);
 };
 
-const normalizeText = (value: string): string => value.trim().toLowerCase();
-
-const normalizeTableReference = (value: string): string => {
-  const trimmed = value.trim();
-  if (trimmed === '') {
-    return trimmed;
-  }
-  return trimmed.replace(/^table\s+table\s+/i, 'Table ');
-};
-
-const resolveTableName = (invoice: FinanceInvoiceDetails): string | null => {
-  if (invoice.table_reference && invoice.table_reference.trim() !== '' && invoice.table_reference.toLowerCase() !== 'n/a') {
-    return normalizeTableReference(invoice.table_reference);
-  }
-
-  const notes = invoice.notes || '';
-  const tableInParensMatch = notes.match(/\((Table [^)]+)\)/i);
-  if (tableInParensMatch?.[1]) {
-    return normalizeTableReference(tableInParensMatch[1]);
-  }
-
-  const tableMatch = notes.match(/table\s+([a-z0-9 _-]+)/i);
-  if (tableMatch?.[1]) {
-    return normalizeTableReference(`Table ${tableMatch[1].trim()}`);
-  }
-
-  return null;
-};
-
 interface InvoiceDisplayItem {
   key: string;
   name: string;
@@ -73,6 +50,8 @@ interface InvoiceDisplayItem {
   compensationReason: string | null;
   compensationNote: string | null;
   accountingBucket: string | null;
+  operationalLossCategory: OperationalLossCategory | null;
+  adjustmentActionType: AdjustmentActionType | null;
   approvedBy: string | null;
   approvedAt: string | null;
   isComplimentary: boolean;
@@ -118,108 +97,37 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
       return [];
     }
 
-    const tableName = resolveTableName(invoice);
-    const adjustments = tableName ? readBillAdjustmentsForTable(tableName) : [];
-    const unusedAdjustments = [...adjustments];
-    const invoiceTimestamp = Number.isFinite(Date.parse(invoice.created_at || ''))
-      ? Date.parse(invoice.created_at || '')
-      : (Number.isFinite(Date.parse(invoice.updated_at || '')) ? Date.parse(invoice.updated_at || '') : null);
-    const matchedAdjustments: BillItemAdjustment[] = [];
-
-    const takeMatchingAdjustment = (
-      itemName: string,
-      quantity: number,
-      unitPrice: number
-    ): BillItemAdjustment | null => {
-      const normalizedName = normalizeText(itemName);
-      const candidates = unusedAdjustments
-        .map((candidate, index) => ({ candidate, index }))
-        .filter(({ candidate }) => {
-        const sameName = normalizeText(candidate.dish_name) === normalizedName;
-        if (!sameName) {
-          return false;
-        }
-
-        const candidateQty = asNumber(candidate.quantity ?? quantity);
-        const candidateUnit = asNumber(candidate.original_unit_price ?? unitPrice);
-          if (!(Math.abs(candidateQty - quantity) < 0.001 && Math.abs(candidateUnit - unitPrice) < 0.02)) {
-            return false;
-          }
-
-          if (invoiceTimestamp === null || !candidate.approved_at) {
-            return true;
-          }
-
-          const approvedAtTs = Date.parse(candidate.approved_at);
-          if (!Number.isFinite(approvedAtTs)) {
-            return true;
-          }
-
-          const maxWindowMs = 2 * 60 * 60 * 1000;
-          return Math.abs(approvedAtTs - invoiceTimestamp) <= maxWindowMs;
-        })
-        .sort((left, right) => {
-          if (invoiceTimestamp === null) {
-            return left.index - right.index;
-          }
-
-          const leftTs = left.candidate.approved_at ? Date.parse(left.candidate.approved_at) : Number.NaN;
-          const rightTs = right.candidate.approved_at ? Date.parse(right.candidate.approved_at) : Number.NaN;
-          const leftDiff = Number.isFinite(leftTs) ? Math.abs(leftTs - invoiceTimestamp) : Number.POSITIVE_INFINITY;
-          const rightDiff = Number.isFinite(rightTs) ? Math.abs(rightTs - invoiceTimestamp) : Number.POSITIVE_INFINITY;
-          return leftDiff - rightDiff;
-        });
-
-      const match = candidates[0];
-      if (!match) {
-        return null;
-      }
-
-      const index = match.index;
-      if (index < 0) {
-        return null;
-      }
-
-      const [matched] = unusedAdjustments.splice(index, 1);
-      matchedAdjustments.push(matched);
-      return matched;
-    };
-
     const merged = invoice.items.map((item, index) => {
       const quantity = asNumber(item.quantity);
       const unitPrice = asNumber(item.unit_price);
       const lineTotal = asNumber(item.line_total);
       const fallbackOriginalLine = toLineOriginalTotal(item);
-      const matchedAdjustment = takeMatchingAdjustment(item.name, quantity, unitPrice);
+      const originalUnit = asNumber((item as { original_unit_price?: string | number | null }).original_unit_price ?? unitPrice);
+      const finalUnit = asNumber((item as { final_unit_price?: string | number | null }).final_unit_price ?? (lineTotal > 0 && quantity > 0 ? lineTotal / quantity : unitPrice));
+      const originalLineTotal = Number.isFinite(originalUnit) && originalUnit > 0 ? originalUnit * quantity : fallbackOriginalLine;
+      const finalLineTotal = Number.isFinite(finalUnit) && quantity > 0 ? finalUnit * quantity : lineTotal;
 
-      const originalUnit = matchedAdjustment
-        ? asNumber(matchedAdjustment.original_unit_price ?? unitPrice)
-        : unitPrice;
-      const finalUnit = matchedAdjustment
-        ? asNumber(matchedAdjustment.final_unit_price ?? unitPrice)
-        : (lineTotal > 0 && quantity > 0 ? lineTotal / quantity : unitPrice);
-      const originalLineTotal = matchedAdjustment ? originalUnit * quantity : fallbackOriginalLine;
-      const finalLineTotal = matchedAdjustment ? finalUnit * quantity : lineTotal;
-
-      const status = matchedAdjustment?.status
-        || ((item as { status?: string | null }).status ?? 'normal');
-      const compensationType = matchedAdjustment?.compensation_type
-        || ((item as { compensation_type?: string | null }).compensation_type ?? 'none');
-      const compensationReason = matchedAdjustment?.compensation_reason
-        || ((item as { compensation_reason?: string | null }).compensation_reason ?? null);
-      const compensationNote = matchedAdjustment?.compensation_note
-        || ((item as { compensation_note?: string | null }).compensation_note ?? null);
-      const accountingBucket = matchedAdjustment?.accounting_bucket
-        || ((item as { accounting_bucket?: string | null }).accounting_bucket ?? null);
-      const approvedBy = matchedAdjustment?.approved_by_staff_name
-        || ((item as { approved_by_staff_name?: string | null }).approved_by_staff_name ?? null);
-      const approvedAt = matchedAdjustment?.approved_at
-        || ((item as { approved_at?: string | null }).approved_at ?? null);
+      const status = (item.status ?? 'normal');
+      const compensationType = (item.compensation_type ?? 'none');
+      const compensationReason = item.compensation_reason ?? null;
+      const compensationNote = item.compensation_note ?? null;
+      const accountingBucket = item.accounting_bucket ?? null;
+      const operationalLossCategory = item.operational_loss_category
+        || getOperationalLossCategoryFromReason(item.compensation_reason ?? null)
+        || getDefaultOperationalLossCategory(status, compensationType);
       const isComplimentary = (
-        matchedAdjustment?.is_complimentary === true
+        item.is_complimentary === true
         || compensationType === 'complimentary'
-        || (item as { is_complimentary?: boolean | null }).is_complimentary === true
       );
+      const adjustmentActionType = item.adjustment_action_type
+        || inferAdjustmentActionType({
+          status,
+          compensationType,
+          isComplimentary,
+          operationalLossCategory,
+        });
+      const approvedBy = item.approved_by_staff_name ?? null;
+      const approvedAt = item.approved_at ?? null;
 
       return {
         key: `invoice-line-${item.id ?? index}`,
@@ -233,75 +141,15 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
         compensationReason,
         compensationNote,
         accountingBucket,
+        operationalLossCategory,
+        adjustmentActionType,
         approvedBy,
         approvedAt,
         isComplimentary,
       };
     });
 
-    const fallbackAnchorTimestamp = (() => {
-      if (invoiceTimestamp !== null) {
-        return invoiceTimestamp;
-      }
-
-      const matchedTimes = matchedAdjustments
-        .map((adjustment) => (adjustment.approved_at ? Date.parse(adjustment.approved_at) : Number.NaN))
-        .filter((timestamp) => Number.isFinite(timestamp));
-
-      if (matchedTimes.length === 0) {
-        return null;
-      }
-
-      return Math.max(...matchedTimes);
-    })();
-
-    const localGiftLines = unusedAdjustments
-      .filter((adjustment) => adjustment.local_only === true)
-      .filter((adjustment) => {
-        if (fallbackAnchorTimestamp === null || !adjustment.approved_at) {
-          return false;
-        }
-        const approvedAtTs = Date.parse(adjustment.approved_at);
-        if (!Number.isFinite(approvedAtTs)) {
-          return false;
-        }
-        const maxWindowMs = 20 * 60 * 1000;
-        return Math.abs(approvedAtTs - fallbackAnchorTimestamp) <= maxWindowMs;
-      })
-      .sort((left, right) => {
-        const leftTs = left.approved_at ? Date.parse(left.approved_at) : Number.NaN;
-        const rightTs = right.approved_at ? Date.parse(right.approved_at) : Number.NaN;
-        const leftDiff = Number.isFinite(leftTs) && fallbackAnchorTimestamp !== null
-          ? Math.abs(leftTs - fallbackAnchorTimestamp)
-          : Number.POSITIVE_INFINITY;
-        const rightDiff = Number.isFinite(rightTs) && fallbackAnchorTimestamp !== null
-          ? Math.abs(rightTs - fallbackAnchorTimestamp)
-          : Number.POSITIVE_INFINITY;
-        return leftDiff - rightDiff;
-      })
-      .map((adjustment, index) => {
-        const quantity = Math.max(1, asNumber(adjustment.quantity ?? 1));
-        const originalUnit = asNumber(adjustment.original_unit_price ?? 0);
-        const finalUnit = asNumber(adjustment.final_unit_price ?? 0);
-        return {
-          key: `invoice-local-gift-${index + 1}-${adjustment.key}`,
-          name: adjustment.dish_name,
-          quantity,
-          unitPrice: originalUnit,
-          originalLineTotal: originalUnit * quantity,
-          finalLineTotal: finalUnit * quantity,
-          status: adjustment.status || 'compensated',
-          compensationType: adjustment.compensation_type || 'complimentary',
-          compensationReason: adjustment.compensation_reason ?? null,
-          compensationNote: adjustment.compensation_note ?? null,
-          accountingBucket: adjustment.accounting_bucket ?? null,
-          approvedBy: adjustment.approved_by_staff_name ?? null,
-          approvedAt: adjustment.approved_at ?? null,
-          isComplimentary: true,
-        } satisfies InvoiceDisplayItem;
-      });
-
-    return [...merged, ...localGiftLines];
+    return merged;
   }, [invoice]);
 
   const summaryRows = useMemo(() => {
@@ -322,8 +170,6 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
 
       if (isComplimentary) {
         stats.complimentary += deduction;
-      } else if (compensationType === 'partial_discount') {
-        stats.partialDiscount += deduction;
       } else {
         stats.issue += deduction;
       }
@@ -333,7 +179,6 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
     }, {
       issue: 0,
       complimentary: 0,
-      partialDiscount: 0,
       total: 0,
     });
 
@@ -348,18 +193,13 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
     return [
       { label: 'Gross Subtotal (before issues)', value: formatPriceWithCurrency(grossSubtotal, currency) },
       ...(adjustmentStats.issue > 0 ? [{
-        label: 'Issue deductions (expense)',
+        label: 'Refunds / issue deductions',
         value: formatPriceWithCurrency(adjustmentStats.issue, currency),
-        tone: 'complimentary' as const,
+        tone: 'issue' as const,
       }] : []),
       ...(adjustmentStats.complimentary > 0 ? [{
-        label: 'Complimentary/Gift deductions (expense)',
+        label: 'Complimentary / gift cost',
         value: formatPriceWithCurrency(adjustmentStats.complimentary, currency),
-        tone: 'complimentary' as const,
-      }] : []),
-      ...(adjustmentStats.partialDiscount > 0 ? [{
-        label: 'Partial discount deductions (expense)',
-        value: formatPriceWithCurrency(adjustmentStats.partialDiscount, currency),
         tone: 'complimentary' as const,
       }] : []),
       ...(adjustmentStats.total > 0 ? [{
@@ -377,7 +217,8 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
       },
       { label: 'Taxable Subtotal', value: formatPriceWithCurrency(netTaxableSubtotal, currency) },
       { label: `VAT (${vatRate.toFixed(2)}%)`, value: formatPriceWithCurrency(recomputedVat, currency) },
-      { label: 'Final Total (net revenue)', value: formatPriceWithCurrency(netTotal, currency) },
+      { label: 'Final guest-paid total', value: formatPriceWithCurrency(netTotal, currency) },
+      { label: 'Internal operational loss total', value: formatPriceWithCurrency(adjustmentStats.total, currency), tone: 'issue' as const },
     ];
   }, [invoice, mergedInvoiceItems, currency]);
 
@@ -459,10 +300,13 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                       const compensationNote = item.compensationNote || null;
                       const accountingBucket = item.accountingBucket || null;
                       const isComplimentary = item.isComplimentary || compensationType === 'complimentary';
+                      const isIssue = !isComplimentary && (hasDeduction || item.status !== 'normal' || compensationType !== 'none');
                       const isCompensated = compensationType !== null && compensationType !== 'none';
                       const compensationReason = item.compensationReason || null;
                       const approvedBy = item.approvedBy || null;
                       const approvedAt = item.approvedAt || null;
+                      const operationalLossCategory = item.operationalLossCategory || null;
+                      const actionType = item.adjustmentActionType || null;
                       const label = isComplimentary
                         ? 'COMPLIMENTARY / GIFT'
                         : compensationType === 'partial_discount'
@@ -474,7 +318,7 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                               : compensationType.replaceAll('_', ' ').toUpperCase();
                       return (
                       <tr key={item.key} className="border-t border-stroke/70 bg-bg1/45">
-                        <td className={isComplimentary ? 'px-4 py-3 text-emerald-500' : isCompensated ? 'px-4 py-3 text-rose-500' : 'px-4 py-3 text-text'}>
+                        <td className={isComplimentary ? 'px-4 py-3 text-emerald-500' : isIssue || isCompensated ? 'px-4 py-3 text-rose-500' : 'px-4 py-3 text-text'}>
                           <div>
                             <p>{item.name}</p>
                             {isCompensated ? (
@@ -483,15 +327,28 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                                 {compensationReason ? ` • Reason: ${compensationReason.replaceAll('_', ' ')}` : ''}
                                 {accountingBucket ? ` • Bucket: ${accountingBucket.replaceAll('_', ' ')}` : ''}
                                 {compensationNote ? ` • ${compensationNote}` : ''}
+                                {actionType ? ` • Type: ${ADJUSTMENT_ACTION_LABELS[actionType]}` : ''}
                                 {approvedBy ? ` • Approved by ${approvedBy}` : ''}
                                 {approvedAt ? ` • ${approvedAt}` : ''}
+                              </p>
+                            ) : null}
+                            {operationalLossCategory ? (
+                              <p className="mt-1">
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${
+                                  isComplimentary
+                                    ? 'border-amber-300/35 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                                    : 'border-rose-300/35 bg-rose-500/10 text-rose-700 dark:text-rose-300'
+                                }`}
+                                >
+                                  {OPERATIONAL_LOSS_CATEGORY_BADGE_LABELS[operationalLossCategory]}
+                                </span>
                               </p>
                             ) : null}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-muted">{item.quantity}</td>
                         <td className="px-4 py-3 text-muted">{formatPriceWithCurrency(item.unitPrice, currency)}</td>
-                        <td className={isComplimentary ? 'px-4 py-3 font-semibold text-emerald-500' : isCompensated ? 'px-4 py-3 font-semibold text-rose-500' : 'px-4 py-3 font-semibold text-text'}>
+                        <td className={isComplimentary ? 'px-4 py-3 font-semibold text-emerald-500' : isIssue || isCompensated ? 'px-4 py-3 font-semibold text-rose-500' : 'px-4 py-3 font-semibold text-text'}>
                           {formatPriceWithCurrency(lineTotal, currency)}
                           {hasDeduction ? (
                             <div className="text-xs text-muted line-through">{formatPriceWithCurrency(originalLineTotal, currency)}</div>
@@ -514,6 +371,8 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                     className={`flex items-center justify-between rounded-xl border px-4 py-2.5 ${
                       row.tone === 'complimentary'
                         ? 'border-amber-400/35 bg-amber-500/12'
+                        : row.tone === 'issue'
+                          ? 'border-rose-400/35 bg-rose-500/12'
                         : row.tone === 'discount'
                           ? 'border-rose-400/30 bg-rose-500/10'
                         : 'border-stroke bg-bg1/55'
@@ -523,11 +382,13 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                     <span className={`text-sm font-semibold ${
                       row.tone === 'complimentary'
                         ? 'text-amber-500'
+                        : row.tone === 'issue'
+                          ? 'text-rose-500'
                         : row.tone === 'discount'
                           ? 'text-rose-500'
                           : 'text-text'
                     }`}>
-                      {row.tone === 'complimentary' || row.tone === 'discount' ? '- ' : ''}
+                      {row.tone === 'complimentary' || row.tone === 'discount' || row.tone === 'issue' ? '- ' : ''}
                       {row.value}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 import api from './api';
 import axios from 'axios';
 import type {
+  AdjustmentActionType,
   ActiveTableSessionRecord,
   AccountOrderRequest,
   ComplaintAccountingBucket,
@@ -16,6 +17,7 @@ import type {
   InvoiceSplitMode,
   InvoiceSplitSummary,
   KitchenOrderRecord,
+  OperationalLossCategory,
   OrderRecord,
   PosCheckoutRequest,
   PosCheckoutResponse,
@@ -98,6 +100,8 @@ interface TableSessionActionResponse {
       compensation_type?: 'none' | 'full_waiver' | 'partial_discount' | 'complimentary';
       compensation_reason?: ComplaintReasonCode | null;
       complaint_category?: ComplaintCategory | null;
+      operational_loss_category?: OperationalLossCategory | null;
+      adjustment_action_type?: AdjustmentActionType | null;
       compensation_note?: string | null;
       approved_by_staff_name?: string | null;
       approved_at?: string | null;
@@ -207,12 +211,17 @@ const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRe
     nextPayload.items = payload.items
       .filter((item) => typeof item.dish_id === 'number' && typeof item.quantity === 'number')
       .map((item) => ({
+        order_item_id: typeof item.order_item_id === 'number' && item.order_item_id > 0
+          ? item.order_item_id
+          : null,
         dish_id: item.dish_id,
         quantity: item.quantity,
         status: item.status,
         compensation_type: item.compensation_type,
         compensation_reason: item.compensation_reason ?? null,
         complaint_category: item.complaint_category ?? null,
+        operational_loss_category: item.operational_loss_category ?? null,
+        adjustment_action_type: item.adjustment_action_type ?? null,
         compensation_note: item.compensation_note ?? null,
         approved_by_staff_id: item.approved_by_staff_id ?? null,
         approved_by_staff_name: item.approved_by_staff_name ?? null,

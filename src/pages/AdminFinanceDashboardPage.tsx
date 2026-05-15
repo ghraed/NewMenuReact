@@ -15,7 +15,6 @@ import { Bar } from 'react-chartjs-2';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { buildCompensationDashboardReport, readCompensationLedger } from '../services/complaintCompensationService';
 import api from '../services/api';
 import {
   createInvoice,
@@ -45,6 +44,14 @@ import {
 } from '../utils/currency';
 import { validateFinanceDateRange } from '../utils/financeReporting';
 import { downloadFinanceExecutiveWorkbook } from '../utils/financeReportWorkbook';
+import {
+  buildOperationalLossDashboardReport,
+  type OperationalLossDashboardReport,
+} from '../utils/financeAdjustmentMeta';
+import {
+  ADJUSTMENT_ACTION_LABELS,
+  OPERATIONAL_LOSS_CATEGORY_LABELS,
+} from '../utils/orderItemCompensation';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -89,6 +96,19 @@ const emptyTax = (): FinanceTaxSummary => ({
   output_vat: 0,
   input_vat: 0,
   net_vat_payable: 0,
+});
+
+const emptyOperationalLossReport = (): OperationalLossDashboardReport => ({
+  totalAdjustmentCost: 0,
+  issueRefundCost: 0,
+  complimentaryGiftCost: 0,
+  serviceRecoveryCost: 0,
+  dailyLosses: [],
+  weeklyLosses: [],
+  monthlyLosses: [],
+  byCategory: [],
+  byAction: [],
+  approvers: [],
 });
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -409,6 +429,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [payrollTotals, setPayrollTotals] = useState<PayrollSummaryTotals>(emptyPayrollTotals);
   const [pnlSummary, setPnlSummary] = useState<FinanceProfitAndLossSummary>(emptyPnl);
   const [taxSummary, setTaxSummary] = useState<FinanceTaxSummary>(emptyTax);
+  const [operationalLossReport, setOperationalLossReport] = useState<OperationalLossDashboardReport>(emptyOperationalLossReport);
   const [payrollPeriodCount, setPayrollPeriodCount] = useState(0);
   const [scheduledShiftsCount, setScheduledShiftsCount] = useState(0);
   const [operationsLoading, setOperationsLoading] = useState(true);
@@ -470,14 +491,9 @@ const AdminFinanceDashboardPage: React.FC = () => {
     formatPriceWithCurrency(convertFinanceAmount(amount), currency)
   ), [convertFinanceAmount, currency]);
 
-  const compensationReport = useMemo(
-    () => buildCompensationDashboardReport(readCompensationLedger()),
-    [loading, operationsLoading, dateFrom, dateTo, statusFilter]
-  );
-
-  const latestDailyComplaintLoss = compensationReport.daily_losses[compensationReport.daily_losses.length - 1]?.amount ?? 0;
-  const latestWeeklyComplaintLoss = compensationReport.weekly_losses[compensationReport.weekly_losses.length - 1]?.amount ?? 0;
-  const latestMonthlyComplaintLoss = compensationReport.monthly_losses[compensationReport.monthly_losses.length - 1]?.amount ?? 0;
+  const latestDailyComplaintLoss = operationalLossReport.dailyLosses[operationalLossReport.dailyLosses.length - 1]?.amount ?? 0;
+  const latestWeeklyComplaintLoss = operationalLossReport.weeklyLosses[operationalLossReport.weeklyLosses.length - 1]?.amount ?? 0;
+  const latestMonthlyComplaintLoss = operationalLossReport.monthlyLosses[operationalLossReport.monthlyLosses.length - 1]?.amount ?? 0;
 
   const loadInvoiceTablePage = useCallback(async () => {
     setInvoiceTableLoading(true);
@@ -507,6 +523,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
     const dateRangeError = validateFinanceDateRange(dateFrom, dateTo);
     if (dateRangeError) {
       setError(dateRangeError);
+      setOperationalLossReport(emptyOperationalLossReport());
       setLoading(false);
       setOperationsLoading(false);
       return;
@@ -562,6 +579,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
       };
 
       const [allInvoices, allExpenses] = await Promise.all([fetchAllInvoices(), fetchAllExpenses()]);
+      const filteredOperationalLossExpenses = allExpenses.filter((expense) => (
+        INCLUDED_EXPENSE_STATUSES.has(expense.status)
+        && isValidDateWithinRange(expense.expense_date, dateFrom, dateTo)
+      ));
+      setOperationalLossReport(buildOperationalLossDashboardReport(filteredOperationalLossExpenses));
 
       const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult] = await Promise.allSettled([
         fetchPayrollSummary({
@@ -711,6 +733,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       }
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError, 'Failed to load finance dashboard data.'));
+      setOperationalLossReport(emptyOperationalLossReport());
     } finally {
       setOperationsLoading(false);
       setLoading(false);
@@ -1228,62 +1251,62 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
           <GlassCard>
             <div className="mb-3">
-              <h3 className="text-lg font-semibold text-text">Complaint & Compensation</h3>
-              <p className="mt-1 text-sm text-muted">Loss analytics from cancelled dishes and complimentary goodwill actions.</p>
+              <h3 className="text-lg font-semibold text-text">Operational Loss Tracking</h3>
+              <p className="mt-1 text-sm text-muted">Backend-synced losses from invoice/order refunds, complimentary gifts, and guest recovery actions.</p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Total Compensation Cost</p>
-                <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(compensationReport.total_compensation_cost)}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Internal Loss Total</p>
+                <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(operationalLossReport.totalAdjustmentCost)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Cancelled Items</p>
-                <p className="mt-1 text-base font-semibold text-rose-200">{compensationReport.cancelled_item_count}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Issue / Refund Cost</p>
+                <p className="mt-1 text-base font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(operationalLossReport.issueRefundCost)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Complimentary Items</p>
-                <p className="mt-1 text-base font-semibold text-emerald-200">{compensationReport.complimentary_item_count}</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Complimentary / Recovery Cost</p>
+                <p className="mt-1 text-base font-semibold text-[#067647] dark:text-[#32d583]">{formatFinanceAmount(operationalLossReport.complimentaryGiftCost + operationalLossReport.serviceRecoveryCost)}</p>
               </div>
             </div>
 
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Daily Loss</p>
-                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestDailyComplaintLoss)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestDailyComplaintLoss)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Weekly Loss</p>
-                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestWeeklyComplaintLoss)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestWeeklyComplaintLoss)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Monthly Loss</p>
-                <p className="mt-1 text-sm font-semibold text-rose-200">{formatFinanceAmount(latestMonthlyComplaintLoss)}</p>
+                <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestMonthlyComplaintLoss)}</p>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Most Cancelled Dishes</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Operational Loss Categories</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
-                  {compensationReport.most_cancelled_dishes.length === 0 ? (
+                  {operationalLossReport.byCategory.length === 0 ? (
                     <p>No complaint records yet.</p>
-                  ) : compensationReport.most_cancelled_dishes.slice(0, 5).map((dish) => (
-                    <p key={dish.dish_name} className="flex items-center justify-between">
-                      <span className="text-text">{dish.dish_name}</span>
-                      <span className="text-rose-200">{dish.count}</span>
+                  ) : operationalLossReport.byCategory.slice(0, 5).map((row) => (
+                    <p key={row.category} className="flex items-center justify-between">
+                      <span className="text-text">{OPERATIONAL_LOSS_CATEGORY_LABELS[row.category]}</span>
+                      <span className="text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(row.amount)}</span>
                     </p>
                   ))}
                 </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Common Reasons</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Loss Action Types</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
-                  {compensationReport.most_common_reasons.length === 0 ? (
+                  {operationalLossReport.byAction.length === 0 ? (
                     <p>No reason data yet.</p>
-                  ) : compensationReport.most_common_reasons.slice(0, 5).map((reason) => (
-                    <p key={reason.reason} className="flex items-center justify-between">
-                      <span className="text-text">{reason.reason.replace(/_/g, ' ')}</span>
-                      <span>{reason.count}</span>
+                  ) : operationalLossReport.byAction.slice(0, 5).map((row) => (
+                    <p key={row.action} className="flex items-center justify-between">
+                      <span className="text-text">{ADJUSTMENT_ACTION_LABELS[row.action]}</span>
+                      <span>{formatFinanceAmount(row.amount)}</span>
                     </p>
                   ))}
                 </div>
@@ -1291,11 +1314,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.12em] text-muted2">Top Approvals</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
-                  {compensationReport.staff_approvals.length === 0 ? (
+                  {operationalLossReport.approvers.length === 0 ? (
                     <p>No approvals recorded yet.</p>
-                  ) : compensationReport.staff_approvals.slice(0, 5).map((staff) => (
-                    <p key={`${staff.staff_name}-${staff.role}`} className="flex items-center justify-between">
-                      <span className="text-text">{staff.staff_name} ({staff.role})</span>
+                  ) : operationalLossReport.approvers.slice(0, 5).map((staff) => (
+                    <p key={staff.name} className="flex items-center justify-between">
+                      <span className="text-text">{staff.name}</span>
                       <span>{staff.approvals}</span>
                     </p>
                   ))}
