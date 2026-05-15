@@ -73,19 +73,85 @@ const emptyAccountingDraft = {
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
 
-const resolveGiftExpenseCategoryId = (categories: FinanceExpenseCategory[]): number | null => {
-  const exactGoodwill = categories.find((category) => category.code?.toLowerCase() === 'goodwill_expense');
-  if (exactGoodwill) {
-    return exactGoodwill.id;
+const findExpenseCategoryId = (
+  categories: FinanceExpenseCategory[],
+  preferredCodes: string[],
+  preferredNameHints: string[]
+): number | null => {
+  for (const code of preferredCodes) {
+    const match = categories.find((category) => category.code?.toLowerCase() === code.toLowerCase());
+    if (match) {
+      return match.id;
+    }
   }
 
-  const goodwillByName = categories.find((category) => category.name?.toLowerCase().includes('goodwill'));
-  if (goodwillByName) {
-    return goodwillByName.id;
+  for (const nameHint of preferredNameHints) {
+    const match = categories.find((category) => category.name?.toLowerCase().includes(nameHint.toLowerCase()));
+    if (match) {
+      return match.id;
+    }
   }
 
-  const retentionFallback = categories.find((category) => category.code?.toLowerCase() === 'customer_retention');
-  return retentionFallback?.id ?? null;
+  return null;
+};
+
+const resolveGiftExpenseCategoryId = (categories: FinanceExpenseCategory[]): number | null => (
+  findExpenseCategoryId(
+    categories,
+    ['goodwill_expense', 'customer_retention', 'marketing_expense'],
+    ['goodwill', 'retention', 'complimentary', 'gift', 'marketing']
+  )
+);
+
+const resolveIssueExpenseCategoryId = (categories: FinanceExpenseCategory[]): number | null => (
+  findExpenseCategoryId(
+    categories,
+    ['quality_control_loss', 'customer_complaint_loss', 'quality_issue', 'wastage'],
+    ['quality', 'complaint', 'wastage', 'loss']
+  )
+);
+
+const resolveExpenseCategoryIdByBucket = (
+  categories: FinanceExpenseCategory[],
+  accountingBucket?: string | null
+): number | null => {
+  if (accountingBucket === 'customer_complaint_loss') {
+    return findExpenseCategoryId(
+      categories,
+      ['customer_complaint_loss', 'quality_control_loss', 'wastage'],
+      ['complaint', 'quality', 'wastage']
+    );
+  }
+
+  if (accountingBucket === 'quality_control_loss') {
+    return findExpenseCategoryId(
+      categories,
+      ['quality_control_loss', 'customer_complaint_loss', 'wastage'],
+      ['quality', 'complaint', 'wastage']
+    );
+  }
+
+  if (accountingBucket === 'quality_loss') {
+    return resolveIssueExpenseCategoryId(categories) ?? resolveGiftExpenseCategoryId(categories);
+  }
+
+  if (accountingBucket === 'customer_retention' || accountingBucket === 'marketing_expense') {
+    return resolveGiftExpenseCategoryId(categories) ?? resolveIssueExpenseCategoryId(categories);
+  }
+
+  if (accountingBucket === 'wastage') {
+    return findExpenseCategoryId(
+      categories,
+      ['wastage', 'quality_control_loss', 'customer_complaint_loss'],
+      ['wastage', 'quality', 'loss']
+    );
+  }
+
+  if (accountingBucket === 'goodwill_expense') {
+    return resolveGiftExpenseCategoryId(categories) ?? resolveIssueExpenseCategoryId(categories);
+  }
+
+  return resolveIssueExpenseCategoryId(categories) ?? resolveGiftExpenseCategoryId(categories);
 };
 
 interface AccountingCompDraft {
@@ -662,6 +728,32 @@ const AccountingOrdersPage: React.FC = () => {
     return Array.from(grouped.values()).sort((a, b) => a.dish_name.localeCompare(b.dish_name));
   }, [selectedTable, selectedTableOrders]);
 
+  const selectedTableIssueItems = useMemo(() => (
+    selectedTableLineItems
+      .map((item) => {
+        const original = Number(item.original_line_subtotal || 0);
+        const final = Number(item.line_subtotal || 0);
+        const lossValue = Math.max(0, original - final);
+        const hasIssue = item.status !== 'normal' || item.compensation_type !== 'none' || lossValue > 0;
+        return hasIssue
+          ? {
+              key: item.key,
+              dish_name: item.dish_name,
+              status: item.status,
+              compensation_type: item.compensation_type,
+              lossValue,
+            }
+          : null;
+      })
+      .filter((item): item is {
+        key: string;
+        dish_name: string;
+        status: OrderItemIssueStatus;
+        compensation_type: OrderItemCompensationType;
+        lossValue: number;
+      } => Boolean(item))
+  ), [selectedTableLineItems]);
+
   const openCompensationEditor = (lineKey: string) => {
     const line = selectedTableLineItems.find((entry) => entry.key === lineKey);
     if (!line) {
@@ -979,13 +1071,13 @@ const AccountingOrdersPage: React.FC = () => {
       return;
     }
 
-    const payload: AccountOrderRequest = {
+    const basePayload: AccountOrderRequest = {
       vat_rate: selectedTablePreview.vatRate,
     };
 
     if (selectedTablePreview.discountType) {
-      payload.discount_type = selectedTablePreview.discountType;
-      payload.discount_value = selectedTablePreview.discountValue;
+      basePayload.discount_type = selectedTablePreview.discountType;
+      basePayload.discount_value = selectedTablePreview.discountValue;
     }
 
     setProcessingTarget(`table:${selectedTable}`);
@@ -1000,7 +1092,55 @@ const AccountingOrdersPage: React.FC = () => {
         }
       }
 
-      await Promise.all(selectedTableOrders.map((order) => accountConfirmedOrder(order.id, payload)));
+      const fallbackMessages: string[] = [];
+      await Promise.all(selectedTableOrders.map(async (order, orderIndex) => {
+        const orderPayload: AccountOrderRequest = {
+          ...basePayload,
+          items: order.items
+            .filter((item) => typeof item.dish_id === 'number')
+            .map((item) => ({
+              dish_id: Number(item.dish_id),
+              quantity: Math.max(1, Number(item.quantity || 1)),
+              status: item.status || 'normal',
+              compensation_type: item.compensation_type || 'none',
+              compensation_reason: item.compensation_reason || null,
+              complaint_category: item.complaint_category || null,
+              compensation_note: item.compensation_note || null,
+              approved_by_staff_id: item.approved_by?.id || null,
+              approved_by_staff_name: item.approved_by?.name || null,
+              approved_by_staff_role: item.approved_by?.role || null,
+              approved_at: item.approved_at || null,
+              original_unit_price: Number(item.original_unit_price || item.unit_price || 0),
+              final_unit_price: Number(item.final_unit_price || item.unit_price || 0),
+              partial_discount_percentage: item.partial_discount_percentage ? Number(item.partial_discount_percentage) : null,
+              partial_discount_type: item.partial_discount_type || null,
+              partial_discount_value: item.partial_discount_value ? Number(item.partial_discount_value) : null,
+              is_complimentary: item.is_complimentary === true,
+              accounting_bucket: item.accounting_bucket || null,
+              customer_satisfaction_rating: item.customer_satisfaction_rating || null,
+              evidence_photo_url: item.evidence_photo_url || null,
+            })),
+        };
+
+        try {
+          await accountConfirmedOrder(order.id, orderPayload);
+        } catch {
+          await accountConfirmedOrder(order.id, basePayload);
+          fallbackMessages.push(
+            order.order_number
+              ? `Order ${order.order_number}`
+              : `Order #${orderIndex + 1}`
+          );
+        }
+      }));
+
+      if (fallbackMessages.length > 0) {
+        showToast(
+          `Compensation metadata sync was skipped for ${fallbackMessages.join(', ')}. Finalization continued with base accounting totals.`,
+          'tertiary',
+          6200
+        );
+      }
       const uniqueSessionIds = Array.from(new Set(
         selectedTableOrders
           .map((order) => order.table_session_id)
@@ -1071,38 +1211,54 @@ const AccountingOrdersPage: React.FC = () => {
 
       const finalizedOrderIds = new Set(selectedTableOrders.map((order) => order.id));
 
-      const localGiftItems = selectedTable ? (localGiftItemsByTable[selectedTable] || []) : [];
-      if (localGiftItems.length > 0) {
+      const expenseAdjustmentCandidates = selectedTableLineItems
+        .map((line) => {
+          const original = Math.max(0, Number(line.original_line_subtotal || 0));
+          const final = Math.max(0, Number(line.line_subtotal || 0));
+          const lossValue = Math.max(0, original - final);
+          return {
+            line,
+            original,
+            final,
+            lossValue,
+          };
+        })
+        .filter((entry) => entry.lossValue > 0);
+
+      if (expenseAdjustmentCandidates.length > 0) {
         try {
           const categories = await fetchExpenseCategories();
-          const giftCategoryId = resolveGiftExpenseCategoryId(categories);
-          if (!giftCategoryId) {
+          const anyExpenseCategoryId = resolveIssueExpenseCategoryId(categories) ?? resolveGiftExpenseCategoryId(categories);
+          if (!anyExpenseCategoryId) {
             showToast(
-              'Invoice finalized. Gift dishes were not posted to finance expenses because no goodwill/customer-retention category is configured.',
+              'Invoice finalized. Issue/gift losses were not posted to finance expenses because no matching expense category is configured.',
               'tertiary',
               6200
             );
           } else {
             const primaryInvoiceNumber = finalizedInvoiceNumbers[0] || 'N/A';
-            await Promise.all(localGiftItems.map(async (giftItem, index) => {
-              const quantity = Math.max(1, Number(giftItem.quantity || 1));
-              const originalUnit = Math.max(0, Number(giftItem.original_unit_price || giftItem.unit_price || 0));
-              const totalValue = originalUnit * quantity;
-              if (totalValue <= 0) {
-                return;
-              }
+            await Promise.all(expenseAdjustmentCandidates.map(async ({ line, lossValue, original, final }, index) => {
+              const expenseCategoryId = resolveExpenseCategoryIdByBucket(categories, line.accounting_bucket) ?? anyExpenseCategoryId;
 
               await createExpense({
-                expense_category_id: giftCategoryId,
-                expense_date: (giftItem.approved_at || new Date().toISOString()).slice(0, 10),
-                amount_cents: Math.round(totalValue * 100),
+                expense_category_id: expenseCategoryId,
+                expense_date: (line.approved_at || new Date().toISOString()).slice(0, 10),
+                amount_cents: Math.round(lossValue * 100),
                 tax_amount_cents: 0,
                 currency: (user?.restaurant?.currency || 'USD').toUpperCase(),
                 status: 'approved',
                 payment_method: null,
-                reference_no: `GIFT-${primaryInvoiceNumber}-${index + 1}`,
-                description: `Gift compensation: ${giftItem.dish_name}`,
-                notes: `Auto-created from accounting gift dish. Table: ${selectedTable}; invoice: ${primaryInvoiceNumber}; source: gift_compensation`,
+                reference_no: `ADJ-${primaryInvoiceNumber}-${index + 1}`,
+                description: `Invoice adjustment: ${line.dish_name}`,
+                notes: [
+                  `Source: invoice adjustment.`,
+                  `Auto-created from accounting adjustment.`,
+                  `Table: ${selectedTable}; invoice: ${primaryInvoiceNumber};`,
+                  `status: ${line.status}; compensation: ${line.compensation_type};`,
+                  `original: ${original.toFixed(2)}; final: ${final.toFixed(2)}; loss: ${lossValue.toFixed(2)};`,
+                  line.compensation_reason ? `reason: ${line.compensation_reason};` : null,
+                  line.compensation_note ? `note: ${line.compensation_note};` : null,
+                ].filter(Boolean).join(' '),
                 due_date: null,
                 paid_at: null,
               });
@@ -1110,7 +1266,7 @@ const AccountingOrdersPage: React.FC = () => {
           }
         } catch {
           showToast(
-            'Invoice finalized. Gift dish finance expense sync could not be completed; please review Finance > Expenses.',
+            'Invoice finalized. Issue/gift finance expense sync could not be completed; please review Finance > Expenses.',
             'tertiary',
             6200
           );
@@ -1426,6 +1582,26 @@ const AccountingOrdersPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-3 space-y-3">
+                {selectedTableIssueItems.length > 0 ? (
+                  <div className="rounded-[20px] border border-amber-300/30 bg-amber-500/10 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-100/90">
+                      Issue / Gift Tracking ({selectedTableIssueItems.length})
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedTableIssueItems.map((item) => (
+                        <span
+                          key={`issue-chip-${item.key}`}
+                          className="rounded-full border border-white/15 bg-black/20 px-3 py-1 text-xs text-text"
+                        >
+                          {item.dish_name}
+                          {` • ${ISSUE_STATUS_LABELS[item.status]}`}
+                          {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
+                          {item.lossValue > 0 ? ` • loss ${formatMoney(item.lossValue)}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 {selectedTableLineItems.map((item) => {
                   const isCancelledOrProblematic = item.status === 'cancelled' || item.status === 'problematic';
                   const isComplimentary = item.is_complimentary;
@@ -1447,11 +1623,17 @@ const AccountingOrdersPage: React.FC = () => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className={`truncate font-medium ${isCancelledOrProblematic ? 'text-rose-100 line-through' : 'text-text'}`}>
+                          <p className={`truncate font-medium ${
+                            isComplimentary
+                              ? 'text-emerald-500'
+                              : isCancelledOrProblematic
+                                ? 'text-rose-500 line-through'
+                                : 'text-text'
+                          }`}>
                             {item.dish_name}
                           </p>
                           <p className="text-sm text-muted">
-                            {item.quantity} × <span className={isComplimentary ? 'line-through text-emerald-100/80' : ''}>${item.unit_price}</span>
+                            {item.quantity} × <span className={isComplimentary ? 'line-through text-emerald-500/80' : ''}>${item.unit_price}</span>
                             {item.compensation_type !== 'none' ? ` • ${COMPENSATION_TYPE_LABELS[item.compensation_type]}` : ''}
                           </p>
                           {reasonLabel ? (
@@ -1470,9 +1652,9 @@ const AccountingOrdersPage: React.FC = () => {
                         <div className="shrink-0 text-right">
                           <div className={`text-sm font-semibold ${
                             isComplimentary
-                              ? 'text-emerald-100'
+                              ? 'text-emerald-500'
                               : isCancelledOrProblematic
-                                ? 'text-rose-100'
+                                ? 'text-rose-500'
                                 : 'text-gold2'
                           }`}
                           >

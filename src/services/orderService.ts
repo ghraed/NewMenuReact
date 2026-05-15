@@ -203,6 +203,33 @@ const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRe
     nextPayload.discount_value = payload.discount_value;
   }
 
+  if (Array.isArray(payload.items) && payload.items.length > 0) {
+    nextPayload.items = payload.items
+      .filter((item) => typeof item.dish_id === 'number' && typeof item.quantity === 'number')
+      .map((item) => ({
+        dish_id: item.dish_id,
+        quantity: item.quantity,
+        status: item.status,
+        compensation_type: item.compensation_type,
+        compensation_reason: item.compensation_reason ?? null,
+        complaint_category: item.complaint_category ?? null,
+        compensation_note: item.compensation_note ?? null,
+        approved_by_staff_id: item.approved_by_staff_id ?? null,
+        approved_by_staff_name: item.approved_by_staff_name ?? null,
+        approved_by_staff_role: item.approved_by_staff_role ?? null,
+        approved_at: item.approved_at ?? null,
+        original_unit_price: typeof item.original_unit_price === 'number' ? item.original_unit_price : null,
+        final_unit_price: typeof item.final_unit_price === 'number' ? item.final_unit_price : null,
+        partial_discount_percentage: typeof item.partial_discount_percentage === 'number' ? item.partial_discount_percentage : null,
+        partial_discount_type: item.partial_discount_type ?? null,
+        partial_discount_value: typeof item.partial_discount_value === 'number' ? item.partial_discount_value : null,
+        is_complimentary: item.is_complimentary === true,
+        accounting_bucket: item.accounting_bucket ?? null,
+        customer_satisfaction_rating: typeof item.customer_satisfaction_rating === 'number' ? item.customer_satisfaction_rating : null,
+        evidence_photo_url: item.evidence_photo_url ?? null,
+      }));
+  }
+
   return nextPayload;
 };
 

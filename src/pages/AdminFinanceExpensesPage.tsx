@@ -166,7 +166,7 @@ const formatPriceWithCurrencyDecimals = (amount: number, currency: string, fract
   return `${money} ${symbol}`;
 };
 
-const isGiftCompensationExpense = (expense: FinanceExpense): boolean => {
+const isInvoiceAdjustmentExpense = (expense: FinanceExpense): boolean => {
   const sourceHints = [
     expense.reference_no,
     expense.description,
@@ -177,7 +177,16 @@ const isGiftCompensationExpense = (expense: FinanceExpense): boolean => {
     .map((value) => (value || '').toLowerCase());
 
   return sourceHints.some((value) => (
-    value.includes('gift compensation')
+    value.includes('invoice adjustment')
+    || value.includes('source: invoice adjustment')
+    || value.includes('adj-')
+    || value.includes('customer complaint loss')
+    || value.includes('quality control loss')
+    || value.includes('quality_control_loss')
+    || value.includes('customer_complaint_loss')
+    || value.includes('wastage')
+    || value.includes('complimentary')
+    || value.includes('gift compensation')
     || value.includes('gift_compensation')
     || value.includes('goodwill')
     || value.includes('customer retention')
@@ -917,7 +926,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by category, vendor, or amount" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by category, vendor, reference, description, or amount" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               <LiquidButton type="button" tone="tertiary" onClick={() => { setExpensePage(1); setDateFrom(''); setDateTo(''); setStatusFilter(''); setCategoryFilter(''); setVendorFilter(''); setExpenseSearch(''); }}>
                 Clear Filters
               </LiquidButton>
@@ -936,19 +945,23 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   ) : filteredExpenses.length === 0 ? (
                     <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>No expenses found for current filters.</td></tr>
                   ) : filteredExpenses.map((expense) => {
-                    const isGiftExpense = isGiftCompensationExpense(expense);
+                    const isAdjustmentExpense = isInvoiceAdjustmentExpense(expense);
                     return (
-                    <tr key={expense.id} className={`border-t border-stroke/70 ${isGiftExpense ? 'bg-emerald-500/10' : 'bg-bg1/45'}`}>
-                      <td className="px-4 py-3 text-muted">{expense.expense_date}</td>
-                      <td className={isGiftExpense ? 'px-4 py-3 text-emerald-100' : 'px-4 py-3 text-text'}>
+                    <tr key={expense.id} className={`border-t border-stroke/70 ${isAdjustmentExpense ? 'bg-amber-500/15' : 'bg-bg1/45'}`}>
+                      <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-muted'}>{expense.expense_date}</td>
+                      <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-text'}>
                         {expense.category?.name || `Category #${expense.expense_category_id}`}
                       </td>
-                      <td className="px-4 py-3 text-muted">{expense.vendor?.name || '-'}</td>
-                      <td className="px-4 py-3 text-xs text-muted">
-                        {expense.linked_stock_movement ? <div><p className="text-text">Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}
-                        {isGiftExpense ? <p className="mt-1 font-semibold text-emerald-200">Source: Gift compensation</p> : null}
+                      <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-muted'}>
+                        <div>{expense.vendor?.name || '-'}</div>
+                        {expense.reference_no ? <p className="mt-1 text-[11px]">Ref: {expense.reference_no}</p> : null}
                       </td>
-                      <td className={isGiftExpense ? 'px-4 py-3 font-semibold text-emerald-100' : 'px-4 py-3 font-semibold text-text'}>
+                      <td className={isAdjustmentExpense ? 'px-4 py-3 text-xs text-amber-900' : 'px-4 py-3 text-xs text-muted'}>
+                        {expense.linked_stock_movement ? <div><p className={isAdjustmentExpense ? 'text-amber-900' : 'text-text'}>Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}
+                        {expense.description ? <p className="mt-1">{expense.description}</p> : null}
+                        {isAdjustmentExpense ? <p className="mt-1 font-semibold text-amber-700">Source: Invoice issue/gift adjustment</p> : null}
+                      </td>
+                      <td className={isAdjustmentExpense ? 'px-4 py-3 font-semibold text-amber-900' : 'px-4 py-3 font-semibold text-text'}>
                         {formatPriceWithCurrency(convertAmountToDefaultCurrency(expense.total_cents / 100, expense.currency), currency)}
                       </td>
                       <td className="px-4 py-3">

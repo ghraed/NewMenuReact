@@ -444,6 +444,28 @@ export interface AccountOrderRequest {
   vat_rate?: number;
   discount_type?: DiscountType;
   discount_value?: number;
+  items?: Array<{
+    dish_id: number;
+    quantity: number;
+    status?: OrderItemIssueStatus;
+    compensation_type?: OrderItemCompensationType;
+    compensation_reason?: ComplaintReasonCode | null;
+    complaint_category?: ComplaintCategory | null;
+    compensation_note?: string | null;
+    approved_by_staff_id?: number | null;
+    approved_by_staff_name?: string | null;
+    approved_by_staff_role?: UserRole | null;
+    approved_at?: string | null;
+    original_unit_price?: number | null;
+    final_unit_price?: number | null;
+    partial_discount_percentage?: number | null;
+    partial_discount_type?: DiscountType | null;
+    partial_discount_value?: number | null;
+    is_complimentary?: boolean;
+    accounting_bucket?: ComplaintAccountingBucket | null;
+    customer_satisfaction_rating?: number | null;
+    evidence_photo_url?: string | null;
+  }>;
 }
 
 export type PosPaymentMethod = 'cash' | 'card' | 'wallet';
