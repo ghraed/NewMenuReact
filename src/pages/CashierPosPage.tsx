@@ -222,7 +222,9 @@ const CashierPosPage: React.FC = () => {
 
     try {
       const nextDishes = await fetchPublishedDishes();
-      setDishes(nextDishes.filter((dish) => dish.is_orderable !== false));
+      setDishes(nextDishes.filter((dish) => (
+        dish.is_orderable !== false && dish.is_out_of_stock !== true
+      )));
 
       const restaurantSlug = user?.restaurant?.slug;
       if (restaurantSlug) {
@@ -303,6 +305,12 @@ const CashierPosPage: React.FC = () => {
   );
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
+    const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
+    if (isOutOfStock) {
+      showToast(`${dish.name} is out of stock and cannot be added.`, 'secondary');
+      return;
+    }
+
     setCartItems((current) => {
       const match = current.find((item) => (
         item.dish.id === dish.id
