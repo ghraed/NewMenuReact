@@ -19,6 +19,7 @@ export const resources = {
         currentSubtotal: 'Current Subtotal',
         pendingAssignment: 'Pending assignment',
         eachPrice: '${{price}} each',
+        outOfStockCannotAdd: '{{dish}} is out of stock and cannot be added.',
       },
       theme: {
         switchToDark: 'Switch to dark theme',
@@ -1007,6 +1008,7 @@ export const resources = {
         currentSubtotal: 'المجموع الحالي',
         pendingAssignment: 'بانتظار التعيين',
         eachPrice: '{{price}}$ لكل قطعة',
+        outOfStockCannotAdd: '{{dish}} غير متوفر حالياً ولا يمكن إضافته.',
       },
       theme: {
         switchToDark: 'التبديل إلى الوضع الداكن',

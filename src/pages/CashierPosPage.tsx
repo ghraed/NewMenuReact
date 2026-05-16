@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -179,6 +180,7 @@ const buildAuditLogFromEntry = (
 });
 
 const CashierPosPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -307,7 +309,13 @@ const CashierPosPage: React.FC = () => {
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
     const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
     if (isOutOfStock) {
-      showToast(`${dish.name} is out of stock and cannot be added.`, 'secondary');
+      showToast(
+        t('common.outOfStockCannotAdd', {
+          dish: dish.name,
+          defaultValue: '{{dish}} is out of stock and cannot be added.',
+        }),
+        'secondary'
+      );
       return;
     }
 
