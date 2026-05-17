@@ -8,6 +8,7 @@ import { getAppThemeStyle } from './Guest/guestTheme';
 import { useAppTheme } from '../hooks/useGuestTheme';
 import LanguageToggle from './LanguageToggle';
 import { useOrderCart } from '../contexts/useOrderCart';
+import LuxuryScrollIndicator from './Common/LuxuryScrollIndicator';
 
 const TRANSITION_NAME = 'app-theme-shell';
 const REVEAL_DURATION_MS = 650;
@@ -43,6 +44,8 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
   const revealIdRef = useRef(0);
   const [revealCircle, setRevealCircle] = useState<RevealCircleState | null>(null);
   const [isRevealActive, setIsRevealActive] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [canScroll, setCanScroll] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -71,6 +74,27 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
 
     root.style.colorScheme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    const updateScrollState = () => {
+      const doc = document.documentElement;
+      const maxScroll = Math.max(0, doc.scrollHeight - window.innerHeight);
+      setCanScroll(maxScroll > 12);
+      if (maxScroll <= 0) {
+        setScrollProgress(0);
+        return;
+      }
+      setScrollProgress(Math.min(1, Math.max(0, window.scrollY / maxScroll)));
+    };
+
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      window.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [location.pathname]);
 
   const handleThemeToggle = () => {
     if (typeof window === 'undefined') {
@@ -157,6 +181,10 @@ const AppThemeShell: React.FC<AppThemeShellProps> = ({ children }) => {
       data-theme={theme}
     >
       <FixedBackground />
+      <LuxuryScrollIndicator
+        show={canScroll && scrollProgress < 0.03}
+        left="calc((100vw + var(--admin-content-left, 0px)) / 2)"
+      />
 
       {revealCircle ? (
         <div

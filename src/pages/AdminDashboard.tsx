@@ -6,7 +6,6 @@ import type { Dish } from '../types';
 import api from '../services/api';
 import { GlassCard, GlassPill, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
-import LuxuryScrollIndicator from '../components/Common/LuxuryScrollIndicator';
 import { translateCategoryLabel } from '../i18n/dynamic';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -50,45 +49,7 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<DishFilter>('all');
   const [openMenuDishId, setOpenMenuDishId] = useState<number | null>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [isScrubbing, setIsScrubbing] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
-  const progressRailRef = useRef<HTMLDivElement | null>(null);
-
-  const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
-  const getScrollMax = () => {
-    const doc = document.documentElement;
-    return Math.max(0, doc.scrollHeight - window.innerHeight);
-  };
-
-  const syncScrollProgress = useCallback(() => {
-    const maxScroll = getScrollMax();
-    if (maxScroll <= 0) {
-      setScrollProgress(0);
-      return;
-    }
-    const current = clamp(window.scrollY / maxScroll, 0, 1);
-    setScrollProgress(current);
-  }, []);
-
-  const scrollPageToProgress = useCallback((nextProgress: number) => {
-    const maxScroll = getScrollMax();
-    const bounded = clamp(nextProgress, 0, 1);
-    window.scrollTo({
-      top: bounded * maxScroll,
-      behavior: 'auto',
-    });
-    setScrollProgress(bounded);
-  }, []);
-
-  const computeProgressFromPointer = useCallback((clientX: number) => {
-    const rail = progressRailRef.current;
-    if (!rail) return 0;
-    const rect = rail.getBoundingClientRect();
-    if (rect.width <= 0) return 0;
-    return clamp((clientX - rect.left) / rect.width, 0, 1);
-  }, []);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -111,37 +72,6 @@ const AdminDashboard: React.FC = () => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, []);
-
-  useEffect(() => {
-    syncScrollProgress();
-    window.addEventListener('scroll', syncScrollProgress, { passive: true });
-    window.addEventListener('resize', syncScrollProgress);
-    return () => {
-      window.removeEventListener('scroll', syncScrollProgress);
-      window.removeEventListener('resize', syncScrollProgress);
-    };
-  }, [syncScrollProgress]);
-
-  useEffect(() => {
-    if (!isScrubbing) return;
-
-    const handleMove = (event: PointerEvent) => {
-      const nextProgress = computeProgressFromPointer(event.clientX);
-      scrollPageToProgress(nextProgress);
-    };
-
-    const stopScrub = () => setIsScrubbing(false);
-
-    window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', stopScrub);
-    window.addEventListener('pointercancel', stopScrub);
-
-    return () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', stopScrub);
-      window.removeEventListener('pointercancel', stopScrub);
-    };
-  }, [isScrubbing, computeProgressFromPointer, scrollPageToProgress]);
 
   const fetchDishes = useCallback(async () => {
     setLoading(true);
@@ -245,79 +175,6 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <DashboardLayout title={t('admin.dashboard')}>
-      <LuxuryScrollIndicator
-        show={scrollProgress < 0.03}
-        left="calc((100vw + var(--admin-content-left, 0px)) / 2)"
-      />
-
-      <div className="sticky top-[56px] z-20 mb-4 mt-4">
-        <div className="relative rounded-xl border border-stroke/60 bg-bg1/52 px-3 py-2 backdrop-blur">
-          <div
-            ref={progressRailRef}
-            role="slider"
-            aria-label="Page scroll progress"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(scrollProgress * 100)}
-            tabIndex={0}
-            className="group relative h-3 w-full cursor-ew-resize rounded-full border border-stroke/40 bg-bg1/14"
-            onPointerDown={(event) => {
-              const nextProgress = computeProgressFromPointer(event.clientX);
-              scrollPageToProgress(nextProgress);
-              setIsScrubbing(true);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
-                event.preventDefault();
-                scrollPageToProgress(scrollProgress + 0.03);
-              }
-              if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
-                event.preventDefault();
-                scrollPageToProgress(scrollProgress - 0.03);
-              }
-              if (event.key === 'Home') {
-                event.preventDefault();
-                scrollPageToProgress(0);
-              }
-              if (event.key === 'End') {
-                event.preventDefault();
-                scrollPageToProgress(1);
-              }
-            }}
-          >
-            <div
-              className="absolute inset-y-0 left-0 rounded-full bg-gold/70 transition-[width] duration-150 ease-out"
-              style={{ width: `${scrollProgress * 100}%` }}
-            />
-            <div
-              className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-gold/60 bg-bg1 shadow-lux2 transition-[left] duration-150 ease-out"
-              style={{ left: `calc(${scrollProgress * 100}% - 0.5rem)` }}
-            />
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-[10px] font-semibold tracking-[0.08em] text-gold2/50">
-            {[
-              { progress: 0.25, label: '1/4' },
-              { progress: 0.5, label: '1/2' },
-              { progress: 0.75, label: '3/4' },
-              { progress: 1, label: '⚑' },
-            ].map((mark) => (
-              <button
-                key={mark.label}
-                type="button"
-                onClick={() => scrollPageToProgress(mark.progress)}
-                className={[
-                  'inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-2 transition',
-                  scrollProgress >= mark.progress ? 'border-gold/45 bg-gold/8 text-gold2/85' : 'border-stroke/45 text-muted2/70 hover:border-gold/20 hover:text-gold2/75',
-                ].join(' ')}
-              >
-                {mark.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourDishes')}</h2>
       </div>

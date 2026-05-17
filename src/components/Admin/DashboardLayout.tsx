@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
 import { areFeaturesEnabled } from '../../utils/features';
 import RestaurantBrandMark from '../Common/RestaurantBrandMark';
+import PageScrollProgress from '../Common/PageScrollProgress';
 import { useAppTheme } from '../../hooks/useGuestTheme';
 import { GlassIconButton, LiquidBackground, LiquidButton } from '../ui/liquid-glass';
 
@@ -348,6 +349,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </header>
 
           <main className="p-3 sm:p-5">
+            <PageScrollProgress />
             <section className="rounded-3xl border border-stroke bg-bg1 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.24)] sm:p-6">
               {children}
             </section>
