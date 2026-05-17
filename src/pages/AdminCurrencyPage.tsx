@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import api from '../services/api';
 import type { CurrencyCode } from '../types';
-import { GlassInput, GlassSelect, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { CURRENCY_OPTIONS, normalizeCurrency, persistGuestCurrencySettings, readGuestCurrencySettings } from '../utils/currency';
 
 interface CurrencySettingsResponse {
@@ -101,7 +101,7 @@ const AdminCurrencyPage: React.FC = () => {
     try {
       const normalizedRate = dollarRate.trim();
       const parsedRate = Number(normalizedRate);
-      const safeDollarRate = originalCurrency === 'USD' ? 1 : parsedRate;
+      const safeDollarRate = parsedRate;
       const safeOtherCurrency = otherCurrency === originalCurrency
         ? (originalCurrency === 'USD' ? 'EUR' : 'USD')
         : otherCurrency;
@@ -121,11 +121,7 @@ const AdminCurrencyPage: React.FC = () => {
         dollar_rate: safeDollarRate,
       });
 
-      if (originalCurrency === 'USD') {
-        setDollarRate('1');
-      } else {
-        setDollarRate(String(safeDollarRate));
-      }
+      setDollarRate(String(safeDollarRate));
       setOtherCurrency(safeOtherCurrency);
 
       setSuccess('Currency settings saved.');
@@ -156,7 +152,7 @@ const AdminCurrencyPage: React.FC = () => {
               <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
                 Default Currency
               </label>
-              <GlassSelect
+              <select
                 id="currency"
                 name="currency"
                 value={originalCurrency}
@@ -166,22 +162,22 @@ const AdminCurrencyPage: React.FC = () => {
                   if (otherCurrency === nextCurrency) {
                     setOtherCurrency(nextCurrency === 'USD' ? 'EUR' : 'USD');
                   }
-                  if (nextCurrency === 'USD') {
-                    setDollarRate('1');
-                  }
                 }}
-                options={CURRENCY_OPTIONS.map((option) => ({
-                  value: option.value,
-                  label: option.label,
-                }))}
-              />
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+              >
+                {CURRENCY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label htmlFor="other_currency" className="mb-1 block text-sm font-medium text-text">
                 Other Currency
               </label>
-              <GlassSelect
+              <select
                 id="other_currency"
                 name="other_currency"
                 value={otherCurrency}
@@ -192,13 +188,16 @@ const AdminCurrencyPage: React.FC = () => {
                   }
                   setOtherCurrency(nextCurrency);
                 }}
-                options={CURRENCY_OPTIONS
+                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+              >
+                {CURRENCY_OPTIONS
                   .filter((option) => option.value !== originalCurrency)
-                  .map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                  }))}
-              />
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+              </select>
               <p className="mt-2 text-xs text-muted">
                 Secondary currency used in the system for alternate currency views.
               </p>
@@ -206,7 +205,7 @@ const AdminCurrencyPage: React.FC = () => {
 
             <div>
               <label htmlFor="dollar_rate" className="mb-1 block text-sm font-medium text-text">
-                USD Exchange Rate
+                Exchange Rate
               </label>
               <GlassInput
                 id="dollar_rate"
@@ -216,13 +215,10 @@ const AdminCurrencyPage: React.FC = () => {
                 step="0.01"
                 value={dollarRate}
                 onChange={(event) => setDollarRate(event.target.value)}
-                disabled={originalCurrency === 'USD'}
-                placeholder={originalCurrency === 'USD' ? 'Not required' : 'e.g. 89500'}
+                placeholder="e.g. 89500"
               />
               <p className="mt-2 text-xs text-muted">
-                {originalCurrency === 'USD'
-                  ? 'This value is fixed at 1 when the default currency is USD.'
-                  : `Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
+                {`Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
               </p>
             </div>
           </div>

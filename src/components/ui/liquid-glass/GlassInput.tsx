@@ -1,5 +1,5 @@
 import React from 'react';
-import { cx, focusRing, glassControl } from '../../../theme/liquidGlass';
+import { cx } from '../../../theme/liquidGlass';
 
 interface GlassInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   leftSlot?: React.ReactNode;
@@ -13,19 +13,22 @@ const GlassInput = React.forwardRef<HTMLInputElement, GlassInputProps>(({
   rightSlot,
   ...props
 }, ref) => {
+  const hasSlots = Boolean(leftSlot || rightSlot);
   return (
-    <label className={cx('relative flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-muted', glassControl, focusRing)}>
-      {leftSlot && <span className="relative z-10 text-muted2">{leftSlot}</span>}
+    <div className={cx('relative')}>
+      {leftSlot && <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted2">{leftSlot}</span>}
       <input
         ref={ref}
         className={cx(
-          'relative z-10 w-full bg-transparent text-sm text-text placeholder:text-muted2 focus:outline-none',
+          'w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text placeholder:text-muted2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55',
+          hasSlots ? 'pl-10' : '',
+          rightSlot ? 'pr-10' : '',
           className
         )}
         {...props}
       />
-      {rightSlot && <span className="relative z-10 text-muted2">{rightSlot}</span>}
-    </label>
+      {rightSlot && <span className="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 text-muted2">{rightSlot}</span>}
+    </div>
   );
 });
 

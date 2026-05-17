@@ -221,16 +221,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               to={item.path}
               title={!isMobile && !navExpanded ? item.label : undefined}
               className={[
-                'flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
+                'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
                 !isMobile && !navExpanded ? 'justify-center px-0' : '',
-                isActive ? 'bg-gold/24 text-text shadow-[inset_0_0_0_1px_rgba(192,146,68,0.28)]' : 'text-muted hover:bg-bg1/90 hover:text-text',
+                isActive ? 'bg-gold/24 text-text shadow-[inset_0_0_0_1px_rgba(192,146,68,0.28)]' : 'text-muted hover:bg-bg1/90 hover:text-text/90',
               ].join(' ')}
             >
               <span className={[
-                'inline-flex h-8 w-8 items-center justify-center rounded-full',
+                'inline-flex h-8 w-8 items-center justify-center rounded-full transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-translate-y-0.5 group-active:scale-110 group-active:-translate-y-0.5',
                 isActive ? 'bg-gold/28 text-gold2' : 'bg-bg1/75 text-muted2',
               ].join(' ')}>
-                <NavIcon name={item.icon} />
+                <span className="transition-transform duration-200 ease-out group-hover:rotate-6 group-active:rotate-6">
+                  <NavIcon name={item.icon} />
+                </span>
               </span>
               {isMobile || navExpanded ? <span className="truncate transition-all duration-200 ease-out">{item.label}</span> : null}
             </Link>
