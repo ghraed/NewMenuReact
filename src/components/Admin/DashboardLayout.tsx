@@ -44,6 +44,7 @@ const NavIcon: React.FC<{ name: string }> = ({ name }) => {
     scroll: 'M6 4h11a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H8a4 4 0 0 1-4-4V7a3 3 0 0 1 3-3zM8 8h8M8 12h8M8 16h5',
     leaf: 'M4 14c7-1 11-5 14-12 2 8-1 16-9 18-5 1-7-2-5-6z',
     globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-7 10h14M12 2c3 3 4 7 4 10s-1 7-4 10m0-20c-3 3-4 7-4 10s1 7 4 10',
+    clock: 'M12 7v5l3 3M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
   };
 
   const d = pathByName[name] ?? pathByName.dashboard;
@@ -75,6 +76,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const { theme, toggleTheme } = useAppTheme();
   const { t, i18n } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
@@ -115,6 +118,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         : user?.role === 'staff'
           ? [
             { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
+            { path: '/staff/today-orders', label: 'Today Orders', icon: 'clock' },
             { path: '/admin/reservations', label: 'Reservations', icon: 'calendar' },
           ]
           : [
@@ -129,6 +133,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             { path: '/admin/staff', label: t('admin.staff'), icon: 'users' },
             { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
             { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
+            { path: '/staff/today-orders', label: 'Today Orders', icon: 'clock' },
             { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
             { path: '/admin/currency', label: 'Currency', icon: 'currency' },
             { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
@@ -190,9 +195,24 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     };
   }, [navExpanded, visibleNavItems.length]);
 
+  const requestLogout = () => {
+    setLogoutConfirmOpen(true);
+  };
+
   const handleLogout = async () => {
-    await logout();
-    navigate('/admin/login', { replace: true });
+    if (logoutBusy) {
+      return;
+    }
+
+    setLogoutBusy(true);
+    try {
+      await logout();
+      navigate('/admin/login', { replace: true });
+    } finally {
+      setLogoutBusy(false);
+      setLogoutConfirmOpen(false);
+      setMobileNavOpen(false);
+    }
   };
 
   const toggleLanguage = () => {
@@ -320,7 +340,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         </div>
 
         <div className="border-t border-stroke px-2 py-3">
-          <LiquidButton tone="tertiary" onClick={handleLogout} className={navExpanded ? 'w-full' : 'w-full px-0'}>
+          <LiquidButton tone="tertiary" onClick={requestLogout} className={navExpanded ? 'w-full' : 'w-full px-0'}>
             {navExpanded ? t('admin.logout') : '⎋'}
           </LiquidButton>
         </div>
@@ -426,11 +446,65 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
               <div className="min-h-0 flex-1 overflow-y-auto">{renderNav(true)}</div>
 
               <div className="mt-3 border-t border-stroke pt-3">
-                <LiquidButton tone="tertiary" onClick={handleLogout} className="w-full">
+                <LiquidButton tone="tertiary" onClick={requestLogout} className="w-full">
                   {t('admin.logout')}
                 </LiquidButton>
               </div>
             </motion.aside>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {logoutConfirmOpen ? (
+          <motion.div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/55 backdrop-blur-sm"
+              aria-label="Close logout confirmation"
+              onClick={() => {
+                if (!logoutBusy) {
+                  setLogoutConfirmOpen(false);
+                }
+              }}
+            />
+
+            <motion.div
+              initial={{ y: 10, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: 8, opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="relative w-full max-w-md rounded-3xl border border-stroke bg-bg1 p-5 shadow-[0_16px_52px_rgba(0,0,0,0.36)]"
+            >
+              <p className="text-lg font-semibold text-text">Confirm Logout</p>
+              <p className="mt-2 text-sm text-muted">Are you sure you want to logout from this session?</p>
+
+              <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <LiquidButton
+                  type="button"
+                  tone="tertiary"
+                  disabled={logoutBusy}
+                  onClick={() => setLogoutConfirmOpen(false)}
+                  className="w-full"
+                >
+                  Cancel
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  tone="primary"
+                  disabled={logoutBusy}
+                  onClick={handleLogout}
+                  className="w-full"
+                >
+                  {logoutBusy ? 'Logging out...' : t('admin.logout')}
+                </LiquidButton>
+              </div>
+            </motion.div>
           </motion.div>
         ) : null}
       </AnimatePresence>

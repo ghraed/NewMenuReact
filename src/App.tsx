@@ -20,6 +20,7 @@ import AdminIngredientsPage from './pages/AdminIngredientsPage';
 import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
 import AdminDishPage from './pages/AdminDishPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
+import TodayOrdersPage from './pages/TodayOrdersPage';
 import CashierPosPage from './pages/CashierPosPage';
 import ChefDashboardPage from './pages/ChefDashboardPage';
 import AdminStaffPage from './pages/AdminStaffPage';
@@ -102,6 +103,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/currency',
   '/admin/theme-demo',
   '/staff/orders',
+  '/staff/today-orders',
   '/staff/pos',
   '/chef/dashboard',
   '/super-admin/login',
@@ -255,6 +257,7 @@ const AppRoutes: React.FC = () => {
 
           <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
             <Route path="/staff/orders" element={lazyRoute(<StaffOrdersPage />)} />
+            <Route path="/staff/today-orders" element={lazyRoute(<TodayOrdersPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['table_ordering']} />}>
