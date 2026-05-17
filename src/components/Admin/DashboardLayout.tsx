@@ -211,19 +211,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           : t('admin.adminTitle');
 
   const renderNav = (isMobile = false) => (
-    <ul className={isMobile ? 'space-y-1' : 'space-y-0.5'}>
+    <ul className={isMobile ? 'space-y-1' : 'space-y-1'}>
       {visibleNavItems.map((item) => {
         const isActive = location.pathname === item.path;
 
         return (
-          <li key={item.path}>
+          <li key={item.path} className="rounded-2xl border border-stroke/35 bg-bg1/40 px-1 py-0.5">
             <Link
               to={item.path}
               title={!isMobile && !navExpanded ? item.label : undefined}
               className={[
-                'flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors',
+                'flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
                 !isMobile && !navExpanded ? 'justify-center px-0' : '',
-                isActive ? 'bg-gold/22 text-text' : 'text-muted hover:bg-bg1 hover:text-text',
+                isActive ? 'bg-gold/24 text-text shadow-[inset_0_0_0_1px_rgba(192,146,68,0.28)]' : 'text-muted hover:bg-bg1/90 hover:text-text',
               ].join(' ')}
             >
               <span className={[
@@ -311,7 +311,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           </div>
 
           {showBottomScrollCue ? (
-            <div className="pointer-events-none absolute inset-x-2 bottom-0 z-20 flex h-11 items-end justify-center bg-gradient-to-t from-bg1 via-bg1/86 to-transparent pb-1">
+            <div className="pointer-events-none absolute inset-x-2 bottom-0 z-20 flex h-14 items-end justify-center bg-gradient-to-t from-bg1 via-bg1/96 to-transparent pb-1">
               <span className="animate-bounce text-[10px] font-semibold tracking-[0.08em] text-gold2/80">˅</span>
             </div>
           ) : null}
