@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
@@ -47,7 +47,7 @@ const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string |
 const GuestDishPage: React.FC = () => {
   const { restaurant_slug, table_id, dish_id } = useParams<{ restaurant_slug?: string; table_id?: string; dish_id: string }>();
   const { t } = useTranslation();
-  const { addDish, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
+  const { addDish, updateQuantity, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const [dish, setDish] = useState<Dish | null>(null);
   const [resolvedRestaurantSlug, setResolvedRestaurantSlug] = useState<string | undefined>(restaurant_slug);
   const [restaurantName, setRestaurantName] = useState<string>(restaurant?.name || formatRestaurantLabel(restaurant_slug));
@@ -206,6 +206,27 @@ const GuestDishPage: React.FC = () => {
     clearGuestAccess,
   ]);
 
+  const setDishQuantity = useCallback((targetDish: Dish, quantity: number) => {
+    if (quantity <= 0) {
+      updateQuantity(targetDish.id, 0);
+      return;
+    }
+
+    const currentQty = getDishQuantity(targetDish.id);
+    if (currentQty === 0) {
+      addDish(targetDish, {
+        restaurant: {
+          name: formatRestaurantLabel(resolvedRestaurantSlug || getPreferredGuestRestaurantSlug()),
+          slug: resolvedRestaurantSlug || getPreferredGuestRestaurantSlug(),
+        },
+        quantity,
+      });
+      return;
+    }
+
+    updateQuantity(targetDish.id, quantity);
+  }, [addDish, getDishQuantity, resolvedRestaurantSlug, updateQuantity]);
+
   return (
     <GuestPageShell>
       <main className="mx-auto max-w-6xl px-4 pb-12 pt-20 sm:px-6 sm:pb-14 sm:pt-24 lg:px-8">
@@ -293,6 +314,9 @@ const GuestDishPage: React.FC = () => {
                   slug: resolvedRestaurantSlug || getPreferredGuestRestaurantSlug(),
                 },
               }) : undefined}
+              onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled
+                ? (quantity) => setDishQuantity(dish, quantity)
+                : undefined}
               cartQuantity={getDishQuantity(dish.id)}
             />
             <GuestInfoSection restaurantName={formatRestaurantLabel(resolvedRestaurantSlug)} />

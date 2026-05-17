@@ -136,7 +136,7 @@ const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { addDish, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
+  const { addDish, updateQuantity, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(restaurant?.name || t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
@@ -218,6 +218,28 @@ const GuestDishListPage: React.FC = () => {
 
     return newlyAddedCount;
   }, []);
+
+  const setDishQuantity = useCallback((dish: Dish, quantity: number) => {
+    if (quantity <= 0) {
+      updateQuantity(dish.id, 0);
+      return;
+    }
+
+    const currentQty = getDishQuantity(dish.id);
+    if (currentQty === 0) {
+      addDish(dish, {
+        restaurant: {
+          name: restaurantName,
+          slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
+          logo_url: restaurantLogoUrl,
+        },
+        quantity,
+      });
+      return;
+    }
+
+    updateQuantity(dish.id, quantity);
+  }, [addDish, getDishQuantity, restaurantLogoUrl, restaurantName, restaurantSlug, updateQuantity]);
 
   const fetchDishPage = useCallback(async (
     options: GuestMenuFetchOptions
@@ -1042,6 +1064,9 @@ const GuestDishListPage: React.FC = () => {
                         logo_url: restaurantLogoUrl,
                       },
                     }) : undefined}
+                    onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled
+                      ? (quantity) => setDishQuantity(dish, quantity)
+                      : undefined}
                     cartQuantity={getDishQuantity(dish.id)}
                     onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                     onOpen={() => navigate(
@@ -1071,6 +1096,9 @@ const GuestDishListPage: React.FC = () => {
                       logo_url: restaurantLogoUrl,
                     },
                   }) : undefined}
+                  onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled
+                    ? (quantity) => setDishQuantity(dish, quantity)
+                    : undefined}
                   cartQuantity={getDishQuantity(dish.id)}
                   onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                   onOpen={() => navigate(

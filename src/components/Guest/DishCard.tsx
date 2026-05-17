@@ -16,6 +16,7 @@ interface DishCardProps {
   dish: Dish;
   onOpen: () => void;
   onAddToCart?: () => void;
+  onUpdateCartQuantity?: (quantity: number) => void;
   onShowRelatedOptions?: () => void;
   cartQuantity?: number;
   isIngredientAlert?: boolean;
@@ -56,6 +57,7 @@ const DishCard: React.FC<DishCardProps> = ({
   dish,
   onOpen,
   onAddToCart,
+  onUpdateCartQuantity,
   onShowRelatedOptions,
   cartQuantity = 0,
   isIngredientAlert = false,
@@ -262,26 +264,88 @@ const DishCard: React.FC<DishCardProps> = ({
                   {t('dishCard.orderRelated', { defaultValue: 'Try Similar Favorites' })}
                 </button>
               ) : onAddToCart ? (
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onAddToCart();
-                  }}
-                  className={cx(
-                    'w-full whitespace-nowrap rounded-full border px-4 py-3 text-sm font-semibold sm:min-h-[50px]',
-                    'transition duration-300 ease-fluid motion-reduce:transition-none',
-                    'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
-                    focusRing
-                  )}
-                  style={{
-                    backgroundColor: 'var(--guest-accent-soft)',
-                    borderColor: 'var(--guest-border)',
-                    color: 'var(--guest-accent)',
-                  }}
-                >
-                  {cartQuantity > 0 ? t('dishCard.addMore', { count: cartQuantity }) : t('dishCard.addToCart')}
-                </button>
+                cartQuantity > 0 ? (
+                  <div
+                    className="grid w-full grid-cols-[auto_1fr_auto] items-center rounded-full border sm:min-h-[50px]"
+                    style={{
+                      backgroundColor: 'var(--guest-accent-soft)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-accent)',
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onUpdateCartQuantity?.(Math.max(0, cartQuantity - 1))}
+                      className={cx(
+                        'inline-flex h-full min-h-[50px] items-center justify-center rounded-l-full px-4 text-lg font-semibold',
+                        'transition duration-300 ease-fluid motion-reduce:transition-none',
+                        'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                        focusRing
+                      )}
+                      aria-label="Decrease quantity"
+                    >
+                      -
+                    </button>
+
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      value={cartQuantity}
+                      onChange={(event) => {
+                        const raw = event.target.value.trim();
+                        if (raw === '') {
+                          return;
+                        }
+                        const next = Number.parseInt(raw, 10);
+                        if (!Number.isFinite(next) || next < 0) {
+                          return;
+                        }
+                        onUpdateCartQuantity?.(next);
+                      }}
+                      onClick={(event) => event.stopPropagation()}
+                      className="w-full bg-transparent px-1 text-center text-sm font-semibold outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                      aria-label="Quantity"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => onAddToCart()}
+                      className={cx(
+                        'inline-flex h-full min-h-[50px] items-center justify-center rounded-r-full px-4 text-lg font-semibold',
+                        'transition duration-300 ease-fluid motion-reduce:transition-none',
+                        'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                        focusRing
+                      )}
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onAddToCart();
+                    }}
+                    className={cx(
+                      'w-full whitespace-nowrap rounded-full border px-4 py-3 text-sm font-semibold sm:min-h-[50px]',
+                      'transition duration-300 ease-fluid motion-reduce:transition-none',
+                      'hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]',
+                      focusRing
+                    )}
+                    style={{
+                      backgroundColor: 'var(--guest-accent-soft)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-accent)',
+                    }}
+                  >
+                    {t('dishCard.addToCart')}
+                  </button>
+                )
               ) : null}
 
               <button

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -69,7 +70,11 @@ const isSameLocalDay = (value: string | null | undefined, targetIso: string): bo
 
 const TodayOrdersPage: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const today = todayIsoDate();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [dateFrom, setDateFrom] = useState<string>(today);
+  const [dateTo, setDateTo] = useState<string>(today);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,39 +100,67 @@ const TodayOrdersPage: React.FC = () => {
     }
 
     try {
-      const today = todayIsoDate();
-      let todayOrders: OrderRecord[] = [];
+      let nextOrders: OrderRecord[] = [];
 
-      try {
-        const response = await api.get<TodayOrdersResponse>('/orders/today', {
-          params: { date: today },
-        });
-        todayOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
-      } catch {
-        const [pendingOrders, accountingOrders] = await Promise.all([
-          fetchPendingOrders(),
-          fetchAccountingOrders(),
-        ]);
+      if (isAdmin) {
+        let loadedFromHistory = false;
 
-        const deduped = new Map<number, OrderRecord>();
-        [...pendingOrders, ...accountingOrders].forEach((order) => {
-          deduped.set(order.id, order);
-        });
+        try {
+          const response = await api.get<TodayOrdersResponse>('/orders/history', {
+            params: {
+              date_from: dateFrom || undefined,
+              date_to: dateTo || undefined,
+            },
+          });
+          nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
+          loadedFromHistory = true;
+        } catch {
+          loadedFromHistory = false;
+        }
 
-        todayOrders = Array.from(deduped.values()).filter((order) => (
-          isSameLocalDay(order.created_at, today)
-          || isSameLocalDay(order.confirmed_at, today)
-          || isSameLocalDay(order.accounted_at, today)
-        ));
+        if (!loadedFromHistory) {
+          try {
+            const response = await api.get<TodayOrdersResponse>('/orders/today', {
+              params: {
+                date: dateFrom === dateTo ? dateFrom : undefined,
+                date_from: dateFrom || undefined,
+                date_to: dateTo || undefined,
+              },
+            });
+            nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
+          } catch {
+            const [pendingOrders, accountingOrders] = await Promise.all([
+              fetchPendingOrders(),
+              fetchAccountingOrders(),
+            ]);
+            const deduped = new Map<number, OrderRecord>();
+            [...pendingOrders, ...accountingOrders].forEach((order) => deduped.set(order.id, order));
+            nextOrders = Array.from(deduped.values());
+          }
+        }
+      } else {
+        try {
+          const response = await api.get<TodayOrdersResponse>('/orders/today', {
+            params: { date: today },
+          });
+          nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
+        } catch {
+          const pendingOrders = await fetchPendingOrders();
+          nextOrders = pendingOrders.filter((order) => (
+            isSameLocalDay(order.created_at, today)
+            || isSameLocalDay(order.confirmed_at, today)
+            || isSameLocalDay(order.accounted_at, today)
+          ));
+        }
       }
 
-      setOrders(todayOrders);
+      setOrders(nextOrders);
 
-      if (user?.role === 'admin') {
+      if (isAdmin) {
         try {
           const invoicesResponse = await fetchInvoices({
-            date_from: today,
-            date_to: today,
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
             per_page: 300,
             page: 1,
           });
@@ -143,6 +176,8 @@ const TodayOrdersPage: React.FC = () => {
         } catch {
           setPaidInvoiceStatuses({});
         }
+      } else {
+        setPaidInvoiceStatuses({});
       }
 
       setLastUpdatedAt(new Date().toISOString());
@@ -154,7 +189,7 @@ const TodayOrdersPage: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.role]);
+  }, [dateFrom, dateTo, isAdmin, today]);
 
   useEffect(() => {
     void loadOrders();
@@ -246,8 +281,12 @@ const TodayOrdersPage: React.FC = () => {
         <GlassCard className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-text">Today Orders</h2>
-              <p className="text-sm text-muted">Tracks pending, ordered, paid, and cancelled orders for today.</p>
+              <h2 className="text-xl font-semibold text-text">{isAdmin ? 'All Staff Orders History' : 'Today Orders'}</h2>
+              <p className="text-sm text-muted">
+                {isAdmin
+                  ? 'Admin view across all waiter orders with date range tracking.'
+                  : 'Tracks pending, ordered, paid, and cancelled orders for today.'}
+              </p>
               <p className="mt-1 text-xs text-muted2">Last updated: {formatDateTime(lastUpdatedAt)}</p>
             </div>
 
@@ -261,6 +300,40 @@ const TodayOrdersPage: React.FC = () => {
             </LiquidButton>
           </div>
 
+          {isAdmin ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <label className="text-xs text-muted2">
+                Date From
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-stroke/60 bg-bg1/60 px-3 py-2 text-sm text-text outline-none"
+                />
+              </label>
+              <label className="text-xs text-muted2">
+                Date To
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
+                  onChange={(event) => setDateTo(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-stroke/60 bg-bg1/60 px-3 py-2 text-sm text-text outline-none"
+                />
+              </label>
+              <div className="sm:col-span-2 xl:col-span-2 flex items-end">
+                <LiquidButton
+                  type="button"
+                  tone="secondary"
+                  onClick={() => void loadOrders()}
+                  disabled={loading || refreshing}
+                >
+                  Apply Date Filter
+                </LiquidButton>
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Total: {counts.total}</div>
             <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Pending: {counts.pending}</div>
@@ -271,11 +344,13 @@ const TodayOrdersPage: React.FC = () => {
         </GlassCard>
 
         {loading ? (
-          <div className="py-10 text-center text-muted">Loading today orders...</div>
+          <div className="py-10 text-center text-muted">{isAdmin ? 'Loading order history...' : 'Loading today orders...'}</div>
         ) : error ? (
           <GlassCard className="border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{error}</GlassCard>
         ) : rows.length === 0 ? (
-          <GlassCard className="p-5 text-sm text-muted">No orders found for today.</GlassCard>
+          <GlassCard className="p-5 text-sm text-muted">
+            {isAdmin ? 'No orders found for the selected date range.' : 'No orders found for today.'}
+          </GlassCard>
         ) : (
           <div className="space-y-3">
             {rows.map(({ order, timelineStatus }) => {
@@ -290,8 +365,12 @@ const TodayOrdersPage: React.FC = () => {
               const orderLabel = order.order_number || `Order #${order.id}`;
 
               return (
-                <GlassCard key={order.id} className="p-4">
-                  <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:items-center">
+                <GlassCard key={order.id} className="p-0">
+                  <Link
+                    to={`/staff/today-orders/${order.id}`}
+                    className="block rounded-[inherit] p-4 transition hover:bg-white/5"
+                  >
+                    <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:items-center">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-text">{orderLabel}</p>
                       <p className="truncate text-xs text-muted">Table: {order.table_reference}</p>
@@ -317,7 +396,8 @@ const TodayOrdersPage: React.FC = () => {
                         {timelineStatus}
                       </span>
                     </div>
-                  </div>
+                    </div>
+                  </Link>
                 </GlassCard>
               );
             })}

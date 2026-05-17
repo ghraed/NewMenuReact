@@ -431,10 +431,11 @@ const GuestWaveButton: React.FC = () => {
             </span>
             {totalItems > 0 ? (
               <span
-                className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: 'var(--guest-accent)' }}
-                aria-hidden="true"
-              />
+                className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
+              >
+                {totalItems > 99 ? '99+' : totalItems}
+              </span>
             ) : null}
           </button>
         </div>

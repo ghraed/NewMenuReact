@@ -26,6 +26,7 @@ interface DishDetailViewProps {
   restaurantSlug?: string;
   aiRecommendationsEnabled?: boolean;
   onAddToCart?: () => void;
+  onUpdateCartQuantity?: (quantity: number) => void;
   cartQuantity?: number;
 }
 
@@ -61,6 +62,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   restaurantSlug,
   aiRecommendationsEnabled = true,
   onAddToCart,
+  onUpdateCartQuantity,
   cartQuantity = 0,
 }) => {
   const { t } = useTranslation();
@@ -205,24 +207,84 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
 
           {onAddToCart ? (
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onAddToCart}
-                disabled={isOutOfStock}
-                className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition hover:shadow-[0_14px_30px_rgba(0,0,0,0.16)]"
-                style={{
-                  backgroundColor: 'var(--guest-accent)',
-                  borderColor: 'var(--guest-accent)',
-                  color: 'var(--guest-accent-button-text)',
-                  boxShadow: 'var(--guest-shadow-soft)',
-                  opacity: isOutOfStock ? 0.7 : 1,
-                  cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isOutOfStock
-                  ? t('dishCard.outOfStock')
-                  : (cartQuantity > 0 ? t('dishDetail.addAnother', { count: cartQuantity }) : t('dishCard.addToCart'))}
-              </button>
+              {isOutOfStock ? (
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold"
+                  style={{
+                    backgroundColor: 'var(--guest-accent)',
+                    borderColor: 'var(--guest-accent)',
+                    color: 'var(--guest-accent-button-text)',
+                    boxShadow: 'var(--guest-shadow-soft)',
+                    opacity: 0.7,
+                    cursor: 'not-allowed',
+                  }}
+                >
+                  {t('dishCard.outOfStock')}
+                </button>
+              ) : cartQuantity > 0 ? (
+                <div
+                  className="grid w-full max-w-[320px] grid-cols-[auto_1fr_auto] items-center rounded-full border"
+                  style={{
+                    backgroundColor: 'var(--guest-accent)',
+                    borderColor: 'var(--guest-accent)',
+                    color: 'var(--guest-accent-button-text)',
+                    boxShadow: 'var(--guest-shadow-soft)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onUpdateCartQuantity?.(Math.max(0, cartQuantity - 1))}
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-l-full px-5 text-lg font-semibold"
+                    aria-label="Decrease quantity"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    value={cartQuantity}
+                    onChange={(event) => {
+                      const raw = event.target.value.trim();
+                      if (raw === '') {
+                        return;
+                      }
+                      const next = Number.parseInt(raw, 10);
+                      if (!Number.isFinite(next) || next < 0) {
+                        return;
+                      }
+                      onUpdateCartQuantity?.(next);
+                    }}
+                    className="w-full bg-transparent px-1 text-center text-sm font-semibold text-[var(--guest-accent-button-text)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    aria-label="Quantity"
+                  />
+                  <button
+                    type="button"
+                    onClick={onAddToCart}
+                    className="inline-flex min-h-[48px] items-center justify-center rounded-r-full px-5 text-lg font-semibold"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onAddToCart}
+                  className="inline-flex items-center justify-center rounded-full border px-6 py-3 text-sm font-semibold transition hover:shadow-[0_14px_30px_rgba(0,0,0,0.16)]"
+                  style={{
+                    backgroundColor: 'var(--guest-accent)',
+                    borderColor: 'var(--guest-accent)',
+                    color: 'var(--guest-accent-button-text)',
+                    boxShadow: 'var(--guest-shadow-soft)',
+                  }}
+                >
+                  {t('dishCard.addToCart')}
+                </button>
+              )}
               {isOutOfStock ? (
                 <p className="text-sm text-spicy">
                   {t('dishDetail.outOfStockNote')}

@@ -556,6 +556,11 @@ export const fetchAccountingOrders = async (): Promise<OrderRecord[]> => {
   return response.data.orders;
 };
 
+export const fetchOrderById = async (orderId: number | string): Promise<OrderRecord> => {
+  const response = await api.get<{ order: OrderRecord }>(`/orders/${orderId}`);
+  return response.data.order;
+};
+
 export const accountConfirmedOrder = async (
   orderId: number,
   payload: AccountOrderRequest
