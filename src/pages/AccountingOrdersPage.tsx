@@ -695,16 +695,25 @@ const AccountingOrdersPage: React.FC = () => {
         const partialDiscountValue = item.partial_discount_value || null;
         const isComplimentary = item.is_complimentary === true || compensationType === 'complimentary';
         const accountingBucket = item.accounting_bucket || null;
-        const operationalLossCategory = item.operational_loss_category
-          || getOperationalLossCategoryFromReason(reason as ComplaintReasonCode | null)
-          || getDefaultOperationalLossCategory(status, compensationType);
-        const adjustmentActionType = item.adjustment_action_type
-          || inferAdjustmentActionType({
-            status,
-            compensationType,
-            isComplimentary,
-            operationalLossCategory,
-          });
+        const hasAdjustment = status !== 'normal' || compensationType !== 'none';
+        const operationalLossCategory = hasAdjustment
+          ? (
+            item.operational_loss_category
+            || getOperationalLossCategoryFromReason(reason as ComplaintReasonCode | null)
+            || getDefaultOperationalLossCategory(status, compensationType)
+          )
+          : null;
+        const adjustmentActionType = hasAdjustment
+          ? (
+            item.adjustment_action_type
+            || inferAdjustmentActionType({
+              status,
+              compensationType,
+              isComplimentary,
+              operationalLossCategory,
+            })
+          )
+          : null;
         const key = [
           item.dish_id ?? item.dish_name,
           item.unit_price,
