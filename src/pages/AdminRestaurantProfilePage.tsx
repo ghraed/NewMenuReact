@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { GlassCard, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
@@ -260,7 +260,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.restaurantName')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.name}
               onChange={(event) => updateRestaurantProfileField('name', event.target.value)}
               placeholder={t('adminDashboard.restaurantNamePlaceholder')}
@@ -270,7 +271,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.legalBusinessName')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.legal_business_name ?? ''}
               onChange={(event) => updateRestaurantProfileField('legal_business_name', event.target.value)}
               placeholder={t('adminDashboard.legalBusinessNamePlaceholder')}
@@ -280,7 +282,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.cuisineSpecialty')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.cuisine_specialty ?? ''}
               onChange={(event) => updateRestaurantProfileField('cuisine_specialty', event.target.value)}
               placeholder={t('adminDashboard.cuisineSpecialtyPlaceholder')}
@@ -290,7 +293,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.contactEmail')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               type="email"
               value={restaurantProfile.contact_email ?? ''}
               onChange={(event) => updateRestaurantProfileField('contact_email', event.target.value)}
@@ -301,7 +305,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.primaryPhone')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.primary_phone ?? ''}
               onChange={(event) => updateRestaurantProfileField('primary_phone', event.target.value)}
               placeholder={t('adminDashboard.primaryPhonePlaceholder')}
@@ -311,7 +316,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.whatsappPhone')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.whatsapp_phone ?? ''}
               onChange={(event) => updateRestaurantProfileField('whatsapp_phone', event.target.value)}
               placeholder={t('adminDashboard.whatsappPhonePlaceholder')}
@@ -321,7 +327,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.websiteUrl')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.website_url ?? ''}
               onChange={(event) => updateRestaurantProfileField('website_url', event.target.value)}
               placeholder={t('adminDashboard.websiteUrlPlaceholder')}
@@ -331,7 +338,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.serviceHours')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.service_hours ?? ''}
               onChange={(event) => updateRestaurantProfileField('service_hours', event.target.value)}
               placeholder={t('adminDashboard.serviceHoursPlaceholder')}
@@ -341,7 +349,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block md:col-span-2">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.addressLineOne')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.address_line_1 ?? ''}
               onChange={(event) => updateRestaurantProfileField('address_line_1', event.target.value)}
               placeholder={t('adminDashboard.addressLineOnePlaceholder')}
@@ -351,7 +360,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block md:col-span-2">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.addressLineTwo')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.address_line_2 ?? ''}
               onChange={(event) => updateRestaurantProfileField('address_line_2', event.target.value)}
               placeholder={t('adminDashboard.addressLineTwoPlaceholder')}
@@ -361,7 +371,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.city')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.city ?? ''}
               onChange={(event) => updateRestaurantProfileField('city', event.target.value)}
               placeholder={t('adminDashboard.cityPlaceholder')}
@@ -371,7 +382,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.stateProvince')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.state_province ?? ''}
               onChange={(event) => updateRestaurantProfileField('state_province', event.target.value)}
               placeholder={t('adminDashboard.stateProvincePlaceholder')}
@@ -381,7 +393,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.postalCode')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.postal_code ?? ''}
               onChange={(event) => updateRestaurantProfileField('postal_code', event.target.value)}
               placeholder={t('adminDashboard.postalCodePlaceholder')}
@@ -391,7 +404,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.country')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.country ?? ''}
               onChange={(event) => updateRestaurantProfileField('country', event.target.value)}
               placeholder={t('adminDashboard.countryPlaceholder')}
@@ -401,7 +415,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.taxRegistration')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.tax_registration_number ?? ''}
               onChange={(event) => updateRestaurantProfileField('tax_registration_number', event.target.value)}
               placeholder={t('adminDashboard.taxRegistrationPlaceholder')}
@@ -411,7 +426,8 @@ const AdminRestaurantProfilePage: React.FC = () => {
 
           <label className="block">
             <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted2">{t('adminDashboard.vatRegistration')}</span>
-            <GlassInput
+            <input
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
               value={restaurantProfile.vat_registration_number ?? ''}
               onChange={(event) => updateRestaurantProfileField('vat_registration_number', event.target.value)}
               placeholder={t('adminDashboard.vatRegistrationPlaceholder')}
@@ -427,7 +443,7 @@ const AdminRestaurantProfilePage: React.FC = () => {
               placeholder={t('adminDashboard.shortDescriptionPlaceholder')}
               rows={3}
               disabled={savingRestaurantProfile || loadingRestaurantProfile}
-              className="w-full rounded-xl2 border border-stroke bg-panel2 px-3 py-2 text-sm text-text outline-none transition focus:border-gold/50 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
             />
           </label>
         </div>

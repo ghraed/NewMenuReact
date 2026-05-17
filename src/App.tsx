@@ -11,6 +11,7 @@ import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRestaurantProfilePage from './pages/AdminRestaurantProfilePage';
+import AdminUserProfilePage from './pages/AdminUserProfilePage';
 import CreateDishPage from './pages/CreateDishPage';
 import EditDishPage from './pages/EditDishPage';
 import IngredientLibrary from './pages/IngredientLibrary';
@@ -80,6 +81,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/login',
   '/admin/dashboard',
   '/admin/profile',
+  '/admin/user-profile',
   '/admin/room-plans',
   '/admin/reservations',
   '/admin/events',
@@ -202,9 +204,10 @@ const AppRoutes: React.FC = () => {
           <Route path="/admin/login" element={<LoginPage />} />
           <Route path="/super-admin/login" element={lazyRoute(<SuperAdminLoginPage />)} />
 
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager', 'staff', 'accountant']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={lazyRoute(<AdminRestaurantProfilePage />)} />
+            <Route path="/admin/user-profile" element={lazyRoute(<AdminUserProfilePage />)} />
             <Route path="/admin/dishes/create" element={lazyRoute(<CreateDishPage />)} />
             <Route path="/admin/dish/:dish_id" element={lazyRoute(<AdminDishPage />)} />
             <Route path="/admin/dishes/:dish_id/edit" element={lazyRoute(<EditDishPage />)} />

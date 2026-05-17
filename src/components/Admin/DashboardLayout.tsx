@@ -249,7 +249,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
         onMouseLeave={() => setNavHovered(false)}
       >
         <div className="border-b border-stroke px-3 py-4">
-          <div className={['flex items-center gap-3', navExpanded ? '' : 'justify-center'].join(' ')}>
+          <div
+            className={[
+              'flex items-center gap-3 rounded-xl',
+              navExpanded ? 'px-1 py-1.5' : 'justify-center px-0 py-1',
+            ].join(' ')}
+          >
             <RestaurantBrandMark
               name={user?.restaurant?.name}
               logoUrl={user?.restaurant?.logo_url}
@@ -258,8 +263,31 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             />
             {navExpanded ? (
               <div className="min-w-0 animate-[fade-in_180ms_ease-out]">
-                <p className="truncate text-xs font-semibold text-gold2/90">{roleLabel}</p>
-                <p className="truncate text-xs text-muted">{user?.restaurant?.name || t('admin.dashboard')}</p>
+                {user?.role === 'admin' ? (
+                  <Link
+                    to="/admin/profile"
+                    className="block truncate text-xs font-semibold text-gold2/90 transition-colors hover:text-gold"
+                    title={t('adminDashboard.profileTitle')}
+                  >
+                    {user?.restaurant?.name || t('admin.dashboard')}
+                  </Link>
+                ) : (
+                  <Link
+                    to="/admin/user-profile"
+                    className="block truncate text-xs font-semibold text-gold2/90 transition-colors hover:text-gold"
+                    title="User profile"
+                  >
+                    {user?.restaurant?.name || t('admin.dashboard')}
+                  </Link>
+                )}
+                <Link
+                  to="/admin/user-profile"
+                  className="block truncate text-xs text-muted transition-colors hover:text-text"
+                  title="User profile"
+                >
+                  {user?.name || user?.email || '-'}
+                </Link>
+                <p className="truncate text-[11px] text-muted2/85">{roleLabel}</p>
               </div>
             ) : null}
           </div>

@@ -52,7 +52,7 @@ export const resources = {
       admin: {
         controlRoom: 'Control Room',
         staffTitle: 'AR Menu Staff',
-        adminTitle: 'AR Menu Admin',
+        adminTitle: 'Admin',
         navigation: 'Navigation',
         guestView: 'Guest view',
         logout: 'Logout',
