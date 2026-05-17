@@ -31,16 +31,16 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, onToggle }) => {
       type="button"
       onClick={onToggle}
       aria-label={isLight ? t('theme.switchToDark') : t('theme.switchToLight')}
-      className="fixed top-4 z-[2147483646] isolate pointer-events-auto inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-[var(--guest-text)] backdrop-blur-xl transition duration-300 ease-fluid print:hidden sm:top-6"
+      className="fixed top-4 z-[2147483646] isolate pointer-events-auto inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border text-[var(--guest-text)] transition duration-200 ease-fluid print:hidden sm:top-6"
       style={{
         right: '1rem',
         backgroundColor: 'var(--guest-panel)',
         borderColor: 'var(--guest-border)',
-        boxShadow: 'var(--guest-shadow-soft)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.18)',
         touchAction: 'manipulation',
       }}
     >
-      <span className="inline-flex items-center justify-center rounded-full bg-[var(--guest-accent-soft)] p-2 text-[var(--guest-accent)] transition-transform duration-300">
+      <span className="inline-flex items-center justify-center rounded-full p-2 text-[var(--guest-accent)] transition-transform duration-200">
         {isLight ? <SunIcon /> : <MoonIcon />}
       </span>
     </button>

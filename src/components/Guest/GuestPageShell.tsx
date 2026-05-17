@@ -14,7 +14,7 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
   return (
     <div
       data-guest-theme={theme}
-      className="relative min-h-screen overflow-hidden font-sans transition-colors duration-500"
+      className="relative min-h-screen font-sans transition-colors duration-500"
       style={{
         ...getGuestThemeStyle(theme),
         colorScheme: theme,

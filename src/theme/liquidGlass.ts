@@ -3,34 +3,32 @@ import { cn } from '../utils/cn';
 export const cx = (...classes: (string | boolean | undefined | null)[]) => cn(...classes);
 
 export const primaryTone =
-  '!bg-gold !text-bg0 !border-gold/70 enabled:hover:!bg-gold/95 enabled:hover:!border-gold enabled:hover:shadow-[0_14px_30px_rgba(212,175,55,0.18)]';
+  '!bg-gold !text-bg0 !border-transparent enabled:hover:!bg-gold/92 enabled:hover:shadow-[0_2px_10px_rgba(0,0,0,0.26)]';
 export const secondaryTone =
-  'bg-sage/35 text-text border-sage/55 enabled:hover:bg-sage/42 enabled:hover:border-sage/70 enabled:hover:shadow-[0_14px_30px_rgba(0,0,0,0.26)]';
+  'bg-sage/20 text-text border-sage/35 enabled:hover:bg-sage/28 enabled:hover:border-sage/50';
 export const tertiaryTone =
-  'bg-white/10 text-text border-white/20 enabled:hover:bg-white/14 enabled:hover:border-white/30 enabled:hover:shadow-[0_14px_30px_rgba(0,0,0,0.26)]';
+  'bg-bg1/85 text-text border-stroke enabled:hover:bg-bg1 enabled:hover:border-white/22';
 
 export const glassSurface =
-  'bg-bg1 border border-stroke shadow-lux';
+  'border border-stroke bg-bg1 shadow-[0_1px_2px_rgba(0,0,0,0.24)]';
 
 export const glassControl =
-  'bg-bg1 border border-stroke shadow-lux2';
+  'border border-stroke bg-bg1/95 shadow-[0_1px_2px_rgba(0,0,0,0.2)]';
 
 export const glassSurfaceHover =
   [
-    'motion-safe:hover:-translate-y-0.5',
-    'motion-safe:hover:scale-[1.0001]',
-    'motion-safe:hover:border-white/18',
-    'motion-safe:hover:bg-bg1/95',
-    'motion-safe:hover:shadow-[0_20px_52px_rgba(0,0,0,0.42)]',
+    'motion-safe:hover:border-white/22',
+    'motion-safe:hover:bg-bg1/98',
+    'motion-safe:hover:shadow-[0_6px_18px_rgba(0,0,0,0.22)]',
   ].join(' ');
 
 export const glassControlHover =
-  'enabled:hover:border-white/24 enabled:hover:text-text enabled:hover:shadow-[0_14px_30px_rgba(0,0,0,0.28)]';
+  'enabled:hover:border-white/20 enabled:hover:text-text enabled:hover:shadow-[0_4px_12px_rgba(0,0,0,0.18)]';
 
 export const glassInteractive =
-  'transition duration-300 ease-fluid motion-reduce:transition-none';
+  'transition duration-150 ease-fluid motion-reduce:transition-none';
 
 export const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40 focus-visible:ring-offset-2 focus-visible:ring-offset-bg1';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/55 focus-visible:ring-offset-2 focus-visible:ring-offset-bg1';
 
 export const getModernMode = () => true;

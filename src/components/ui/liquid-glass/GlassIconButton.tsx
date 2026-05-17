@@ -9,7 +9,7 @@ const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, 
   return (
     <button
       className={cx(
-        'group relative inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border text-base text-text',
+        'group relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-base text-text',
         glassControl,
         glassControlHover,
         glassInteractive,
@@ -18,7 +18,7 @@ const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, 
       )}
       {...props}
     >
-      <span className="pointer-events-none absolute inset-0 bg-white/10 transition-colors duration-300 group-hover:bg-white/14" />
+      <span className="pointer-events-none absolute inset-0 bg-transparent transition-colors duration-300 group-hover:bg-white/10" />
       <span className="relative z-10">{children}</span>
     </button>
   );

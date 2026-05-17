@@ -15,10 +15,10 @@ const GlassSelect: React.FC<GlassSelectProps> = ({
   ...props
 }) => {
   return (
-    <label className={cx('relative block w-full rounded-full border px-4 py-2.5 text-muted', glassControl, focusRing)}>
+    <label className={cx('relative block w-full rounded-xl border px-3.5 py-2 text-muted', glassControl, focusRing)}>
       <select
         value={value}
-        className={cx('themed-native-select w-full appearance-none bg-transparent pr-7 text-sm text-text focus:outline-none', className)}
+        className={cx('themed-native-select min-h-7 w-full appearance-none bg-transparent pr-7 text-sm text-text focus:outline-none', className)}
         {...props}
       >
         {placeholder && (

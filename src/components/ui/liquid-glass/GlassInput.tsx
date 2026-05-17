@@ -14,7 +14,7 @@ const GlassInput = React.forwardRef<HTMLInputElement, GlassInputProps>(({
   ...props
 }, ref) => {
   return (
-    <label className={cx('relative flex items-center gap-2 rounded-full border px-4 py-2.5 text-muted', glassControl, focusRing)}>
+    <label className={cx('relative flex min-h-11 items-center gap-2 rounded-xl border px-3.5 py-2 text-muted', glassControl, focusRing)}>
       {leftSlot && <span className="relative z-10 text-muted2">{leftSlot}</span>}
       <input
         ref={ref}

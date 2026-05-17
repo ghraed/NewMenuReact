@@ -34,11 +34,11 @@ const GlassToggle: React.FC<GlassToggleProps> = ({
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span className="h-7 w-12 rounded-full border border-stroke bg-panel2 transition duration-300" />
+        <span className="h-8 w-14 rounded-full border border-stroke bg-bg1 transition duration-300 peer-checked:border-gold/45 peer-checked:bg-gold/25" />
         <span
           className={cx(
-            'absolute left-1 top-1 h-5 w-5 rounded-full bg-gold shadow-lux2 transition-transform duration-300',
-            checked && 'translate-x-5'
+            'absolute left-1 top-1 h-6 w-6 rounded-full bg-white/90 shadow-[0_1px_4px_rgba(0,0,0,0.3)] transition-transform duration-300',
+            checked && 'translate-x-6 bg-gold'
           )}
         />
       </span>

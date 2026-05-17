@@ -11,13 +11,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
   className,
   children,
   interactive = true,
-  noise = true,
+  noise = false,
   ...props
 }) => {
   return (
     <div
       className={cx(
-        'relative isolate overflow-hidden rounded-xl2 p-4',
+        'relative isolate overflow-hidden rounded-2xl p-4',
         glassSurface,
         interactive && glassSurfaceHover,
         interactive && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none',

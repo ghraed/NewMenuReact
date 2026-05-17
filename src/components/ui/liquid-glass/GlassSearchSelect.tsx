@@ -78,7 +78,7 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
           });
         }}
         className={cx(
-          'flex w-full items-center justify-between gap-3 rounded-[26px] border px-4 py-3 text-left',
+          'flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-2 text-left',
           glassControl,
           focusRing
         )}
@@ -92,8 +92,8 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-[1200] mt-3 overflow-hidden rounded-[24px] border border-stroke bg-bg1 shadow-lux2">
-          <div className="space-y-3 p-3">
+        <div className="absolute left-0 right-0 top-full z-[1200] mt-2 overflow-hidden rounded-2xl border border-stroke bg-bg1 shadow-lux2">
+          <div className="space-y-2 p-2">
             <GlassInput
               type="text"
               value={query}
@@ -102,9 +102,9 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
               leftSlot={<span>⌕</span>}
             />
 
-            <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+            <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
               {filteredOptions.length === 0 ? (
-                <div className="rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-5 text-center text-sm text-muted">
+                <div className="rounded-xl border border-stroke bg-bg1/70 px-4 py-5 text-center text-sm text-muted">
                   {emptyText}
                 </div>
               ) : (
@@ -120,8 +120,8 @@ const GlassSearchSelect: React.FC<GlassSearchSelectProps> = ({
                         closeDropdown();
                       }}
                       className={cx(
-                        'flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition',
-                        isSelected ? 'border-gold/25 bg-gold/10' : 'border-white/10 bg-white/[0.03]'
+                        'flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition',
+                        isSelected ? 'border-gold/35 bg-gold/14' : 'border-stroke bg-bg1/72'
                       )}
                     >
                       <span className="truncate text-sm text-text">{option.label}</span>

@@ -33,7 +33,7 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
   return (
     <button
       className={cx(
-        'group relative inline-flex items-center justify-center rounded-full border px-5 py-2.5 font-semibold',
+        'group relative inline-flex min-h-10 items-center justify-center rounded-full border px-5 py-2 text-sm font-medium tracking-[0.01em]',
         glassControl,
         glassControlHover,
         glassInteractive,

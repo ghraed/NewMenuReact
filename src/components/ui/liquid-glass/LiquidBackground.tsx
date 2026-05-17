@@ -7,7 +7,11 @@ interface LiquidBackgroundProps {
 }
 
 const LiquidBackground: React.FC<LiquidBackgroundProps> = ({ children, className }) => {
-  return <div className={cx('relative min-h-screen text-text', className)}>{children}</div>;
+  return (
+    <div className={cx('relative min-h-screen text-text', className)}>
+      {children}
+    </div>
+  );
 };
 
 export default LiquidBackground;

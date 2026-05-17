@@ -752,12 +752,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
     labels: chartLabels,
     datasets: selectedMetrics.map((metric) => {
       const palette: Record<MetricKey, { bg: string; border: string }> = {
-        revenue: { bg: 'rgba(201, 162, 90, 0.8)', border: 'rgba(233, 203, 147, 0.96)' },
-        totalCosts: { bg: 'rgba(188, 132, 86, 0.78)', border: 'rgba(226, 171, 119, 0.95)' },
-        netProfit: { bg: 'rgba(122, 156, 115, 0.34)', border: 'rgba(164, 201, 152, 0.94)' },
-        cogs: { bg: 'rgba(170, 121, 73, 0.76)', border: 'rgba(207, 163, 114, 0.94)' },
-        operatingExpenses: { bg: 'rgba(143, 122, 102, 0.74)', border: 'rgba(189, 163, 138, 0.94)' },
-        payroll: { bg: 'rgba(132, 101, 124, 0.76)', border: 'rgba(177, 144, 170, 0.95)' },
+        revenue: { bg: 'rgba(103, 80, 164, 0.76)', border: 'rgba(208, 188, 255, 0.96)' },
+        totalCosts: { bg: 'rgba(179, 38, 30, 0.74)', border: 'rgba(242, 184, 181, 0.95)' },
+        netProfit: { bg: 'rgba(103, 80, 164, 0.28)', border: 'rgba(147, 215, 171, 0.94)' },
+        cogs: { bg: 'rgba(127, 95, 190, 0.74)', border: 'rgba(208, 188, 255, 0.94)' },
+        operatingExpenses: { bg: 'rgba(77, 114, 230, 0.7)', border: 'rgba(168, 199, 250, 0.94)' },
+        payroll: { bg: 'rgba(75, 140, 104, 0.72)', border: 'rgba(147, 215, 171, 0.95)' },
       };
       const isNetProfit = metric === 'netProfit';
       return {
@@ -766,13 +766,13 @@ const AdminFinanceDashboardPage: React.FC = () => {
         data: chartMetrics[metric].map((value) => convertFinanceAmount(value)),
         backgroundColor: palette[metric].bg,
         borderColor: palette[metric].border,
-        borderWidth: isNetProfit ? 2.4 : 1.4,
-        borderRadius: isNetProfit ? 14 : 12,
+        borderWidth: isNetProfit ? 2.1 : 1.2,
+        borderRadius: isNetProfit ? 10 : 8,
         borderSkipped: false as const,
         barPercentage: isNetProfit ? 0.48 : 0.7,
         categoryPercentage: 0.68,
         hoverBackgroundColor: palette[metric].border,
-        hoverBorderColor: '#fff4d6',
+        hoverBorderColor: '#ffffff',
       };
     }),
   }), [chartLabels, chartMetrics, selectedMetrics, convertFinanceAmount]);
@@ -789,24 +789,25 @@ const AdminFinanceDashboardPage: React.FC = () => {
         display: true,
         position: 'top',
         labels: {
-          color: 'rgba(205, 168, 109, 0.98)',
-          boxWidth: 12,
-          boxHeight: 12,
-          borderRadius: 4,
+          color: 'rgba(230, 224, 233, 0.95)',
+          boxWidth: 11,
+          boxHeight: 11,
+          borderRadius: 3,
           useBorderRadius: true,
-          padding: 16,
+          padding: 14,
           font: {
             size: 11,
             weight: 600,
+            family: 'IBM Plex Sans, Segoe UI, sans-serif',
           },
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(36, 31, 24, 0.92)',
-        borderColor: 'rgba(216, 180, 120, 0.42)',
+        backgroundColor: 'rgba(33, 31, 38, 0.96)',
+        borderColor: 'rgba(208, 188, 255, 0.45)',
         borderWidth: 1,
-        titleColor: '#f2d8a1',
-        bodyColor: '#fff7e8',
+        titleColor: '#d0bcff',
+        bodyColor: '#f0e9ff',
         cornerRadius: 10,
         padding: 10,
         callbacks: {
@@ -817,27 +818,27 @@ const AdminFinanceDashboardPage: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(213, 179, 120, 0.07)',
+          color: 'rgba(208, 188, 255, 0.12)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(206, 168, 106, 0.9)',
+          color: 'rgba(230, 224, 233, 0.82)',
           font: {
-            family: 'Cormorant Garamond, serif',
-            size: 13,
+            family: 'IBM Plex Sans, Segoe UI, sans-serif',
+            size: 12,
             weight: 600,
           },
         },
       },
       y: {
         grid: {
-          color: 'rgba(213, 179, 120, 0.1)',
+          color: 'rgba(208, 188, 255, 0.14)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(206, 168, 106, 0.9)',
+          color: 'rgba(230, 224, 233, 0.82)',
           font: {
-            family: 'Cormorant Garamond, serif',
+            family: 'IBM Plex Sans, Segoe UI, sans-serif',
             size: 12,
             weight: 600,
           },
@@ -1088,7 +1089,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {(['revenue', 'totalCosts', 'netProfit'] as MetricKey[]).map((metric) => (
-                <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
+                <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
                   <input
                     type="checkbox"
                     checked={selectedMetrics.includes(metric)}
@@ -1101,7 +1102,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowDetailedCosts((current) => !current)}
-                className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 transition hover:bg-gold/20"
+                className="rounded-md border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 transition hover:bg-gold/20"
               >
                 {showDetailedCosts ? 'Hide Cost Details' : 'Show Cost Details'}
               </button>
@@ -1109,7 +1110,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
             {showDetailedCosts ? (
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 {(['cogs', 'operatingExpenses', 'payroll'] as MetricKey[]).map((metric) => (
-                  <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
+                  <label key={metric} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-stroke bg-bg1/55 px-3 py-1.5 text-xs text-text">
                     <input
                       type="checkbox"
                       checked={selectedMetrics.includes(metric)}
@@ -1122,11 +1123,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
             ) : null}
 
-            <div className="h-[320px] w-full rounded-2xl border border-gold/20 bg-gradient-to-b from-[#fff9ed]/45 via-bg1/35 to-bg1/45 p-3 shadow-[inset_0_1px_0_rgba(255,245,220,0.35)]">
+            <div className="finance-chart-shell h-[320px] w-full rounded-xl border border-gold/20 bg-gradient-to-b from-[#fff9ed]/35 via-bg1/32 to-bg1/45 p-3 shadow-[inset_0_1px_0_rgba(255,245,220,0.26)]">
               {chartHasData ? (
                 <Bar data={chartData} options={chartOptions} />
               ) : (
-                <div className="flex h-full items-center justify-center rounded-2xl border border-stroke/70 bg-bg1/35 px-4 text-center text-sm text-muted">
+                <div className="flex h-full items-center justify-center rounded-lg border border-stroke/70 bg-bg1/35 px-4 text-center text-sm text-muted">
                   No finance data found for the selected period.
                 </div>
               )}
@@ -1546,7 +1547,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               <div className="py-14 text-center text-muted">Loading finance records...</div>
             ) : (
               <div className="mt-4 space-y-3">
-                <div className="overflow-x-auto rounded-2xl border border-stroke">
+                <div className="overflow-x-auto rounded-xl border border-stroke">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-gold2/85">
                     <tr>
@@ -1599,7 +1600,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                               void handleStatusUpdate(invoice.id, nextStatus);
                             }}
                             disabled={statusSavingInvoiceId === invoice.id}
-                            className="themed-native-select rounded-full border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none transition focus:border-gold disabled:opacity-60"
+                            className="themed-native-select rounded-md border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none transition focus:border-gold disabled:opacity-60"
                           >
                             {INVOICE_STATUS_OPTIONS.map((option) => (
                               <option key={option.value} value={option.value}>{option.label}</option>
