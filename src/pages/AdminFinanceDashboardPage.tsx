@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   BarElement,
   CategoryScale,
+  LineElement,
+  PointElement,
+  LineController,
   Chart as ChartJS,
   type ChartData,
   type ChartOptions,
@@ -11,7 +14,7 @@ import {
   LinearScale,
   Tooltip,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Chart } from 'react-chartjs-2';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -53,7 +56,7 @@ import {
   OPERATIONAL_LOSS_CATEGORY_LABELS,
 } from '../utils/orderItemCompensation';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, LineController, Tooltip, Legend);
 
 const INVOICE_STATUS_OPTIONS: Array<{ value: FinanceInvoiceStatus; label: string }> = [
   { value: 'draft', label: 'Draft' },
@@ -748,28 +751,53 @@ const AdminFinanceDashboardPage: React.FC = () => {
     void loadInvoiceTablePage();
   }, [loadInvoiceTablePage]);
 
-  const chartData = useMemo<ChartData<'bar'>>(() => ({
+  const chartData = useMemo<ChartData<'bar' | 'line'>>(() => ({
     labels: chartLabels,
     datasets: selectedMetrics.map((metric) => {
       const palette: Record<MetricKey, { bg: string; border: string }> = {
-        revenue: { bg: 'rgba(103, 80, 164, 0.76)', border: 'rgba(208, 188, 255, 0.96)' },
-        totalCosts: { bg: 'rgba(179, 38, 30, 0.74)', border: 'rgba(242, 184, 181, 0.95)' },
-        netProfit: { bg: 'rgba(103, 80, 164, 0.28)', border: 'rgba(147, 215, 171, 0.94)' },
-        cogs: { bg: 'rgba(127, 95, 190, 0.74)', border: 'rgba(208, 188, 255, 0.94)' },
-        operatingExpenses: { bg: 'rgba(77, 114, 230, 0.7)', border: 'rgba(168, 199, 250, 0.94)' },
-        payroll: { bg: 'rgba(75, 140, 104, 0.72)', border: 'rgba(147, 215, 171, 0.95)' },
+        revenue: { bg: 'rgba(201, 162, 90, 0.78)', border: 'rgba(232, 205, 146, 0.95)' },
+        totalCosts: { bg: 'rgba(220, 53, 69, 0.18)', border: 'rgba(220, 53, 69, 0.98)' },
+        netProfit: { bg: 'rgba(76, 175, 80, 0.16)', border: 'rgba(76, 175, 80, 0.98)' },
+        cogs: { bg: 'rgba(170, 121, 73, 0.74)', border: 'rgba(217, 175, 133, 0.94)' },
+        operatingExpenses: { bg: 'rgba(189, 163, 138, 0.72)', border: 'rgba(227, 204, 182, 0.94)' },
+        payroll: { bg: 'rgba(164, 201, 152, 0.7)', border: 'rgba(205, 229, 197, 0.95)' },
       };
-      const isNetProfit = metric === 'netProfit';
+      const isLineMetric = metric === 'netProfit' || metric === 'totalCosts';
+      const baseData = chartMetrics[metric].map((value) => convertFinanceAmount(value));
+      if (isLineMetric) {
+        return {
+          type: 'line' as const,
+          order: 1,
+          label: metricLabels[metric],
+          data: baseData,
+          borderColor: palette[metric].border,
+          backgroundColor: palette[metric].bg,
+          borderWidth: 2.5,
+          borderCapStyle: 'butt' as const,
+          borderJoinStyle: 'miter' as const,
+          pointRadius: 3.5,
+          pointHoverRadius: 5,
+          pointHitRadius: 8,
+          pointStyle: 'circle' as const,
+          pointBackgroundColor: palette[metric].border,
+          pointBorderColor: palette[metric].border,
+          pointBorderWidth: 0,
+          tension: 0.35,
+          fill: false,
+          yAxisID: 'y',
+        };
+      }
       return {
         type: 'bar' as const,
+        order: 2,
         label: metricLabels[metric],
-        data: chartMetrics[metric].map((value) => convertFinanceAmount(value)),
+        data: baseData,
         backgroundColor: palette[metric].bg,
         borderColor: palette[metric].border,
-        borderWidth: isNetProfit ? 2.1 : 1.2,
-        borderRadius: isNetProfit ? 10 : 8,
+        borderWidth: 1.1,
+        borderRadius: 8,
         borderSkipped: false as const,
-        barPercentage: isNetProfit ? 0.48 : 0.7,
+        barPercentage: 0.68,
         categoryPercentage: 0.68,
         hoverBackgroundColor: palette[metric].border,
         hoverBorderColor: '#ffffff',
@@ -777,7 +805,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }),
   }), [chartLabels, chartMetrics, selectedMetrics, convertFinanceAmount]);
 
-  const chartOptions = useMemo<ChartOptions<'bar'>>(() => ({
+  const chartOptions = useMemo<ChartOptions<'bar' | 'line'>>(() => ({
     responsive: true,
     maintainAspectRatio: false,
     animation: {
@@ -789,7 +817,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         display: true,
         position: 'top',
         labels: {
-          color: 'rgba(230, 224, 233, 0.95)',
+          color: '#525252',
           boxWidth: 11,
           boxHeight: 11,
           borderRadius: 3,
@@ -797,18 +825,18 @@ const AdminFinanceDashboardPage: React.FC = () => {
           padding: 14,
           font: {
             size: 11,
-            weight: 600,
+            weight: 500,
             family: 'IBM Plex Sans, Segoe UI, sans-serif',
           },
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(33, 31, 38, 0.96)',
-        borderColor: 'rgba(208, 188, 255, 0.45)',
+        backgroundColor: 'rgba(38, 38, 38, 0.98)',
+        borderColor: 'rgba(82, 87, 92, 0.95)',
         borderWidth: 1,
-        titleColor: '#d0bcff',
-        bodyColor: '#f0e9ff',
-        cornerRadius: 10,
+        titleColor: '#f4f4f4',
+        bodyColor: '#f4f4f4',
+        cornerRadius: 2,
         padding: 10,
         callbacks: {
           label: (context) => `${context.dataset.label}: ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
@@ -818,29 +846,29 @@ const AdminFinanceDashboardPage: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(208, 188, 255, 0.12)',
+          color: 'rgba(198, 198, 198, 0.72)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(230, 224, 233, 0.82)',
+          color: '#525252',
           font: {
             family: 'IBM Plex Sans, Segoe UI, sans-serif',
             size: 12,
-            weight: 600,
+            weight: 500,
           },
         },
       },
       y: {
         grid: {
-          color: 'rgba(208, 188, 255, 0.14)',
+          color: 'rgba(224, 224, 224, 0.9)',
           drawBorder: false,
         },
         ticks: {
-          color: 'rgba(230, 224, 233, 0.82)',
+          color: '#525252',
           font: {
             family: 'IBM Plex Sans, Segoe UI, sans-serif',
             size: 12,
-            weight: 600,
+            weight: 500,
           },
           callback: (value) => formatPriceWithCurrency(Number(value), currency),
         },
@@ -1125,7 +1153,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
             <div className="finance-chart-shell h-[320px] w-full rounded-xl border border-gold/20 bg-gradient-to-b from-[#fff9ed]/35 via-bg1/32 to-bg1/45 p-3 shadow-[inset_0_1px_0_rgba(255,245,220,0.26)]">
               {chartHasData ? (
-                <Bar data={chartData} options={chartOptions} />
+                <Chart type="bar" data={chartData} options={chartOptions} />
               ) : (
                 <div className="flex h-full items-center justify-center rounded-lg border border-stroke/70 bg-bg1/35 px-4 text-center text-sm text-muted">
                   No finance data found for the selected period.
