@@ -6,11 +6,18 @@ interface DishTagsProps {
   activeTag?: string;
   onTagClick?: (tag: string) => void;
   className?: string;
+  scrollable?: boolean;
 }
 
-const DishTags: React.FC<DishTagsProps> = ({ tags, activeTag, onTagClick, className }) => {
+const DishTags: React.FC<DishTagsProps> = ({ tags, activeTag, onTagClick, className, scrollable = true }) => {
   return (
-    <div className={cn('flex gap-2 overflow-x-auto pb-1 no-scrollbar', className)}>
+    <div
+      className={cn(
+        'flex gap-2 pb-1 no-scrollbar',
+        scrollable ? 'overflow-x-auto' : 'overflow-hidden',
+        className
+      )}
+    >
       {tags.map((tag) => {
         const isActive = tag === activeTag;
         const commonClassName = cn(
@@ -55,4 +62,3 @@ const DishTags: React.FC<DishTagsProps> = ({ tags, activeTag, onTagClick, classN
 };
 
 export default DishTags;
-
