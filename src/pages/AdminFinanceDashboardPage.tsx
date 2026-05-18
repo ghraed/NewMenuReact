@@ -501,16 +501,43 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const loadInvoiceTablePage = useCallback(async () => {
     setInvoiceTableLoading(true);
     try {
-      const response = await fetchInvoices({
+      const firstPage = await fetchInvoices({
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         status: statusFilter || undefined,
-        per_page: invoiceTablePerPage,
-        page: invoiceTablePage,
+        per_page: INVOICE_PAGE_SIZE,
+        page: 1,
       });
-      setInvoiceTableRows(sortFinanceInvoicesNewestFirst(response.invoices));
-      setInvoiceTableTotal(response.meta.total);
-      setInvoiceTableLastPage(Math.max(1, response.meta.last_page || 1));
+
+      const allInvoices = [...firstPage.invoices];
+      const totalPages = Math.max(1, firstPage.meta.last_page || 1);
+      if (totalPages > 1) {
+        const remainingPages = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, index) => fetchInvoices({
+            date_from: dateFrom || undefined,
+            date_to: dateTo || undefined,
+            status: statusFilter || undefined,
+            per_page: INVOICE_PAGE_SIZE,
+            page: index + 2,
+          }))
+        );
+        remainingPages.forEach((result) => allInvoices.push(...result.invoices));
+      }
+
+      const sortedInvoices = sortFinanceInvoicesNewestFirst(allInvoices);
+      const totalInvoices = sortedInvoices.length;
+      const computedLastPage = Math.max(1, Math.ceil(totalInvoices / invoiceTablePerPage));
+      const safePage = Math.min(invoiceTablePage, computedLastPage);
+      const startIndex = (safePage - 1) * invoiceTablePerPage;
+      const endIndex = startIndex + invoiceTablePerPage;
+
+      if (safePage !== invoiceTablePage) {
+        setInvoiceTablePage(safePage);
+      }
+
+      setInvoiceTableRows(sortedInvoices.slice(startIndex, endIndex));
+      setInvoiceTableTotal(totalInvoices);
+      setInvoiceTableLastPage(computedLastPage);
     } catch (loadError: unknown) {
       setError(getErrorMessage(loadError, 'Failed to load invoice table data.'));
     } finally {

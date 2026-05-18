@@ -45,6 +45,7 @@ const NavIcon: React.FC<{ name: string }> = ({ name }) => {
     leaf: 'M4 14c7-1 11-5 14-12 2 8-1 16-9 18-5 1-7-2-5-6z',
     globe: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-7 10h14M12 2c3 3 4 7 4 10s-1 7-4 10m0-20c-3 3-4 7-4 10s1 7 4 10',
     clock: 'M12 7v5l3 3M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z',
+    tracker: 'M4 6h16M4 12h10M4 18h7M18 16l2 2 3-4',
   };
 
   const d = pathByName[name] ?? pathByName.dashboard;
@@ -114,6 +115,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
           { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
           { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+          { path: '/admin/inventory/ingredient-tracker', label: 'Ingredient Tracker', icon: 'tracker', requiredFeatures: ['inventory'] },
         ]
         : user?.role === 'staff'
           ? [
@@ -139,6 +141,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             { path: '/admin/dishes/create', label: t('admin.createDish'), icon: 'plus' },
             { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
             { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
+            { path: '/admin/inventory/ingredient-tracker', label: 'Ingredient Tracker', icon: 'tracker', requiredFeatures: ['inventory'] },
             { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: 'leaf' },
             { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: 'globe' },
           ];

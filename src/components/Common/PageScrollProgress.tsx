@@ -113,6 +113,7 @@ const PageScrollProgress: React.FC = () => {
 
         <div className="mt-2 flex items-center justify-between text-[10px] font-semibold tracking-[0.08em] text-gold2/50">
           {[
+            { progress: 0, label: '⇡|' },
             { progress: 0.25, label: '1/4' },
             { progress: 0.5, label: '1/2' },
             { progress: 0.75, label: '3/4' },

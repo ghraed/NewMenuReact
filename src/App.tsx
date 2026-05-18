@@ -18,9 +18,11 @@ import IngredientLibrary from './pages/IngredientLibrary';
 import GlobalIngredientsPage from './pages/GlobalIngredientsPage';
 import AdminIngredientsPage from './pages/AdminIngredientsPage';
 import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
+import AdminIngredientTrackerPage from './pages/AdminIngredientTrackerPage';
 import AdminDishPage from './pages/AdminDishPage';
 import StaffOrdersPage from './pages/StaffOrdersPage';
 import TodayOrdersPage from './pages/TodayOrdersPage';
+import TodayOrderDetailsPage from './pages/TodayOrderDetailsPage';
 import CashierPosPage from './pages/CashierPosPage';
 import ChefDashboardPage from './pages/ChefDashboardPage';
 import AdminStaffPage from './pages/AdminStaffPage';
@@ -93,6 +95,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/ingredients/global',
   '/admin/inventory/ingredients',
   '/admin/inventory/stock-history',
+  '/admin/inventory/ingredient-tracker',
   '/admin/staff',
   '/admin/staff/scheduling',
   '/admin/accounting',
@@ -104,6 +107,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/theme-demo',
   '/staff/orders',
   '/staff/today-orders',
+  '/staff/today-orders/:order_id',
   '/staff/pos',
   '/chef/dashboard',
   '/super-admin/login',
@@ -241,6 +245,7 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['admin', 'stock_manager']} requiredFeatures={['inventory']} />}>
             <Route path="/admin/inventory/ingredients" element={lazyRoute(<AdminIngredientsPage />)} />
             <Route path="/admin/inventory/stock-history" element={lazyRoute(<AdminStockHistoryPage />)} />
+            <Route path="/admin/inventory/ingredient-tracker" element={lazyRoute(<AdminIngredientTrackerPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} requiredFeatures={['room_plan_editor']} />}>
@@ -258,6 +263,7 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['staff', 'admin']} />}>
             <Route path="/staff/orders" element={lazyRoute(<StaffOrdersPage />)} />
             <Route path="/staff/today-orders" element={lazyRoute(<TodayOrdersPage />)} />
+            <Route path="/staff/today-orders/:order_id" element={lazyRoute(<TodayOrderDetailsPage />)} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['table_ordering']} />}>

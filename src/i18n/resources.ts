@@ -496,6 +496,9 @@ export const resources = {
         tableTitle: 'Stock movements',
         columns: {
           ingredientName: 'Ingredient',
+          dishName: 'Dish',
+          orderNumber: 'Order Number',
+          invoiceNumber: 'Invoice Number',
           movementType: 'Movement Type',
           quantity: 'Quantity',
           quantityBefore: 'Quantity Before',
@@ -1485,6 +1488,9 @@ export const resources = {
         tableTitle: 'حركات المخزون',
         columns: {
           ingredientName: 'المكوّن',
+          dishName: 'الطبق',
+          orderNumber: 'رقم الطلب',
+          invoiceNumber: 'رقم الفاتورة',
           movementType: 'نوع الحركة',
           quantity: 'الكمية',
           quantityBefore: 'الكمية قبل',

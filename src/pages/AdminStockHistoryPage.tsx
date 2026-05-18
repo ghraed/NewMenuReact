@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import {
   GlassCard,
@@ -552,12 +553,33 @@ const AdminStockHistoryPage: React.FC = () => {
                             : '-'}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.dishName')}</p>
+                        <p className="mt-0.5 text-[14px] leading-tight text-text">{record.dish_name || '-'}</p>
+                      </div>
                     </div>
 
                     <div className="space-y-3 p-6">
                       <div>
                         <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.referenceType')}</p>
                         <p className="mt-0.5 text-[14px] leading-tight text-text">{record.reference_type}</p>
+                      </div>
+                      <div>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.orderNumber')}</p>
+                        <p className="mt-0.5 text-[14px] leading-tight text-text">{record.order_number || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.invoiceNumber')}</p>
+                        {record.invoice_id && record.invoice_number ? (
+                          <Link
+                            to={`/admin/finance/invoices/${record.invoice_id}`}
+                            className="mt-0.5 inline-flex text-[14px] leading-tight text-gold2 underline decoration-gold2/50 underline-offset-2 hover:text-gold"
+                          >
+                            {record.invoice_number}
+                          </Link>
+                        ) : (
+                          <p className="mt-0.5 text-[14px] leading-tight text-text">{record.invoice_number || '-'}</p>
+                        )}
                       </div>
                       <div>
                         <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.quantityAfter')}</p>

@@ -112,13 +112,25 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
       const compensationReason = item.compensation_reason ?? null;
       const compensationNote = item.compensation_note ?? null;
       const accountingBucket = item.accounting_bucket ?? null;
-      const operationalLossCategory = item.operational_loss_category
-        || getOperationalLossCategoryFromReason(item.compensation_reason ?? null)
-        || getDefaultOperationalLossCategory(status, compensationType);
       const isComplimentary = (
         item.is_complimentary === true
         || compensationType === 'complimentary'
       );
+      const hasAdjustmentSignal = (
+        status !== 'normal'
+        || compensationType !== 'none'
+        || compensationReason !== null
+        || compensationNote !== null
+        || accountingBucket !== null
+        || isComplimentary
+      );
+      const operationalLossCategory = hasAdjustmentSignal
+        ? (
+          item.operational_loss_category
+          || getOperationalLossCategoryFromReason(item.compensation_reason ?? null)
+          || getDefaultOperationalLossCategory(status, compensationType)
+        )
+        : null;
       const adjustmentActionType = item.adjustment_action_type
         || inferAdjustmentActionType({
           status,

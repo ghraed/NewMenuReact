@@ -266,6 +266,12 @@ export interface InventoryIngredient {
 export interface InventoryStockMovementRecord {
   id: number;
   ingredient_name: string;
+  dish_name?: string | null;
+  order_number?: string | null;
+  invoice_number?: string | null;
+  invoice_id?: number | null;
+  order_item_id?: number | null;
+  order_id?: number | null;
   unit?: string | null;
   movement_type: string;
   quantity: string;

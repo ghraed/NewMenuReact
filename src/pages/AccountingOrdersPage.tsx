@@ -610,9 +610,7 @@ const AccountingOrdersPage: React.FC = () => {
   ), [localGiftItemsByTable, localItemOverrides, orders, selectedTable]);
 
   const splitFeatureEnabled = user?.restaurant?.feature_flags?.invoice_splitting === true;
-  const finalizeInvoiceStatusMode: FinalizeInvoiceStatusMode = (
-    user?.restaurant?.finalize_invoice_status_mode === 'paid' ? 'paid' : 'issued'
-  );
+  const finalizeInvoiceStatusMode: FinalizeInvoiceStatusMode = 'paid';
   const requiresPaymentCapture = finalizeInvoiceStatusMode === 'paid';
 
   const selectedTableSessionIds = useMemo(() => (
@@ -1172,13 +1170,8 @@ const AccountingOrdersPage: React.FC = () => {
     setError(null);
 
     try {
-      if (requiresPaymentCapture) {
-        const normalizedReference = paymentReference.trim();
-
-        if (!normalizedReference) {
-          throw new Error('Payment reference is required before marking this invoice as paid.');
-        }
-      }
+      const normalizedPaymentReference = paymentReference.trim();
+      const autoPaymentReference = `AUTO-${new Date().toISOString()}`;
 
       const fallbackMessages: string[] = [];
       await Promise.all(selectedTableOrders.map(async (order, orderIndex) => {
@@ -1247,7 +1240,7 @@ const AccountingOrdersPage: React.FC = () => {
       const finalizePayload = requiresPaymentCapture
         ? {
             payment_method: paymentMethod,
-            payment_reference: paymentReference.trim(),
+            payment_reference: normalizedPaymentReference || autoPaymentReference,
           }
         : undefined;
 
@@ -2185,7 +2178,7 @@ const AccountingOrdersPage: React.FC = () => {
                     </p>
                     <p className="mt-2 text-xs text-muted2">
                       {t('accountingPage.paymentDetailsHint', {
-                        defaultValue: 'This restaurant marks finalized invoices as paid, so payment details are required.',
+                        defaultValue: 'Finalizing from Accounting marks the invoice as paid, so payment details are required.',
                       })}
                     </p>
                     <div className="mt-3 grid gap-3">
@@ -2244,7 +2237,6 @@ const AccountingOrdersPage: React.FC = () => {
                   onClick={handleFinalizeSelectedTable}
                   disabled={
                     processingTarget === `table:${selectedTable}`
-                    || (requiresPaymentCapture && paymentReference.trim() === '')
                   }
                 >
                   {processingTarget === `table:${selectedTable}` ? t('accountingPage.finalizing') : t('accountingPage.finalizeTableInvoice', { table: selectedTable })}
