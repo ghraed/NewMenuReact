@@ -21,7 +21,7 @@ const DishTags: React.FC<DishTagsProps> = ({ tags, activeTag, onTagClick, classN
       {tags.map((tag) => {
         const isActive = tag === activeTag;
         const commonClassName = cn(
-          'shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-300',
+          'inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-3 text-xs font-medium leading-none transition-colors duration-300',
           onTagClick ? 'cursor-pointer' : ''
         );
 

@@ -8,6 +8,12 @@ import type {
   FinanceVendor,
 } from '../types';
 
+const assertOnlineForStaffWrite = () => {
+  if (!navigator.onLine) {
+    throw new Error('You are offline. This action is online-only in offline mode phase 1.');
+  }
+};
+
 export interface FinanceExpensesFilters {
   date_from?: string;
   date_to?: string;
@@ -133,6 +139,7 @@ export const fetchExpenseCategories = async (): Promise<FinanceExpenseCategory[]
 };
 
 export const createExpenseCategory = async (payload: CreateExpenseCategoryPayload): Promise<FinanceExpenseCategory> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<CategoryMutationResponse>('/admin/finance/expense-categories', payload);
   return response.data.category;
 };
@@ -141,6 +148,7 @@ export const updateExpenseCategory = async (
   categoryId: number,
   payload: UpdateExpenseCategoryPayload
 ): Promise<FinanceExpenseCategory> => {
+  assertOnlineForStaffWrite();
   const response = await api.patch<CategoryMutationResponse>(`/admin/finance/expense-categories/${categoryId}`, payload);
   return response.data.category;
 };
@@ -151,11 +159,13 @@ export const fetchVendors = async (): Promise<FinanceVendor[]> => {
 };
 
 export const createVendor = async (payload: CreateVendorPayload): Promise<FinanceVendor> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<VendorMutationResponse>('/admin/finance/vendors', payload);
   return response.data.vendor;
 };
 
 export const updateVendor = async (vendorId: number, payload: UpdateVendorPayload): Promise<FinanceVendor> => {
+  assertOnlineForStaffWrite();
   const response = await api.patch<VendorMutationResponse>(`/admin/finance/vendors/${vendorId}`, payload);
   return response.data.vendor;
 };
@@ -177,11 +187,13 @@ export const fetchExpenses = async (filters: FinanceExpensesFilters): Promise<Ex
 };
 
 export const createExpense = async (payload: CreateExpensePayload): Promise<FinanceExpense> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<ExpenseMutationResponse>('/admin/finance/expenses', payload);
   return response.data.expense;
 };
 
 export const updateExpense = async (expenseId: number, payload: UpdateExpensePayload): Promise<FinanceExpense> => {
+  assertOnlineForStaffWrite();
   const response = await api.patch<ExpenseMutationResponse>(`/admin/finance/expenses/${expenseId}`, payload);
   return response.data.expense;
 };

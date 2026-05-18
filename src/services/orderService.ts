@@ -192,6 +192,12 @@ const defaultProtectedActions = {
   can_request_bill: false,
 };
 
+const assertOnlineForStaffWrite = () => {
+  if (!navigator.onLine) {
+    throw new Error('You are offline. This staff action is online-only in offline mode phase 1.');
+  }
+};
+
 const sanitizeAccountingPayload = (payload: AccountOrderRequest): AccountOrderRequest => {
   const nextPayload: AccountOrderRequest = {};
 
@@ -352,10 +358,14 @@ export const createGuestOrder = async (
 export const createGuestTableSessionOrder = async (
   sessionId: number | string,
   payload: CreateGuestOrderRequest,
-  guestAccessToken?: string | null
+  guestAccessToken?: string | null,
+  idempotencyKey?: string
 ): Promise<OrderResponse> => {
   const response = await api.post<OrderResponse>(`/table-session/${sessionId}/order`, payload, {
-    headers: buildGuestAccessHeaders(guestAccessToken),
+    headers: {
+      ...buildGuestAccessHeaders(guestAccessToken),
+      ...(idempotencyKey ? { 'X-Idempotency-Key': idempotencyKey } : {}),
+    },
   });
   return response.data;
 };
@@ -441,6 +451,7 @@ export const activateGuestTableSession = async (tableId: number | string): Promi
   current_pin: string | null;
   table: RestaurantTableSummary | null;
 }> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<{
     message: string;
     table_session: TableSessionSummary;
@@ -457,6 +468,7 @@ export const resetActiveTableSessionPin = async (sessionId: number | string): Pr
   table_session: TableSessionSummary;
   current_pin: string | null;
 }> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<{
     message: string;
     table_session: TableSessionSummary;
@@ -474,6 +486,7 @@ export const finalizeGuestTableSession = async (
   sessionId: number | string,
   payload?: FinalizeGuestTableSessionPayload
 ): Promise<TableSessionActionResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<TableSessionActionResponse>(`/table-sessions/${sessionId}/finalize`, payload ?? {});
   return response.data;
 };
@@ -504,11 +517,13 @@ export const fetchKitchenOrderDetails = async (orderId: number): Promise<Kitchen
 };
 
 export const startKitchenOrder = async (orderId: number): Promise<KitchenOrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/start`);
   return response.data;
 };
 
 export const markKitchenOrderReady = async (orderId: number): Promise<KitchenOrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/ready`);
   return response.data;
 };
@@ -519,11 +534,13 @@ export const fetchPendingWaves = async (): Promise<TableWaveRecord[]> => {
 };
 
 export const resolvePendingWave = async (waveId: number): Promise<WaveResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<WaveResponse>(`/waves/${waveId}/resolve`);
   return response.data;
 };
 
 export const confirmPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`);
   return response.data;
 };
@@ -532,16 +549,19 @@ export const updatePendingOrder = async (
   orderId: number,
   payload: UpdatePendingOrderRequest
 ): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload);
   return response.data;
 };
 
 export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`);
   return response.data;
 };
 
 export const markOrderServed = async (orderId: number): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<OrderResponse>(`/orders/${orderId}/served`);
   return response.data;
 };
@@ -565,11 +585,13 @@ export const accountConfirmedOrder = async (
   orderId: number,
   payload: AccountOrderRequest
 ): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<OrderResponse>(`/orders/${orderId}/account`, sanitizeAccountingPayload(payload));
   return response.data;
 };
 
 export const quickPosCheckout = async (payload: PosCheckoutRequest): Promise<PosCheckoutResponse> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload);
   return response.data;
 };

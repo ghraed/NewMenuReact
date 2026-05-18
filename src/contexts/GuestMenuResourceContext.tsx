@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import api from '../services/api';
 import { fetchGuestTableMenu } from '../services/orderService';
 import type { GuestMenuFetchOptions, GuestMenuListResponse } from '../services/orderService';
+import { getGuestMenuCache, putGuestMenuCache } from '../services/offlineStore';
 import type {
   Dish,
   GuestAccessSummary,
@@ -43,6 +44,8 @@ interface GuestMenuCacheEntry {
   error: string | null;
   loading: boolean;
   lastLoadedAt: number | null;
+  isOfflineData?: boolean;
+  sessionEligible?: boolean;
 }
 
 interface GuestMenuResourceContextValue {
@@ -111,6 +114,24 @@ const deriveDishIndexFromDishes = (dishes: Dish[]): GuestDishIndexEntry[] => {
         name_ar: ingredient.name_ar ?? null,
       })),
   }));
+};
+
+const isSessionEligibleForOfflineOrdering = (data: GuestMenuResourceData): boolean => {
+  if (!data.table_session || data.table_session.status !== 'active') {
+    return false;
+  }
+
+  const expiresAt = data.guest_access?.expires_at;
+  if (!expiresAt) {
+    return true;
+  }
+
+  const expiresAtMillis = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtMillis)) {
+    return false;
+  }
+
+  return expiresAtMillis > Date.now();
 };
 
 const normalizeGuestMenuResourceData = (payload: {
@@ -254,15 +275,71 @@ export const GuestMenuResourceProvider: React.FC<{ children: React.ReactNode }> 
           error: null,
           loading: false,
           lastLoadedAt: Date.now(),
+          isOfflineData: false,
+          sessionEligible: query.tableId ? isSessionEligibleForOfflineOrdering(data) : undefined,
         };
         cacheRef.current.set(key, nextEntry);
+
+        if (query.tableId && Number.isFinite(query.tableId) && query.tableId > 0) {
+          void putGuestMenuCache({
+            key,
+            tableId: query.tableId,
+            guestAccessToken: query.guestAccessToken,
+            language: query.language || 'default',
+            updatedAt: nextEntry.lastLoadedAt ?? Date.now(),
+            payload: {
+              restaurant: data.restaurant,
+              dishes: data.dishes,
+              dish_index: data.dish_index,
+              dishes_meta: data.dishes_meta ?? undefined,
+              table: data.table,
+              table_session: data.table_session,
+              guest_access: data.guest_access ?? null,
+              protected_actions: data.protected_actions ?? null,
+            },
+          });
+        }
+
         return nextEntry;
       } catch (error) {
+        if (!navigator.onLine && query.tableId && Number.isFinite(query.tableId) && query.tableId > 0) {
+          const cached = await getGuestMenuCache(key);
+          if (cached?.payload) {
+            const cachedData = normalizeGuestMenuResourceData({
+              restaurant: cached.payload.restaurant,
+              dishes: cached.payload.dishes,
+              dishes_page: cached.payload.dishes_page,
+              dish_index: cached.payload.dish_index,
+              dishes_meta: cached.payload.dishes_meta,
+              table: cached.payload.table ?? null,
+              table_session: cached.payload.table_session ?? null,
+              guest_access: cached.payload.guest_access ?? null,
+              protected_actions: cached.payload.protected_actions ?? null,
+            });
+            const sessionEligible = isSessionEligibleForOfflineOrdering(cachedData);
+
+            const nextEntry: GuestMenuCacheEntry = {
+              data: cachedData,
+              error: sessionEligible
+                ? null
+                : 'Session expired or inactive while offline. Please ask staff to reopen the table session.',
+              loading: false,
+              lastLoadedAt: cached.updatedAt,
+              isOfflineData: true,
+              sessionEligible,
+            };
+            cacheRef.current.set(key, nextEntry);
+            return nextEntry;
+          }
+        }
+
         const nextEntry: GuestMenuCacheEntry = {
           data: existing?.data ?? null,
           error: toErrorMessage(error),
           loading: false,
           lastLoadedAt: existing?.lastLoadedAt ?? null,
+          isOfflineData: existing?.isOfflineData ?? false,
+          sessionEligible: existing?.sessionEligible,
         };
         cacheRef.current.set(key, nextEntry);
         return nextEntry;
@@ -320,6 +397,8 @@ export const useGuestMenuResource = (
     loading: snapshot?.loading ?? false,
     error: snapshot?.error ?? null,
     lastLoadedAt: snapshot?.lastLoadedAt ?? null,
+    isOfflineData: snapshot?.isOfflineData ?? false,
+    sessionEligible: snapshot?.sessionEligible ?? null,
     refresh: () => context.ensure(query, { force: true, ttlMs: options?.ttlMs }),
     ensure: () => context.ensure(query, { force: false, ttlMs: options?.ttlMs }),
   };

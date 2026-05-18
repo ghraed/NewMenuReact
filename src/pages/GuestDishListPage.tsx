@@ -180,6 +180,10 @@ const GuestDishListPage: React.FC = () => {
     },
     { enabled: true, ttlMs: 10_000 }
   );
+  const offlineOrderingBlocked = guestResource.isOfflineData && guestResource.sessionEligible === false;
+  const offlineLastUpdatedLabel = guestResource.isOfflineData && guestResource.lastLoadedAt
+    ? new Date(guestResource.lastLoadedAt).toLocaleTimeString()
+    : null;
 
   const upsertCardDishes = useCallback((incoming: Dish[], sourceRestaurant: RestaurantSummary) => {
     if (incoming.length === 0) {
@@ -1056,6 +1060,31 @@ const GuestDishListPage: React.FC = () => {
             </div>
           ) : null}
 
+          {guestResource.isOfflineData ? (
+            <div
+              className="mt-6 rounded-[20px] border px-4 py-3 text-sm"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+              }}
+            >
+              Offline • Last updated {offlineLastUpdatedLabel || 'recently'}
+            </div>
+          ) : null}
+          {offlineOrderingBlocked ? (
+            <div
+              className="mt-4 rounded-[20px] border px-4 py-3 text-sm"
+              style={{
+                backgroundColor: 'var(--guest-panel)',
+                borderColor: 'var(--guest-border)',
+                color: 'var(--guest-text)',
+              }}
+            >
+              Session expired while offline. Ask staff to reopen the table session before ordering.
+            </div>
+          ) : null}
+
           {!loading && !error && anchorDishes.length > 0 ? (
             <div className="mt-6">
               <div className="mb-4 flex items-center gap-2">
@@ -1072,14 +1101,14 @@ const GuestDishListPage: React.FC = () => {
                   <DishCard
                     key={`anchor-${dish.id}`}
                     dish={dish}
-                    onAddToCart={draft.guestAccessVerified && tableOrderingEnabled ? () => addDish(dish, {
+                    onAddToCart={draft.guestAccessVerified && tableOrderingEnabled && !offlineOrderingBlocked ? () => addDish(dish, {
                       restaurant: {
                         name: restaurantName,
                         slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
                         logo_url: restaurantLogoUrl,
                       },
                     }) : undefined}
-                    onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled
+                    onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled && !offlineOrderingBlocked
                       ? (quantity) => setDishQuantity(dish, quantity)
                       : undefined}
                     cartQuantity={getDishQuantity(dish.id)}
@@ -1104,14 +1133,14 @@ const GuestDishListPage: React.FC = () => {
                 <DishCard
                   key={dish.id}
                   dish={dish}
-                  onAddToCart={draft.guestAccessVerified && tableOrderingEnabled ? () => addDish(dish, {
+                  onAddToCart={draft.guestAccessVerified && tableOrderingEnabled && !offlineOrderingBlocked ? () => addDish(dish, {
                     restaurant: {
                       name: restaurantName,
                       slug: restaurantSlug || getPreferredGuestRestaurantSlug(),
                       logo_url: restaurantLogoUrl,
                     },
                   }) : undefined}
-                  onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled
+                  onUpdateCartQuantity={draft.guestAccessVerified && tableOrderingEnabled && !offlineOrderingBlocked
                     ? (quantity) => setDishQuantity(dish, quantity)
                     : undefined}
                   cartQuantity={getDishQuantity(dish.id)}

@@ -1,6 +1,12 @@
 import api from './api';
 import type { IngredientLibraryItem } from '../types';
 
+const assertOnlineForStaffWrite = () => {
+  if (!navigator.onLine) {
+    throw new Error('You are offline. This action is online-only in offline mode phase 1.');
+  }
+};
+
 export type IngredientImageStatus = 'exists' | 'missing' | 'generating' | 'failed';
 
 export interface IngredientLibraryRecord extends IngredientLibraryItem {
@@ -43,6 +49,7 @@ export const listIngredientLibrary = async (): Promise<IngredientLibraryRecord[]
 export const createIngredientLibraryItem = async (
   payload: Pick<IngredientLibraryRecord, 'name' | 'category'>
 ): Promise<IngredientLibraryRecord> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<IngredientLibraryRecord>('/ingredients', payload);
   return normalizeItem(response.data);
 };
@@ -51,20 +58,23 @@ export const updateIngredientLibraryItem = async (
   ingredientId: number,
   payload: Partial<Pick<IngredientLibraryRecord, 'name' | 'category'>>
 ): Promise<IngredientLibraryRecord> => {
+  assertOnlineForStaffWrite();
   const response = await api.patch<IngredientLibraryRecord>(`/ingredients/${ingredientId}`, payload);
   return normalizeItem(response.data);
 };
 
 export const deleteIngredientLibraryItem = async (ingredientId: number): Promise<void> => {
+  assertOnlineForStaffWrite();
   await api.delete(`/ingredients/${ingredientId}`);
 };
 
 export const generateIngredientImage = async (ingredientId: number): Promise<IngredientLibraryRecord> => {
+  assertOnlineForStaffWrite();
   const response = await api.post<IngredientLibraryRecord>(`/ingredients/${ingredientId}/generate-image`);
   return normalizeItem(response.data);
 };
 
 export const generateMissingIngredientImages = async (): Promise<void> => {
+  assertOnlineForStaffWrite();
   await api.post('/ingredients/generate-missing-images');
 };
-

@@ -350,6 +350,15 @@ export interface CreateGuestOrderRequest {
   }>;
 }
 
+export type OfflineQueueItemStatus = 'pending' | 'syncing' | 'synced' | 'failed' | 'needs_review';
+
+export interface GuestOfflineState {
+  lastUpdated: number | null;
+  stale: boolean;
+  sessionEligible: boolean;
+  pendingCount: number;
+}
+
 export interface GuestTableSummary {
   id: number;
   number: number;

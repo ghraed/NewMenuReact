@@ -8,6 +8,7 @@ import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { createGuestTableSessionOrder } from '../services/orderService';
+import { createIdempotencyKey, queueGuestOrder } from '../services/offlineQueue';
 import type { OrderRecord } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
@@ -44,6 +45,7 @@ const OrderReviewPage: React.FC = () => {
   const [sessionLoading, setSessionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
+  const [queuedOffline, setQueuedOffline] = useState(false);
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
   const guestMenuResource = useGuestMenuResource({
@@ -130,8 +132,27 @@ const OrderReviewPage: React.FC = () => {
 
     setSubmitting(true);
     setError(null);
+    setQueuedOffline(false);
 
     try {
+      if (!navigator.onLine) {
+        await queueGuestOrder({
+          sessionId: draft.tableSessionId,
+          guestAccessToken: draft.guestAccessToken,
+          payload: {
+            notes: draft.notes.trim() || undefined,
+            items: items.map((item) => ({
+              dish_id: item.dishId,
+              quantity: item.quantity,
+            })),
+          },
+          idempotencyKey: createIdempotencyKey(),
+        });
+        clearCart();
+        setQueuedOffline(true);
+        return;
+      }
+
       const response = await createGuestTableSessionOrder(draft.tableSessionId, {
         notes: draft.notes.trim() || undefined,
         items: items.map((item) => ({
@@ -210,6 +231,18 @@ const OrderReviewPage: React.FC = () => {
             </Link>
           )}
         />
+        {guestMenuResource.isOfflineData ? (
+          <div
+            className="mb-6 rounded-[20px] border px-4 py-3 text-sm"
+            style={{
+              backgroundColor: 'var(--guest-panel)',
+              borderColor: 'var(--guest-border)',
+              color: 'var(--guest-text)',
+            }}
+          >
+            Offline • Last updated {guestMenuResource.lastLoadedAt ? new Date(guestMenuResource.lastLoadedAt).toLocaleTimeString() : 'recently'}
+          </div>
+        ) : null}
 
         {submittedOrder ? (
           <section
@@ -473,6 +506,18 @@ const OrderReviewPage: React.FC = () => {
                     }}
                   >
                     {error}
+                  </div>
+                ) : null}
+                {queuedOffline ? (
+                  <div
+                    className="rounded-[22px] border p-4 text-sm"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, rgb(var(--color-gold)) 16%, var(--guest-panel))',
+                      borderColor: 'color-mix(in srgb, rgb(var(--color-gold)) 42%, var(--guest-border))',
+                      color: 'var(--guest-text)',
+                    }}
+                  >
+                    You are offline. This order was queued and will sync when internet is back after your confirmation.
                   </div>
                 ) : null}
 
