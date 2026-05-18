@@ -26,6 +26,15 @@ const statusBadgeClass: Record<KitchenOrderStatus, string> = {
   served: 'border-white/30 bg-white/15 text-white',
 };
 
+const TABLE_CARD_PALETTE = [
+  'border-rose-200/70 bg-rose-100/55',
+  'border-sky-200/70 bg-sky-100/55',
+  'border-emerald-200/70 bg-emerald-100/55',
+  'border-amber-200/70 bg-amber-100/55',
+  'border-indigo-200/70 bg-indigo-100/55',
+  'border-teal-200/70 bg-teal-100/55',
+];
+
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -53,6 +62,16 @@ const formatElapsed = (from?: string | null): string => {
   const hours = Math.floor(diffMinutes / 60);
   const mins = diffMinutes % 60;
   return `${hours}h ${mins}m`;
+};
+
+const getTableColorClass = (order: KitchenOrderRecord): string => {
+  const tableKey = String(order.table?.id ?? order.table?.name ?? order.table_reference ?? order.table_session_id ?? order.id);
+  let hash = 0;
+  for (let index = 0; index < tableKey.length; index += 1) {
+    hash = ((hash << 5) - hash) + tableKey.charCodeAt(index);
+    hash |= 0;
+  }
+  return TABLE_CARD_PALETTE[Math.abs(hash) % TABLE_CARD_PALETTE.length];
 };
 
 const ChefDashboardPage: React.FC = () => {
@@ -295,7 +314,7 @@ const ChefDashboardPage: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     {columnOrders.map((order: KitchenOrderRecord) => (
-                      <GlassCard key={order.id} className="rounded-[22px] p-4">
+                      <GlassCard key={order.id} className={`rounded-[22px] p-4 ${getTableColorClass(order)}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-xs uppercase tracking-[0.16em] text-gold2/80">

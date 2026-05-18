@@ -6,6 +6,7 @@ import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import {
   enableStaffPushNotifications,
   getStaffPushState,
@@ -30,6 +31,16 @@ import {
   updatePendingOrder,
 } from '../services/orderService';
 import api from '../services/api';
+import {
+  emitOfflineQueueUpdated,
+  getPendingWaiterQueueCount,
+  getQueuedWaiterActions,
+  onOfflineQueueUpdated,
+  removeQueuedWaiterAction,
+  syncQueuedWaiterAction,
+  queueWaiterAction,
+} from '../services/offlineQueue';
+import { updateQueuedWaiterAction } from '../services/offlineStore';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import type {
   ActiveTableSessionRecord,
@@ -141,8 +152,18 @@ const StaffOrdersPage: React.FC = () => {
   const [isIosLike, setIsIosLike] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [requiresHomeScreenInstall, setRequiresHomeScreenInstall] = useState(false);
+  const [pendingWaiterSyncCount, setPendingWaiterSyncCount] = useState(0);
+  const [syncingWaiterQueue, setSyncingWaiterQueue] = useState(false);
+  const [queuedWaiterActions, setQueuedWaiterActions] = useState<Array<{
+    id: number;
+    type: string;
+    status: string;
+    orderId: number;
+    updatePayload?: UpdatePendingOrderRequest;
+  }>>([]);
   const refreshInFlightRef = useRef(false);
   const hasLoadedPublishedDishesRef = useRef(false);
+  const { isOnline, justReconnected } = useNetworkStatus();
 
   const getOrderLabel = useCallback((order: OrderRecord): string => (
     order.order_number || t('staffOrdersPage.orderNumberLabel', { id: order.id })
@@ -297,6 +318,58 @@ const StaffOrdersPage: React.FC = () => {
   const loadOrders = useCallback(async () => {
     await refreshStaffActivity();
   }, [refreshStaffActivity]);
+
+  useEffect(() => {
+    const refreshPendingCount = () => {
+      void getPendingWaiterQueueCount().then((count) => setPendingWaiterSyncCount(count));
+      void getQueuedWaiterActions().then((rows) => {
+        setQueuedWaiterActions(rows.filter((row) => typeof row.id === 'number').map((row) => ({
+          id: row.id as number,
+          type: row.type,
+          status: row.status,
+          orderId: row.payload.orderId,
+          updatePayload: row.payload.updatePayload,
+        })));
+      });
+    };
+
+    refreshPendingCount();
+    const unsubscribe = onOfflineQueueUpdated(refreshPendingCount);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (!justReconnected || pendingWaiterSyncCount === 0 || syncingWaiterQueue) {
+      return;
+    }
+
+    setSyncingWaiterQueue(true);
+    void getQueuedWaiterActions()
+      .then(async (rows) => {
+        let synced = 0;
+        let failed = 0;
+        for (const row of rows) {
+          if (!row.id || (row.status !== 'pending' && row.status !== 'failed')) {
+            continue;
+          }
+          const approved = window.confirm(`Sync waiter action #${row.id} (${row.type}) for order #${row.payload.orderId}?`);
+          if (!approved) {
+            continue;
+          }
+          const result = await syncQueuedWaiterAction(row.id);
+          if (result.synced) {
+            synced += 1;
+          } else {
+            failed += 1;
+          }
+        }
+        showToast(`Waiter sync complete: ${synced} synced, ${failed} failed.`, 'secondary', 4200);
+        void refreshStaffActivity({ silent: true });
+      })
+      .finally(() => {
+        setSyncingWaiterQueue(false);
+      });
+  }, [justReconnected, pendingWaiterSyncCount, syncingWaiterQueue, showToast, refreshStaffActivity]);
 
   useEffect(() => {
     loadOrders();
@@ -708,6 +781,12 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (!isOnline) {
+        await queueWaiterAction({ type: 'confirm_order', orderId: order.id });
+        setOrders((current) => current.filter((item) => item.id !== order.id));
+        showToast(`Queued confirm for ${getOrderLabel(order)}.`, 'tertiary', 3600);
+        return;
+      }
       const response = await confirmPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
       showToast(
@@ -727,6 +806,12 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (!isOnline) {
+        await queueWaiterAction({ type: 'cancel_order', orderId: order.id });
+        setOrders((current) => current.filter((item) => item.id !== order.id));
+        showToast(`Queued cancel for ${getOrderLabel(order)}.`, 'tertiary', 3600);
+        return;
+      }
       const response = await cancelPendingOrder(order.id);
       setOrders((current) => current.filter((item) => item.id !== order.id));
       showToast(
@@ -761,6 +846,12 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (!isOnline) {
+        await queueWaiterAction({ type: 'mark_served', orderId: order.id });
+        setReadyOrders((current) => current.filter((item) => item.id !== order.id));
+        showToast(`Queued served update for ${order.order_number || `#${order.id}`}.`, 'tertiary', 3600);
+        return;
+      }
       const response = await markOrderServed(order.id);
       setReadyOrders((current) => current.filter((item) => item.id !== order.id));
       showToast(
@@ -900,6 +991,12 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (!isOnline) {
+        await queueWaiterAction({ type: 'update_order', orderId: editingOrder.id, updatePayload: payload });
+        setEditingOrder(null);
+        showToast(`Queued changes for ${getOrderLabel(editingOrder)}.`, 'tertiary', 3600);
+        return;
+      }
       const response = await updatePendingOrder(editingOrder.id, payload);
       replaceOrder(response.order);
       setEditingOrder(null);
@@ -920,6 +1017,13 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      if (!isOnline) {
+        await queueWaiterAction({ type: 'update_and_confirm_order', orderId: editingOrder.id, updatePayload: payload });
+        setOrders((current) => current.filter((item) => item.id !== editingOrder.id));
+        setEditingOrder(null);
+        showToast(`Queued save and confirm for ${getOrderLabel(editingOrder)}.`, 'tertiary', 3600);
+        return;
+      }
       const updateResponse = await updatePendingOrder(editingOrder.id, payload);
       replaceOrder(updateResponse.order);
       setEditingOrder(null);
@@ -976,6 +1080,113 @@ const StaffOrdersPage: React.FC = () => {
           </div>
         ) : null}
       </div>
+
+      {!isOnline || pendingWaiterSyncCount > 0 ? (
+        <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
+          {!isOnline
+            ? `You are offline. Waiter actions will be queued locally. Pending sync: ${pendingWaiterSyncCount}.`
+            : `You have ${pendingWaiterSyncCount} pending waiter action(s) waiting to sync.`}
+          {isOnline && pendingWaiterSyncCount > 0 ? (
+            <div className="mt-3">
+              <LiquidButton
+                tone="secondary"
+                onClick={() => {
+                  if (syncingWaiterQueue) {
+                    return;
+                  }
+                  setSyncingWaiterQueue(true);
+                  void getQueuedWaiterActions()
+                    .then(async (rows) => {
+                      let synced = 0;
+                      let failed = 0;
+                      for (const row of rows) {
+                        if (!row.id || (row.status !== 'pending' && row.status !== 'failed')) {
+                          continue;
+                        }
+                        const approved = window.confirm(`Sync waiter action #${row.id} (${row.type}) for order #${row.payload.orderId}?`);
+                        if (!approved) {
+                          continue;
+                        }
+                        const result = await syncQueuedWaiterAction(row.id);
+                        if (result.synced) {
+                          synced += 1;
+                        } else {
+                          failed += 1;
+                        }
+                      }
+                      showToast(`Waiter sync complete: ${synced} synced, ${failed} failed.`, 'secondary', 4200);
+                      void refreshStaffActivity({ silent: true });
+                    })
+                    .finally(() => {
+                      setSyncingWaiterQueue(false);
+                    });
+                }}
+                disabled={syncingWaiterQueue}
+              >
+                {syncingWaiterQueue ? 'Syncing...' : 'Sync now'}
+              </LiquidButton>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {queuedWaiterActions.length > 0 ? (
+        <div className="mb-4 space-y-2 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
+          <p className="font-semibold">Queued waiter actions</p>
+          {queuedWaiterActions.map((item) => (
+            <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-gold/20 bg-black/5 px-2 py-2">
+              <span>#{item.id}</span>
+              <span>{item.type}</span>
+              <span>order #{item.orderId}</span>
+              <span>({item.status})</span>
+              <button
+                type="button"
+                className="rounded-full border px-2 py-1 text-xs"
+                onClick={() => {
+                  if (item.type !== 'update_order' && item.type !== 'update_and_confirm_order') {
+                    return;
+                  }
+                  const current = item.updatePayload ? JSON.stringify(item.updatePayload) : '{"items":[]}';
+                  const nextRaw = window.prompt('Edit queued payload JSON', current);
+                  if (!nextRaw) return;
+                  try {
+                    const parsed = JSON.parse(nextRaw) as UpdatePendingOrderRequest;
+                    void updateQueuedWaiterAction(item.id, {
+                      payload: {
+                        orderId: item.orderId,
+                        updatePayload: parsed,
+                      },
+                    });
+                    emitOfflineQueueUpdated();
+                  } catch {
+                    showToast('Invalid JSON payload.', 'tertiary', 3000);
+                  }
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="rounded-full border px-2 py-1 text-xs"
+                onClick={() => {
+                  void removeQueuedWaiterAction(item.id);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-full border px-2 py-1 text-xs"
+                onClick={() => {
+                  if (!navigator.onLine) return;
+                  void syncQueuedWaiterAction(item.id);
+                }}
+              >
+                Confirm this action
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {notificationStatus === 'default' ? (
         <div className="mb-4 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">

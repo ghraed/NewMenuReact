@@ -9,12 +9,14 @@ import type {
   Dish,
   GuestDishIndexEntry,
   GuestDishesMeta,
+  UpdatePendingOrderRequest,
 } from '../types';
 
 const DB_NAME = 'menu-react-offline';
 const DB_VERSION = 1;
 const MENU_CACHE_STORE = 'guest_menu_cache';
 const ORDER_QUEUE_STORE = 'guest_order_queue';
+const WAITER_QUEUE_STORE = 'waiter_action_queue';
 const SYNC_EVENTS_STORE = 'sync_events_log';
 
 export interface GuestMenuCacheRecord {
@@ -47,6 +49,25 @@ export interface GuestOrderQueueRecord {
   lastError: string | null;
 }
 
+export type WaiterQueueActionType =
+  | 'confirm_order'
+  | 'cancel_order'
+  | 'mark_served'
+  | 'update_order'
+  | 'update_and_confirm_order';
+
+export interface WaiterActionQueueRecord {
+  id?: number;
+  type: WaiterQueueActionType;
+  createdAt: string;
+  status: OfflineQueueItemStatus;
+  lastError: string | null;
+  payload: {
+    orderId: number;
+    updatePayload?: UpdatePendingOrderRequest;
+  };
+}
+
 interface SyncEventRecord {
   id?: number;
   type: 'enqueue' | 'sync_start' | 'sync_success' | 'sync_failed';
@@ -64,13 +85,13 @@ const withStore = async <T>(
   const db = await openOfflineDb();
   const tx = db.transaction(storeName, mode);
   const store = tx.objectStore(storeName);
-  const result = await action(store);
-
-  await new Promise<void>((resolve, reject) => {
+  const completionPromise = new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error);
   });
+  const result = await action(store);
+  await completionPromise;
 
   return result;
 };
@@ -103,6 +124,12 @@ export const openOfflineDb = (): Promise<IDBDatabase> => {
         const queueStore = db.createObjectStore(ORDER_QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
         queueStore.createIndex('status', 'status', { unique: false });
         queueStore.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+
+      if (!db.objectStoreNames.contains(WAITER_QUEUE_STORE)) {
+        const waiterQueueStore = db.createObjectStore(WAITER_QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+        waiterQueueStore.createIndex('status', 'status', { unique: false });
+        waiterQueueStore.createIndex('createdAt', 'createdAt', { unique: false });
       }
 
       if (!db.objectStoreNames.contains(SYNC_EVENTS_STORE)) {
@@ -151,7 +178,7 @@ export const listQueuedGuestOrders = async (): Promise<GuestOrderQueueRecord[]> 
 
 export const updateQueuedGuestOrder = async (
   id: number,
-  patch: Partial<Pick<GuestOrderQueueRecord, 'status' | 'lastError'>>
+  patch: Partial<Pick<GuestOrderQueueRecord, 'status' | 'lastError' | 'payload'>>
 ): Promise<void> => {
   await withStore(ORDER_QUEUE_STORE, 'readwrite', async (store) => {
     const current = await idbRequest(store.get(id)) as GuestOrderQueueRecord | undefined;
@@ -172,5 +199,39 @@ export const deleteQueuedGuestOrder = async (id: number): Promise<void> => {
 export const appendSyncEvent = async (record: SyncEventRecord): Promise<void> => {
   await withStore(SYNC_EVENTS_STORE, 'readwrite', async (store) => {
     await idbRequest(store.add(record));
+  });
+};
+
+export const enqueueWaiterAction = async (record: Omit<WaiterActionQueueRecord, 'id' | 'status' | 'lastError'>): Promise<number> => {
+  return withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
+    const id = await idbRequest(store.add({ ...record, status: 'pending', lastError: null } as WaiterActionQueueRecord));
+    return Number(id);
+  });
+};
+
+export const listQueuedWaiterActions = async (): Promise<WaiterActionQueueRecord[]> => {
+  return withStore(WAITER_QUEUE_STORE, 'readonly', async (store) => {
+    const result = await idbRequest(store.getAll());
+    return (result as WaiterActionQueueRecord[]).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  });
+};
+
+export const updateQueuedWaiterAction = async (
+  id: number,
+  patch: Partial<Pick<WaiterActionQueueRecord, 'status' | 'lastError' | 'type' | 'payload'>>
+): Promise<void> => {
+  await withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
+    const current = await idbRequest(store.get(id)) as WaiterActionQueueRecord | undefined;
+    if (!current) {
+      return;
+    }
+
+    await idbRequest(store.put({ ...current, ...patch }));
+  });
+};
+
+export const deleteQueuedWaiterAction = async (id: number): Promise<void> => {
+  await withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
+    await idbRequest(store.delete(id));
   });
 };

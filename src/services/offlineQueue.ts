@@ -1,13 +1,25 @@
-import { createGuestTableSessionOrder } from './orderService';
+import {
+  cancelPendingOrder,
+  confirmPendingOrder,
+  createGuestTableSessionOrder,
+  markOrderServed,
+  updatePendingOrder,
+} from './orderService';
 import {
   appendSyncEvent,
+  deleteQueuedWaiterAction,
   deleteQueuedGuestOrder,
+  enqueueWaiterAction,
   enqueueGuestOrder,
+  listQueuedWaiterActions,
   listQueuedGuestOrders,
   type GuestOrderQueueRecord,
+  type WaiterActionQueueRecord,
+  type WaiterQueueActionType,
+  updateQueuedWaiterAction,
   updateQueuedGuestOrder,
 } from './offlineStore';
-import type { CreateGuestOrderRequest } from '../types';
+import type { CreateGuestOrderRequest, UpdatePendingOrderRequest } from '../types';
 
 const OFFLINE_QUEUE_UPDATED_EVENT = 'offline-queue-updated';
 
@@ -127,4 +139,139 @@ export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
 
 export const getQueuedGuestOrders = async (): Promise<GuestOrderQueueRecord[]> => {
   return listQueuedGuestOrders();
+};
+
+export const removeQueuedGuestOrder = async (id: number): Promise<void> => {
+  await deleteQueuedGuestOrder(id);
+  emitOfflineQueueUpdated();
+};
+
+export const editQueuedGuestOrder = async (
+  id: number,
+  payload: CreateGuestOrderRequest
+): Promise<void> => {
+  await updateQueuedGuestOrder(id, { payload });
+  emitOfflineQueueUpdated();
+};
+
+export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolean; error?: string }> => {
+  const queued = await listQueuedGuestOrders();
+  const item = queued.find((row) => row.id === id);
+  if (!item || !item.id) {
+    return { synced: false, error: 'Queued order not found' };
+  }
+
+  await updateQueuedGuestOrder(item.id, { status: 'syncing', lastError: null });
+  try {
+    await createGuestTableSessionOrder(item.sessionId, item.payload, item.guestAccessToken, item.idempotencyKey);
+    await deleteQueuedGuestOrder(item.id);
+    emitOfflineQueueUpdated();
+    return { synced: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+    await updateQueuedGuestOrder(item.id, { status: 'failed', lastError: errorMessage });
+    emitOfflineQueueUpdated();
+    return { synced: false, error: errorMessage };
+  }
+};
+
+export const queueWaiterAction = async (input: {
+  type: WaiterQueueActionType;
+  orderId: number;
+  updatePayload?: UpdatePendingOrderRequest;
+}): Promise<number> => {
+  const queueId = await enqueueWaiterAction({
+    type: input.type,
+    createdAt: new Date().toISOString(),
+    payload: {
+      orderId: input.orderId,
+      updatePayload: input.updatePayload,
+    },
+  });
+  emitOfflineQueueUpdated();
+  return queueId;
+};
+
+export const getPendingWaiterQueueCount = async (): Promise<number> => {
+  const queued = await listQueuedWaiterActions();
+  return queued.filter((item) => item.status === 'pending' || item.status === 'failed').length;
+};
+
+const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<void> => {
+  const { orderId, updatePayload } = item.payload;
+  switch (item.type) {
+    case 'confirm_order':
+      await confirmPendingOrder(orderId);
+      return;
+    case 'cancel_order':
+      await cancelPendingOrder(orderId);
+      return;
+    case 'mark_served':
+      await markOrderServed(orderId);
+      return;
+    case 'update_order':
+      if (!updatePayload) throw new Error('Missing update payload');
+      await updatePendingOrder(orderId, updatePayload);
+      return;
+    case 'update_and_confirm_order':
+      if (!updatePayload) throw new Error('Missing update payload');
+      await updatePendingOrder(orderId, updatePayload);
+      await confirmPendingOrder(orderId);
+      return;
+    default:
+      throw new Error('Unsupported waiter queue action');
+  }
+};
+
+export const replayQueuedWaiterActions = async (): Promise<QueueReplayResult> => {
+  const queued = await listQueuedWaiterActions();
+  const replayable = queued.filter((item) => item.status === 'pending' || item.status === 'failed');
+  const summary: QueueReplayResult = { synced: 0, failed: 0, needsReview: 0 };
+
+  for (const item of replayable) {
+    if (!item.id) continue;
+    await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
+    try {
+      await replaySingleWaiterAction(item);
+      await deleteQueuedWaiterAction(item.id);
+      summary.synced += 1;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+      await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
+      summary.failed += 1;
+    }
+  }
+
+  emitOfflineQueueUpdated();
+  return summary;
+};
+
+export const getQueuedWaiterActions = async (): Promise<WaiterActionQueueRecord[]> => {
+  return listQueuedWaiterActions();
+};
+
+export const removeQueuedWaiterAction = async (id: number): Promise<void> => {
+  await deleteQueuedWaiterAction(id);
+  emitOfflineQueueUpdated();
+};
+
+export const syncQueuedWaiterAction = async (id: number): Promise<{ synced: boolean; error?: string }> => {
+  const queued = await listQueuedWaiterActions();
+  const item = queued.find((row) => row.id === id);
+  if (!item || !item.id) {
+    return { synced: false, error: 'Queued waiter action not found' };
+  }
+
+  await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
+  try {
+    await replaySingleWaiterAction(item);
+    await deleteQueuedWaiterAction(item.id);
+    emitOfflineQueueUpdated();
+    return { synced: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+    await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
+    emitOfflineQueueUpdated();
+    return { synced: false, error: errorMessage };
+  }
 };

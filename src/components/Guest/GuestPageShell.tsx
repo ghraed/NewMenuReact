@@ -7,8 +7,9 @@ import GuestWaveButton from './GuestWaveButton';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import {
   getPendingQueueCount,
+  getQueuedGuestOrders,
   onOfflineQueueUpdated,
-  replayQueuedGuestOrders,
+  syncQueuedGuestOrder,
 } from '../../services/offlineQueue';
 
 interface GuestPageShellProps {
@@ -37,20 +38,27 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
       return;
     }
 
-    const approved = window.confirm(
-      'Internet is back. Sync pending guest orders now?'
-    );
-
-    if (!approved) {
-      return;
-    }
-
     setSyncing(true);
-    void replayQueuedGuestOrders()
-      .then((result) => {
-        window.alert(
-          `Sync complete: ${result.synced} synced, ${result.failed} failed, ${result.needsReview} need review. Please check with waiter if anything is unclear.`
-        );
+    void getQueuedGuestOrders()
+      .then(async (queued) => {
+        let synced = 0;
+        let failed = 0;
+        for (const item of queued) {
+          if (!item.id || (item.status !== 'pending' && item.status !== 'failed')) {
+            continue;
+          }
+          const approved = window.confirm(`Sync queued guest order #${item.id} now?`);
+          if (!approved) {
+            continue;
+          }
+          const result = await syncQueuedGuestOrder(item.id);
+          if (result.synced) {
+            synced += 1;
+          } else {
+            failed += 1;
+          }
+        }
+        window.alert(`Guest sync complete: ${synced} synced, ${failed} failed. Please check with waiter if anything is unclear.`);
       })
       .finally(() => {
         setSyncing(false);

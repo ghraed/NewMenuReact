@@ -8,11 +8,20 @@ import GuestInfoSection from '../components/Guest/GuestInfoSection';
 import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { createGuestTableSessionOrder } from '../services/orderService';
-import { createIdempotencyKey, queueGuestOrder } from '../services/offlineQueue';
+import {
+  createIdempotencyKey,
+  editQueuedGuestOrder,
+  getQueuedGuestOrders,
+  onOfflineQueueUpdated,
+  queueGuestOrder,
+  removeQueuedGuestOrder,
+  syncQueuedGuestOrder,
+} from '../services/offlineQueue';
 import type { OrderRecord } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -46,6 +55,12 @@ const OrderReviewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const { isOnline } = useNetworkStatus();
+  const [queuedOrders, setQueuedOrders] = useState<Array<{
+    id: number;
+    payload: { notes?: string; items: Array<{ dish_id: number; quantity: number }> };
+    status: string;
+  }>>([]);
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
   const guestMenuResource = useGuestMenuResource({
@@ -69,6 +84,22 @@ const OrderReviewPage: React.FC = () => {
     && !submitting
     && !sessionLoading;
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+
+  useEffect(() => {
+    const refreshQueuedOrders = () => {
+      void getQueuedGuestOrders().then((rows) => {
+        setQueuedOrders(rows.filter((row) => typeof row.id === 'number').map((row) => ({
+          id: row.id as number,
+          payload: row.payload,
+          status: row.status,
+        })));
+      });
+    };
+
+    refreshQueuedOrders();
+    const unsubscribe = onOfflineQueueUpdated(refreshQueuedOrders);
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!activeTableId || submittedOrder) {
@@ -508,7 +539,7 @@ const OrderReviewPage: React.FC = () => {
                     {error}
                   </div>
                 ) : null}
-                {queuedOffline ? (
+                {queuedOffline && !isOnline ? (
                   <div
                     className="rounded-[22px] border p-4 text-sm"
                     style={{
@@ -518,6 +549,63 @@ const OrderReviewPage: React.FC = () => {
                     }}
                   >
                     You are offline. This order was queued and will sync when internet is back after your confirmation.
+                  </div>
+                ) : null}
+                {queuedOrders.length > 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-[var(--guest-text)]">Queued offline orders</p>
+                    {queuedOrders.map((queued) => (
+                      <div
+                        key={queued.id}
+                        className="rounded-[22px] border p-4 text-sm"
+                        style={{
+                          backgroundColor: 'var(--guest-panel-strong)',
+                          borderColor: 'var(--guest-border)',
+                          color: 'var(--guest-text)',
+                        }}
+                      >
+                        <p className="font-semibold">Queued order #{queued.id} ({queued.status})</p>
+                        <p className="mt-1 text-[var(--guest-muted)]">{queued.payload.items.length} item type(s)</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void removeQueuedGuestOrder(queued.id);
+                            }}
+                            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                            style={{ borderColor: 'var(--guest-border)' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextNotes = window.prompt('Edit notes for this queued order', queued.payload.notes || '');
+                              if (nextNotes === null) return;
+                              void editQueuedGuestOrder(queued.id, {
+                                ...queued.payload,
+                                notes: nextNotes.trim() || undefined,
+                              });
+                            }}
+                            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                            style={{ borderColor: 'var(--guest-border)' }}
+                          >
+                            Edit notes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!navigator.onLine) return;
+                              void syncQueuedGuestOrder(queued.id);
+                            }}
+                            className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                            style={{ borderColor: 'var(--guest-border)' }}
+                          >
+                            Confirm this order now
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
 
