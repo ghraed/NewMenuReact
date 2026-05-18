@@ -9,6 +9,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import {
   accountConfirmedOrder,
@@ -1606,7 +1607,7 @@ const AccountingOrdersPage: React.FC = () => {
       ) : null}
 
       {loading ? (
-        <div className="py-12 text-center text-muted">{t('accountingPage.loadingQueue')}</div>
+        <PageSkeleton rows={5} columns={1} className="py-2" loadingText={t('accountingPage.loadingQueue')} />
       ) : null}
 
       {!loading && !selectedTable ? (

@@ -1003,15 +1003,30 @@ const GuestDishListPage: React.FC = () => {
           </div>
 
           {loading ? (
-            <div
-              className="mt-6 rounded-[28px] border px-6 py-10 text-center"
-              style={{
-                backgroundColor: 'var(--guest-panel)',
-                borderColor: 'var(--guest-border)',
-                boxShadow: 'var(--guest-shadow-soft)',
-              }}
-            >
-              <LoadingSpinner inline text={t('menuList.loadingMenu')} />
+            <div className="mt-6 space-y-6" aria-live="polite" aria-busy="true" aria-label={t('menuList.loadingMenu')}>
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div
+                    key={`guest-skeleton-${index + 1}`}
+                    className="animate-pulse rounded-[28px] border p-4"
+                    style={{
+                      backgroundColor: 'var(--guest-panel)',
+                      borderColor: 'var(--guest-border)',
+                      boxShadow: 'var(--guest-shadow-soft)',
+                    }}
+                  >
+                    <div className="h-40 rounded-[20px]" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                    <div className="mt-4 h-5 w-3/4 rounded-full" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                    <div className="mt-3 h-3 w-full rounded-full" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                    <div className="mt-2 h-3 w-5/6 rounded-full" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                    <div className="mt-5 flex items-center justify-between">
+                      <div className="h-5 w-20 rounded-full" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                      <div className="h-10 w-24 rounded-full" style={{ backgroundColor: 'var(--guest-panel-strong)' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-sm text-[var(--guest-muted)]">{t('menuList.loadingMenu')}</p>
             </div>
           ) : null}
 

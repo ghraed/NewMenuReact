@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import { fetchInvoices } from '../services/invoiceService';
 import { fetchAccountingOrders, fetchPendingOrders } from '../services/orderService';
@@ -344,7 +345,7 @@ const TodayOrdersPage: React.FC = () => {
         </GlassCard>
 
         {loading ? (
-          <div className="py-10 text-center text-muted">{isAdmin ? 'Loading order history...' : 'Loading today orders...'}</div>
+          <PageSkeleton rows={5} columns={1} className="py-2" loadingText={isAdmin ? 'Loading order history...' : 'Loading today orders...'} />
         ) : error ? (
           <GlassCard className="border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{error}</GlassCard>
         ) : rows.length === 0 ? (

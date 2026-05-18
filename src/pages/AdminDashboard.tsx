@@ -186,7 +186,34 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-muted">{t('adminDashboard.loadingDishes')}</div>
+        <div className="space-y-4 py-2" aria-live="polite" aria-busy="true" aria-label={t('adminDashboard.loadingDishes')}>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <GlassCard key={`admin-dish-skeleton-${index + 1}`} className="overflow-visible">
+                <div className="animate-pulse">
+                  <div className="flex items-start gap-4">
+                    <div className="h-20 w-20 shrink-0 rounded-2xl border border-stroke bg-black/10 dark:bg-gold/30" />
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="h-5 w-2/3 rounded-full bg-black/12 dark:bg-gold/30" />
+                          <div className="mt-2 h-3 w-1/2 rounded-full bg-black/12 dark:bg-gold/30" />
+                        </div>
+                        <div className="h-5 w-16 rounded-full bg-black/12 dark:bg-gold/30" />
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-end gap-2">
+                        <div className="h-8 w-24 rounded-full bg-black/12 dark:bg-gold/30" />
+                        <div className="h-8 w-24 rounded-full bg-black/12 dark:bg-gold/30" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+          <p className="text-center text-sm font-medium text-text/80">{t('adminDashboard.loadingDishes')}</p>
+        </div>
       ) : error ? (
         <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 py-12 text-center text-spicy">{error}</div>
       ) : dishes.length === 0 ? (

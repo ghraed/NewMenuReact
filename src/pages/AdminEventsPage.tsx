@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { getEcho } from '../services/realtime';
 import { useAuth } from '../contexts/useAuth';
 import {
@@ -391,7 +392,9 @@ const AdminEventsPage: React.FC = () => {
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
             <h2 className="text-lg font-semibold text-text">Events</h2>
             {loading ? (
-              <p className="mt-3 text-sm text-muted">Loading events...</p>
+              <div className="mt-3">
+                <PageSkeleton rows={4} columns={1} loadingText="Loading events..." />
+              </div>
             ) : events.length === 0 ? (
               <p className="mt-3 text-sm text-muted">No events found for selected filters.</p>
             ) : (

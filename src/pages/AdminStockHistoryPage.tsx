@@ -11,6 +11,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import api, { resolveAssetUrl } from '../services/api';
 import { fetchExpenses } from '../services/financeExpenseService';
 import { useAuth } from '../contexts/useAuth';
@@ -475,7 +476,7 @@ const AdminStockHistoryPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-muted">{t('stockHistory.loading')}</div>
+          <PageSkeleton rows={6} columns={1} className="py-2" loadingText={t('stockHistory.loading')} />
         ) : records.length === 0 ? (
           <div className="py-12 text-center text-muted">{t('stockHistory.empty')}</div>
         ) : (

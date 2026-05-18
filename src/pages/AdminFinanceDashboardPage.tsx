@@ -17,6 +17,7 @@ import {
 import { Chart } from 'react-chartjs-2';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import api from '../services/api';
 import {
@@ -1599,7 +1600,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
             </div>
 
             {loading ? (
-              <div className="py-14 text-center text-muted">Loading finance records...</div>
+              <PageSkeleton rows={6} columns={1} className="mt-4" loadingText="Loading finance records..." />
             ) : (
               <div className="mt-4 space-y-3">
                 <div className="overflow-x-auto rounded-xl border border-stroke">

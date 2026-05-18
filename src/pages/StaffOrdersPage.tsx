@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import {
   enableStaffPushNotifications,
@@ -1134,7 +1135,7 @@ const StaffOrdersPage: React.FC = () => {
       ) : null}
 
       {loading ? (
-        <div className="py-12 text-center text-muted">{t('staffOrdersPage.loadingActivity')}</div>
+        <PageSkeleton rows={5} columns={1} className="py-2" loadingText={t('staffOrdersPage.loadingActivity')} />
       ) : null}
 
       {!loading && waves.length === 0 && orders.length === 0 && readyOrders.length === 0 ? (

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import {
   createAdminReservation,
@@ -425,7 +426,9 @@ const AdminReservationsPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-stroke bg-bg1/60 p-5 text-sm text-muted">Loading reservations...</div>
+          <div className="rounded-2xl border border-stroke bg-bg1/60 p-5">
+            <PageSkeleton rows={4} columns={1} loadingText="Loading reservations..." />
+          </div>
         ) : filteredReservations.length === 0 ? (
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-5 text-sm text-muted">
             <p className="font-semibold text-text">No reservations match these filters.</p>

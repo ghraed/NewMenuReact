@@ -11,6 +11,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
+import PageSkeleton from '../components/Common/PageSkeleton';
 import api, { resolveAssetUrl } from '../services/api';
 import { fetchExpenseCategories, fetchVendors } from '../services/financeExpenseService';
 import type {
@@ -887,7 +888,7 @@ const AdminIngredientsPage: React.FC = () => {
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-muted">{t('inventoryIngredients.loading')}</div>
+          <PageSkeleton rows={6} columns={1} className="py-2" loadingText={t('inventoryIngredients.loading')} />
         ) : filteredIngredients.length === 0 ? (
           <div className="py-12 text-center text-muted">
             <p className="font-semibold text-text">No ingredients match your search/filter.</p>
