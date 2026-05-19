@@ -41,12 +41,21 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
     setSyncing(true);
     void getQueuedGuestOrders()
       .then(async (queued) => {
+        const replayable = queued.filter((item) =>
+          Boolean(item.id)
+          && (item.status === 'pending' || item.status === 'failed')
+          && Array.isArray(item.payload?.items)
+          && item.payload.items.some((row) => Number(row.dish_id) > 0 && Number(row.quantity) > 0)
+        );
+
+        if (replayable.length === 0) {
+          return;
+        }
+
         let synced = 0;
         let failed = 0;
-        for (const item of queued) {
-          if (!item.id || (item.status !== 'pending' && item.status !== 'failed')) {
-            continue;
-          }
+        for (const item of replayable) {
+          if (!item.id) continue;
           const approved = window.confirm(`Sync queued guest order #${item.id} now?`);
           if (!approved) {
             continue;
@@ -58,7 +67,10 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
             failed += 1;
           }
         }
-        window.alert(`Guest sync complete: ${synced} synced, ${failed} failed. Please check with waiter if anything is unclear.`);
+
+        if (synced + failed > 0) {
+          window.alert(`Guest sync complete: ${synced} synced, ${failed} failed. Please check with waiter if anything is unclear.`);
+        }
       })
       .finally(() => {
         setSyncing(false);

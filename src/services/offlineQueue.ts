@@ -67,12 +67,12 @@ export const queueGuestOrder = async (input: {
 
 export const getPendingQueueCount = async (): Promise<number> => {
   const queued = await listQueuedGuestOrders();
-  return queued.filter((item) => item.status === 'pending' || item.status === 'failed').length;
+  return queued.filter(isReplayableGuestOrder).length;
 };
 
 export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
   const queued = await listQueuedGuestOrders();
-  const replayable = queued.filter((item) => item.status === 'pending' || item.status === 'failed');
+  const replayable = queued.filter(isReplayableGuestOrder);
 
   const summary: QueueReplayResult = {
     synced: 0,
@@ -160,6 +160,9 @@ export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolea
   if (!item || !item.id) {
     return { synced: false, error: 'Queued order not found' };
   }
+  if (!isReplayableGuestOrder(item)) {
+    return { synced: false, error: 'Queued order is not replayable' };
+  }
 
   await updateQueuedGuestOrder(item.id, { status: 'syncing', lastError: null });
   try {
@@ -173,6 +176,22 @@ export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolea
     emitOfflineQueueUpdated();
     return { synced: false, error: errorMessage };
   }
+};
+
+const isReplayableGuestOrder = (item: GuestOrderQueueRecord): boolean => {
+  if (item.status !== 'pending' && item.status !== 'failed') {
+    return false;
+  }
+
+  if (!item.payload || !Array.isArray(item.payload.items) || item.payload.items.length === 0) {
+    return false;
+  }
+
+  return item.payload.items.some((row) => {
+    const dishId = Number((row as { dish_id?: number }).dish_id);
+    const quantity = Number((row as { quantity?: number }).quantity);
+    return Number.isFinite(dishId) && dishId > 0 && Number.isFinite(quantity) && quantity > 0;
+  });
 };
 
 export const queueWaiterAction = async (input: {
