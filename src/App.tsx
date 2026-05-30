@@ -163,6 +163,40 @@ const lazyRoute = (element: React.ReactNode) => (
   </Suspense>
 );
 
+const RouteScrollManager: React.FC = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+
+    return () => {
+      window.history.scrollRestoration = previousRestoration;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location.hash) {
+      return;
+    }
+
+    window.scrollTo(0, 0);
+    const frameId = window.requestAnimationFrame(() => window.scrollTo(0, 0));
+    const timeoutId = window.setTimeout(() => window.scrollTo(0, 0), 120);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+};
+
 const AppRoutes: React.FC = () => {
   const location = useLocation();
 
@@ -185,6 +219,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <AppThemeShell>
+      <RouteScrollManager />
       <AppChangeGuards />
       <RouteErrorBoundary>
         <Routes>
