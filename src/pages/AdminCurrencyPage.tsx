@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import api from '../services/api';
 import type { CurrencyCode } from '../types';
-import { GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassCard, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { CURRENCY_OPTIONS, normalizeCurrency, persistGuestCurrencySettings, readGuestCurrencySettings } from '../utils/currency';
 
 interface CurrencySettingsResponse {
@@ -139,102 +139,149 @@ const AdminCurrencyPage: React.FC = () => {
       {loading ? (
         <div className="py-12 text-center text-muted">Loading currency settings...</div>
       ) : (
-        <div className="max-w-2xl space-y-6">
-          <div className="rounded-[24px] border border-stroke bg-bg1/60 p-5">
-            <h2 className="text-lg font-semibold text-text">Default App Currency</h2>
-            <p className="mt-2 text-sm text-muted">
-              Choose the default currency used across finance, expenses, and the guest menu view.
-            </p>
-          </div>
-
-          <div className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
-                Default Currency
-              </label>
-              <select
-                id="currency"
-                name="currency"
-                value={originalCurrency}
-                onChange={(event) => {
-                  const nextCurrency = normalizeCurrency(event.target.value);
-                  setOriginalCurrency(nextCurrency);
-                  if (otherCurrency === nextCurrency) {
-                    setOtherCurrency(nextCurrency === 'USD' ? 'EUR' : 'USD');
-                  }
-                }}
-                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
-              >
-                {CURRENCY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="other_currency" className="mb-1 block text-sm font-medium text-text">
-                Other Currency
-              </label>
-              <select
-                id="other_currency"
-                name="other_currency"
-                value={otherCurrency}
-                onChange={(event) => {
-                  const nextCurrency = normalizeCurrency(event.target.value);
-                  if (nextCurrency === originalCurrency) {
-                    return;
-                  }
-                  setOtherCurrency(nextCurrency);
-                }}
-                className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
-              >
-                {CURRENCY_OPTIONS
-                  .filter((option) => option.value !== originalCurrency)
-                  .map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-              </select>
-              <p className="mt-2 text-xs text-muted">
-                Secondary currency used in the system for alternate currency views.
+        <div className="space-y-6">
+          <GlassCard className="relative overflow-hidden p-6">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-gold/15 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-gold2/10 blur-2xl" />
+            <div className="relative">
+              <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">Finance Control</p>
+              <h2 className="mt-2 text-2xl font-semibold text-text sm:text-3xl">Currency Configuration</h2>
+              <p className="mt-2 max-w-2xl text-sm text-muted">
+                Set the restaurant default currency, secondary currency, and exchange rate used across finance, expenses, and guest-facing values.
               </p>
             </div>
+          </GlassCard>
 
-            <div>
-              <label htmlFor="dollar_rate" className="mb-1 block text-sm font-medium text-text">
-                Exchange Rate
-              </label>
-              <GlassInput
-                id="dollar_rate"
-                name="dollar_rate"
-                type="number"
-                min="0.000001"
-                step="0.01"
-                value={dollarRate}
-                onChange={(event) => setDollarRate(event.target.value)}
-                placeholder="e.g. 89500"
-              />
-              <p className="mt-2 text-xs text-muted">
-                {`Example: 1 USD = ${dollarRate || '...'} ${originalCurrency}`}
+          <div className="grid gap-6 lg:grid-cols-[1.35fr_0.85fr]">
+            <GlassCard className="relative space-y-5 overflow-hidden p-6">
+              <div className="pointer-events-none absolute -right-10 top-6 h-24 w-24 rounded-full bg-gold/10 blur-xl" />
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-text">Settings</h3>
+                <span className="rounded-full border border-gold/35 bg-gold/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold2">
+                  Finance Sync
+                </span>
+              </div>
+              <div className="grid gap-5 md:grid-cols-2">
+                <div>
+                  <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
+                    Default Currency
+                  </label>
+                  <select
+                    id="currency"
+                    name="currency"
+                    value={originalCurrency}
+                    onChange={(event) => {
+                      const nextCurrency = normalizeCurrency(event.target.value);
+                      setOriginalCurrency(nextCurrency);
+                      if (otherCurrency === nextCurrency) {
+                        setOtherCurrency(nextCurrency === 'USD' ? 'EUR' : 'USD');
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm font-medium text-text shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+                  >
+                    {CURRENCY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="other_currency" className="mb-1 block text-sm font-medium text-text">
+                    Other Currency
+                  </label>
+                  <select
+                    id="other_currency"
+                    name="other_currency"
+                    value={otherCurrency}
+                    onChange={(event) => {
+                      const nextCurrency = normalizeCurrency(event.target.value);
+                      if (nextCurrency === originalCurrency) {
+                        return;
+                      }
+                      setOtherCurrency(nextCurrency);
+                    }}
+                    className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm font-medium text-text shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55"
+                  >
+                    {CURRENCY_OPTIONS
+                      .filter((option) => option.value !== originalCurrency)
+                      .map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-2 text-xs text-muted">Used for alternate currency views and quick switching.</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="dollar_rate" className="mb-1 block text-sm font-medium text-text">
+                    Exchange Rate
+                  </label>
+                  <GlassInput
+                    id="dollar_rate"
+                    name="dollar_rate"
+                    type="number"
+                    min="0.000001"
+                    step="0.01"
+                    value={dollarRate}
+                    onChange={(event) => setDollarRate(event.target.value)}
+                    placeholder="e.g. 89500"
+                  />
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold2">
+                      1 USD = {dollarRate || '...'} {originalCurrency}
+                    </span>
+                    <span className="rounded-full border border-stroke bg-bg2/65 px-3 py-1 text-muted">
+                      Preview pair: {originalCurrency} ↔ {otherCurrency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {error ? (
+                <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">{error}</div>
+              ) : null}
+
+              {success ? (
+                <div className="rounded-xl2 border border-sage/40 bg-sage/12 p-3 text-sm text-sage my-[5px]">{success}</div>
+              ) : null}
+
+              <div className="flex justify-end">
+                <LiquidButton onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Currency Settings'}
+                </LiquidButton>
+              </div>
+            </GlassCard>
+
+            <GlassCard className="space-y-4 p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-text">Live Preview</h3>
+                <span className="text-xs font-medium text-muted">Realtime</span>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-stroke bg-bg2/65 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted">Default</p>
+                  <p className="mt-1 text-lg font-semibold text-text">{originalCurrency}</p>
+                </div>
+                <div className="rounded-2xl border border-stroke bg-bg2/65 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted">Secondary</p>
+                  <p className="mt-1 text-lg font-semibold text-text">{otherCurrency}</p>
+                </div>
+                <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/10 to-gold2/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.16em] text-gold2/85">Sample Conversion</p>
+                  <p className="mt-2 text-sm text-text">
+                    1 USD ≈ {Number.isFinite(Number(dollarRate)) && Number(dollarRate) > 0
+                      ? (1 * Number(dollarRate)).toLocaleString(undefined, { maximumFractionDigits: 2 })
+                      : '...'} "LBP"
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs leading-5 text-muted">
+                Tip: keep exchange rates updated before downloading finance reports so charts, summaries, and exported workbooks stay consistent.
               </p>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">{error}</div>
-          ) : null}
-
-          {success ? (
-            <div className="rounded-xl2 border border-sage/40 bg-sage/12 p-3 text-sm text-sage">{success}</div>
-          ) : null}
-
-          <div className="flex justify-end">
-            <LiquidButton onClick={handleSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Currency Settings'}
-            </LiquidButton>
+            </GlassCard>
           </div>
         </div>
       )}

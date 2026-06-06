@@ -46,6 +46,15 @@ const AdminDishPage: React.FC = () => {
             <div>
               <h2 className="text-3xl font-semibold text-text">{dish.name}</h2>
               <p className="mt-2 text-lg text-muted">{translateCategoryLabel(dish.category, dish.category_ar)}</p>
+              <p className="mt-1 text-sm text-muted">
+                {(dish.item_type || 'prepared_dish') === 'packaged_drink'
+                  ? 'Packaged Drink'
+                  : (dish.item_type || 'prepared_dish') === 'other_product'
+                    ? 'Other Product'
+                    : (dish.item_type || 'prepared_dish') === 'prepared_drink'
+                      ? 'Prepared Drink'
+                      : 'Prepared Dish'}
+              </p>
             </div>
             <Link to="/admin/dashboard">
               <LiquidButton tone="tertiary">{t('adminDish.backToDashboard')}</LiquidButton>
@@ -60,6 +69,14 @@ const AdminDishPage: React.FC = () => {
 
           <div>
             <p className="text-base leading-relaxed text-muted">{dish.description}</p>
+            {(dish.item_type === 'packaged_drink' || dish.item_type === 'other_product') && (
+              <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-muted">
+                <div>Size: {dish.size_label || '-'}</div>
+                <div>Unit: {dish.packaged_unit || '-'}</div>
+                <div>Brand: {dish.brand || '-'}</div>
+                <div>Stock: {dish.packaged_stock_quantity || '-'}</div>
+              </div>
+            )}
           </div>
 
           <div className="parent-mountRef">

@@ -17,6 +17,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 type DishFilter = 'all' | 'active' | 'deleted';
+type ItemTypeFilter = 'all' | 'prepared_dish' | 'packaged_drink' | 'other_product';
 
 interface DishListPayload {
   data?: unknown;
@@ -48,6 +49,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<DishFilter>('all');
+  const [itemTypeFilter, setItemTypeFilter] = useState<ItemTypeFilter>('all');
   const [openMenuDishId, setOpenMenuDishId] = useState<number | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -118,6 +120,14 @@ const AdminDashboard: React.FC = () => {
     fetchDishes();
   }, [fetchDishes]);
 
+  const visibleDishes = dishes.filter((dish) => {
+    if (itemTypeFilter === 'all') return true;
+    if (itemTypeFilter === 'prepared_dish') {
+      return (dish.item_type || 'prepared_dish') === 'prepared_dish' || (dish.item_type || 'prepared_dish') === 'prepared_drink';
+    }
+    return (dish.item_type || 'prepared_dish') === itemTypeFilter;
+  });
+
   const handlePublishToggle = async (dish: Dish) => {
     const action = dish.status === 'published' ? 'unpublish' : 'publish';
     try {
@@ -176,13 +186,20 @@ const AdminDashboard: React.FC = () => {
   return (
     <DashboardLayout title={t('admin.dashboard')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourDishes')}</h2>
+        <h2 className="text-xl font-semibold text-text">Your Menu Items</h2>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>{t('menuList.allCategories')}</GlassPill>
         <GlassPill active={filter === 'active'} onClick={() => setFilter('active')}>{t('admin.active')}</GlassPill>
         <GlassPill active={filter === 'deleted'} onClick={() => setFilter('deleted')}>{t('adminDashboard.deleted')}</GlassPill>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <GlassPill active={itemTypeFilter === 'all'} onClick={() => setItemTypeFilter('all')}>All Types</GlassPill>
+        <GlassPill active={itemTypeFilter === 'prepared_dish'} onClick={() => setItemTypeFilter('prepared_dish')}>Prepared Dishes</GlassPill>
+        <GlassPill active={itemTypeFilter === 'packaged_drink'} onClick={() => setItemTypeFilter('packaged_drink')}>Drinks</GlassPill>
+        <GlassPill active={itemTypeFilter === 'other_product'} onClick={() => setItemTypeFilter('other_product')}>Other Products</GlassPill>
       </div>
 
       {loading ? (
@@ -216,18 +233,18 @@ const AdminDashboard: React.FC = () => {
         </div>
       ) : error ? (
         <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 py-12 text-center text-spicy">{error}</div>
-      ) : dishes.length === 0 ? (
+      ) : visibleDishes.length === 0 ? (
         <div className="py-12 text-center">
           <div className="mb-4 text-5xl">📭</div>
           <h3 className="mb-2 text-xl font-medium text-text">{t('adminDashboard.noDishesYet')}</h3>
           <p className="mb-4 text-muted">{t('adminDashboard.noDishesDescription')}</p>
           <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">{t('createDish.submit')}</LiquidButton>
+            <LiquidButton tone="primary">Create Menu Item</LiquidButton>
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {dishes.map((dish) => (
+          {visibleDishes.map((dish) => (
             <GlassCard
               key={dish.id}
               className={openMenuDishId === dish.id ? 'z-50 overflow-visible' : 'overflow-visible'}
@@ -240,6 +257,15 @@ const AdminDashboard: React.FC = () => {
                       <h3 className="text-lg font-semibold text-text">{dish.name}</h3>
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted">
                         <span>{translateCategoryLabel(dish.category, dish.category_ar)}</span>
+                        <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs font-medium text-muted2">
+                          {(dish.item_type || 'prepared_dish') === 'packaged_drink'
+                            ? 'Packaged Drink'
+                            : (dish.item_type || 'prepared_dish') === 'other_product'
+                              ? 'Other Product'
+                              : (dish.item_type || 'prepared_dish') === 'prepared_drink'
+                                ? 'Prepared Drink'
+                                : 'Prepared Dish'}
+                        </span>
                         <span
                           className={
                             dish.status === 'published'
@@ -262,6 +288,16 @@ const AdminDashboard: React.FC = () => {
                         {dish.deleted_at && (
                           <span className="inline-flex items-center rounded-full border border-gold/35 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
                             {t('adminDashboard.deleted')}
+                          </span>
+                        )}
+                        {(dish.item_type === 'packaged_drink' || dish.item_type === 'other_product') && (
+                          <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-200">
+                            Direct Stock: {dish.packaged_stock_quantity ?? '-'}
+                          </span>
+                        )}
+                        {((dish.item_type || 'prepared_dish') === 'prepared_dish' || (dish.item_type || 'prepared_dish') === 'prepared_drink') && (
+                          <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
+                            Recipe Inventory
                           </span>
                         )}
                       </div>

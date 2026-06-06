@@ -44,6 +44,7 @@ import {
   convertPriceToUsd,
   formatPriceWithCurrency,
   normalizeCurrency,
+  CURRENCY_OPTIONS,
   readGuestCurrencySettings,
 } from '../utils/currency';
 import { validateFinanceDateRange } from '../utils/financeReporting';
@@ -202,6 +203,26 @@ const metricLabels: Record<MetricKey, string> = {
   payroll: 'Payroll',
 };
 
+const formatFinanceCurrencyValue = (amount: number, currency: CurrencyCode): string => {
+  if (currency === 'AED') {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    const money = safeAmount.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `${money} AED`;
+  }
+  return formatPriceWithCurrency(amount, currency);
+};
+
+const financeCurrencyBadge = (code: CurrencyCode): string => {
+  if (code === 'AED') {
+    return 'AED';
+  }
+  const symbol = CURRENCY_OPTIONS.find((option) => option.value === code)?.symbol ?? code;
+  return `${symbol} ${code}`;
+};
+
 const isValidDateWithinRange = (date: string, dateFrom: string, dateTo: string): boolean => {
   if (!date) {
     return false;
@@ -287,7 +308,7 @@ const AnimatedCurrencyValue: React.FC<{
   const [progress, setProgress] = useState(0);
 
   const targetText = useMemo(
-    () => formatPriceWithCurrency(Number.isFinite(value) ? value : 0, currency),
+    () => formatFinanceCurrencyValue(Number.isFinite(value) ? value : 0, currency),
     [value, currency]
   );
 
@@ -400,9 +421,18 @@ const AnimatedIntegerValue: React.FC<{
 const AdminFinanceDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const storedGuestCurrency = readGuestCurrencySettings()?.currency;
-  const baseCurrency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
-  const [currency, setCurrency] = useState<CurrencyCode>(baseCurrency);
+  const storedCurrencySettings = readGuestCurrencySettings();
+  const initialBaseCurrency = normalizeCurrency(storedCurrencySettings?.currency || user?.restaurant?.currency || 'USD');
+  const initialOtherCurrency = normalizeCurrency(
+    storedCurrencySettings?.other_currency
+    || user?.restaurant?.other_currency
+    || (initialBaseCurrency === 'USD' ? 'EUR' : 'USD')
+  );
+  const [baseCurrency, setBaseCurrency] = useState<CurrencyCode>(initialBaseCurrency);
+  const [otherCurrency, setOtherCurrency] = useState<CurrencyCode>(
+    initialOtherCurrency === initialBaseCurrency ? (initialBaseCurrency === 'USD' ? 'EUR' : 'USD') : initialOtherCurrency
+  );
+  const [currency, setCurrency] = useState<CurrencyCode>(initialBaseCurrency);
   const [dollarRate, setDollarRate] = useState<number>(() => (
     parsePositiveRate(user?.restaurant?.dollar_rate) ?? 1
   ));
@@ -452,35 +482,59 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrency(baseCurrency);
-  }, [baseCurrency]);
-
-  useEffect(() => {
     const userRate = parsePositiveRate(user?.restaurant?.dollar_rate);
     if (userRate) {
       setDollarRate(userRate);
-      return;
     }
 
-    const loadRate = async () => {
+    const loadCurrencySettings = async () => {
       try {
         const response = await api.get<{
+          currency?: string | null;
+          other_currency?: string | null;
           dollar_rate?: number | string | null;
-          restaurant?: { dollar_rate?: number | string | null };
+          restaurant?: {
+            currency?: string | null;
+            other_currency?: string | null;
+            dollar_rate?: number | string | null;
+          };
         }>('/restaurant/currency-settings');
         const payload = response.data;
+        const resolvedBase = normalizeCurrency(payload?.currency || payload?.restaurant?.currency || initialBaseCurrency);
+        const resolvedOtherRaw = normalizeCurrency(
+          payload?.other_currency
+          || payload?.restaurant?.other_currency
+          || (resolvedBase === 'USD' ? 'EUR' : 'USD')
+        );
+        const resolvedOther = resolvedOtherRaw === resolvedBase
+          ? (resolvedBase === 'USD' ? 'EUR' : 'USD')
+          : resolvedOtherRaw;
         const resolved = parsePositiveRate(payload?.dollar_rate)
           ?? parsePositiveRate(payload?.restaurant?.dollar_rate);
+        setBaseCurrency(resolvedBase);
+        setOtherCurrency(resolvedOther);
+        setCurrency(resolvedBase);
         if (resolved) {
           setDollarRate(resolved);
         }
       } catch {
-        // keep fallback rate = 1 if unavailable
+        const fallbackBase = normalizeCurrency(storedCurrencySettings?.currency || user?.restaurant?.currency || 'USD');
+        const fallbackOtherRaw = normalizeCurrency(
+          storedCurrencySettings?.other_currency
+          || user?.restaurant?.other_currency
+          || (fallbackBase === 'USD' ? 'EUR' : 'USD')
+        );
+        const fallbackOther = fallbackOtherRaw === fallbackBase
+          ? (fallbackBase === 'USD' ? 'EUR' : 'USD')
+          : fallbackOtherRaw;
+        setBaseCurrency(fallbackBase);
+        setOtherCurrency(fallbackOther);
+        setCurrency(fallbackBase);
       }
     };
 
-    void loadRate();
-  }, [user?.restaurant?.dollar_rate]);
+    void loadCurrencySettings();
+  }, [initialBaseCurrency, storedCurrencySettings?.currency, storedCurrencySettings?.other_currency, user?.restaurant?.currency, user?.restaurant?.dollar_rate, user?.restaurant?.other_currency]);
 
   const convertFinanceAmount = useCallback((amount: number): number => {
     const safeAmount = Number.isFinite(amount) ? amount : 0;
@@ -492,7 +546,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
   }, [baseCurrency, currency, dollarRate]);
 
   const formatFinanceAmount = useCallback((amount: number): string => (
-    formatPriceWithCurrency(convertFinanceAmount(amount), currency)
+    formatFinanceCurrencyValue(convertFinanceAmount(amount), currency)
   ), [convertFinanceAmount, currency]);
 
   const latestDailyComplaintLoss = operationalLossReport.dailyLosses[operationalLossReport.dailyLosses.length - 1]?.amount ?? 0;
@@ -867,7 +921,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         cornerRadius: 2,
         padding: 10,
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${formatPriceWithCurrency(Number(context.parsed.y ?? 0), currency)}`,
+          label: (context) => `${context.dataset.label}: ${formatFinanceCurrencyValue(Number(context.parsed.y ?? 0), currency)}`,
         },
       },
     },
@@ -898,7 +952,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
             size: 12,
             weight: 500,
           },
-          callback: (value) => formatPriceWithCurrency(Number(value), currency),
+          callback: (value) => formatFinanceCurrencyValue(Number(value), currency),
         },
       },
     },
@@ -1084,11 +1138,13 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
                 <button
                   type="button"
-                  onClick={() => setCurrency((current) => (current === 'USD' ? 'LBP' : 'USD'))}
+                  onClick={() => setCurrency((current) => (current === baseCurrency ? otherCurrency : baseCurrency))}
                   className="mt-1 rounded-full border border-gold/70 bg-gold/20 px-3 py-1 text-xs font-semibold text-text transition hover:bg-gold/30"
-                  title="Toggle finance currency between USD and LBP"
+                  title={`Toggle finance currency between ${baseCurrency} and ${otherCurrency}`}
                 >
-                  {currency === 'USD' ? '$ USD -> LBP' : 'LBP -> $ USD'}
+                  {financeCurrencyBadge(currency)}
+                  <span aria-hidden="true" className="mx-1 inline-flex h-5 w-5 items-center justify-center text-lg leading-none">↔</span>
+                  {financeCurrencyBadge(currency === baseCurrency ? otherCurrency : baseCurrency)}
                 </button>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">

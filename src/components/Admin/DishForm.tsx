@@ -12,7 +12,7 @@ import {
 import { translateCategoryLabel, translateStatusLabel } from '../../i18n/dynamic';
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { dishDictionaryOptions, translateDishLabel } from '../../i18n/dishes';
-import type { CurrencyCode, InventoryIngredient } from '../../types';
+import type { CurrencyCode, InventoryIngredient, MenuItemType } from '../../types';
 import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
 import { CURRENCY_OPTIONS } from '../../utils/currency';
@@ -22,6 +22,7 @@ const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export interface DishFormData {
+  item_type: MenuItemType;
   name: string;
   description: string;
   description_ar: string;
@@ -38,6 +39,16 @@ export interface DishFormData {
   suggested_dish_ids: number[];
   related_dish_ids: number[];
   recipe_ingredients: DishRecipeIngredientInput[];
+  direct_stock_ingredient_id: number | null;
+  direct_stock_quantity_per_sale: string;
+  brand: string;
+  barcode: string;
+  size_label: string;
+  packaged_unit: string;
+  cost_price: string;
+  supplier: string;
+  packaged_stock_quantity: string;
+  serving_temperature: 'cold' | 'room' | '';
 }
 
 export interface DishRecipeIngredientInput {
@@ -72,6 +83,7 @@ const createRecipeIngredientRow = (
 interface DishFormProps {
   onSubmit: (data: DishFormData) => Promise<void> | void;
   initialValues?: Partial<DishFormData>;
+  itemType?: MenuItemType;
   requireModelUpload?: boolean;
   requirePreviewUpload?: boolean;
   submitLabel?: string;
@@ -102,6 +114,7 @@ interface DishFormProps {
 const DishForm: React.FC<DishFormProps> = ({
   onSubmit,
   initialValues,
+  itemType = 'prepared_dish',
   requireModelUpload = true,
   requirePreviewUpload = false,
   submitLabel = 'Save Dish',
@@ -113,7 +126,10 @@ const DishForm: React.FC<DishFormProps> = ({
   relatedDishOptions = [],
 }) => {
   const { t, i18n } = useTranslation();
+  const isPreparedDish = itemType === 'prepared_dish' || itemType === 'prepared_drink';
+  const isPackagedDrink = itemType === 'packaged_drink';
   const [formData, setFormData] = useState<DishFormState>(() => ({
+    item_type: initialValues?.item_type || itemType,
     name: initialValues?.name || '',
     description: initialValues?.description || '',
     description_ar: initialValues?.description_ar || '',
@@ -129,6 +145,16 @@ const DishForm: React.FC<DishFormProps> = ({
     usdz_file: null,
     suggested_dish_ids: initialValues?.suggested_dish_ids || [],
     related_dish_ids: initialValues?.related_dish_ids || [],
+    direct_stock_ingredient_id: initialValues?.direct_stock_ingredient_id ?? null,
+    direct_stock_quantity_per_sale: String(initialValues?.direct_stock_quantity_per_sale ?? '1'),
+    brand: initialValues?.brand || '',
+    barcode: initialValues?.barcode || '',
+    size_label: initialValues?.size_label || '',
+    packaged_unit: initialValues?.packaged_unit || '',
+    cost_price: String(initialValues?.cost_price ?? ''),
+    supplier: initialValues?.supplier || '',
+    packaged_stock_quantity: String(initialValues?.packaged_stock_quantity ?? ''),
+    serving_temperature: initialValues?.serving_temperature || '',
     recipe_ingredients: (initialValues?.recipe_ingredients ?? []).map((recipeItem) =>
       createRecipeIngredientRow({
         ingredient_id: recipeItem.ingredient_id,
@@ -363,6 +389,7 @@ const DishForm: React.FC<DishFormProps> = ({
   }));
   const hasDishName = formData.name.trim().length > 0 || selectedDishDictionaryName.trim().length > 0;
   const hasDescription = formData.description.trim().length > 0;
+  const hasDirectStockIngredient = formData.direct_stock_ingredient_id !== null;
   const validRecipeIngredientsForGeneration = formData.recipe_ingredients
     .map((recipeItem) => {
       if (recipeItem.ingredient_id === null) {
@@ -389,7 +416,10 @@ const DishForm: React.FC<DishFormProps> = ({
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  const canGenerateDescription = validRecipeIngredientsForGeneration.length > 0 && !isGeneratingDescription && !isSubmitting;
+  const canGenerateDescription = isPreparedDish
+    && validRecipeIngredientsForGeneration.length > 0
+    && !isGeneratingDescription
+    && !isSubmitting;
   const normalizedDishNameSearch = dishNameSearch.trim().toLowerCase();
   const filteredDishNameDictionaryOptions = dishDictionaryOptions.filter((dish) => {
     if (!normalizedDishNameSearch) {
@@ -449,7 +479,7 @@ const DishForm: React.FC<DishFormProps> = ({
       setFormError('Please enter a dish name or choose one from the dropdown.');
       return;
     }
-    if (!formData.description.trim()) {
+    if (isPreparedDish && !formData.description.trim()) {
       setFormError(t('dishForm.descriptionRequired'));
       return;
     }
@@ -501,32 +531,45 @@ const DishForm: React.FC<DishFormProps> = ({
       .filter((recipeItem) => recipeItem.ingredient_id !== null || recipeItem.quantity_required.length > 0);
     const selectedRecipeIngredientIds = new Set<number>();
 
-    for (const [index, recipeItem] of normalizedRecipeIngredients.entries()) {
-      const row = index + 1;
+    if (isPreparedDish) {
+      for (const [index, recipeItem] of normalizedRecipeIngredients.entries()) {
+        const row = index + 1;
 
-      if (recipeItem.ingredient_id === null) {
-        setFormError(t('dishForm.recipeMissingIngredient', { row }));
+        if (recipeItem.ingredient_id === null) {
+          setFormError(t('dishForm.recipeMissingIngredient', { row }));
+          return;
+        }
+
+        const quantityValue = Number(recipeItem.quantity_required);
+        if (!recipeItem.quantity_required || Number.isNaN(quantityValue) || quantityValue <= 0) {
+          setFormError(t('dishForm.recipeInvalidQuantity', { row }));
+          return;
+        }
+
+        if (selectedRecipeIngredientIds.has(recipeItem.ingredient_id)) {
+          setFormError(t('dishForm.recipeDuplicateIngredient'));
+          return;
+        }
+
+        selectedRecipeIngredientIds.add(recipeItem.ingredient_id);
+      }
+    } else {
+      const directQty = Number(formData.direct_stock_quantity_per_sale || '1');
+      if (formData.direct_stock_ingredient_id === null) {
+        setFormError('Please select a stock ingredient for direct inventory deduction.');
         return;
       }
-
-      const quantityValue = Number(recipeItem.quantity_required);
-      if (!recipeItem.quantity_required || Number.isNaN(quantityValue) || quantityValue <= 0) {
-        setFormError(t('dishForm.recipeInvalidQuantity', { row }));
+      if (!Number.isFinite(directQty) || directQty <= 0) {
+        setFormError('Direct stock quantity per sale must be greater than zero.');
         return;
       }
-
-      if (selectedRecipeIngredientIds.has(recipeItem.ingredient_id)) {
-        setFormError(t('dishForm.recipeDuplicateIngredient'));
-        return;
-      }
-
-      selectedRecipeIngredientIds.add(recipeItem.ingredient_id);
     }
 
     setIsSubmitting(true);
 
     try {
       const submitPayload: DishFormData = {
+        item_type: itemType,
         name: dishName,
         description: formData.description.trim(),
         description_ar: formData.description_ar.trim(),
@@ -542,12 +585,22 @@ const DishForm: React.FC<DishFormProps> = ({
         usdz_file: formData.usdz_file,
         suggested_dish_ids: formData.suggested_dish_ids,
         related_dish_ids: formData.related_dish_ids,
-        recipe_ingredients: normalizedRecipeIngredients.map((recipeItem) => ({
+        recipe_ingredients: isPreparedDish ? normalizedRecipeIngredients.map((recipeItem) => ({
           ingredient_id: recipeItem.ingredient_id as number,
           quantity_required: recipeItem.quantity_required,
           order_index: recipeItem.order_index,
           show_in_animation: recipeItem.show_in_animation,
-        })),
+        })) : [],
+        direct_stock_ingredient_id: formData.direct_stock_ingredient_id,
+        direct_stock_quantity_per_sale: formData.direct_stock_quantity_per_sale,
+        brand: formData.brand,
+        barcode: formData.barcode,
+        size_label: formData.size_label,
+        packaged_unit: formData.packaged_unit,
+        cost_price: formData.cost_price,
+        supplier: formData.supplier,
+        packaged_stock_quantity: formData.packaged_stock_quantity,
+        serving_temperature: formData.serving_temperature,
       };
 
       await onSubmit(submitPayload);
@@ -558,7 +611,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className={allowDishNameSelection ? 'relative' : undefined} data-admin-overlay-root={allowDishNameSelection ? 'true' : undefined}>
+      <div className={allowDishNameSelection && isPreparedDish ? 'relative' : undefined} data-admin-overlay-root={allowDishNameSelection && isPreparedDish ? 'true' : undefined}>
         <label htmlFor="name" className="mb-1 block text-sm font-medium text-text">
           {t('dishForm.nameEn')}
         </label>
@@ -571,7 +624,7 @@ const DishForm: React.FC<DishFormProps> = ({
           required={!allowDishNameSelection || !selectedDishDictionaryName}
           placeholder={t('dishForm.nameEnPlaceholder')}
         />
-        {allowDishNameSelection ? (
+        {allowDishNameSelection && isPreparedDish ? (
           <>
             <label htmlFor="dish-name-dictionary" className="mb-1 mt-3 block text-sm font-medium text-text">
               {t('dishForm.chooseFromDishDictionary')}
@@ -656,14 +709,14 @@ const DishForm: React.FC<DishFormProps> = ({
       <div className="space-y-4">
         <div>
           <label htmlFor="description" className="mb-1 block text-sm font-medium text-text">
-            {t('dishForm.descriptionEn')} *
+            {t('dishForm.descriptionEn')} {isPreparedDish ? '*' : '(Optional)'}
           </label>
           <textarea
             id="description"
             name="description"
             value={formData.description}
             onChange={handleChange}
-            required
+            required={isPreparedDish}
             rows={4}
             placeholder={t('dishForm.descriptionEnPlaceholder')}
             className={cx(
@@ -693,6 +746,7 @@ const DishForm: React.FC<DishFormProps> = ({
           />
         </div>
 
+        {isPreparedDish ? (
         <div className="flex flex-wrap items-center gap-3">
           <LiquidButton
             type="button"
@@ -706,6 +760,7 @@ const DishForm: React.FC<DishFormProps> = ({
           </LiquidButton>
           <p className="text-xs text-muted">{t('dishForm.generateDescriptionHint')}</p>
         </div>
+        ) : null}
         {descriptionGenerationError ? (
           <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
             {descriptionGenerationError}
@@ -719,6 +774,7 @@ const DishForm: React.FC<DishFormProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+        {isPreparedDish ? (
         <div>
           <label htmlFor="price" className="mb-1 block text-sm font-medium text-text">
             {t('dishForm.priceLabel')}
@@ -735,6 +791,7 @@ const DishForm: React.FC<DishFormProps> = ({
             placeholder={t('dishForm.pricePlaceholder')}
           />
         </div>
+        ) : null}
 
         <div>
           <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
@@ -788,7 +845,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </div>
       </div>
 
-      {suggestedDishOptions.length > 0 ? (
+      {isPreparedDish && suggestedDishOptions.length > 0 ? (
         <div className="relative" data-admin-overlay-root="true">
           <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.restaurantSuggests')}</label>
           <button
@@ -897,7 +954,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </div>
       ) : null}
 
-      {relatedDishOptions.length > 0 ? (
+      {isPreparedDish && relatedDishOptions.length > 0 ? (
         <div className="relative" data-admin-overlay-root="true">
           <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.relatedDishes')}</label>
           <button
@@ -1041,6 +1098,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </div>
       </GlassSurface>
 
+      {isPreparedDish ? (
       <GlassSurface className="p-4" sheen={false}>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -1071,7 +1129,9 @@ const DishForm: React.FC<DishFormProps> = ({
           />
         </div>
       </GlassSurface>
+      ) : null}
 
+      {isPreparedDish ? (
       <GlassSurface className="p-4" sheen={false}>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -1102,6 +1162,7 @@ const DishForm: React.FC<DishFormProps> = ({
           />
         </div>
       </GlassSurface>
+      ) : null}
 
       <div>
         <label htmlFor="preview_file" className="mb-1 block text-sm font-medium text-text">
@@ -1127,6 +1188,7 @@ const DishForm: React.FC<DishFormProps> = ({
         </p>
       </div>
 
+      {isPreparedDish ? (
       <GlassSurface className="relative overflow-visible space-y-5 p-5" sheen={false}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1288,6 +1350,83 @@ const DishForm: React.FC<DishFormProps> = ({
           )
         ) : null}
       </GlassSurface>
+      ) : null}
+
+      {!isPreparedDish ? (
+        <GlassSurface className="space-y-4 p-5" sheen={false}>
+          <h3 className="text-lg font-semibold text-text">
+            {isPackagedDrink ? 'Packaged Drink Details' : 'Product Details'}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {isPackagedDrink ? (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-text">Brand</label>
+                <GlassInput name="brand" value={formData.brand} onChange={handleChange} placeholder="Pepsi / Coca-Cola" />
+              </div>
+            ) : null}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Size</label>
+              <GlassInput name="size_label" value={formData.size_label} onChange={handleChange} placeholder="330ml / 500ml / 1.25L" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Unit Type</label>
+              <GlassInput name="packaged_unit" value={formData.packaged_unit} onChange={handleChange} placeholder="can / bottle / pack / piece" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Barcode (Optional)</label>
+              <GlassInput name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Barcode" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Cost Price</label>
+              <GlassInput type="number" min="0" step="0.01" name="cost_price" value={formData.cost_price} onChange={handleChange} placeholder="0.00" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Stock Quantity</label>
+              <GlassInput type="number" min="0" step="0.001" name="packaged_stock_quantity" value={formData.packaged_stock_quantity} onChange={handleChange} placeholder="0" />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Supplier (Optional)</label>
+              <GlassInput name="supplier" value={formData.supplier} onChange={handleChange} placeholder="Supplier name" />
+            </div>
+            {isPackagedDrink ? (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-text">Serving Temperature</label>
+                <GlassSelect
+                  name="serving_temperature"
+                  value={formData.serving_temperature}
+                  onChange={handleChange}
+                  options={[
+                    { value: '', label: 'Not set' },
+                    { value: 'cold', label: 'Cold' },
+                    { value: 'room', label: 'Room Temperature' },
+                  ]}
+                />
+              </div>
+            ) : null}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Direct Stock Ingredient</label>
+              <GlassSearchSelect
+                value={formData.direct_stock_ingredient_id !== null ? String(formData.direct_stock_ingredient_id) : ''}
+                onChange={(value) => setFormData((prev) => ({ ...prev, direct_stock_ingredient_id: value ? Number(value) : null }))}
+                options={recipeIngredientSelectOptions}
+                placeholder="Select inventory ingredient"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-text">Stock Deduction Per Sale</label>
+              <GlassInput
+                type="number"
+                min="0.001"
+                step="0.001"
+                name="direct_stock_quantity_per_sale"
+                value={formData.direct_stock_quantity_per_sale}
+                onChange={handleChange}
+                placeholder="1"
+              />
+            </div>
+          </div>
+        </GlassSurface>
+      ) : null}
 
       <div className="border-t border-stroke pt-6">
         <h3 className="mb-2 text-lg font-medium text-text">{t('dishForm.assets3dTitle')}</h3>
@@ -1338,7 +1477,14 @@ const DishForm: React.FC<DishFormProps> = ({
         <LiquidButton
           type="submit"
           className="flex-1"
-          disabled={isSubmitting || !hasDishName || !hasDescription || !formData.price || !formData.category}
+          disabled={
+            isSubmitting
+            || !hasDishName
+            || (isPreparedDish && !hasDescription)
+            || !formData.price
+            || !formData.category
+            || (!isPreparedDish && !hasDirectStockIngredient)
+          }
         >
           {isSubmitting ? submittingLabel : submitLabel}
         </LiquidButton>

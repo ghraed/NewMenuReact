@@ -86,6 +86,7 @@ const DishCard: React.FC<DishCardProps> = ({
   }, [dish.price, dish.price_is_usd_base, dish.dollar_rate, currency, originalCurrency]);
   const caloriesText = typeof dish.calories === 'number' ? t('dishCard.calories', { count: dish.calories }) : null;
   const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
+  const isPackagedItem = dish.item_type === 'packaged_drink' || dish.item_type === 'other_product';
   const publicBadge = useMemo(() => getPublicDishBadge(dish, t), [dish, t]);
 
   useEffect(() => {
@@ -230,6 +231,11 @@ const DishCard: React.FC<DishCardProps> = ({
             <p className="mt-3 pr-1 text-sm leading-7 text-[var(--guest-muted)] line-clamp-3 sm:mt-0 sm:line-clamp-3">
               {dish.description}
             </p>
+            {isPackagedItem && (dish.size_label || dish.packaged_unit) ? (
+              <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[var(--guest-muted)]">
+                {[dish.size_label, dish.packaged_unit].filter(Boolean).join(' · ')}
+              </p>
+            ) : null}
 
             <DishTags tags={tags} scrollable={false} className="mt-4 sm:mt-0 sm:w-full" />
           </div>

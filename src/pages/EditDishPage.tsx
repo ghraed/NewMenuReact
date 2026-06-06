@@ -140,7 +140,10 @@ const EditDishPage: React.FC = () => {
     setError(null);
 
     try {
-        await api.patch(`/dishes/${dish_id}`, {
+      const isPreparedLike = data.item_type === 'prepared_dish' || data.item_type === 'prepared_drink';
+
+      await api.patch(`/dishes/${dish_id}`, {
+        item_type: data.item_type,
         name: data.name,
         description: data.description.trim(),
         description_ar: data.description_ar.trim() || null,
@@ -151,14 +154,26 @@ const EditDishPage: React.FC = () => {
         status: data.status,
         is_anchor: data.is_anchor,
         is_profitable: data.is_profitable,
-        suggested_dish_ids: data.suggested_dish_ids,
-        related_dish_ids: data.related_dish_ids,
-        recipe_ingredients: data.recipe_ingredients.map((recipeItem) => ({
-          ingredient_id: recipeItem.ingredient_id,
-          quantity_required: Number(recipeItem.quantity_required),
-          order_index: recipeItem.order_index,
-          show_in_animation: recipeItem.show_in_animation,
-        })),
+        suggested_dish_ids: isPreparedLike ? data.suggested_dish_ids : [],
+        related_dish_ids: isPreparedLike ? data.related_dish_ids : [],
+        recipe_ingredients: isPreparedLike
+          ? data.recipe_ingredients.map((recipeItem) => ({
+            ingredient_id: recipeItem.ingredient_id,
+            quantity_required: Number(recipeItem.quantity_required),
+            order_index: recipeItem.order_index,
+            show_in_animation: recipeItem.show_in_animation,
+          }))
+          : [],
+        direct_stock_ingredient_id: isPreparedLike ? null : data.direct_stock_ingredient_id,
+        direct_stock_quantity_per_sale: isPreparedLike ? null : Number(data.direct_stock_quantity_per_sale || 1),
+        brand: data.brand || null,
+        barcode: data.barcode || null,
+        size_label: data.size_label || null,
+        packaged_unit: data.packaged_unit || null,
+        cost_price: data.cost_price ? Number(data.cost_price) : null,
+        supplier: data.supplier || null,
+        packaged_stock_quantity: data.packaged_stock_quantity ? Number(data.packaged_stock_quantity) : null,
+        serving_temperature: data.serving_temperature || null,
       });
 
       if (data.glb_file) {
@@ -251,7 +266,7 @@ const EditDishPage: React.FC = () => {
 
   if (loading) {
     return (
-      <DashboardLayout title={t('adminDish.editDish')}>
+      <DashboardLayout title="Edit Menu Item">
         <LoadingSpinner text="Loading dish..." />
       </DashboardLayout>
     );
@@ -259,7 +274,7 @@ const EditDishPage: React.FC = () => {
 
   if (!dish) {
     return (
-      <DashboardLayout title={t('adminDish.editDish')}>
+      <DashboardLayout title="Edit Menu Item">
         <div className="py-10 text-center text-spicy">Dish not found</div>
       </DashboardLayout>
     );
@@ -277,7 +292,7 @@ const EditDishPage: React.FC = () => {
   const ModelViewer = 'model-viewer' as React.ElementType;
 
   return (
-    <DashboardLayout title={t('adminDish.editDish')}>
+    <DashboardLayout title="Edit Menu Item">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-text">{dish.name}</h2>
@@ -376,7 +391,9 @@ const EditDishPage: React.FC = () => {
         <DishForm
           key={dish.id}
           onSubmit={handleUpdate}
+          itemType={dish.item_type || 'prepared_dish'}
           initialValues={{
+            item_type: dish.item_type || 'prepared_dish',
             name: dish.name,
             description: dish.description || '',
             description_ar: dish.description_ar || '',
@@ -389,6 +406,16 @@ const EditDishPage: React.FC = () => {
             calories: dish.calories !== null && dish.calories !== undefined ? String(dish.calories) : '',
             suggested_dish_ids: (dish.suggested_dishes || []).map((suggestedDish) => suggestedDish.id),
             related_dish_ids: (dish.related_dishes || []).map((relatedDish) => relatedDish.id),
+            direct_stock_ingredient_id: dish.direct_stock_ingredient_id ?? null,
+            direct_stock_quantity_per_sale: String(dish.direct_stock_quantity_per_sale ?? '1'),
+            brand: dish.brand || '',
+            barcode: dish.barcode || '',
+            size_label: dish.size_label || '',
+            packaged_unit: dish.packaged_unit || '',
+            cost_price: String(dish.cost_price ?? ''),
+            supplier: dish.supplier || '',
+            packaged_stock_quantity: String(dish.packaged_stock_quantity ?? ''),
+            serving_temperature: dish.serving_temperature || '',
             recipe_ingredients: (dish.dish_ingredients || []).map((dishIngredient) => ({
               ingredient_id: dishIngredient.ingredient_id,
               quantity_required: String(dishIngredient.quantity),
