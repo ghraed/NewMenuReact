@@ -62,6 +62,8 @@ const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
 const RozerContactAiPage = React.lazy(() => import('./pages/RozerContactAiPage'));
+const SuperAdminContactRequestsPage = React.lazy(() => import('./pages/SuperAdminContactRequestsPage'));
+const SuperAdminContactRequestDetailsPage = React.lazy(() => import('./pages/SuperAdminContactRequestDetailsPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
 
 const ROUTE_DEBUG_PATTERNS = [
@@ -114,6 +116,8 @@ const ROUTE_DEBUG_PATTERNS = [
   '/chef/dashboard',
   '/super-admin/login',
   '/super-admin/dashboard',
+  '/super-admin/contact-requests',
+  '/super-admin/contact-requests/:requestId',
   '/owner/login',
   '/owner/dashboard',
 ];
@@ -317,6 +321,22 @@ const AppRoutes: React.FC = () => {
             element={(
               <SuperAdminProtectedRoute>
                 {lazyRoute(<SuperAdminDashboardPage />)}
+              </SuperAdminProtectedRoute>
+            )}
+          />
+          <Route
+            path="/super-admin/contact-requests"
+            element={(
+              <SuperAdminProtectedRoute>
+                {lazyRoute(<SuperAdminContactRequestsPage />)}
+              </SuperAdminProtectedRoute>
+            )}
+          />
+          <Route
+            path="/super-admin/contact-requests/:requestId"
+            element={(
+              <SuperAdminProtectedRoute>
+                {lazyRoute(<SuperAdminContactRequestDetailsPage />)}
               </SuperAdminProtectedRoute>
             )}
           />

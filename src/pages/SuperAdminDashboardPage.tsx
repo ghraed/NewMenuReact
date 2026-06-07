@@ -254,6 +254,9 @@ const SuperAdminDashboardPage: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <LiquidButton tone="primary" onClick={() => navigate('/super-admin/contact-requests')}>
+                Visitor requests
+              </LiquidButton>
               <LiquidButton tone="tertiary" onClick={() => loadSuperAdminDashboard()}>
                 Refresh
               </LiquidButton>
