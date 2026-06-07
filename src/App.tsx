@@ -61,6 +61,7 @@ const GuestInvoicePage = React.lazy(() => import('./pages/GuestInvoicePage'));
 const InvoicePrintPage = React.lazy(() => import('./pages/InvoicePrintPage'));
 const ReservationsPage = React.lazy(() => import('./pages/ReservationsPage'));
 const LiquidGlassDemoPage = React.lazy(() => import('./pages/LiquidGlassDemoPage'));
+const RozerContactAiPage = React.lazy(() => import('./pages/RozerContactAiPage'));
 const ChatBot = React.lazy(() => import('./components/ChatBot'));
 
 const ROUTE_DEBUG_PATTERNS = [
@@ -81,6 +82,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/reservations',
   '/order/review',
   '/invoice/print',
+  '/rozer-ai',
   '/admin/login',
   '/admin/dashboard',
   '/admin/profile',
@@ -240,6 +242,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
           <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
           <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
+          <Route path="/rozer-ai" element={lazyRoute(<RozerContactAiPage />)} />
           <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
           <Route path="/admin/login" element={<LoginPage />} />

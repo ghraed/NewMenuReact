@@ -21,6 +21,7 @@
     "framer-motion": "^12.38.0",
     "i18next": "^26.0.4",
     "laravel-echo": "^2.3.4",
+    "lucide-react": "^1.17.0",
     "pusher-js": "^8.5.0",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",

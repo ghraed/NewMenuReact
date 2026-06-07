@@ -504,12 +504,14 @@ const ChatBot: React.FC = () => {
   const { i18n } = useTranslation();
   const { restaurant, draft } = useOrderCart();
   const isGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
+  const isRozerAiRoute = /^\/rozer-ai(?:\/|$)/i.test(location.pathname);
   const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
   const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
   const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState<boolean | null>(null);
-  const shouldRenderChat = (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
+  const shouldRenderChat = !isRozerAiRoute
+    && (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
     && (!isGuestMenuRoute || isAiChatbotEnabled === true);
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
