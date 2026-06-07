@@ -302,8 +302,8 @@ const Badge: React.FC<BadgeProps> = ({ children, tone = 'default' }) => (
     className={[
       'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.16em] uppercase',
       tone === 'accent'
-        ? 'border-[rgb(var(--color-gold)/0.38)] bg-[rgb(var(--color-gold)/0.16)] text-[rgb(var(--color-bg0))]'
-        : 'border-[rgb(var(--color-bg0)/0.08)] bg-white/80 text-[rgb(var(--color-bg0)/0.72)]',
+        ? 'border-[color:var(--guest-accent)] bg-[var(--guest-accent-soft)] text-[var(--guest-text)]'
+        : 'border-[color:var(--guest-border)] bg-[color:color-mix(in_srgb,var(--guest-panel)_84%,transparent)] text-[var(--guest-muted)]',
     ].join(' ')}
   >
     {children}
@@ -316,19 +316,19 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) =
     whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
     viewport={{ once: true, margin: '-40px' }}
     transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-    className="rounded-[28px] border border-[rgb(var(--color-bg0)/0.08)] bg-white px-5 py-5 shadow-[0_18px_48px_rgba(5,8,19,0.08)]"
+    className="rounded-[28px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-5 shadow-[var(--guest-shadow-soft)]"
   >
-    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgb(var(--color-gold)/0.14)] text-[rgb(var(--color-bg0))]">
+    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
       {icon}
     </div>
-    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[rgb(var(--color-bg0))]">{title}</h3>
-    <p className="mt-2 text-sm leading-6 text-[rgb(var(--color-bg0)/0.66)]">{description}</p>
+    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[var(--guest-text)]">{title}</h3>
+    <p className="mt-2 text-sm leading-6 text-[var(--guest-muted)]">{description}</p>
   </motion.article>
 );
 
 const BehaviorItem: React.FC<BehaviorItemProps> = ({ children }) => (
-  <li className="flex items-start gap-3 text-sm leading-6 text-[rgb(var(--color-bg0)/0.7)]">
-    <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-gold)/0.14)] text-[rgb(var(--color-bg0))]">
+  <li className="flex items-start gap-3 text-sm leading-6 text-[var(--guest-muted)]">
+    <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
       <CircleDot className="h-3.5 w-3.5" />
     </span>
     <span>{children}</span>
@@ -336,11 +336,11 @@ const BehaviorItem: React.FC<BehaviorItemProps> = ({ children }) => (
 );
 
 const MiniInfo: React.FC<MiniInfoProps> = ({ icon, label }) => (
-  <div className="rounded-2xl border border-[rgb(var(--color-bg0)/0.08)] bg-[rgb(251,249,244)] px-4 py-4 shadow-[0_8px_24px_rgba(5,8,19,0.04)]">
-    <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[rgb(var(--color-bg0))] shadow-[0_8px_18px_rgba(5,8,19,0.08)]">
+  <div className="rounded-2xl border border-[color:var(--guest-border)] bg-[var(--guest-panel-strong)] px-4 py-4 shadow-[var(--guest-shadow-soft)]">
+    <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--guest-panel)] text-[var(--guest-text)] shadow-[var(--guest-shadow-soft)]">
       {icon}
     </div>
-    <p className="text-sm font-medium text-[rgb(var(--color-bg0)/0.8)]">{label}</p>
+    <p className="text-sm font-medium text-[var(--guest-text)]">{label}</p>
   </div>
 );
 
@@ -369,21 +369,21 @@ const ChatPanel: React.FC<{
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-center justify-between border-b border-[#e9e1d5] bg-white px-4 py-4 sm:px-5">
+      <div className="flex items-center justify-between border-b border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-4 py-4 sm:px-5">
         <div className="flex items-center gap-3">
-          <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#10151c] text-[rgb(var(--color-gold2))] shadow-[0_18px_38px_rgba(16,21,28,0.18)]">
+          <div className="relative inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgb(var(--color-bg1))] text-[rgb(var(--color-gold2))] shadow-[var(--guest-shadow-soft)]">
             <Bot className="h-5 w-5" />
-            <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#b89560]" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--guest-panel)] bg-[rgb(var(--color-gold))]" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[rgb(var(--color-bg0))]">Rozer Bot</p>
-            <p className="text-xs text-[rgb(var(--color-bg0)/0.56)]">Online · Contact assistant</p>
+            <p className="text-sm font-semibold text-[var(--guest-text)]">Rozer Bot</p>
+            <p className="text-xs text-[var(--guest-muted)]">Online · Contact assistant</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#10151c] text-[rgb(251,249,244)] transition-transform duration-200 hover:scale-[1.03]"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--color-bg1))] text-[var(--guest-text)] transition-transform duration-200 hover:scale-[1.03]"
           aria-label="Close Rozer chat"
         >
           <X className="h-[18px] w-[18px]" />
@@ -392,7 +392,7 @@ const ChatPanel: React.FC<{
 
       <div
         ref={messagesRef}
-        className="min-h-0 flex-1 overflow-y-auto bg-[#fbf9f4] px-4 py-4 sm:px-5"
+        className="min-h-0 flex-1 overflow-y-auto bg-[var(--guest-bg)] px-4 py-4 sm:px-5"
       >
         <div className="flex min-h-full flex-col justify-end gap-3">
           <AnimatePresence initial={false}>
@@ -409,8 +409,8 @@ const ChatPanel: React.FC<{
                   className={[
                     'max-w-[88%] rounded-[24px] px-4 py-3 text-sm leading-6 shadow-[0_10px_30px_rgba(16,21,28,0.06)]',
                     message.role === 'assistant'
-                      ? 'rounded-bl-[8px] border border-[#e9e1d5] bg-white text-[rgb(var(--color-bg0)/0.88)]'
-                      : 'rounded-br-[8px] bg-[#10151c] text-[#f5eee3]',
+                      ? 'rounded-bl-[8px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] text-[var(--guest-text)]'
+                      : 'rounded-br-[8px] bg-[rgb(var(--color-bg1))] text-[rgb(var(--color-text))]',
                   ].join(' ')}
                 >
                   {message.content}
@@ -429,11 +429,11 @@ const ChatPanel: React.FC<{
                 transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                 className="flex justify-start"
               >
-                <div className="flex items-center gap-1 rounded-[22px] rounded-bl-[8px] border border-[#e9e1d5] bg-white px-4 py-3 shadow-[0_10px_30px_rgba(16,21,28,0.06)]">
+                <div className="flex items-center gap-1 rounded-[22px] rounded-bl-[8px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-4 py-3 shadow-[var(--guest-shadow-soft)]">
                   {[0, 1, 2].map((index) => (
                     <motion.span
                       key={index}
-                      className="h-2 w-2 rounded-full bg-[rgb(var(--color-bg0)/0.44)]"
+                      className="h-2 w-2 rounded-full bg-[color:color-mix(in_srgb,var(--guest-text)_42%,transparent)]"
                       animate={{ opacity: [0.28, 1, 0.28], y: [0, -2, 0] }}
                       transition={{ duration: 0.8, repeat: Infinity, delay: index * 0.12 }}
                     />
@@ -445,7 +445,7 @@ const ChatPanel: React.FC<{
         </div>
       </div>
 
-      <div className="border-t border-[#e9e1d5] bg-white px-4 py-4 sm:px-5">
+      <div className="border-t border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-4 py-4 sm:px-5">
         <div className="flex items-end gap-3">
           <textarea
             ref={textareaRef}
@@ -459,14 +459,14 @@ const ChatPanel: React.FC<{
             }}
             rows={1}
             placeholder="Write your message..."
-            className="unstyled-control max-h-32 min-h-[52px] flex-1 resize-none rounded-[22px] border border-[#efe4d4] bg-[#fbf8f1] px-4 py-3 text-sm text-[rgb(var(--color-bg0)/0.86)] shadow-none outline-none placeholder:text-[rgb(var(--color-bg0)/0.4)]"
+            className="unstyled-control max-h-32 min-h-[52px] flex-1 resize-none rounded-[22px] border border-[color:var(--guest-border)] bg-[var(--guest-panel-strong)] px-4 py-3 text-sm text-[var(--guest-text)] shadow-none outline-none placeholder:text-[color:color-mix(in_srgb,var(--guest-muted)_78%,transparent)]"
           />
           <motion.button
             type="button"
             whileTap={{ scale: 0.94 }}
             onClick={onSubmit}
             disabled={input.trim() === '' || isLoading}
-            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#d9c3a3] text-[#10151c] shadow-[0_16px_28px_rgba(217,195,163,0.35)] transition duration-200 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--guest-accent)] text-[var(--guest-accent-button-text)] shadow-[var(--guest-shadow-soft)] transition duration-200 disabled:cursor-not-allowed disabled:opacity-45"
             aria-label="Send message"
           >
             <Send className="h-[18px] w-[18px]" />
@@ -643,7 +643,7 @@ const RozerFloatingChat: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: 20, scale: 0.96, filter: 'blur(8px)' }}
             transition={{ type: 'spring', stiffness: 280, damping: 24, mass: 0.88 }}
-            className="fixed left-3 right-3 top-[max(12px,env(safe-area-inset-top))] bottom-[max(12px,env(safe-area-inset-bottom))] z-[999999] flex flex-col overflow-hidden rounded-[28px] border border-[#e4ddd0] bg-white shadow-[0_32px_80px_rgba(5,8,19,0.28)] sm:left-5 sm:right-5 sm:top-5 sm:bottom-5 sm:h-auto sm:max-h-none sm:w-auto"
+            className="fixed left-3 right-3 top-[max(12px,env(safe-area-inset-top))] bottom-[max(12px,env(safe-area-inset-bottom))] z-[2147483647] flex flex-col overflow-hidden rounded-[28px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] shadow-[var(--guest-shadow)] sm:left-5 sm:right-5 sm:top-5 sm:bottom-5 sm:h-auto sm:max-h-none sm:w-auto"
           >
             <ChatPanel
               input={input}
@@ -665,11 +665,11 @@ const RozerFloatingChat: React.FC = () => {
           type="button"
           whileTap={{ scale: 0.92 }}
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[999999] inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#10151c] text-[#f5eee3] shadow-[0_26px_58px_rgba(16,21,28,0.34)] sm:right-5 sm:bottom-5"
+          className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[2147483647] inline-flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-bg1))] text-[rgb(var(--color-text))] shadow-[var(--guest-shadow)] sm:right-5 sm:bottom-5"
           aria-label="Open Rozer chat"
         >
           <MessageSquareMore className="h-6 w-6" />
-          <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#10151c] bg-[#b89560]" />
+          <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[rgb(var(--color-bg1))] bg-[rgb(var(--color-gold))]" />
         </motion.button>
       ) : null}
     </>
@@ -678,22 +678,31 @@ const RozerFloatingChat: React.FC = () => {
 
 const RozerContactAiPage: React.FC = () => {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[rgb(var(--color-bg0))] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(243,215,154,0.16),_transparent_34%),radial-gradient(circle_at_80%_20%,_rgba(255,255,255,0.08),_transparent_24%),linear-gradient(180deg,_rgba(8,12,24,0.88),_rgba(5,8,19,1))]" />
+    <div className="relative min-h-screen overflow-x-hidden bg-bg0 text-text">
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: [
+            'radial-gradient(circle at top left, color-mix(in srgb, var(--guest-accent) 18%, transparent), transparent 34%)',
+            'radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--guest-panel) 18%, transparent), transparent 24%)',
+            'linear-gradient(180deg, color-mix(in srgb, rgb(var(--color-bg0)) 92%, transparent), rgb(var(--color-bg0)))',
+          ].join(','),
+        }}
+      />
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-14">
         <motion.section
           initial={{ opacity: 0, y: 24, filter: 'blur(10px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="overflow-hidden rounded-[36px] border border-white/12 bg-white px-5 py-6 text-[rgb(var(--color-bg0))] shadow-[0_28px_90px_rgba(0,0,0,0.2)] sm:px-7 sm:py-8 lg:px-10 lg:py-10"
+          className="overflow-hidden rounded-[36px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-6 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-7 sm:py-8 lg:px-10 lg:py-10"
         >
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_360px] lg:items-center">
             <div>
               <Badge tone="accent">Rozer AI Contact Assistant</Badge>
-              <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-[rgb(var(--color-bg0))] sm:text-5xl lg:text-[3.6rem]">
+              <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-[var(--guest-text)] sm:text-5xl lg:text-[3.6rem]">
                 Friendly AI support that turns visitors into real leads.
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-[rgb(var(--color-bg0)/0.7)] sm:text-lg">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--guest-muted)] sm:text-lg">
                 Rozer Bot helps visitors ask about support, pricing, demos, and general contact information,
                 then safely moves interested guests toward a real human follow-up through phone or email collection.
               </p>
@@ -704,11 +713,11 @@ const RozerContactAiPage: React.FC = () => {
                 <Badge>Professional contact flow</Badge>
               </div>
 
-              <div className="mt-6 rounded-[24px] border border-[rgb(var(--color-bg0)/0.08)] bg-[rgb(251,249,244)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[rgb(var(--color-bg0)/0.48)]">
+              <div className="mt-6 rounded-[24px] border border-[color:var(--guest-border)] bg-[var(--guest-panel-strong)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--guest-muted)]">
                   Rozer platform coverage
                 </p>
-                <p className="mt-3 text-sm leading-6 text-[rgb(var(--color-bg0)/0.72)]">
+                <p className="mt-3 text-sm leading-6 text-[var(--guest-muted)]">
                   Rozer can help visitors discover the platform across QR menu experiences, guest ordering,
                   staff order management, chef kitchen workflows, accounting, invoices, inventory ingredients,
                   stock history, reservations, room planning, event flows, analytics, and modern customer-facing service tools.
@@ -720,28 +729,28 @@ const RozerContactAiPage: React.FC = () => {
               initial={{ opacity: 0, x: 18, filter: 'blur(12px)' }}
               animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
               transition={{ delay: 0.08, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-[32px] bg-[#10151c] p-5 text-[#f5eee3] shadow-[0_28px_60px_rgba(16,21,28,0.26)]"
+              className="rounded-[32px] bg-[rgb(var(--color-bg1))] p-5 text-[rgb(var(--color-text))] shadow-[var(--guest-shadow)]"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-[rgb(var(--color-gold2))]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--guest-panel)_84%,transparent)] text-[rgb(var(--color-gold2))]">
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-base font-semibold">Rozer Bot</p>
-                  <p className="text-xs text-[#f5eee3]/64">AI contact assistant</p>
+                  <p className="text-xs text-[var(--guest-muted)]">AI contact assistant</p>
                 </div>
               </div>
 
               <div className="mt-5 space-y-3">
-                <div className="max-w-[92%] rounded-[24px] rounded-bl-[8px] bg-white px-4 py-3 text-sm leading-6 text-[#10151c]">
+                <div className="max-w-[92%] rounded-[24px] rounded-bl-[8px] bg-[var(--guest-panel)] px-4 py-3 text-sm leading-6 text-[var(--guest-text)]">
                   Hi, I&apos;m Rozer, your AI contact assistant. I&apos;m a bot, but I&apos;m here to help you quickly.
                 </div>
-                <div className="ml-auto max-w-[86%] rounded-[24px] rounded-br-[8px] bg-white/8 px-4 py-3 text-sm leading-6 text-[#f5eee3]">
+                <div className="ml-auto max-w-[86%] rounded-[24px] rounded-br-[8px] bg-[color:color-mix(in_srgb,var(--guest-panel)_18%,transparent)] px-4 py-3 text-sm leading-6 text-[rgb(var(--color-text))]">
                   Would you like to leave your phone number or email so the Rozer team can contact you?
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3 rounded-[24px] border border-white/10 bg-white/6 p-4 text-sm">
+              <div className="mt-5 grid gap-3 rounded-[24px] border border-[color:var(--guest-border)] bg-[color:color-mix(in_srgb,var(--guest-panel)_12%,transparent)] p-4 text-sm">
                 <div className="flex items-center gap-3">
                   <Mail className="h-[18px] w-[18px] text-[rgb(var(--color-gold2))]" />
                   <span>raed.ghanim.2014@gmail.com</span>
@@ -762,10 +771,10 @@ const RozerContactAiPage: React.FC = () => {
         <section className="mt-8 sm:mt-10">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.26em] text-[rgb(var(--color-gold2)/0.92)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.26em] text-[rgb(var(--color-gold2))]">
                 Strengths
               </p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl">
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-text sm:text-3xl">
                 Built for confident first contact.
               </h2>
             </div>
@@ -801,14 +810,14 @@ const RozerContactAiPage: React.FC = () => {
             whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, margin: '-40px' }}
             transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[32px] border border-white/10 bg-white px-5 py-6 text-[rgb(var(--color-bg0))] shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:px-6"
+            className="rounded-[32px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-6 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-6"
           >
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--color-gold)/0.15)] text-[rgb(var(--color-bg0))]">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[rgb(var(--color-bg0)/0.44)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">
                   Bot behavior
                 </p>
                 <h3 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">How Rozer speaks and assists</h3>
@@ -830,14 +839,14 @@ const RozerContactAiPage: React.FC = () => {
             whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, margin: '-40px' }}
             transition={{ delay: 0.05, duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[32px] border border-white/10 bg-white px-5 py-6 text-[rgb(var(--color-bg0))] shadow-[0_20px_60px_rgba(0,0,0,0.16)] sm:px-6"
+            className="rounded-[32px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-6 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-6"
           >
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--color-gold)/0.15)] text-[rgb(var(--color-bg0))]">
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
                 <BriefcaseBusiness className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[rgb(var(--color-bg0)/0.44)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">
                   Lead information
                 </p>
                 <h3 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">What the bot can collect</h3>
