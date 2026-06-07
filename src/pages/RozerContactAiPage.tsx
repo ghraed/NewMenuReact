@@ -733,6 +733,18 @@ const RozerFloatingChat: React.FC = () => {
       {!isOpen ? (
         <motion.button
           type="button"
+          initial={{ x: 0, rotate: 0, scale: 1 }}
+          animate={{
+            x: [0, -2, 2, -1, 1, 0],
+            rotate: [0, -2, 2, -1.5, 1.5, 0],
+            scale: [1, 1.02, 1.02, 1],
+          }}
+          transition={{
+            duration: 0.7,
+            ease: 'easeInOut',
+            repeat: Infinity,
+            repeatDelay: 5.4,
+          }}
           whileTap={{ scale: 0.92 }}
           onClick={() => setIsOpen(true)}
           className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[2147483647] inline-flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-bg1))] text-[rgb(var(--color-text))] shadow-[var(--guest-shadow)] sm:right-5 sm:bottom-5"
