@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
   BriefcaseBusiness,
+  ChevronDown,
   CircleDot,
   Clock3,
   Mail,
@@ -93,6 +94,13 @@ interface BehaviorItemProps {
 interface MiniInfoProps {
   icon: React.ReactNode;
   label: string;
+}
+
+interface CollapsibleSectionProps {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  eyebrow: string;
+  title: string;
 }
 
 const INITIAL_MESSAGE = "Hi, I'm Rozer, your AI contact assistant. I'm a bot, but I'm here to help you quickly. Are you looking for support, pricing, a demo, or general contact information?";
@@ -344,6 +352,74 @@ const MiniInfo: React.FC<MiniInfoProps> = ({ icon, label }) => (
   </div>
 );
 
+const renderMessageContent = (content: string): React.ReactNode[] => {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return (
+        <strong key={`bold-${index}`} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    return <React.Fragment key={`text-${index}`}>{part}</React.Fragment>;
+  });
+};
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  children,
+  defaultOpen = false,
+  eyebrow,
+  title,
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+      whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-[32px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-5 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-6"
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-4 text-left"
+        aria-expanded={isOpen}
+      >
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">
+            {eyebrow}
+          </p>
+          <h3 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">{title}</h3>
+        </div>
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
+          <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0, y: -6 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -6 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="pt-6">
+              {children}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.article>
+  );
+};
+
 const ChatPanel: React.FC<{
   input: string;
   isLoading: boolean;
@@ -354,7 +430,6 @@ const ChatPanel: React.FC<{
   onSubmit: () => void;
 }> = ({ input, isLoading, isTyping, messages, onClose, onInputChange, onSubmit }) => {
   const messagesRef = useRef<HTMLDivElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     messagesRef.current?.scrollTo({
@@ -362,10 +437,6 @@ const ChatPanel: React.FC<{
       behavior: 'smooth',
     });
   }, [messages, isTyping]);
-
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -413,7 +484,7 @@ const ChatPanel: React.FC<{
                       : 'rounded-br-[8px] bg-[rgb(var(--color-bg1))] text-[rgb(var(--color-text))]',
                   ].join(' ')}
                 >
-                  {message.content}
+                  {renderMessageContent(message.content)}
                 </div>
               </motion.div>
             ))}
@@ -448,7 +519,6 @@ const ChatPanel: React.FC<{
       <div className="border-t border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-4 py-4 sm:px-5">
         <div className="flex items-end gap-3">
           <textarea
-            ref={textareaRef}
             value={input}
             onChange={(event) => onInputChange(event.target.value)}
             onKeyDown={(event) => {
@@ -482,7 +552,7 @@ const RozerFloatingChat: React.FC = () => {
   const [backendUnavailable, setBackendUnavailable] = useState<boolean>(initialState.backendUnavailable);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [input, setInput] = useState('');
   const [leadFingerprint, setLeadFingerprint] = useState<string | null>(initialState.leadFingerprint);
@@ -717,6 +787,12 @@ const RozerContactAiPage: React.FC = () => {
                   and helps them reach the Rozer team through one simple conversation.
                 </p>
               </div>
+
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                <Badge>Quick guidance</Badge>
+                <Badge>Professional replies</Badge>
+                <Badge>Clear next steps</Badge>
+              </div>
             </div>
 
             <motion.div
@@ -762,10 +838,10 @@ const RozerContactAiPage: React.FC = () => {
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.26em] text-[rgb(var(--color-gold2))]">
-                Strengths
+                Visitor benefits
               </p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-text sm:text-3xl">
-                Built for confident first contact.
+                What visitors get right away.
               </h2>
             </div>
           </div>
@@ -795,26 +871,12 @@ const RozerContactAiPage: React.FC = () => {
         </section>
 
         <section className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <motion.article
-            initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[32px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-6 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-6"
+          <CollapsibleSection
+            defaultOpen={false}
+            eyebrow="Bot behavior"
+            title="How Rozer keeps the experience professional"
           >
-            <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">
-                  Bot behavior
-                </p>
-                <h3 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">How Rozer speaks and assists</h3>
-              </div>
-            </div>
-
-            <ul className="mt-6 space-y-4">
+            <ul className="space-y-4">
               <BehaviorItem>Introduces itself as Rozer and clearly says that it is a bot.</BehaviorItem>
               <BehaviorItem>Answers support, pricing, demo, and contact questions in a fast and professional way.</BehaviorItem>
               <BehaviorItem>Keeps replies short and clear so visitors understand the next step without confusion.</BehaviorItem>
@@ -823,28 +885,14 @@ const RozerContactAiPage: React.FC = () => {
               <BehaviorItem>Escalates private, technical, financial, or security-sensitive questions instead of guessing.</BehaviorItem>
               <BehaviorItem>Never pressures the visitor and always keeps the tone respectful and trustworthy.</BehaviorItem>
             </ul>
-          </motion.article>
+          </CollapsibleSection>
 
-          <motion.article
-            initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ delay: 0.05, duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[32px] border border-[color:var(--guest-border)] bg-[var(--guest-panel)] px-5 py-6 text-[var(--guest-text)] shadow-[var(--guest-shadow)] sm:px-6"
+          <CollapsibleSection
+            defaultOpen={true}
+            eyebrow="Lead information"
+            title="What the bot can collect if the visitor wants follow-up"
           >
-            <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--guest-accent-soft)] text-[var(--guest-text)]">
-                <BriefcaseBusiness className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--guest-muted)]">
-                  Lead information
-                </p>
-                <h3 className="mt-1 text-2xl font-semibold tracking-[-0.03em]">What the bot can collect</h3>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <MiniInfo icon={<UserRound className="h-5 w-5" />} label="Name" />
               <MiniInfo icon={<Phone className="h-5 w-5" />} label="Phone / WhatsApp" />
               <MiniInfo icon={<Mail className="h-5 w-5" />} label="Email address" />
@@ -852,7 +900,7 @@ const RozerContactAiPage: React.FC = () => {
               <MiniInfo icon={<MessageSquareMore className="h-5 w-5" />} label="Guest message" />
               <MiniInfo icon={<BriefcaseBusiness className="h-5 w-5" />} label="Business type" />
             </div>
-          </motion.article>
+          </CollapsibleSection>
         </section>
       </div>
 
