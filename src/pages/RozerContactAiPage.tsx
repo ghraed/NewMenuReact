@@ -28,6 +28,7 @@ interface ChatMessage {
 }
 
 interface StoredRozerChatState {
+  backendUnavailable: boolean;
   leadFingerprint: string | null;
   messages: ChatMessage[];
   sessionUuid: string | null;
@@ -146,6 +147,7 @@ const sanitizeMessages = (messages: unknown): ChatMessage[] => {
 const loadStoredState = (): StoredRozerChatState => {
   if (typeof window === 'undefined') {
     return {
+      backendUnavailable: false,
       leadFingerprint: null,
       messages: defaultMessages(),
       sessionUuid: null,
@@ -156,6 +158,7 @@ const loadStoredState = (): StoredRozerChatState => {
     const raw = window.localStorage.getItem(ROZER_CHAT_STORAGE_KEY);
     if (!raw) {
       return {
+        backendUnavailable: false,
         leadFingerprint: null,
         messages: defaultMessages(),
         sessionUuid: null,
@@ -165,12 +168,14 @@ const loadStoredState = (): StoredRozerChatState => {
     const parsed = JSON.parse(raw) as Partial<StoredRozerChatState>;
 
     return {
+      backendUnavailable: parsed.backendUnavailable === true,
       leadFingerprint: typeof parsed.leadFingerprint === 'string' ? parsed.leadFingerprint : null,
       messages: sanitizeMessages(parsed.messages),
       sessionUuid: typeof parsed.sessionUuid === 'string' && parsed.sessionUuid.trim() !== '' ? parsed.sessionUuid : null,
     };
   } catch {
     return {
+      backendUnavailable: false,
       leadFingerprint: null,
       messages: defaultMessages(),
       sessionUuid: null,
@@ -254,6 +259,42 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return fallback;
+};
+
+const isMissingAiRouteError = (error: unknown): boolean => {
+  if (
+    error
+    && typeof error === 'object'
+    && 'response' in error
+  ) {
+    const response = (error as { response?: { data?: { message?: unknown }, status?: number } }).response;
+    const message = typeof response?.data?.message === 'string' ? response.data.message.toLowerCase() : '';
+    return response?.status === 404 || message.includes('could not be found');
+  }
+
+  return false;
+};
+
+const buildFallbackReply = (message: string): string => {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('demo')) {
+    return 'I can help with a demo request. Please share your phone number or email, and the Rozer team will contact you to arrange a demo.';
+  }
+
+  if (normalized.includes('price') || normalized.includes('pricing') || normalized.includes('cost')) {
+    return 'Pricing is handled by the Rozer team and depends on your restaurant size, features, and setup needs. Please leave your phone number or email and the team will contact you.';
+  }
+
+  if (normalized.includes('support') || normalized.includes('help') || normalized.includes('problem') || normalized.includes('issue')) {
+    return 'I can help route your support request. Please briefly describe the issue and leave your phone number or email so the Rozer team can follow up quickly.';
+  }
+
+  if (normalized.includes('deepseek') || normalized.includes('ai') || normalized.includes('tech') || normalized.includes('stack') || normalized.includes('hack') || normalized.includes('security')) {
+    return 'That request should be forwarded to the Rozer team directly. Please contact raed.ghanim.2014@gmail.com or leave your phone number or email for a secure follow-up.';
+  }
+
+  return 'I can help you contact the Rozer team for support, pricing, demos, and general questions. Please leave your phone number or email and the team will contact you. Support is available 24/7.';
 };
 
 const Badge: React.FC<BadgeProps> = ({ children, tone = 'default' }) => (
@@ -438,6 +479,7 @@ const ChatPanel: React.FC<{
 
 const RozerFloatingChat: React.FC = () => {
   const initialState = useMemo(() => loadStoredState(), []);
+  const [backendUnavailable, setBackendUnavailable] = useState<boolean>(initialState.backendUnavailable);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -460,12 +502,13 @@ const RozerFloatingChat: React.FC = () => {
     window.localStorage.setItem(
       ROZER_CHAT_STORAGE_KEY,
       JSON.stringify({
+        backendUnavailable,
         leadFingerprint,
         messages,
         sessionUuid,
       } satisfies StoredRozerChatState),
     );
-  }, [isBootstrapped, leadFingerprint, messages, sessionUuid]);
+  }, [backendUnavailable, isBootstrapped, leadFingerprint, messages, sessionUuid]);
 
   useEffect(() => {
     if (!sessionUuid || !isBootstrapped) {
@@ -544,6 +587,11 @@ const RozerFloatingChat: React.FC = () => {
     setIsTyping(true);
 
     try {
+      if (backendUnavailable) {
+        appendMessage('assistant', buildFallbackReply(content));
+        return;
+      }
+
       const activeSessionUuid = await ensureSession();
 
       const response = await api.post<ApiEnvelope<SendMessageResponse>>('/ai-chat/message', {
@@ -567,6 +615,15 @@ const RozerFloatingChat: React.FC = () => {
         }
       }
     } catch (error) {
+      if (isMissingAiRouteError(error)) {
+        setBackendUnavailable(true);
+        appendMessage(
+          'assistant',
+          "Live chat is not connected on this server yet, but I can still help in contact mode. Please leave your phone number or email, or contact raed.ghanim.2014@gmail.com / +96171251044.",
+        );
+        return;
+      }
+
       appendMessage(
         'assistant',
         getErrorMessage(error, 'Sorry, something went wrong. Please try again in a moment.'),
@@ -586,7 +643,7 @@ const RozerFloatingChat: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: 20, scale: 0.96, filter: 'blur(8px)' }}
             transition={{ type: 'spring', stiffness: 280, damping: 24, mass: 0.88 }}
-            className="fixed left-3 right-3 top-[max(12px,env(safe-area-inset-top))] bottom-[calc(88px+env(safe-area-inset-bottom))] z-[999999] flex flex-col overflow-hidden rounded-[28px] border border-[#e4ddd0] bg-white shadow-[0_32px_80px_rgba(5,8,19,0.28)] sm:left-auto sm:right-5 sm:top-auto sm:bottom-24 sm:h-[680px] sm:max-h-[calc(100dvh-120px)] sm:w-[420px]"
+            className="fixed left-3 right-3 top-[max(12px,env(safe-area-inset-top))] bottom-[max(12px,env(safe-area-inset-bottom))] z-[999999] flex flex-col overflow-hidden rounded-[28px] border border-[#e4ddd0] bg-white shadow-[0_32px_80px_rgba(5,8,19,0.28)] sm:left-5 sm:right-5 sm:top-5 sm:bottom-5 sm:h-auto sm:max-h-none sm:w-auto"
           >
             <ChatPanel
               input={input}
@@ -603,16 +660,18 @@ const RozerFloatingChat: React.FC = () => {
         ) : null}
       </AnimatePresence>
 
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.92 }}
-        onClick={() => setIsOpen((current) => !current)}
-        className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[999999] inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#10151c] text-[#f5eee3] shadow-[0_26px_58px_rgba(16,21,28,0.34)] sm:right-5 sm:bottom-5"
-        aria-label={isOpen ? 'Close Rozer chat' : 'Open Rozer chat'}
-      >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageSquareMore className="h-6 w-6" />}
-        <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#10151c] bg-[#b89560]" />
-      </motion.button>
+      {!isOpen ? (
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setIsOpen(true)}
+          className="fixed right-4 bottom-[calc(16px+env(safe-area-inset-bottom))] z-[999999] inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#10151c] text-[#f5eee3] shadow-[0_26px_58px_rgba(16,21,28,0.34)] sm:right-5 sm:bottom-5"
+          aria-label="Open Rozer chat"
+        >
+          <MessageSquareMore className="h-6 w-6" />
+          <span className="absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#10151c] bg-[#b89560]" />
+        </motion.button>
+      ) : null}
     </>
   );
 };
