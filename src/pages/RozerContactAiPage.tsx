@@ -96,7 +96,7 @@ interface MiniInfoProps {
 }
 
 const INITIAL_MESSAGE = "Hi, I'm Rozer, your AI contact assistant. I'm a bot, but I'm here to help you quickly. Are you looking for support, pricing, a demo, or general contact information?";
-const ROZER_CHAT_STORAGE_KEY = 'rozer-contact-ai-chat';
+const ROZER_CHAT_STORAGE_KEY = 'rozer-contact-chat';
 
 const makeMessageId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -488,7 +488,7 @@ const RozerFloatingChat: React.FC = () => {
   const [leadFingerprint, setLeadFingerprint] = useState<string | null>(initialState.leadFingerprint);
   const [messages, setMessages] = useState<ChatMessage[]>(initialState.messages);
   const [sessionUuid, setSessionUuid] = useState<string | null>(initialState.sessionUuid);
-  const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/rozer-ai';
+  const sourcePage = typeof window !== 'undefined' ? window.location.pathname : '/contact-us';
 
   useEffect(() => {
     setIsBootstrapped(true);
@@ -700,27 +700,21 @@ const RozerContactAiPage: React.FC = () => {
             <div>
               <Badge tone="accent">Rozer AI Contact Assistant</Badge>
               <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-0.05em] text-[var(--guest-text)] sm:text-5xl lg:text-[3.6rem]">
-                Friendly AI support that turns visitors into real leads.
+                Fast, professional AI help that makes contacting the right team feel easy.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--guest-muted)] sm:text-lg">
-                Rozer Bot helps visitors ask about support, pricing, demos, and general contact information,
-                then safely moves interested guests toward a real human follow-up through phone or email collection.
+                Rozer Bot helps visitors get answers quickly, understand what to do next, and continue the conversation with confidence.
+                It is designed to feel professional, clear, and trustworthy from the first message to the final follow-up.
               </p>
-
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                <Badge>Clearly says it is a bot</Badge>
-                <Badge>Collects phone or email</Badge>
-                <Badge>Professional contact flow</Badge>
-              </div>
 
               <div className="mt-6 rounded-[24px] border border-[color:var(--guest-border)] bg-[var(--guest-panel-strong)] p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--guest-muted)]">
-                  Rozer platform coverage
+                  Why this helps visitors
                 </p>
                 <p className="mt-3 text-sm leading-6 text-[var(--guest-muted)]">
-                  Rozer can help visitors discover the platform across QR menu experiences, guest ordering,
-                  staff order management, chef kitchen workflows, accounting, invoices, inventory ingredients,
-                  stock history, reservations, room planning, event flows, analytics, and modern customer-facing service tools.
+                  Visitors do not need to guess where to start or wait for a first reply.
+                  The chatbot gives fast guidance, answers common questions in a professional tone,
+                  and helps them reach the Rozer team through one simple conversation.
                 </p>
               </div>
             </div>
@@ -743,25 +737,21 @@ const RozerContactAiPage: React.FC = () => {
 
               <div className="mt-5 space-y-3">
                 <div className="max-w-[92%] rounded-[24px] rounded-bl-[8px] bg-[var(--guest-panel)] px-4 py-3 text-sm leading-6 text-[var(--guest-text)]">
-                  Hi, I&apos;m Rozer, your AI contact assistant. I&apos;m a bot, but I&apos;m here to help you quickly.
+                  Hi, I&apos;m Rozer, your AI contact assistant. I&apos;m a bot, and I&apos;m here to help you quickly and clearly.
                 </div>
                 <div className="ml-auto max-w-[86%] rounded-[24px] rounded-br-[8px] bg-[color:color-mix(in_srgb,var(--guest-panel)_18%,transparent)] px-4 py-3 text-sm leading-6 text-[rgb(var(--color-text))]">
-                  Would you like to leave your phone number or email so the Rozer team can contact you?
+                  You can continue directly in this chat, and I&apos;ll help guide you to the Rozer team in the fastest way.
                 </div>
               </div>
 
               <div className="mt-5 grid gap-3 rounded-[24px] border border-[color:var(--guest-border)] bg-[color:color-mix(in_srgb,var(--guest-panel)_12%,transparent)] p-4 text-sm">
                 <div className="flex items-center gap-3">
-                  <Mail className="h-[18px] w-[18px] text-[rgb(var(--color-gold2))]" />
-                  <span>raed.ghanim.2014@gmail.com</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Phone className="h-[18px] w-[18px] text-[rgb(var(--color-gold2))]" />
-                  <span>+96171251044</span>
-                </div>
-                <div className="flex items-center gap-3">
                   <Clock3 className="h-[18px] w-[18px] text-[rgb(var(--color-gold2))]" />
-                  <span>Business hours: 24/7</span>
+                  <span>Fast support guidance, 24/7</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <MessageSquareMore className="h-[18px] w-[18px] text-[rgb(var(--color-gold2))]" />
+                  <span>The easiest way to contact the team is directly through the chatbot</span>
                 </div>
               </div>
             </motion.div>
@@ -783,23 +773,23 @@ const RozerContactAiPage: React.FC = () => {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <FeatureCard
               icon={<MessageSquareMore className="h-5 w-5" />}
-              title="Answers contact questions"
-              description="Guides visitors through support, demos, pricing requests, and general contact needs with clear next steps."
+              title="Fast replies"
+              description="Visitors can ask immediately and get guided quickly instead of searching for the right contact path."
             />
             <FeatureCard
               icon={<Sparkles className="h-5 w-5" />}
-              title="Smart lead qualification"
-              description="Understands visitor intent and gently gathers the details your team needs before a real follow-up."
+              title="Professional tone"
+              description="The conversation stays calm, clear, and respectful, which makes the experience feel more reliable."
             />
             <FeatureCard
-              icon={<Phone className="h-5 w-5" />}
-              title="Collects contact details"
-              description="Captures phone, email, and business context in a conversational way that feels natural on mobile."
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="Trustworthy guidance"
+              description="The bot is honest about what it knows, escalates sensitive topics, and keeps communication safe."
             />
             <FeatureCard
               icon={<Waypoints className="h-5 w-5" />}
-              title="Human handoff ready"
-              description="Keeps the conversation ready for the Rozer team when a request needs a personal reply or a demo callback."
+              title="Smooth handoff"
+              description="When more help is needed, the chatbot helps the visitor move naturally toward a real team follow-up."
             />
           </div>
         </section>
@@ -826,11 +816,12 @@ const RozerContactAiPage: React.FC = () => {
 
             <ul className="mt-6 space-y-4">
               <BehaviorItem>Introduces itself as Rozer and clearly says that it is a bot.</BehaviorItem>
-              <BehaviorItem>Answers questions about contact, support, pricing, demos, and product capabilities in a short professional tone.</BehaviorItem>
-              <BehaviorItem>Suggests leaving a phone number or email once the visitor shows real interest.</BehaviorItem>
-              <BehaviorItem>Says pricing is handled by the Rozer team and depends on the restaurant’s setup and needs.</BehaviorItem>
-              <BehaviorItem>Escalates sensitive topics such as money details, private information, infrastructure questions, hacking-style prompts, and vendor/AI implementation details.</BehaviorItem>
-              <BehaviorItem>Never pressures the visitor and offers human follow-up whenever the question should be forwarded.</BehaviorItem>
+              <BehaviorItem>Answers support, pricing, demo, and contact questions in a fast and professional way.</BehaviorItem>
+              <BehaviorItem>Keeps replies short and clear so visitors understand the next step without confusion.</BehaviorItem>
+              <BehaviorItem>Suggests leaving a phone number or email only when it helps the visitor continue smoothly.</BehaviorItem>
+              <BehaviorItem>Explains that pricing is handled by the Rozer team and depends on the request and setup needs.</BehaviorItem>
+              <BehaviorItem>Escalates private, technical, financial, or security-sensitive questions instead of guessing.</BehaviorItem>
+              <BehaviorItem>Never pressures the visitor and always keeps the tone respectful and trustworthy.</BehaviorItem>
             </ul>
           </motion.article>
 

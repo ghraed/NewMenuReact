@@ -82,7 +82,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/reservations',
   '/order/review',
   '/invoice/print',
-  '/rozer-ai',
+  '/contact-us',
   '/admin/login',
   '/admin/dashboard',
   '/admin/profile',
@@ -242,7 +242,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
           <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
           <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
-          <Route path="/rozer-ai" element={lazyRoute(<RozerContactAiPage />)} />
+          <Route path="/contact-us" element={lazyRoute(<RozerContactAiPage />)} />
           <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
           <Route path="/admin/login" element={<LoginPage />} />
