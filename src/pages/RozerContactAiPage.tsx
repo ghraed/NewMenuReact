@@ -29,7 +29,6 @@ interface ChatMessage {
 }
 
 interface StoredRozerChatState {
-  backendUnavailable: boolean;
   leadFingerprint: string | null;
   messages: ChatMessage[];
   sessionUuid: string | null;
@@ -155,7 +154,6 @@ const sanitizeMessages = (messages: unknown): ChatMessage[] => {
 const loadStoredState = (): StoredRozerChatState => {
   if (typeof window === 'undefined') {
     return {
-      backendUnavailable: false,
       leadFingerprint: null,
       messages: defaultMessages(),
       sessionUuid: null,
@@ -166,7 +164,6 @@ const loadStoredState = (): StoredRozerChatState => {
     const raw = window.localStorage.getItem(ROZER_CHAT_STORAGE_KEY);
     if (!raw) {
       return {
-        backendUnavailable: false,
         leadFingerprint: null,
         messages: defaultMessages(),
         sessionUuid: null,
@@ -176,14 +173,12 @@ const loadStoredState = (): StoredRozerChatState => {
     const parsed = JSON.parse(raw) as Partial<StoredRozerChatState>;
 
     return {
-      backendUnavailable: parsed.backendUnavailable === true,
       leadFingerprint: typeof parsed.leadFingerprint === 'string' ? parsed.leadFingerprint : null,
       messages: sanitizeMessages(parsed.messages),
       sessionUuid: typeof parsed.sessionUuid === 'string' && parsed.sessionUuid.trim() !== '' ? parsed.sessionUuid : null,
     };
   } catch {
     return {
-      backendUnavailable: false,
       leadFingerprint: null,
       messages: defaultMessages(),
       sessionUuid: null,
@@ -549,7 +544,7 @@ const ChatPanel: React.FC<{
 
 const RozerFloatingChat: React.FC = () => {
   const initialState = useMemo(() => loadStoredState(), []);
-  const [backendUnavailable, setBackendUnavailable] = useState<boolean>(initialState.backendUnavailable);
+  const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
@@ -569,16 +564,15 @@ const RozerFloatingChat: React.FC = () => {
       return;
     }
 
-    window.localStorage.setItem(
+        window.localStorage.setItem(
       ROZER_CHAT_STORAGE_KEY,
       JSON.stringify({
-        backendUnavailable,
         leadFingerprint,
         messages,
         sessionUuid,
       } satisfies StoredRozerChatState),
     );
-  }, [backendUnavailable, isBootstrapped, leadFingerprint, messages, sessionUuid]);
+  }, [isBootstrapped, leadFingerprint, messages, sessionUuid]);
 
   useEffect(() => {
     if (!sessionUuid || !isBootstrapped) {
