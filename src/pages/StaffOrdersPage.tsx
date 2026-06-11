@@ -105,6 +105,36 @@ const showWaveNotification = (wave: TableWaveRecord, title: string, body: string
   }
 };
 
+const showOrderNotification = (order: OrderRecord, title: string, body: string): boolean => {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return false;
+  }
+
+  if (window.Notification.permission !== 'granted') {
+    return false;
+  }
+
+  try {
+    const notification = new window.Notification(title, {
+      body,
+      icon: '/vite.svg',
+      badge: '/vite.svg',
+      tag: `pending-order-${order.id}`,
+      requireInteraction: true,
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+
+    return true;
+  } catch (error) {
+    console.warn('[Realtime] Browser order notification failed to show.', error);
+    return false;
+  }
+};
+
 const isLikelyMobileDevice = (): boolean => {
   if (typeof window === 'undefined') {
     return false;
@@ -163,7 +193,13 @@ const StaffOrdersPage: React.FC = () => {
   }>>([]);
   const refreshInFlightRef = useRef(false);
   const hasLoadedPublishedDishesRef = useRef(false);
+  const knownPendingOrderIdsRef = useRef<Set<number>>(new Set());
+  const hasSeededPendingOrdersRef = useRef(false);
   const { isOnline, justReconnected } = useNetworkStatus();
+  const assignedTableIds = useMemo(
+    () => new Set((user?.assigned_tables ?? []).map((table) => table.id)),
+    [user?.assigned_tables]
+  );
 
   const getOrderLabel = useCallback((order: OrderRecord): string => (
     order.order_number || t('staffOrdersPage.orderNumberLabel', { id: order.id })
@@ -208,6 +244,40 @@ const StaffOrdersPage: React.FC = () => {
         ? t('staffOrdersPage.newWaveWithBrowserNotification', { table: wave.table_reference })
         : t('staffOrdersPage.newWave', { table: wave.table_reference })
   ), [t]);
+
+  const getOrderNotificationTitle = useCallback((order: OrderRecord): string => (
+    t('staffOrdersPage.orderNotificationTitle', { table: order.table_reference })
+  ), [t]);
+
+  const getOrderNotificationBody = useCallback((order: OrderRecord): string => (
+    t('staffOrdersPage.orderNotificationBody', { order: getOrderLabel(order) })
+  ), [getOrderLabel, t]);
+
+  const getOrderToastMessage = useCallback((order: OrderRecord, withBrowserNotification: boolean): string => (
+    withBrowserNotification
+      ? t('staffOrdersPage.newAssignedOrderWithBrowserNotification', {
+        order: getOrderLabel(order),
+        table: order.table_reference,
+      })
+      : t('staffOrdersPage.newAssignedOrder', {
+        order: getOrderLabel(order),
+        table: order.table_reference,
+      })
+  ), [getOrderLabel, t]);
+
+  const isOrderAssignedToCurrentStaff = useCallback((order: OrderRecord): boolean => {
+    if (user?.role !== 'staff') {
+      return false;
+    }
+
+    const tableId = order.table?.id;
+
+    if (typeof tableId === 'number' && assignedTableIds.has(tableId)) {
+      return true;
+    }
+
+    return (user.assigned_tables ?? []).some((table) => table.name === order.table_reference);
+  }, [assignedTableIds, user?.assigned_tables, user?.role]);
 
   const getPushSetupMessage = useCallback((error: unknown): string | null => {
     if (error instanceof PushSetupError) {
@@ -261,6 +331,29 @@ const StaffOrdersPage: React.FC = () => {
         fetchPendingOrders(),
         fetchPendingWaves(),
       ]);
+
+      if (hasSeededPendingOrdersRef.current) {
+        nextOrders
+          .filter((order) => !knownPendingOrderIdsRef.current.has(order.id))
+          .filter(isOrderAssignedToCurrentStaff)
+          .forEach((order) => {
+            const notificationShown = showOrderNotification(
+              order,
+              getOrderNotificationTitle(order),
+              getOrderNotificationBody(order)
+            );
+
+            showToast(
+              getOrderToastMessage(order, notificationShown),
+              'secondary',
+              4200
+            );
+          });
+      }
+
+      knownPendingOrderIdsRef.current = new Set(nextOrders.map((order) => order.id));
+      hasSeededPendingOrdersRef.current = true;
+
       setOrders(nextOrders);
       setWaves(nextWaves);
       try {
@@ -290,7 +383,14 @@ const StaffOrdersPage: React.FC = () => {
         setLoading(false);
       }
     }
-  }, [t]);
+  }, [
+    getOrderNotificationBody,
+    getOrderNotificationTitle,
+    getOrderToastMessage,
+    isOrderAssignedToCurrentStaff,
+    showToast,
+    t,
+  ]);
 
   const replaceOrder = useCallback((nextOrder: OrderRecord) => {
     setOrders((current) => current.map((item) => (item.id === nextOrder.id ? nextOrder : item)));
