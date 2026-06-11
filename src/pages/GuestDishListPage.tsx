@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Dish, GuestDishIndexEntry, RestaurantSummary } from '../types';
@@ -13,7 +13,7 @@ import GuestTableAccessPanel from '../components/Guest/GuestTableAccessPanel';
 import SectionHeading from '../components/Guest/SectionHeading';
 import RestaurantBrandMark from '../components/Common/RestaurantBrandMark';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { fetchGuestTableDish, fetchGuestTableMenu } from '../services/orderService';
+import { fetchGuestTableDish, fetchGuestTableMenu, verifyGuestTablePin } from '../services/orderService';
 import type { GuestMenuFetchOptions, GuestMenuListResponse } from '../services/orderService';
 import { getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
@@ -134,9 +134,10 @@ const pickProfitableRelatedDishes = (list: Dish[]): Dish[] => {
 
 const GuestDishListPage: React.FC = () => {
   const { restaurant_slug, table_id } = useParams<{ restaurant_slug?: string; table_id?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { addDish, updateQuantity, draft, restaurant, getDishQuantity, setGuestContext, updateDraft, clearGuestAccess } = useOrderCart();
+  const { addDish, updateQuantity, draft, restaurant, getDishQuantity, setGuestContext, setGuestAccess, updateDraft, clearGuestAccess } = useOrderCart();
   const ingredientFilterRef = useRef<HTMLDivElement | null>(null);
   const [restaurantName, setRestaurantName] = useState(restaurant?.name || t('menuList.menu'));
   const [restaurantSlug, setRestaurantSlug] = useState(restaurant_slug || '');
@@ -165,6 +166,7 @@ const GuestDishListPage: React.FC = () => {
   const loadMoreAnchorRef = useRef<HTMLDivElement | null>(null);
   const pageRequestInFlightRef = useRef(false);
   const resourceRequestKeyRef = useRef<string | null>(null);
+  const autoUnlockAttemptRef = useRef<string | null>(null);
 
   const candidateSlug = restaurant_slug?.trim() || null;
   const guestResource = useGuestMenuResource(
@@ -400,6 +402,92 @@ const GuestDishListPage: React.FC = () => {
     updateDraft,
     clearGuestAccess,
     upsertCardDishes,
+  ]);
+
+  useEffect(() => {
+    if (!table_id || !guestResource.data) {
+      return;
+    }
+
+    const tableId = Number(table_id);
+    if (!Number.isFinite(tableId) || tableId <= 0) {
+      return;
+    }
+
+    const searchParams = new URLSearchParams(location.search);
+    const staffPin = (searchParams.get('staff_pin') || '').trim();
+
+    if (!/^\d{4}$/.test(staffPin)) {
+      return;
+    }
+
+    const attemptKey = `${tableId}:${staffPin}`;
+    if (autoUnlockAttemptRef.current === attemptKey) {
+      return;
+    }
+
+    const hasUnlockedSession = draft.tableId === tableId && draft.guestAccessVerified && Boolean(draft.guestAccessToken);
+    if (hasUnlockedSession) {
+      autoUnlockAttemptRef.current = attemptKey;
+      return;
+    }
+
+    autoUnlockAttemptRef.current = attemptKey;
+
+    const clearStaffPinFromUrl = () => {
+      const nextSearchParams = new URLSearchParams(location.search);
+      nextSearchParams.delete('staff_pin');
+      const nextSearch = nextSearchParams.toString();
+      navigate(`${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
+    };
+
+    void verifyGuestTablePin(tableId, staffPin)
+      .then((response) => {
+        if (response.table_session) {
+          setGuestContext({
+            restaurant: response.restaurant,
+            tableId: response.table.id,
+            tableReference: response.table.name,
+            tableSessionId: response.table_session.id,
+            guestAccess: response.guest_access,
+          });
+          return;
+        }
+
+        updateDraft({
+          tableId: response.table.id,
+          tableReference: response.table.name,
+        });
+        setGuestAccess({
+          token: response.guest_access.token,
+          expiresAt: response.guest_access.expires_at,
+        });
+      })
+      .catch((error: unknown) => {
+        clearGuestAccess();
+        setError(
+          typeof error === 'object' && error !== null && 'response' in error
+            ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message || t('guestAccess.failed'))
+            : t('guestAccess.failed')
+        );
+      })
+      .finally(() => {
+        clearStaffPinFromUrl();
+      });
+  }, [
+    clearGuestAccess,
+    draft.guestAccessToken,
+    draft.guestAccessVerified,
+    draft.tableId,
+    guestResource.data,
+    location.pathname,
+    location.search,
+    navigate,
+    setGuestAccess,
+    setGuestContext,
+    table_id,
+    t,
+    updateDraft,
   ]);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
@@ -55,6 +56,18 @@ import type {
 
 type BrowserNotificationStatus = NotificationPermission | 'unsupported';
 const MOBILE_POLL_INTERVAL_MS = 10000;
+const buildStaffOrderingPath = (tableId: number, pin?: string | null): string => {
+  const searchParams = new URLSearchParams();
+
+  if (pin && pin.trim() !== '') {
+    searchParams.set('staff_pin', pin);
+  }
+
+  searchParams.set('source', 'staff');
+
+  const query = searchParams.toString();
+  return `/menu/table/${tableId}${query ? `?${query}` : ''}`;
+};
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -151,6 +164,7 @@ const isBillRequest = (wave: TableWaveRecord): boolean => (
 );
 
 const StaffOrdersPage: React.FC = () => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
@@ -985,7 +999,16 @@ const StaffOrdersPage: React.FC = () => {
     }
   };
 
-  const handleActivateTable = async (table: RestaurantTableSummary) => {
+  const openStaffOrdering = useCallback((tableId: number | null | undefined, pin?: string | null) => {
+    if (!tableId) {
+      showToast(t('staffOrdersPage.tableOrderingUnavailable'), 'tertiary', 3200);
+      return;
+    }
+
+    navigate(buildStaffOrderingPath(tableId, pin));
+  }, [navigate, showToast, t]);
+
+  const handleActivateTable = async (table: RestaurantTableSummary, options?: { openOrdering?: boolean }) => {
     setProcessingSessionId(table.id);
     setError(null);
 
@@ -1012,6 +1035,10 @@ const StaffOrdersPage: React.FC = () => {
         'secondary',
         4200
       );
+
+      if (options?.openOrdering) {
+        openStaffOrdering(nextSession.table?.id ?? table.id, response.current_pin);
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('staffOrdersPage.failedActivateTable')));
     } finally {
@@ -1357,6 +1384,13 @@ const StaffOrdersPage: React.FC = () => {
                   </div>
 
                   <LiquidButton
+                    tone="primary"
+                    onClick={() => handleActivateTable(table, { openOrdering: true })}
+                    disabled={processingSessionId === table.id}
+                  >
+                    {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateAndOrder')}
+                  </LiquidButton>
+                  <LiquidButton
                     tone="secondary"
                     onClick={() => handleActivateTable(table)}
                     disabled={processingSessionId === table.id}
@@ -1403,7 +1437,14 @@ const StaffOrdersPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <LiquidButton
+                      tone="primary"
+                      onClick={() => openStaffOrdering(session.table?.id, session.current_pin)}
+                      className="w-full"
+                    >
+                      {t('staffOrdersPage.takeOrder')}
+                    </LiquidButton>
                     <LiquidButton
                       tone="secondary"
                       onClick={() => handleResetSessionPin(session)}
