@@ -37,6 +37,7 @@ import {
   resetActiveTableSessionPin,
   resolvePendingWave,
   updatePendingOrder,
+  verifyGuestTablePin,
 } from '../services/orderService';
 import api from '../services/api';
 import {
@@ -1083,7 +1084,8 @@ const StaffOrdersPage: React.FC = () => {
 
   const handleAddStaffOrderItem = () => {
     const selectedDish = publishedDishes.find((dish) => String(dish.id) === staffOrderDishId);
-    const quantity = Number.parseInt(staffOrderQuantity, 10);
+    const normalizedQuantity = staffOrderQuantity.trim() === '' ? '1' : staffOrderQuantity;
+    const quantity = Number.parseInt(normalizedQuantity, 10);
 
     if (!selectedDish) {
       showToast(t('staffOrdersPage.selectDishFirst'), 'tertiary', 3200);
@@ -1121,6 +1123,18 @@ const StaffOrdersPage: React.FC = () => {
     setStaffOrderQuantity('1');
   };
 
+  const handleIncrementStaffOrderQuantity = () => {
+    const currentValue = Number.parseInt(staffOrderQuantity || '0', 10);
+    const safeValue = Number.isFinite(currentValue) && currentValue > 0 ? currentValue : 0;
+    setStaffOrderQuantity(String(Math.min(999, safeValue + 1)));
+  };
+
+  const handleDecrementStaffOrderQuantity = () => {
+    const currentValue = Number.parseInt(staffOrderQuantity || '0', 10);
+    const safeValue = Number.isFinite(currentValue) && currentValue > 1 ? currentValue : 1;
+    setStaffOrderQuantity(String(Math.max(1, safeValue - 1)));
+  };
+
   const handleRemoveStaffOrderItem = (dishId: number) => {
     setStaffOrderItems((current) => current.filter((item) => item.dish_id !== dishId));
   };
@@ -1131,16 +1145,22 @@ const StaffOrdersPage: React.FC = () => {
       return;
     }
 
+    if (!session.table?.id || !session.current_pin) {
+      setError(t('staffOrdersPage.missingSessionPin'));
+      return;
+    }
+
     setStaffOrderSubmitting(true);
     setError(null);
 
     try {
+      const accessResponse = await verifyGuestTablePin(session.table.id, session.current_pin);
       const response = await createGuestTableSessionOrder(session.id, {
         items: staffOrderItems.map((item) => ({
           dish_id: item.dish_id,
           quantity: item.quantity,
         })),
-      });
+      }, accessResponse.guest_access.token);
 
       setOrders((current) => [response.order, ...current]);
       resetStaffOrderComposer();
@@ -1608,7 +1628,7 @@ const StaffOrdersPage: React.FC = () => {
                         ) : null}
                       </div>
 
-                      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,0.8fr)_auto]">
+                      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)]">
                         <div>
                           <p className="mb-2 text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.chooseDish')}</p>
                           <GlassSearchSelect
@@ -1621,6 +1641,20 @@ const StaffOrdersPage: React.FC = () => {
                             disabled={publishedDishesLoading || staffOrderSubmitting}
                           />
                         </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[auto_minmax(0,160px)_auto_auto]">
+                        <div className="flex items-end">
+                          <LiquidButton
+                            type="button"
+                            tone="tertiary"
+                            onClick={handleDecrementStaffOrderQuantity}
+                            disabled={staffOrderSubmitting}
+                            className="min-w-[56px]"
+                          >
+                            -
+                          </LiquidButton>
+                        </div>
 
                         <div>
                           <p className="mb-2 text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.quantity')}</p>
@@ -1629,9 +1663,30 @@ const StaffOrdersPage: React.FC = () => {
                             min={1}
                             inputMode="numeric"
                             value={staffOrderQuantity}
-                            onChange={(event) => setStaffOrderQuantity(event.target.value.replace(/[^\d]/g, '').slice(0, 3) || '1')}
+                            onChange={(event) => setStaffOrderQuantity(event.target.value.replace(/[^\d]/g, '').slice(0, 3))}
+                            onBlur={() => {
+                              if (staffOrderQuantity.trim() === '') {
+                                setStaffOrderQuantity('1');
+                                return;
+                              }
+                              const nextValue = Number.parseInt(staffOrderQuantity, 10);
+                              setStaffOrderQuantity(String(Number.isFinite(nextValue) && nextValue > 0 ? nextValue : 1));
+                            }}
                             disabled={staffOrderSubmitting}
+                            className="text-center"
                           />
+                        </div>
+
+                        <div className="flex items-end">
+                          <LiquidButton
+                            type="button"
+                            tone="tertiary"
+                            onClick={handleIncrementStaffOrderQuantity}
+                            disabled={staffOrderSubmitting}
+                            className="min-w-[56px]"
+                          >
+                            +
+                          </LiquidButton>
                         </div>
 
                         <div className="flex items-end">
@@ -1664,7 +1719,7 @@ const StaffOrdersPage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveStaffOrderItem(item.dish_id)}
-                                className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-medium text-muted transition hover:border-spicy/35 hover:text-spicy"
+                                className="inline-flex items-center justify-center rounded-full border border-spicy/35 bg-spicy/12 px-4 py-2 text-xs font-semibold text-spicy transition hover:bg-spicy/18"
                                 disabled={staffOrderSubmitting}
                               >
                                 {t('staffOrdersPage.removeDish')}
