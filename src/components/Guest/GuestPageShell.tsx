@@ -5,6 +5,8 @@ import { useGuestTheme } from '../../hooks/useGuestTheme';
 import { getGuestThemeStyle } from './guestTheme';
 import GuestWaveButton from './GuestWaveButton';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useOrderCart } from '../../contexts/useOrderCart';
+import { heartbeatGuestTableSession } from '../../services/orderService';
 import {
   getPendingQueueCount,
   getQueuedGuestOrders,
@@ -16,9 +18,12 @@ interface GuestPageShellProps {
   children: ReactNode;
 }
 
+const HEARTBEAT_INTERVAL_MS = 60_000;
+
 const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
   const { theme } = useGuestTheme();
   const { isOnline, justReconnected } = useNetworkStatus();
+  const { draft } = useOrderCart();
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
 
@@ -76,6 +81,45 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
         setSyncing(false);
       });
   }, [justReconnected, pendingCount, syncing]);
+
+  useEffect(() => {
+    if (!isOnline || !draft.guestAccessVerified || !draft.guestAccessToken || !draft.tableSessionId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const sendHeartbeat = async () => {
+      if (cancelled || typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+
+      try {
+        await heartbeatGuestTableSession(draft.tableSessionId!, draft.guestAccessToken);
+      } catch {
+        // Presence refresh is best-effort and should not interrupt the guest experience.
+      }
+    };
+
+    void sendHeartbeat();
+    const intervalId = window.setInterval(() => {
+      void sendHeartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void sendHeartbeat();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [draft.guestAccessToken, draft.guestAccessVerified, draft.tableSessionId, isOnline]);
 
   return (
     <div

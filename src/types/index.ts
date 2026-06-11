@@ -391,6 +391,7 @@ export interface TableSessionSummary {
   pin_locked_until?: string | null;
   invoice_split_mode?: InvoiceSplitMode;
   invoice_split_count?: number | null;
+  active_guest_count?: number | null;
 }
 
 export interface InvoiceSplitBreakdownItem {

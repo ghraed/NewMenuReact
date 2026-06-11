@@ -12,7 +12,7 @@ import {
   fetchGuestTableSessionOrders,
   updateGuestTableSessionInvoiceSplit,
 } from '../services/orderService';
-import type { InvoiceSplitMode, InvoiceSplitSummary, OrderRecord } from '../types';
+import type { InvoiceSplitMode, InvoiceSplitSummary, OrderRecord, TableSessionSummary } from '../types';
 import { buildGuestMenuPath, buildGuestOrderReviewPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
@@ -56,6 +56,21 @@ const peopleDraftFromSplit = (split: InvoiceSplitSummary | null, splitCount: num
   return draft;
 };
 
+const deriveDefaultSplitCount = (session?: TableSessionSummary | null): number => {
+  const candidates = [
+    session?.invoice_split_count,
+    session?.active_guest_count,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate) && candidate >= 1) {
+      return Math.floor(candidate);
+    }
+  }
+
+  return 1;
+};
+
 const GuestOrdersPage: React.FC = () => {
   const { table_id } = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
@@ -64,7 +79,7 @@ const GuestOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [invoiceSplit, setInvoiceSplit] = useState<InvoiceSplitSummary | null>(null);
   const [splitMode, setSplitMode] = useState<InvoiceSplitMode>('none');
-  const [splitCountInput, setSplitCountInput] = useState('2');
+  const [splitCountInput, setSplitCountInput] = useState('1');
   const [activePersonIndex, setActivePersonIndex] = useState(1);
   const [peopleDraft, setPeopleDraft] = useState<PeopleDraftState>({});
   const [savedPeopleDraft, setSavedPeopleDraft] = useState<PeopleDraftState>({});
@@ -97,12 +112,12 @@ const GuestOrdersPage: React.FC = () => {
     return Math.floor(parsed);
   }, [splitCountInput]);
 
-  const applySplitToLocalState = (split: InvoiceSplitSummary | null) => {
+  const applySplitToLocalState = (split: InvoiceSplitSummary | null, session?: TableSessionSummary | null) => {
     setInvoiceSplit(split);
 
     if (!split) {
       setSplitMode('none');
-      setSplitCountInput('2');
+      setSplitCountInput(String(deriveDefaultSplitCount(session)));
       setActivePersonIndex(1);
       setPeopleDraft({});
       setSavedPeopleDraft({});
@@ -114,7 +129,7 @@ const GuestOrdersPage: React.FC = () => {
 
     const nextSplitCount = split.split_count && split.split_count > 0
       ? split.split_count
-      : 2;
+      : deriveDefaultSplitCount(session);
 
     setSplitCountInput(String(nextSplitCount));
     setActivePersonIndex((previous) => Math.min(Math.max(previous, 1), nextSplitCount));
@@ -139,7 +154,7 @@ const GuestOrdersPage: React.FC = () => {
         const sessionResponse = entry.data;
         if (!sessionResponse?.table) {
           setOrders([]);
-          applySplitToLocalState(null);
+          applySplitToLocalState(null, sessionResponse?.table_session);
           return;
         }
 
@@ -151,7 +166,7 @@ const GuestOrdersPage: React.FC = () => {
           });
           clearGuestAccess();
           setOrders([]);
-          applySplitToLocalState(null);
+          applySplitToLocalState(null, sessionResponse.table_session);
           return;
         }
 
@@ -165,7 +180,7 @@ const GuestOrdersPage: React.FC = () => {
 
         if (!draft.guestAccessToken) {
           setOrders([]);
-          applySplitToLocalState(null);
+          applySplitToLocalState(null, sessionResponse.table_session);
           return;
         }
 
@@ -181,9 +196,9 @@ const GuestOrdersPage: React.FC = () => {
             sessionResponse.table_session.id,
             draft.guestAccessToken
           );
-          applySplitToLocalState(split);
+          applySplitToLocalState(split, sessionResponse.table_session);
         } else {
-          applySplitToLocalState(null);
+          applySplitToLocalState(null, sessionResponse.table_session);
         }
       } catch (err: unknown) {
         const status = typeof err === 'object' && err !== null && 'response' in err

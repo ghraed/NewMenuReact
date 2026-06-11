@@ -440,6 +440,21 @@ export const requestGuestTableBill = async (
   return response.data;
 };
 
+export const heartbeatGuestTableSession = async (
+  sessionId: number | string,
+  guestAccessToken?: string | null
+): Promise<{ table_session: TableSessionSummary; guest_access: GuestTableMenuResponse['guest_access'] }> => {
+  const response = await api.post<{ table_session: TableSessionSummary; guest_access: GuestTableMenuResponse['guest_access'] }>(
+    `/table-session/${sessionId}/heartbeat`,
+    undefined,
+    {
+      headers: buildGuestAccessHeaders(guestAccessToken),
+    }
+  );
+
+  return response.data;
+};
+
 export const fetchActiveTableSessions = async (): Promise<ActiveTableSessionRecord[]> => {
   const response = await api.get<ActiveTableSessionsResponse>('/table-sessions/active');
   return response.data.table_sessions;
