@@ -1,10 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import StaffOrderEditor from '../components/Staff/StaffOrderEditor';
-import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import {
+  GlassCard,
+  GlassInput,
+  GlassSearchSelect,
+  GlassToast,
+  LiquidButton,
+  useGlassToast,
+} from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -19,6 +25,7 @@ import {
   activateGuestTableSession,
   cancelPendingOrder,
   confirmPendingOrder,
+  createGuestTableSessionOrder,
   fetchActiveTableSessions,
   fetchPublishedDishes,
   fetchGuestTables,
@@ -56,17 +63,11 @@ import type {
 
 type BrowserNotificationStatus = NotificationPermission | 'unsupported';
 const MOBILE_POLL_INTERVAL_MS = 10000;
-const buildStaffOrderingPath = (tableId: number, pin?: string | null): string => {
-  const searchParams = new URLSearchParams();
-
-  if (pin && pin.trim() !== '') {
-    searchParams.set('staff_pin', pin);
-  }
-
-  searchParams.set('source', 'staff');
-
-  const query = searchParams.toString();
-  return `/menu/table/${tableId}${query ? `?${query}` : ''}`;
+type StaffQuickOrderItem = {
+  dish_id: number;
+  dish_name: string;
+  quantity: number;
+  unit_price: number;
 };
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -164,7 +165,6 @@ const isBillRequest = (wave: TableWaveRecord): boolean => (
 );
 
 const StaffOrdersPage: React.FC = () => {
-  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
@@ -179,6 +179,11 @@ const StaffOrdersPage: React.FC = () => {
   const [processingServedOrderId, setProcessingServedOrderId] = useState<number | null>(null);
   const [processingWaveId, setProcessingWaveId] = useState<number | null>(null);
   const [processingSessionId, setProcessingSessionId] = useState<number | null>(null);
+  const [staffOrderingSessionId, setStaffOrderingSessionId] = useState<number | null>(null);
+  const [staffOrderDishId, setStaffOrderDishId] = useState('');
+  const [staffOrderQuantity, setStaffOrderQuantity] = useState('1');
+  const [staffOrderItems, setStaffOrderItems] = useState<StaffQuickOrderItem[]>([]);
+  const [staffOrderSubmitting, setStaffOrderSubmitting] = useState(false);
   const [tableUrlPopup, setTableUrlPopup] = useState<{ label: string; url: string } | null>(null);
   const [editorBusyAction, setEditorBusyAction] = useState<'save' | 'saveConfirm' | null>(null);
   const [editingOrder, setEditingOrder] = useState<OrderRecord | null>(null);
@@ -531,6 +536,23 @@ const StaffOrdersPage: React.FC = () => {
   }, [user?.restaurant?.id]);
 
   useEffect(() => {
+    if (!staffOrderingSessionId || typeof window === 'undefined') {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById(`staff-table-session-${staffOrderingSessionId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 80);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [staffOrderingSessionId]);
+
+  useEffect(() => {
     const syncMobileEnvironment = () => {
       setMobilePollingEnabled(isLikelyMobileDevice());
     };
@@ -850,6 +872,15 @@ const StaffOrdersPage: React.FC = () => {
     t('staffOrdersPage.activeTableSessions', { count: tableSessions.length })
   ), [tableSessions.length, t]);
 
+  const publishedDishOptions = useMemo(() => (
+    publishedDishes
+      .filter((dish) => dish.is_orderable !== false && dish.is_out_of_stock !== true)
+      .map((dish) => ({
+        value: String(dish.id),
+        label: `${dish.name} • ${dish.category} • $${Number(dish.price).toFixed(2)}`,
+      }))
+  ), [publishedDishes]);
+
   const inactiveTables = useMemo(() => {
     const activeTableIds = new Set(
       tableSessions
@@ -859,6 +890,19 @@ const StaffOrdersPage: React.FC = () => {
 
     return accessibleTables.filter((table) => !activeTableIds.has(table.id));
   }, [accessibleTables, tableSessions]);
+
+  const resetStaffOrderComposer = useCallback(() => {
+    setStaffOrderDishId('');
+    setStaffOrderQuantity('1');
+    setStaffOrderItems([]);
+    setStaffOrderSubmitting(false);
+  }, []);
+
+  const openStaffOrderComposer = useCallback((sessionId: number) => {
+    setStaffOrderingSessionId(sessionId);
+    resetStaffOrderComposer();
+    void loadPublishedMenu();
+  }, [loadPublishedMenu, resetStaffOrderComposer]);
 
   const handleEnableNotifications = async () => {
     setError(null);
@@ -999,15 +1043,6 @@ const StaffOrdersPage: React.FC = () => {
     }
   };
 
-  const openStaffOrdering = useCallback((tableId: number | null | undefined, pin?: string | null) => {
-    if (!tableId) {
-      showToast(t('staffOrdersPage.tableOrderingUnavailable'), 'tertiary', 3200);
-      return;
-    }
-
-    navigate(buildStaffOrderingPath(tableId, pin));
-  }, [navigate, showToast, t]);
-
   const handleActivateTable = async (table: RestaurantTableSummary, options?: { openOrdering?: boolean }) => {
     setProcessingSessionId(table.id);
     setError(null);
@@ -1037,12 +1072,91 @@ const StaffOrdersPage: React.FC = () => {
       );
 
       if (options?.openOrdering) {
-        openStaffOrdering(nextSession.table?.id ?? table.id, response.current_pin);
+        openStaffOrderComposer(nextSession.id);
       }
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('staffOrdersPage.failedActivateTable')));
     } finally {
       setProcessingSessionId(null);
+    }
+  };
+
+  const handleAddStaffOrderItem = () => {
+    const selectedDish = publishedDishes.find((dish) => String(dish.id) === staffOrderDishId);
+    const quantity = Number.parseInt(staffOrderQuantity, 10);
+
+    if (!selectedDish) {
+      showToast(t('staffOrdersPage.selectDishFirst'), 'tertiary', 3200);
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      showToast(t('staffOrdersPage.invalidDishQuantity'), 'tertiary', 3200);
+      return;
+    }
+
+    setStaffOrderItems((current) => {
+      const existing = current.find((item) => item.dish_id === selectedDish.id);
+
+      if (existing) {
+        return current.map((item) => (
+          item.dish_id === selectedDish.id
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        ));
+      }
+
+      return [
+        ...current,
+        {
+          dish_id: selectedDish.id,
+          dish_name: selectedDish.name,
+          quantity,
+          unit_price: Number(selectedDish.price),
+        },
+      ];
+    });
+
+    setStaffOrderDishId('');
+    setStaffOrderQuantity('1');
+  };
+
+  const handleRemoveStaffOrderItem = (dishId: number) => {
+    setStaffOrderItems((current) => current.filter((item) => item.dish_id !== dishId));
+  };
+
+  const handleSubmitStaffOrder = async (session: ActiveTableSessionRecord) => {
+    if (staffOrderItems.length === 0) {
+      showToast(t('staffOrdersPage.addAtLeastOneDish'), 'tertiary', 3200);
+      return;
+    }
+
+    setStaffOrderSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await createGuestTableSessionOrder(session.id, {
+        items: staffOrderItems.map((item) => ({
+          dish_id: item.dish_id,
+          quantity: item.quantity,
+        })),
+      });
+
+      setOrders((current) => [response.order, ...current]);
+      resetStaffOrderComposer();
+      setStaffOrderingSessionId(session.id);
+      showToast(
+        t('staffOrdersPage.createdStaffOrder', {
+          order: getOrderLabel(response.order),
+          table: response.order.table_reference,
+        }),
+        'secondary',
+        4200
+      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('staffOrdersPage.failedCreateStaffOrder')));
+    } finally {
+      setStaffOrderSubmitting(false);
     }
   };
 
@@ -1377,26 +1491,30 @@ const StaffOrdersPage: React.FC = () => {
 
             <div className="grid gap-3 lg:grid-cols-2">
               {inactiveTables.map((table) => (
-                <div key={table.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                <div key={table.id} className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                   <div>
                     <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.tableReady')}</p>
                     <h4 className="mt-2 text-xl font-semibold text-text">{table.name}</h4>
                   </div>
 
-                  <LiquidButton
-                    tone="primary"
-                    onClick={() => handleActivateTable(table, { openOrdering: true })}
-                    disabled={processingSessionId === table.id}
-                  >
-                    {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateAndOrder')}
-                  </LiquidButton>
-                  <LiquidButton
-                    tone="secondary"
-                    onClick={() => handleActivateTable(table)}
-                    disabled={processingSessionId === table.id}
-                  >
-                    {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateTable')}
-                  </LiquidButton>
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[190px]">
+                    <LiquidButton
+                      tone="primary"
+                      onClick={() => handleActivateTable(table, { openOrdering: true })}
+                      disabled={processingSessionId === table.id}
+                      className="w-full"
+                    >
+                      {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateAndOrder')}
+                    </LiquidButton>
+                    <LiquidButton
+                      tone="secondary"
+                      onClick={() => handleActivateTable(table)}
+                      disabled={processingSessionId === table.id}
+                      className="w-full"
+                    >
+                      {processingSessionId === table.id ? t('staffOrdersPage.processing') : t('staffOrdersPage.activateTable')}
+                    </LiquidButton>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1417,7 +1535,11 @@ const StaffOrdersPage: React.FC = () => {
 
             <div className="grid gap-4 lg:grid-cols-2">
               {tableSessions.map((session) => (
-                <div key={session.id} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                <div
+                  key={session.id}
+                  id={`staff-table-session-${session.id}`}
+                  className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.tableSessionCard')}</p>
@@ -1440,7 +1562,7 @@ const StaffOrdersPage: React.FC = () => {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <LiquidButton
                       tone="primary"
-                      onClick={() => openStaffOrdering(session.table?.id, session.current_pin)}
+                      onClick={() => openStaffOrderComposer(session.id)}
                       className="w-full"
                     >
                       {t('staffOrdersPage.takeOrder')}
@@ -1469,6 +1591,113 @@ const StaffOrdersPage: React.FC = () => {
                       🔗 Table URL
                     </LiquidButton>
                   </div>
+
+                  {staffOrderingSessionId === session.id ? (
+                    <div className="mt-4 rounded-[22px] border border-gold/20 bg-gold/8 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.quickOrder')}</p>
+                          <h5 className="mt-2 text-lg font-semibold text-text">{t('staffOrdersPage.quickOrderTitle', { table: session.table_reference })}</h5>
+                          <p className="mt-1 text-sm text-muted">{t('staffOrdersPage.quickOrderHint')}</p>
+                        </div>
+                        {session.current_pin ? (
+                          <div className="rounded-2xl border border-gold/20 bg-white/[0.04] px-4 py-3 text-right">
+                            <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.currentPin')}</p>
+                            <p className="mt-2 text-2xl font-semibold tracking-[0.26em] text-text">{session.current_pin}</p>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,0.8fr)_auto]">
+                        <div>
+                          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.chooseDish')}</p>
+                          <GlassSearchSelect
+                            value={staffOrderDishId}
+                            options={publishedDishOptions}
+                            onChange={setStaffOrderDishId}
+                            placeholder={t('staffOrdersPage.chooseDishPlaceholder')}
+                            searchPlaceholder={t('staffOrdersPage.searchDishPlaceholder')}
+                            emptyText={t('staffOrdersPage.noMatchingDishes')}
+                            disabled={publishedDishesLoading || staffOrderSubmitting}
+                          />
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersPage.quantity')}</p>
+                          <GlassInput
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={staffOrderQuantity}
+                            onChange={(event) => setStaffOrderQuantity(event.target.value.replace(/[^\d]/g, '').slice(0, 3) || '1')}
+                            disabled={staffOrderSubmitting}
+                          />
+                        </div>
+
+                        <div className="flex items-end">
+                          <LiquidButton
+                            type="button"
+                            tone="secondary"
+                            onClick={handleAddStaffOrderItem}
+                            disabled={publishedDishesLoading || staffOrderSubmitting}
+                            className="w-full lg:min-w-[150px]"
+                          >
+                            {t('staffOrdersPage.addDish')}
+                          </LiquidButton>
+                        </div>
+                      </div>
+
+                      {publishedDishesError ? (
+                        <div className="mt-3 rounded-xl border border-spicy/30 bg-spicy/10 px-3 py-2 text-sm text-spicy">
+                          {publishedDishesError}
+                        </div>
+                      ) : null}
+
+                      {staffOrderItems.length > 0 ? (
+                        <div className="mt-4 space-y-2">
+                          {staffOrderItems.map((item) => (
+                            <div key={item.dish_id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                              <div>
+                                <p className="font-medium text-text">{item.dish_name}</p>
+                                <p className="text-sm text-muted">{t('staffOrdersPage.dishQuantitySummary', { quantity: item.quantity })}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveStaffOrderItem(item.dish_id)}
+                                className="rounded-full border border-white/12 px-3 py-1.5 text-xs font-medium text-muted transition hover:border-spicy/35 hover:text-spicy"
+                                disabled={staffOrderSubmitting}
+                              >
+                                {t('staffOrdersPage.removeDish')}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 px-4 py-4 text-sm text-muted">
+                          {t('staffOrdersPage.noDraftItems')}
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex flex-wrap justify-end gap-3">
+                        <LiquidButton
+                          type="button"
+                          tone="tertiary"
+                          onClick={resetStaffOrderComposer}
+                          disabled={staffOrderSubmitting}
+                        >
+                          {t('staffOrdersPage.clearDraft')}
+                        </LiquidButton>
+                        <LiquidButton
+                          type="button"
+                          tone="primary"
+                          onClick={() => handleSubmitStaffOrder(session)}
+                          disabled={staffOrderSubmitting || staffOrderItems.length === 0}
+                        >
+                          {staffOrderSubmitting ? t('staffOrdersPage.processing') : t('staffOrdersPage.submitOrder')}
+                        </LiquidButton>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
