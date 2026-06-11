@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { verifyGuestTablePin } from '../../services/orderService';
 import { useOrderCart } from '../../contexts/useOrderCart';
-import { buildGuestInvoicePath, buildGuestOrdersPath } from '../../utils/guestTableRoutes';
+import { buildGuestInvoicePath, buildGuestMenuPath, buildGuestOrdersPath } from '../../utils/guestTableRoutes';
 import { loadPrintableInvoice } from '../../utils/printableInvoice';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
@@ -29,6 +29,8 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
   compact = false,
 }) => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { draft, setGuestAccess, setGuestContext, clearGuestAccess } = useOrderCart();
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -68,8 +70,17 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
           expiresAt: response.guest_access.expires_at,
         });
       }
+
+      const targetPath = buildGuestMenuPath(response.table.id);
+      const isAlreadyOnMenuPage = location.pathname === targetPath;
+
       setPin('');
-      setSuccess(response.message || t('guestAccess.unlocked'));
+
+      if (isAlreadyOnMenuPage) {
+        setSuccess(response.message || t('guestAccess.unlocked'));
+      } else {
+        navigate(targetPath, { replace: true });
+      }
     } catch (err: unknown) {
       clearGuestAccess();
       setError(getErrorMessage(err, t('guestAccess.failed')));
