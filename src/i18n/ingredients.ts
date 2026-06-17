@@ -9,6 +9,17 @@ const normalizeIngredientKey = (value?: string | null): string => (
     .replace(/\s+/g, ' ')
 );
 
+const isLikelyMojibakeArabic = (value?: string | null): boolean => {
+  const text = (value || '').trim();
+
+  if (!text) {
+    return false;
+  }
+
+  // Common UTF-8 Arabic bytes misread as Latin-1/Windows-1252.
+  return /Ø|Ù|Ã|Â/.test(text);
+};
+
 export const ingredientTranslations: Record<string, string> = {
   'pizza dough': 'عجينة بيتزا',
   dough: 'عجينة',
@@ -112,7 +123,9 @@ export const ingredientTranslations: Record<string, string> = {
   labneh: 'لبنة',
   cheese: 'جبنة',
   mozzarella: 'موزاريلا',
+  'mozzarella cheese': 'جبنة موزاريلا',
   parmesan: 'بارميزان',
+  'parmesan cheese': 'جبنة بارميزان',
   pecorino: 'بيكورينو',
   romano: 'رومانو',
   cheddar: 'شيدر',
@@ -433,6 +446,7 @@ export const ingredientTranslations: Record<string, string> = {
   'marinara sauce': 'صلصة مارينارا',
   'pizza sauce': 'صلصة بيتزا',
   'bbq sauce': 'صلصة باربكيو',
+  'barbecue sauce': 'صلصة باربكيو',
   'buffalo sauce': 'صلصة بافلو',
   'hot sauce': 'صلصة حارة',
   'soy sauce': 'صلصة الصويا',
@@ -625,7 +639,7 @@ export const translateIngredientLabel = (
     return fallback || directArabic;
   }
 
-  if (directArabic) {
+  if (directArabic && !isLikelyMojibakeArabic(directArabic)) {
     return directArabic;
   }
 
