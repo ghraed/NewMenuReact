@@ -6,6 +6,7 @@ import { translateCategoryLabel } from '../../i18n/dynamic';
 import { CURRENCY_OPTIONS } from '../../utils/currency';
 import type { InventoryIngredient, MenuItemType } from '../../types';
 import type { DishFormData } from './DishForm';
+import { useAuth } from '../../contexts/useAuth';
 
 interface ProductItemFormProps {
   itemType: Extract<MenuItemType, 'packaged_drink' | 'other_product'>;
@@ -36,6 +37,7 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
   recipeIngredientOptions = [],
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const isPackagedDrink = itemType === 'packaged_drink';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -57,11 +59,21 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
   });
 
   const categoryOptions = useMemo(
-    () => MENU_CATEGORIES.map((category) => ({
-      value: category.value,
-      label: translateCategoryLabel(category.value, category.arabic),
-    })),
-    []
+    () => {
+      const allowedRestaurantCategories = (user?.restaurant?.menu_categories ?? []).filter((value) => value.trim() !== '');
+
+      return MENU_CATEGORIES
+        .filter((category) => (
+          allowedRestaurantCategories.length === 0
+          || allowedRestaurantCategories.includes(category.value)
+          || category.value === form.category
+        ))
+        .map((category) => ({
+          value: category.value,
+          label: translateCategoryLabel(category.value, category.arabic),
+        }));
+    },
+    [form.category, user?.restaurant?.menu_categories]
   );
 
   const deriveName = (): string => {
@@ -317,4 +329,3 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
 };
 
 export default ProductItemForm;
-

@@ -17,6 +17,7 @@ import { cx, focusRing, glassControl } from '../../theme/liquidGlass';
 import { getIngredientDisplayName } from '../../utils/ingredientDisplay';
 import { CURRENCY_OPTIONS } from '../../utils/currency';
 import { generateDishDescription } from '../../services/dishDescriptionService';
+import { useAuth } from '../../contexts/useAuth';
 
 const createClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `ingredient-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -126,6 +127,7 @@ const DishForm: React.FC<DishFormProps> = ({
   relatedDishOptions = [],
 }) => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const isPreparedDish = itemType === 'prepared_dish' || itemType === 'prepared_drink';
   const isPackagedDrink = itemType === 'packaged_drink';
   const [formData, setFormData] = useState<DishFormState>(() => ({
@@ -383,10 +385,17 @@ const DishForm: React.FC<DishFormProps> = ({
   const selectedRelatedDishOptions = formData.related_dish_ids
     .map((dishId) => relatedDishOptions.find((dish) => dish.id === dishId))
     .filter((dish): dish is NonNullable<typeof dish> => Boolean(dish));
-  const categoryOptions = MENU_CATEGORIES.map((category) => ({
-    value: category.value,
-    label: translateCategoryLabel(category.value, category.arabic),
-  }));
+  const allowedRestaurantCategories = (user?.restaurant?.menu_categories ?? []).filter((value) => value.trim() !== '');
+  const categoryOptions = MENU_CATEGORIES
+    .filter((category) => (
+      allowedRestaurantCategories.length === 0
+      || allowedRestaurantCategories.includes(category.value)
+      || category.value === formData.category
+    ))
+    .map((category) => ({
+      value: category.value,
+      label: translateCategoryLabel(category.value, category.arabic),
+    }));
   const hasDishName = formData.name.trim().length > 0 || selectedDishDictionaryName.trim().length > 0;
   const hasDescription = formData.description.trim().length > 0;
   const hasDirectStockIngredient = formData.direct_stock_ingredient_id !== null;

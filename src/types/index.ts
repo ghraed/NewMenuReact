@@ -194,6 +194,8 @@ export interface RestaurantSummary {
   currency?: CurrencyCode | null;
   other_currency?: CurrencyCode | null;
   dollar_rate?: number | null;
+  custom_domain?: string | null;
+  menu_categories?: string[];
   max_tables?: number;
   profile?: RestaurantProfile | null;
   feature_flags?: Record<string, boolean>;

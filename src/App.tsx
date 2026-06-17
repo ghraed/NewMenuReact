@@ -38,6 +38,7 @@ import AdminReservationsPage from './pages/AdminReservationsPage';
 import AdminEventsPage from './pages/AdminEventsPage';
 import SuperAdminLoginPage from './pages/SuperAdminLoginPage';
 import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
+import SuperAdminRestaurantSetupPage from './pages/SuperAdminRestaurantSetupPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SuperAdminAuthProvider } from './contexts/SuperAdminAuthContext';
@@ -116,6 +117,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/chef/dashboard',
   '/super-admin/login',
   '/super-admin/dashboard',
+  '/super-admin/restaurants/new',
   '/super-admin/contact-requests',
   '/super-admin/contact-requests/:requestId',
   '/owner/login',
@@ -321,6 +323,14 @@ const AppRoutes: React.FC = () => {
             element={(
               <SuperAdminProtectedRoute>
                 {lazyRoute(<SuperAdminDashboardPage />)}
+              </SuperAdminProtectedRoute>
+            )}
+          />
+          <Route
+            path="/super-admin/restaurants/new"
+            element={(
+              <SuperAdminProtectedRoute>
+                {lazyRoute(<SuperAdminRestaurantSetupPage />)}
               </SuperAdminProtectedRoute>
             )}
           />

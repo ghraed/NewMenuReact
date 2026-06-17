@@ -16,6 +16,8 @@ export interface SuperAdminRestaurantSummary {
   name: string;
   slug: string;
   status: string;
+  custom_domain?: string | null;
+  menu_categories?: string[];
 }
 
 export interface SuperAdminRestaurantWithFeatures extends SuperAdminRestaurantSummary {
