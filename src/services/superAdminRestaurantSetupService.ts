@@ -21,17 +21,16 @@ export interface SuperAdminRestaurantSetupOptions {
   menu_categories: SuperAdminSetupCategoryOption[];
 }
 
-export interface CreateSuperAdminUserPayload {
-  name: string;
-  email: string;
-  password: string;
-  phone?: string;
-}
-
 export interface CreateSuperAdminRestaurantPayload {
   name: string;
   slug: string;
-  user_id: number;
+  user_id?: number;
+  admin_user?: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+  };
   status: string;
   currency: string;
   custom_domain: string;
@@ -50,14 +49,6 @@ export interface SuperAdminRestaurantSetupSummary {
 
 export const fetchSuperAdminRestaurantSetupOptions = async (): Promise<SuperAdminRestaurantSetupOptions> => {
   const response = await superAdminApi.get<SuperAdminRestaurantSetupOptions>('/super-admin/restaurant-setup/options');
-  return response.data;
-};
-
-export const createSuperAdminUser = async (payload: CreateSuperAdminUserPayload): Promise<{
-  message: string;
-  user: SuperAdminSetupUserOption;
-}> => {
-  const response = await superAdminApi.post('/super-admin/users', payload);
   return response.data;
 };
 
