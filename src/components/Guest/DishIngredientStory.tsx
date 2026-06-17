@@ -67,12 +67,16 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   };
 
   const hasIngredients = ingredients.length > 0;
-  const stageHeight = useMemo(() => Math.max(620, 280 + ingredients.length * 92), [ingredients.length]);
+  const previewAnchorTop = 44;
+  const previewBandHeight = 292;
   const rowGap = 82;
-  const rowStart = 54;
-  const previewAnchorTop = Math.max(230, stageHeight - 280);
-  const dishCenterTop = previewAnchorTop + 26;
-  const centerLiftTop = Math.max(150, Math.min(220, stageHeight * 0.33));
+  const rowStart = previewBandHeight + 12;
+  const stageHeight = useMemo(
+    () => Math.max(620, rowStart + Math.max(ingredients.length - 1, 0) * rowGap + 120),
+    [ingredients.length]
+  );
+  const dishCenterTop = previewAnchorTop + 116;
+  const centerLiftTop = previewAnchorTop + 88;
   const horizontalTravel = useMemo(() => getHorizontalTravel(), []);
 
   return (
