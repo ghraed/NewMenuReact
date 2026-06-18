@@ -55,6 +55,7 @@ const DishViewer: React.FC<DishViewerProps> = ({
   const isInteractive = Boolean(glbUrl) && !modelLoadFailed && isModelReady;
   const shouldShowArButton = Boolean(glbUrl) && !modelLoadFailed && (capabilities.isARSupported || isIOS || isAndroid);
   const shouldShowArUnsupportedNotice = Boolean(glbUrl) && !modelLoadFailed && !capabilities.isARSupported && !isIOS && !isAndroid;
+  const isPackagedItem = dish.item_type === 'packaged_drink' || dish.item_type === 'other_product';
 
   useEffect(() => {
     if (!hasDishAssets) {
@@ -326,18 +327,20 @@ const DishViewer: React.FC<DishViewerProps> = ({
             <div className="absolute inset-0">
               {posterContent}
             </div>
-            <div
-              className="pointer-events-none absolute inset-x-4 bottom-4 z-10 rounded-[22px] border px-4 py-3 backdrop-blur-md"
-              style={{
-                backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 88%, transparent)',
-                borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
-                boxShadow: 'var(--guest-shadow-soft)',
-              }}
-            >
-              <p className="text-sm font-medium text-[var(--guest-text, rgb(var(--color-text) / 0.92))]">
-                3D preview unavailable for this dish.
-              </p>
-            </div>
+            {!isPackagedItem ? (
+              <div
+                className="pointer-events-none absolute inset-x-4 bottom-4 z-10 rounded-[22px] border px-4 py-3 backdrop-blur-md"
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--guest-panel, rgb(var(--color-bg1))) 88%, transparent)',
+                  borderColor: 'var(--guest-border, rgba(255,255,255,0.12))',
+                  boxShadow: 'var(--guest-shadow-soft)',
+                }}
+              >
+                <p className="text-sm font-medium text-[var(--guest-text, rgb(var(--color-text) / 0.92))]">
+                  3D preview unavailable for this dish.
+                </p>
+              </div>
+            ) : null}
           </>
         )}
 

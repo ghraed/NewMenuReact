@@ -91,6 +91,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);
   const metadataTags = getDishTags(dish);
+  const isPackagedItem = dish.item_type === 'packaged_drink' || dish.item_type === 'other_product';
   const hasIngredientStory = (dish.dish_ingredients || []).some(
     (row) => row.show_in_animation !== false
   );
@@ -121,8 +122,12 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             boxShadow: 'var(--guest-shadow)',
           }}
         >
-          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">{t('dishDetail.experience')}</p>
-          <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">{t('dishDetail.explorePlatedForm')}</h2>
+          <p className="text-xs font-medium uppercase tracking-[0.28em] text-[var(--guest-accent)]">
+            {isPackagedItem ? 'View Image' : t('dishDetail.experience')}
+          </p>
+          <h2 className="mt-3 font-serif text-2xl text-[var(--guest-text)] sm:text-3xl">
+            {isPackagedItem ? dish.name : t('dishDetail.explorePlatedForm')}
+          </h2>
 
           <div className="mt-5">
             <DishViewer
@@ -132,6 +137,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             />
           </div>
 
+          {!isPackagedItem ? (
           <div className="mt-5">
             {hasIngredientStory ? (
               <Link
@@ -156,6 +162,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
               </p>
             )}
           </div>
+          ) : null}
         </section>
       </div>
 
