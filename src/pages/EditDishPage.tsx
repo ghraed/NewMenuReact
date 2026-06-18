@@ -307,7 +307,7 @@ const EditDishPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={buildGuestDishPath(guestPreviewTableId, dish.id)} target="_blank">
+          <Link to={buildGuestDishPath(guestPreviewTableId, dish.id, dish.name)} target="_blank">
             <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">{t('adminDish.openGuestView')}</LiquidButton>
           </Link>
           {dish.deleted_at ? (

@@ -9,7 +9,11 @@ import api, { resolveAssetUrl } from '../services/api';
 import { fetchGuestTableDish } from '../services/orderService';
 import type { Dish } from '../types';
 import { formatRestaurantLabel } from '../utils/guestRestaurant';
-import { buildGuestDishPath } from '../utils/guestTableRoutes';
+import {
+  buildGenericGuestDishPath,
+  buildGuestDishPath,
+  buildGuestRestaurantDishPath,
+} from '../utils/guestTableRoutes';
 
 const formatIngredientQuantity = (quantity?: string, unit?: string) => {
   if (!quantity) return undefined;
@@ -94,11 +98,11 @@ const GuestDishIngredientsPage: React.FC = () => {
         <div className="mb-8">
           <Link
             to={resolvedTableId
-              ? buildGuestDishPath(resolvedTableId, dish_id ?? '')
+              ? buildGuestDishPath(resolvedTableId, dish?.id ?? dish_id ?? '', dish?.name)
               : restaurantSlug && dish_id
-                ? `/menu/${restaurantSlug}/dish/${dish_id}`
+                ? buildGuestRestaurantDishPath(restaurantSlug, dish?.id ?? dish_id, dish?.name)
                 : dish_id
-                  ? `/menu/dish/${dish_id}`
+                  ? buildGenericGuestDishPath(dish?.id ?? dish_id, dish?.name)
                   : '/menu'}
             className="inline-flex items-center gap-2 text-sm font-medium text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
           >

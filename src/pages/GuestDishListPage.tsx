@@ -16,7 +16,11 @@ import { useOrderCart } from '../contexts/useOrderCart';
 import { fetchGuestTableDish, fetchGuestTableMenu, verifyGuestTablePin } from '../services/orderService';
 import type { GuestMenuFetchOptions, GuestMenuListResponse } from '../services/orderService';
 import { getPreferredGuestRestaurantSlug } from '../utils/guestRestaurant';
-import { buildGuestDishPath } from '../utils/guestTableRoutes';
+import {
+  buildGenericGuestDishPath,
+  buildGuestDishPath,
+  buildGuestRestaurantDishPath,
+} from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
@@ -1203,10 +1207,10 @@ const GuestDishListPage: React.FC = () => {
                     onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                     onOpen={() => navigate(
                       table_id
-                        ? buildGuestDishPath(table_id, dish.id)
+                        ? buildGuestDishPath(table_id, dish.id, dish.name)
                         : restaurantSlug
-                          ? `/menu/${restaurantSlug}/dish/${dish.id}`
-                          : `/menu/dish/${dish.id}`
+                          ? buildGuestRestaurantDishPath(restaurantSlug, dish.id, dish.name)
+                          : buildGenericGuestDishPath(dish.id, dish.name)
                     )}
                     isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                   />
@@ -1235,10 +1239,10 @@ const GuestDishListPage: React.FC = () => {
                   onShowRelatedOptions={() => setRelatedPopupDishId(dish.id)}
                   onOpen={() => navigate(
                     table_id
-                      ? buildGuestDishPath(table_id, dish.id)
+                      ? buildGuestDishPath(table_id, dish.id, dish.name)
                       : restaurantSlug
-                        ? `/menu/${restaurantSlug}/dish/${dish.id}`
-                        : `/menu/dish/${dish.id}`
+                        ? buildGuestRestaurantDishPath(restaurantSlug, dish.id, dish.name)
+                        : buildGenericGuestDishPath(dish.id, dish.name)
                   )}
                   isIngredientAlert={ingredientFilterMode === 'highlight' && matchingDishIds.has(dish.id)}
                 />
@@ -1380,10 +1384,10 @@ const GuestDishListPage: React.FC = () => {
                         type="button"
                         onClick={() => navigate(
                           table_id
-                            ? buildGuestDishPath(table_id, candidate.id)
+                            ? buildGuestDishPath(table_id, candidate.id, candidate.name)
                             : restaurantSlug
-                              ? `/menu/${restaurantSlug}/dish/${candidate.id}`
-                              : `/menu/dish/${candidate.id}`
+                              ? buildGuestRestaurantDishPath(restaurantSlug, candidate.id, candidate.name)
+                              : buildGenericGuestDishPath(candidate.id, candidate.name)
                         )}
                         className="rounded-full border px-3 py-2 text-xs font-semibold sm:text-sm"
                         style={{

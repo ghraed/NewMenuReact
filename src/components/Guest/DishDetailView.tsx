@@ -12,7 +12,14 @@ import {
   getDishTags,
 } from './guestPresentation';
 import { translateCategoryLabel } from '../../i18n/dynamic';
-import { buildGuestDishIngredientsPath, buildGuestDishPath } from '../../utils/guestTableRoutes';
+import {
+  buildGenericGuestDishPath,
+  buildGenericGuestDishIngredientsPath,
+  buildGuestDishIngredientsPath,
+  buildGuestDishPath,
+  buildGuestRestaurantDishIngredientsPath,
+  buildGuestRestaurantDishPath,
+} from '../../utils/guestTableRoutes';
 import {
   convertPriceFromUsdToCurrency,
   formatPriceWithCurrency,
@@ -129,10 +136,10 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
             {hasIngredientStory ? (
               <Link
                 to={tableId
-                  ? buildGuestDishIngredientsPath(tableId, dish.id)
+                  ? buildGuestDishIngredientsPath(tableId, dish.id, dish.name)
                   : restaurantSlug
-                    ? `/menu/${restaurantSlug}/dish/${dish.id}/ingredients`
-                    : `/menu/dish/${dish.id}/ingredients`}
+                    ? buildGuestRestaurantDishIngredientsPath(restaurantSlug, dish.id, dish.name)
+                    : buildGenericGuestDishIngredientsPath(dish.id, dish.name)}
                 className="inline-flex w-full items-center justify-center rounded-full border px-6 py-4 text-center text-sm font-semibold transition hover:shadow-[0_14px_30px_rgba(0,0,0,0.16)]"
                 style={{
                   backgroundColor: 'var(--guest-accent)',
@@ -353,11 +360,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                   return (
                     <Link
                       key={suggestedDish.id}
-                      to={tableId
-                        ? buildGuestDishPath(tableId, suggestedDish.id)
-                        : restaurantSlug
-                          ? `/menu/${restaurantSlug}/dish/${suggestedDish.id}`
-                          : `/menu/dish/${suggestedDish.id}`}
+                        to={tableId
+                          ? buildGuestDishPath(tableId, suggestedDish.id, suggestedDish.name)
+                          : restaurantSlug
+                            ? buildGuestRestaurantDishPath(restaurantSlug, suggestedDish.id, suggestedDish.name)
+                            : buildGenericGuestDishPath(suggestedDish.id, suggestedDish.name)}
                       className="block shrink-0"
                     >
                       {content}
@@ -406,11 +413,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                   return (
                     <Link
                       key={alternativeDish.id}
-                      to={tableId
-                        ? buildGuestDishPath(tableId, alternativeDish.id)
-                        : restaurantSlug
-                          ? `/menu/${restaurantSlug}/dish/${alternativeDish.id}`
-                          : `/menu/dish/${alternativeDish.id}`}
+                        to={tableId
+                          ? buildGuestDishPath(tableId, alternativeDish.id, alternativeDish.name)
+                          : restaurantSlug
+                            ? buildGuestRestaurantDishPath(restaurantSlug, alternativeDish.id, alternativeDish.name)
+                            : buildGenericGuestDishPath(alternativeDish.id, alternativeDish.name)}
                       className="block shrink-0"
                     >
                       {content}
@@ -459,11 +466,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                   return (
                     <Link
                       key={relatedDish.id}
-                      to={tableId
-                        ? buildGuestDishPath(tableId, relatedDish.id)
-                        : restaurantSlug
-                          ? `/menu/${restaurantSlug}/dish/${relatedDish.id}`
-                          : `/menu/dish/${relatedDish.id}`}
+                        to={tableId
+                          ? buildGuestDishPath(tableId, relatedDish.id, relatedDish.name)
+                          : restaurantSlug
+                            ? buildGuestRestaurantDishPath(restaurantSlug, relatedDish.id, relatedDish.name)
+                            : buildGenericGuestDishPath(relatedDish.id, relatedDish.name)}
                       className="block shrink-0"
                     >
                       {content}

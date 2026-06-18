@@ -4,7 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../contexts/useOrderCart';
 import { getApiBase, resolveAssetUrl } from '../services/api';
-import { buildGuestDishPath } from '../utils/guestTableRoutes';
+import {
+  buildGenericGuestDishPath,
+  buildGuestDishPath,
+  buildGuestRestaurantDishPath,
+} from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 type Role = 'user' | 'assistant';
@@ -143,17 +147,18 @@ const normalizeDishName = (value: string): string => value.trim().toLowerCase();
 
 const buildDishHref = (
   dishId: number,
+  dishName: string | undefined,
   context: ChatRestaurantContext
 ): string | null => {
   if (context.table_id && Number.isFinite(context.table_id) && context.table_id > 0) {
-    return buildGuestDishPath(context.table_id, dishId);
+    return buildGuestDishPath(context.table_id, dishId, dishName);
   }
 
   if (context.restaurant_slug) {
-    return `/menu/${encodeURIComponent(context.restaurant_slug)}/dish/${dishId}`;
+    return buildGuestRestaurantDishPath(context.restaurant_slug, dishId, dishName);
   }
 
-  return `/menu/dish/${dishId}`;
+  return buildGenericGuestDishPath(dishId, dishName);
 };
 
 const findNextDishMatch = (
@@ -212,7 +217,7 @@ const renderTextWithDishLinks = (
     }
 
     const label = text.slice(match.start, match.end);
-    const href = buildDishHref(match.dish.id, context);
+    const href = buildDishHref(match.dish.id, match.dish.name, context);
 
     if (href) {
       nodes.push(
