@@ -1,16 +1,54 @@
 import axios from 'axios';
 import { getStoredLanguage } from '../i18n/language';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const CONFIGURED_API_URL = import.meta.env.VITE_API_URL || '/api';
+
+const isLoopbackHost = (hostname: string): boolean => (
+  hostname === 'localhost'
+  || hostname === '127.0.0.1'
+  || hostname === '::1'
+  || hostname === '[::1]'
+);
+
+export const getApiBase = (): string => {
+  if (typeof window === 'undefined') {
+    return CONFIGURED_API_URL;
+  }
+
+  const configured = CONFIGURED_API_URL.trim();
+  if (configured === '') {
+    return '/api';
+  }
+
+  try {
+    const resolved = new URL(configured, window.location.origin);
+    const current = new URL(window.location.origin);
+    const normalizedPath = `${resolved.pathname}${resolved.search}${resolved.hash}` || '/api';
+
+    if (resolved.origin === current.origin) {
+      return normalizedPath;
+    }
+
+    if (isLoopbackHost(resolved.hostname) && isLoopbackHost(current.hostname)) {
+      return resolved.toString().replace(/\/+$/, '');
+    }
+
+    // Public guest/custom-domain requests must stay same-origin so the backend can
+    // resolve the tenant from the incoming Host header instead of a shared root domain.
+    return '/api';
+  } catch {
+    return '/api';
+  }
+};
 
 const api = axios.create({
-  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 api.interceptors.request.use((config) => {
+  config.baseURL = getApiBase();
   const token = localStorage.getItem('admin_auth_token');
   const language = getStoredLanguage();
 
@@ -29,7 +67,7 @@ export default api;
 
 export const getApiOrigin = (): string => {
   try {
-    return new URL(API_URL, window.location.origin).origin;
+    return new URL(getApiBase(), window.location.origin).origin;
   } catch {
     return window.location.origin;
   }
@@ -38,13 +76,6 @@ export const getApiOrigin = (): string => {
 export const resolveAssetUrl = (url?: string | null): string | undefined => {
   if (!url) return undefined;
   const apiOrigin = getApiOrigin();
-  const isLoopbackHost = (hostname: string): boolean => (
-    hostname === 'localhost'
-    || hostname === '127.0.0.1'
-    || hostname === '::1'
-    || hostname === '[::1]'
-  );
-
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);

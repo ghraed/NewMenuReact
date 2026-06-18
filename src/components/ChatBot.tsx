@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { resolveAssetUrl } from '../services/api';
+import { getApiBase, resolveAssetUrl } from '../services/api';
 import { buildGuestDishPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
@@ -67,32 +67,6 @@ const makeId = (): string => {
   }
 
   return `id_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-};
-
-const isSameOriginApiBase = (baseUrl: string): boolean => {
-  if (typeof window === 'undefined') {
-    return true;
-  }
-
-  try {
-    return new URL(baseUrl, window.location.origin).origin === window.location.origin;
-  } catch {
-    return false;
-  }
-};
-
-const resolveApiBase = (): string => {
-  const fromEnv = import.meta.env.VITE_API_URL as string | undefined;
-  if (fromEnv && fromEnv.trim() !== '') {
-    const normalized = fromEnv.replace(/\/+$/, '');
-
-    // Chat depends on session cookies; prefer same-origin to avoid CORS/session issues.
-    if (isSameOriginApiBase(normalized)) {
-      return normalized;
-    }
-  }
-
-  return '/api';
 };
 
 const detectLanguageFromText = (text: string): SupportedLanguage => {
@@ -580,7 +554,7 @@ const ChatBot: React.FC = () => {
   const swipePreviewActivatedRef = useRef(false);
   const swipeDishRef = useRef<ChatDishPreview | null>(null);
 
-  const apiBase = useMemo(() => resolveApiBase(), []);
+  const apiBase = useMemo(() => getApiBase(), []);
   const previousConversationScopeKeyRef = useRef(conversationScopeKey);
 
   useEffect(() => {
