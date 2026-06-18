@@ -13,8 +13,21 @@ const fireKeywords = ['spicy', 'chili', 'pepper', 'grill', 'smoked', 'jalapeno']
 const pastryKeywords = ['dessert', 'chocolate', 'vanilla', 'caramel', 'cream', 'sweet'];
 const chefKeywords = ['chef', 'signature', 'special', 'truffle'];
 
+const getDishPresentationText = (dish: Dish): string => {
+  const name = typeof dish.name === 'string' ? dish.name : '';
+  const description = typeof dish.description === 'string' ? dish.description : '';
+  const category = typeof dish.category === 'string' ? dish.category : '';
+  const categoryAr = typeof dish.category_ar === 'string' ? dish.category_ar : '';
+
+  return `${name} ${description} ${category} ${categoryAr}`.toLowerCase();
+};
+
+const getDishDescription = (dish: Dish): string => (
+  typeof dish.description === 'string' ? dish.description : ''
+);
+
 export const getDishEditorialLabel = (dish: Dish): string | null => {
-  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
+  const text = getDishPresentationText(dish);
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.editorial.oceanNotes');
   if (hasKeyword(text, chefKeywords)) return i18n.t('dynamic.editorial.chefSelection');
@@ -25,7 +38,7 @@ export const getDishEditorialLabel = (dish: Dish): string | null => {
 };
 
 export const getDishTags = (dish: Dish): string[] => {
-  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
+  const text = getDishPresentationText(dish);
   const tags = [translateCategoryLabel(dish.category, dish.category_ar)];
 
   if (hasKeyword(text, chefKeywords)) tags.push(i18n.t('dynamic.tags.signature'));
@@ -39,7 +52,7 @@ export const getDishTags = (dish: Dish): string[] => {
 };
 
 export const getDishPairing = (dish: Dish): string => {
-  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
+  const text = getDishPresentationText(dish);
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.pairing.ocean');
   if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.pairing.pastry');
@@ -58,7 +71,8 @@ export const getDishIngredientsText = (dish: Dish): string => {
     return unique(recipeIngredients).join(', ');
   }
 
-  const parts = dish.description
+  const description = getDishDescription(dish);
+  const parts = description
     .split(/[,.;]/)
     .map((part) => part.trim())
     .filter(Boolean);
@@ -67,10 +81,10 @@ export const getDishIngredientsText = (dish: Dish): string => {
     return unique(parts).slice(0, 3).join(', ');
   }
 
-  const text = `${dish.name} ${dish.description} ${dish.category} ${dish.category_ar || ''}`.toLowerCase();
+  const text = getDishPresentationText(dish);
 
   if (hasKeyword(text, oceanKeywords)) return i18n.t('dynamic.ingredients.ocean');
   if (hasKeyword(text, gardenKeywords)) return i18n.t('dynamic.ingredients.garden');
   if (hasKeyword(text, pastryKeywords)) return i18n.t('dynamic.ingredients.pastry');
-  return dish.description?.trim() || translateCategoryLabel(dish.category, dish.category_ar) || dish.name;
+  return description.trim() || translateCategoryLabel(dish.category, dish.category_ar) || dish.name;
 };
