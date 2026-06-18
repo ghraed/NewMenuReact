@@ -82,3 +82,21 @@ export const updateSuperAdminRestaurant = async (
   const response = await superAdminApi.patch(`/super-admin/restaurants/${restaurantId}`, payload);
   return response.data;
 };
+
+export const softDeleteSuperAdminRestaurant = async (
+  restaurantId: number
+): Promise<{
+  message: string;
+}> => {
+  const response = await superAdminApi.delete(`/super-admin/restaurants/${restaurantId}`);
+  return response.data;
+};
+
+export const permanentlyDeleteSuperAdminRestaurant = async (
+  restaurantId: number
+): Promise<{
+  message: string;
+}> => {
+  const response = await superAdminApi.delete(`/super-admin/restaurants/${restaurantId}/force`);
+  return response.data;
+};

@@ -8,6 +8,8 @@ import {
 } from '../services/superAdminFeatureFlagsService';
 import {
   fetchSuperAdminRestaurantSetupOptions,
+  permanentlyDeleteSuperAdminRestaurant,
+  softDeleteSuperAdminRestaurant,
   updateSuperAdminRestaurant,
   type SuperAdminRestaurantSetupOptions,
   type UpdateSuperAdminRestaurantPayload,
@@ -115,6 +117,8 @@ const SuperAdminRestaurantsPage: React.FC = () => {
   const [pageError, setPageError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [softDeleting, setSoftDeleting] = useState(false);
+  const [forceDeleting, setForceDeleting] = useState(false);
   const [form, setForm] = useState<RestaurantEditForm>({
     name: '',
     slug: '',
@@ -272,6 +276,58 @@ const SuperAdminRestaurantsPage: React.FC = () => {
   const handleLogout = async () => {
     await logout();
     navigate('/super-admin/login', { replace: true });
+  };
+
+  const handleSoftDelete = async () => {
+    if (!selectedRestaurant) {
+      setPageError('Select a restaurant to soft delete.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Soft delete "${selectedRestaurant.name}"?\n\nThis hides the restaurant from active management screens without permanently removing its records.`
+    );
+    if (!confirmed) return;
+
+    setSoftDeleting(true);
+    setPageError(null);
+
+    try {
+      const response = await softDeleteSuperAdminRestaurant(selectedRestaurant.id);
+      setRestaurants((current) => current.filter((restaurant) => restaurant.id !== selectedRestaurant.id));
+      setSelectedRestaurantId((current) => (current === selectedRestaurant.id ? null : current));
+      showToast(response.message, 'secondary');
+    } catch (error: unknown) {
+      setPageError(getErrorMessage(error, 'Failed to soft delete restaurant.'));
+    } finally {
+      setSoftDeleting(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!selectedRestaurant) {
+      setPageError('Select a restaurant to delete permanently.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Permanently delete "${selectedRestaurant.name}"?\n\nThis will delete the restaurant and its records forever. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setForceDeleting(true);
+    setPageError(null);
+
+    try {
+      const response = await permanentlyDeleteSuperAdminRestaurant(selectedRestaurant.id);
+      setRestaurants((current) => current.filter((restaurant) => restaurant.id !== selectedRestaurant.id));
+      setSelectedRestaurantId((current) => (current === selectedRestaurant.id ? null : current));
+      showToast(response.message, 'secondary');
+    } catch (error: unknown) {
+      setPageError(getErrorMessage(error, 'Failed to permanently delete restaurant.'));
+    } finally {
+      setForceDeleting(false);
+    }
   };
 
   const statusOptions = (options?.restaurant_statuses ?? ['active', 'inactive']).map((option) => ({
@@ -496,6 +552,12 @@ const SuperAdminRestaurantsPage: React.FC = () => {
                       {hasUnsavedChanges ? 'Unsaved changes pending.' : 'All changes saved.'}
                     </p>
                     <div className="flex items-center gap-2">
+                      <LiquidButton tone="secondary" type="button" onClick={handleSoftDelete} disabled={saving || softDeleting || forceDeleting}>
+                        {softDeleting ? 'Soft deleting...' : 'Soft Delete Restaurant'}
+                      </LiquidButton>
+                      <LiquidButton tone="secondary" type="button" onClick={handlePermanentDelete} disabled={saving || softDeleting || forceDeleting}>
+                        {forceDeleting ? 'Deleting permanently...' : 'Delete Restaurant Permanently'}
+                      </LiquidButton>
                       <LiquidButton tone="tertiary" type="button" onClick={handleReset} disabled={saving || !hasUnsavedChanges}>
                         Reset
                       </LiquidButton>
