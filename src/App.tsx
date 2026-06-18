@@ -138,6 +138,35 @@ const SuperAdminHomeRedirect: React.FC = () => {
   return <Navigate to={isAuthenticated ? '/super-admin/dashboard' : '/super-admin/login'} replace />;
 };
 
+const isMainRozerHost = (): boolean => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  return (
+    hostname === 'rozer.pro'
+    || hostname === 'www.rozer.pro'
+    || hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '::1'
+  );
+};
+
+const MainDomainOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  if (!isMainRozerHost()) {
+    return (
+      <NotFoundView
+        title="Unavailable Here"
+        message="This page is only available on rozer.pro."
+      />
+    );
+  }
+
+  return <>{children}</>;
+};
+
 class RouteErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
@@ -250,11 +279,25 @@ const AppRoutes: React.FC = () => {
           <Route path="/reservations" element={lazyRoute(<ReservationsPage />)} />
           <Route path="/order/review" element={lazyRoute(<OrderReviewPage />)} />
           <Route path="/liquid-glass-preview" element={lazyRoute(<LiquidGlassDemoPage />)} />
-          <Route path="/contact-us" element={lazyRoute(<RozerContactAiPage />)} />
+          <Route
+            path="/contact-us"
+            element={(
+              <MainDomainOnlyRoute>
+                {lazyRoute(<RozerContactAiPage />)}
+              </MainDomainOnlyRoute>
+            )}
+          />
           <Route path="/invoice/print" element={lazyRoute(<InvoicePrintPage />)} />
 
           <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/super-admin/login" element={lazyRoute(<SuperAdminLoginPage />)} />
+          <Route
+            path="/super-admin/login"
+            element={(
+              <MainDomainOnlyRoute>
+                {lazyRoute(<SuperAdminLoginPage />)}
+              </MainDomainOnlyRoute>
+            )}
+          />
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager', 'staff', 'accountant']} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -323,51 +366,89 @@ const AppRoutes: React.FC = () => {
           <Route
             path="/super-admin/dashboard"
             element={(
-              <SuperAdminProtectedRoute>
-                {lazyRoute(<SuperAdminDashboardPage />)}
-              </SuperAdminProtectedRoute>
+              <MainDomainOnlyRoute>
+                <SuperAdminProtectedRoute>
+                  {lazyRoute(<SuperAdminDashboardPage />)}
+                </SuperAdminProtectedRoute>
+              </MainDomainOnlyRoute>
             )}
           />
           <Route
             path="/super-admin/restaurants"
             element={(
-              <SuperAdminProtectedRoute>
-                {lazyRoute(<SuperAdminRestaurantsPage />)}
-              </SuperAdminProtectedRoute>
+              <MainDomainOnlyRoute>
+                <SuperAdminProtectedRoute>
+                  {lazyRoute(<SuperAdminRestaurantsPage />)}
+                </SuperAdminProtectedRoute>
+              </MainDomainOnlyRoute>
             )}
           />
           <Route
             path="/super-admin/restaurants/new"
             element={(
-              <SuperAdminProtectedRoute>
-                {lazyRoute(<SuperAdminRestaurantSetupPage />)}
-              </SuperAdminProtectedRoute>
+              <MainDomainOnlyRoute>
+                <SuperAdminProtectedRoute>
+                  {lazyRoute(<SuperAdminRestaurantSetupPage />)}
+                </SuperAdminProtectedRoute>
+              </MainDomainOnlyRoute>
             )}
           />
           <Route
             path="/super-admin/contact-requests"
             element={(
-              <SuperAdminProtectedRoute>
-                {lazyRoute(<SuperAdminContactRequestsPage />)}
-              </SuperAdminProtectedRoute>
+              <MainDomainOnlyRoute>
+                <SuperAdminProtectedRoute>
+                  {lazyRoute(<SuperAdminContactRequestsPage />)}
+                </SuperAdminProtectedRoute>
+              </MainDomainOnlyRoute>
             )}
           />
           <Route
             path="/super-admin/contact-requests/:requestId"
             element={(
-              <SuperAdminProtectedRoute>
-                {lazyRoute(<SuperAdminContactRequestDetailsPage />)}
-              </SuperAdminProtectedRoute>
+              <MainDomainOnlyRoute>
+                <SuperAdminProtectedRoute>
+                  {lazyRoute(<SuperAdminContactRequestDetailsPage />)}
+                </SuperAdminProtectedRoute>
+              </MainDomainOnlyRoute>
             )}
           />
 
           <Route path="/login" element={<Navigate to="/admin/login" replace />} />
           <Route path="/dashboard" element={<RoleHomeRedirect />} />
           <Route path="/admin" element={<RoleHomeRedirect />} />
-          <Route path="/super-admin" element={<SuperAdminHomeRedirect />} />
-          <Route path="/owner" element={<Navigate to="/super-admin" replace />} />
-          <Route path="/owner/login" element={<Navigate to="/super-admin/login" replace />} />
-          <Route path="/owner/dashboard" element={<Navigate to="/super-admin/dashboard" replace />} />
+          <Route
+            path="/super-admin"
+            element={(
+              <MainDomainOnlyRoute>
+                <SuperAdminHomeRedirect />
+              </MainDomainOnlyRoute>
+            )}
+          />
+          <Route
+            path="/owner"
+            element={(
+              <MainDomainOnlyRoute>
+                <Navigate to="/super-admin" replace />
+              </MainDomainOnlyRoute>
+            )}
+          />
+          <Route
+            path="/owner/login"
+            element={(
+              <MainDomainOnlyRoute>
+                <Navigate to="/super-admin/login" replace />
+              </MainDomainOnlyRoute>
+            )}
+          />
+          <Route
+            path="/owner/dashboard"
+            element={(
+              <MainDomainOnlyRoute>
+                <Navigate to="/super-admin/dashboard" replace />
+              </MainDomainOnlyRoute>
+            )}
+          />
           <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
           <Route path="/chef" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
