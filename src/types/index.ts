@@ -205,6 +205,8 @@ export interface RestaurantSummary {
 
 export interface RestaurantTableSummary {
   id: number;
+  number?: number;
+  restaurant_table_id?: number;
   name: string;
 }
 

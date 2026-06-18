@@ -91,7 +91,7 @@ const AdminStaffPage: React.FC = () => {
 
     return tables.map((table) => ({
       ...table,
-      url: `${window.location.origin}/menu/table/${table.id}`,
+      url: `${window.location.origin}/menu/table/${table.number ?? table.id}`,
     }));
   }, [tables]);
 
