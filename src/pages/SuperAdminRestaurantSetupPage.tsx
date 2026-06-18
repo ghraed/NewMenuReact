@@ -209,6 +209,9 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <LiquidButton tone="tertiary" onClick={() => navigate('/super-admin/restaurants')}>
+                Manage restaurants
+              </LiquidButton>
               <LiquidButton tone="tertiary" onClick={() => navigate('/super-admin/dashboard')}>
                 Feature flags
               </LiquidButton>

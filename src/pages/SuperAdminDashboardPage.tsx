@@ -257,6 +257,9 @@ const SuperAdminDashboardPage: React.FC = () => {
               <LiquidButton tone="primary" onClick={() => navigate('/super-admin/contact-requests')}>
                 Visitor requests
               </LiquidButton>
+              <LiquidButton tone="primary" onClick={() => navigate('/super-admin/restaurants')}>
+                Manage restaurants
+              </LiquidButton>
               <LiquidButton tone="primary" onClick={() => navigate('/super-admin/restaurants/new')}>
                 New restaurant
               </LiquidButton>

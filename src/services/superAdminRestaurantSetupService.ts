@@ -44,7 +44,19 @@ export interface SuperAdminRestaurantSetupSummary {
   status: string;
   currency: string;
   custom_domain?: string | null;
+  custom_domain_status?: string | null;
+  custom_domain_error?: string | null;
+  ssl_issued_at?: string | null;
   menu_categories?: string[];
+}
+
+export interface UpdateSuperAdminRestaurantPayload {
+  name: string;
+  slug: string;
+  status: string;
+  currency: string;
+  custom_domain: string;
+  menu_categories: string[];
 }
 
 export const fetchSuperAdminRestaurantSetupOptions = async (): Promise<SuperAdminRestaurantSetupOptions> => {
@@ -57,5 +69,16 @@ export const createSuperAdminRestaurant = async (payload: CreateSuperAdminRestau
   restaurant: SuperAdminRestaurantSetupSummary;
 }> => {
   const response = await superAdminApi.post('/super-admin/restaurants', payload);
+  return response.data;
+};
+
+export const updateSuperAdminRestaurant = async (
+  restaurantId: number,
+  payload: UpdateSuperAdminRestaurantPayload
+): Promise<{
+  message: string;
+  restaurant: SuperAdminRestaurantSetupSummary;
+}> => {
+  const response = await superAdminApi.patch(`/super-admin/restaurants/${restaurantId}`, payload);
   return response.data;
 };

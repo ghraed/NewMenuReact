@@ -16,7 +16,11 @@ export interface SuperAdminRestaurantSummary {
   name: string;
   slug: string;
   status: string;
+  currency?: string;
   custom_domain?: string | null;
+  custom_domain_status?: string | null;
+  custom_domain_error?: string | null;
+  ssl_issued_at?: string | null;
   menu_categories?: string[];
 }
 
