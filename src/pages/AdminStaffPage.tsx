@@ -4,7 +4,7 @@ import DashboardLayout from '../components/Admin/DashboardLayout';
 import { createStaffMember, fetchStaffMembers, updateStaffMemberTables } from '../services/staffService';
 import { fetchTableManagement, updateManualTableCount } from '../services/tableManagementService';
 import type { StaffMember, TableManagementSummary, UserRole } from '../types';
-import { GlassCard, GlassChip, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassCard, GlassChip, GlassIconButton, GlassInput, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 
 type AssignmentState = Record<number, number[]>;
 
@@ -65,6 +65,7 @@ const AdminStaffPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>>('staff');
   const [selectedTableIds, setSelectedTableIds] = useState<number[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
@@ -83,6 +84,16 @@ const AdminStaffPage: React.FC = () => {
   const tables = useMemo(() => management?.active_tables ?? [], [management?.active_tables]);
   const manualModeRequiresCount = management?.mode === 'MANUAL' && !management?.manual_table_count;
   const tableNameById = useMemo(() => new Map(tables.map((table) => [table.id, table.name])), [tables]);
+  const tableGuestLinks = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return [];
+    }
+
+    return tables.map((table) => ({
+      ...table,
+      url: `${window.location.origin}/menu/table/${table.id}`,
+    }));
+  }, [tables]);
 
   const syncStaffMembers = useCallback((nextStaffMembers: StaffMember[]) => {
     setStaffMembers(nextStaffMembers);
@@ -177,6 +188,11 @@ const AdminStaffPage: React.FC = () => {
       return;
     }
 
+    if (password.trim() !== '' && password.trim().length < 8) {
+      setPageError('Password must be at least 8 characters.');
+      return;
+    }
+
     if (manualModeRequiresCount) {
       setPageError('Set manual table count before assigning tables.');
       return;
@@ -189,6 +205,7 @@ const AdminStaffPage: React.FC = () => {
         name: normalizedName,
         email: normalizedEmail || undefined,
         phone: normalizedPhone || undefined,
+        password: password.trim() || undefined,
         role,
         table_ids: role === 'staff' ? selectedTableIds : [],
       });
@@ -198,6 +215,7 @@ const AdminStaffPage: React.FC = () => {
       setName('');
       setEmail('');
       setPhone('');
+      setPassword('');
       setRole('staff');
       setSelectedTableIds([]);
       await loadStaffMembers();
@@ -230,6 +248,15 @@ const AdminStaffPage: React.FC = () => {
     }
   };
 
+  const handleCopyTableUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Table URL copied.', 'secondary');
+    } catch {
+      setPageError('Failed to copy table URL.');
+    }
+  };
+
   return (
     <DashboardLayout title={t('adminStaff.pageTitle')}>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
@@ -249,6 +276,18 @@ const AdminStaffPage: React.FC = () => {
                 <label htmlFor="staff-phone" className="mb-2 block text-sm font-medium text-text">Phone (Optional)</label>
                 <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+961 70 000 000" disabled={creating} />
               </div>
+            </div>
+            <div>
+              <label htmlFor="staff-password" className="mb-2 block text-sm font-medium text-text">Password (Optional)</label>
+              <GlassInput
+                id="staff-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Leave blank to auto-generate"
+                disabled={creating}
+              />
+              <p className="mt-2 text-xs text-muted">If left empty, the system generates a temporary password automatically.</p>
             </div>
             <div>
               <div className="mb-2 block text-sm font-medium text-text">Role</div>
@@ -333,11 +372,47 @@ const AdminStaffPage: React.FC = () => {
                   <p>Email: {createdStaff.email || 'Not provided'}</p>
                   <p>Phone: {createdStaff.phone || 'Not provided'}</p>
                   <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
-                  <p>Temporary password: <span className="font-semibold text-text">{temporaryPassword || 'Unavailable'}</span></p>
+                  <p>
+                    Password:{' '}
+                    <span className="font-semibold text-text">
+                      {temporaryPassword || 'Used the password entered in the form'}
+                    </span>
+                  </p>
                 </div>
               </div>
             ) : (
               <p className="mt-4 text-sm leading-6 text-muted">{t('adminStaff.latestCreatedEmpty')}</p>
+            )}
+          </GlassCard>
+
+          <GlassCard interactive={false} noise={false}>
+            <h3 className="text-lg font-semibold text-text">Guest Table URLs</h3>
+            <p className="mt-2 text-sm text-muted">
+              Share these links with guests so they can open the menu and place orders directly for a table.
+            </p>
+            {managementLoading ? (
+              <p className="mt-4 text-sm text-muted">{t('common.loading')}</p>
+            ) : tableGuestLinks.length === 0 ? (
+              <p className="mt-4 text-sm text-muted">No active tables yet. Create or sync tables first.</p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {tableGuestLinks.map((table) => (
+                  <div key={table.id} className="flex items-center gap-3 rounded-xl2 border border-stroke/70 bg-panel2/30 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text">{table.name}</p>
+                      <p className="mt-1 truncate text-xs text-muted">{table.url}</p>
+                    </div>
+                    <GlassIconButton
+                      type="button"
+                      aria-label={`Copy URL for ${table.name}`}
+                      title="Copy table URL"
+                      onClick={() => void handleCopyTableUrl(table.url)}
+                    >
+                      ⧉
+                    </GlassIconButton>
+                  </div>
+                ))}
+              </div>
             )}
           </GlassCard>
         </div>

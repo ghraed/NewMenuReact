@@ -92,6 +92,7 @@ export interface CreateStaffRequest {
   name: string;
   email?: string;
   phone?: string;
+  password?: string;
   role?: Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>;
   table_ids?: number[];
 }

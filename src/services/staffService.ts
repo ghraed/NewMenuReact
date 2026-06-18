@@ -29,6 +29,10 @@ const sanitizeCreateStaffPayload = (payload: CreateStaffRequest): CreateStaffReq
     nextPayload.phone = payload.phone.trim();
   }
 
+  if (payload.password?.trim()) {
+    nextPayload.password = payload.password;
+  }
+
   if (payload.role) {
     nextPayload.role = payload.role;
   }
