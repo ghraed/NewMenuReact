@@ -144,8 +144,8 @@ const CreateDishPage: React.FC = () => {
       } else {
         if (dishData.direct_stock_ingredient_id !== null) {
           formData.append('direct_stock_ingredient_id', String(dishData.direct_stock_ingredient_id));
+          formData.append('direct_stock_quantity_per_sale', dishData.direct_stock_quantity_per_sale || '1');
         }
-        formData.append('direct_stock_quantity_per_sale', dishData.direct_stock_quantity_per_sale || '1');
         if (dishData.brand) formData.append('brand', dishData.brand);
         if (dishData.barcode) formData.append('barcode', dishData.barcode);
         if (dishData.size_label) formData.append('size_label', dishData.size_label);
@@ -180,14 +180,15 @@ const CreateDishPage: React.FC = () => {
   };
 
   const handleActivateTemplate = async (templateKey: string, type: MenuItemType) => {
-    const ingredientId = window.prompt('Enter inventory ingredient ID to link direct stock:');
-    if (!ingredientId) return;
-
     try {
-      await api.post('/admin/menu-item-templates/activate', {
-        template_key: templateKey,
-        direct_stock_ingredient_id: Number(ingredientId),
-      });
+      const payload: { template_key: string; direct_stock_ingredient_id?: number } = { template_key: templateKey };
+      if (type === 'prepared_dish' || type === 'prepared_drink') {
+        const ingredientId = window.prompt('Enter inventory ingredient ID to link direct stock:');
+        if (!ingredientId) return;
+        payload.direct_stock_ingredient_id = Number(ingredientId);
+      }
+
+      await api.post('/admin/menu-item-templates/activate', payload);
       showToast('Predefined menu item activated.', 'secondary');
       setSelectedType(type);
     } catch (err: unknown) {
@@ -293,7 +294,6 @@ const CreateDishPage: React.FC = () => {
           onSubmit={handleSubmit}
           onCancel={() => setSelectedType(null)}
           requirePreviewUpload
-          recipeIngredientOptions={recipeIngredientOptions}
           submitLabel="Create Menu Item"
           submittingLabel="Creating..."
         />

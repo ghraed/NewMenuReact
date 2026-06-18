@@ -4,7 +4,7 @@ import { GlassInput, GlassSelect, GlassSurface, LiquidButton } from '../ui/liqui
 import { MENU_CATEGORIES } from '../../i18n/categories';
 import { translateCategoryLabel } from '../../i18n/dynamic';
 import { CURRENCY_OPTIONS } from '../../utils/currency';
-import type { InventoryIngredient, MenuItemType } from '../../types';
+import type { MenuItemType } from '../../types';
 import type { DishFormData } from './DishForm';
 import { useAuth } from '../../contexts/useAuth';
 
@@ -15,7 +15,6 @@ interface ProductItemFormProps {
   submitLabel?: string;
   submittingLabel?: string;
   requirePreviewUpload?: boolean;
-  recipeIngredientOptions?: InventoryIngredient[];
 }
 
 const PACKAGED_UNITS = [
@@ -34,7 +33,6 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
   submitLabel = 'Create Menu Item',
   submittingLabel = 'Creating...',
   requirePreviewUpload = false,
-  recipeIngredientOptions = [],
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -106,12 +104,6 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
       return;
     }
 
-    const defaultStockIngredientId = recipeIngredientOptions[0]?.id ?? null;
-    if (defaultStockIngredientId === null) {
-      setFormError('No inventory ingredients available to link stock for packaged items.');
-      return;
-    }
-
     const payload: DishFormData = {
       item_type: itemType,
       name: deriveName(),
@@ -130,8 +122,8 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
       suggested_dish_ids: [],
       related_dish_ids: [],
       recipe_ingredients: [],
-      direct_stock_ingredient_id: defaultStockIngredientId,
-      direct_stock_quantity_per_sale: '1',
+      direct_stock_ingredient_id: null,
+      direct_stock_quantity_per_sale: '',
       brand: form.brand.trim(),
       barcode: form.barcode.trim(),
       size_label: form.sizeValue.trim(),

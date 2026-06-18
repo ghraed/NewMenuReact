@@ -165,7 +165,11 @@ const EditDishPage: React.FC = () => {
           }))
           : [],
         direct_stock_ingredient_id: isPreparedLike ? null : data.direct_stock_ingredient_id,
-        direct_stock_quantity_per_sale: isPreparedLike ? null : Number(data.direct_stock_quantity_per_sale || 1),
+        direct_stock_quantity_per_sale: isPreparedLike
+          ? null
+          : data.direct_stock_ingredient_id !== null
+            ? Number(data.direct_stock_quantity_per_sale || 1)
+            : null,
         brand: data.brand || null,
         barcode: data.barcode || null,
         size_label: data.size_label || null,

@@ -562,12 +562,8 @@ const DishForm: React.FC<DishFormProps> = ({
 
         selectedRecipeIngredientIds.add(recipeItem.ingredient_id);
       }
-    } else {
+    } else if (formData.direct_stock_ingredient_id !== null) {
       const directQty = Number(formData.direct_stock_quantity_per_sale || '1');
-      if (formData.direct_stock_ingredient_id === null) {
-        setFormError('Please select a stock ingredient for direct inventory deduction.');
-        return;
-      }
       if (!Number.isFinite(directQty) || directQty <= 0) {
         setFormError('Direct stock quantity per sale must be greater than zero.');
         return;
@@ -1413,12 +1409,12 @@ const DishForm: React.FC<DishFormProps> = ({
               </div>
             ) : null}
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Direct Stock Ingredient</label>
+              <label className="mb-1 block text-sm font-medium text-text">Direct Stock Ingredient (Optional)</label>
               <GlassSearchSelect
                 value={formData.direct_stock_ingredient_id !== null ? String(formData.direct_stock_ingredient_id) : ''}
                 onChange={(value) => setFormData((prev) => ({ ...prev, direct_stock_ingredient_id: value ? Number(value) : null }))}
                 options={recipeIngredientSelectOptions}
-                placeholder="Select inventory ingredient"
+                placeholder="Select inventory ingredient if this item should deduct from ingredient stock"
               />
             </div>
             <div>
