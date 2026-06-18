@@ -47,13 +47,6 @@ const CreateDishPage: React.FC = () => {
   const [suggestedDishOptions, setSuggestedDishOptions] = useState<Dish[]>([]);
   const [relatedDishOptions, setRelatedDishOptions] = useState<Dish[]>([]);
   const [selectedType, setSelectedType] = useState<MenuItemType | null>(null);
-  const [templates, setTemplates] = useState<Array<{
-    key: string;
-    name: string;
-    category: string;
-    item_type: MenuItemType;
-  }>>([]);
-  const [templateFilter, setTemplateFilter] = useState<'all' | MenuItemType>('all');
   const isPreparedLikeSelection = selectedType === 'prepared_dish' || selectedType === 'prepared_drink';
   const isPackagedLikeSelection = selectedType === 'packaged_drink' || selectedType === 'other_product';
 
@@ -93,16 +86,6 @@ const CreateDishPage: React.FC = () => {
     };
 
     fetchFormOptions();
-  }, []);
-
-  useEffect(() => {
-    api.get('/admin/menu-item-templates')
-      .then((response) => {
-        setTemplates(Array.isArray(response.data?.templates) ? response.data.templates : []);
-      })
-      .catch(() => {
-        setTemplates([]);
-      });
   }, []);
 
   useEffect(() => {
@@ -179,23 +162,6 @@ const CreateDishPage: React.FC = () => {
     }
   };
 
-  const handleActivateTemplate = async (templateKey: string, type: MenuItemType) => {
-    try {
-      const payload: { template_key: string; direct_stock_ingredient_id?: number } = { template_key: templateKey };
-      if (type === 'prepared_dish' || type === 'prepared_drink') {
-        const ingredientId = window.prompt('Enter inventory ingredient ID to link direct stock:');
-        if (!ingredientId) return;
-        payload.direct_stock_ingredient_id = Number(ingredientId);
-      }
-
-      await api.post('/admin/menu-item-templates/activate', payload);
-      showToast('Predefined menu item activated.', 'secondary');
-      setSelectedType(type);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to activate predefined item.'));
-    }
-  };
-
   return (
     <DashboardLayout title="Create Menu Item">
       <div className="mb-6">
@@ -245,32 +211,6 @@ const CreateDishPage: React.FC = () => {
             </GlassCard>
           ))}
         </div>
-        <GlassCard className="mt-6 p-5">
-          <h3 className="text-lg font-semibold text-text">Predefined Catalog</h3>
-          <p className="mt-1 text-sm text-muted">Activate predefined dishes, drinks, or products and then customize price, availability, stock, image, and name.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <LiquidButton tone={templateFilter === 'all' ? 'primary' : 'tertiary'} onClick={() => setTemplateFilter('all')}>All</LiquidButton>
-            <LiquidButton tone={templateFilter === 'prepared_dish' ? 'primary' : 'tertiary'} onClick={() => setTemplateFilter('prepared_dish')}>Prepared Dishes</LiquidButton>
-            <LiquidButton tone={templateFilter === 'packaged_drink' ? 'primary' : 'tertiary'} onClick={() => setTemplateFilter('packaged_drink')}>Packaged Drinks</LiquidButton>
-            <LiquidButton tone={templateFilter === 'other_product' ? 'primary' : 'tertiary'} onClick={() => setTemplateFilter('other_product')}>Other Products</LiquidButton>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {templates
-              .filter((template) => templateFilter === 'all' || template.item_type === templateFilter)
-              .map((template) => (
-                <div key={template.key} className="rounded-2xl border border-stroke bg-bg2 p-4">
-                  <p className="font-semibold text-text">{template.name}</p>
-                  <p className="text-xs text-muted">{template.category}</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {template.item_type === 'packaged_drink' ? 'Packaged Drink' : template.item_type === 'other_product' ? 'Other Product' : template.item_type === 'prepared_drink' ? 'Prepared Drink' : 'Prepared Dish'}
-                  </p>
-                  <LiquidButton className="mt-3 w-full" onClick={() => handleActivateTemplate(template.key, template.item_type)}>
-                    Activate
-                  </LiquidButton>
-                </div>
-              ))}
-          </div>
-        </GlassCard>
         </>
       ) : isPreparedLikeSelection ? (
         <DishForm
