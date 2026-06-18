@@ -484,6 +484,11 @@ const ChatBot: React.FC = () => {
   const { restaurant, draft } = useOrderCart();
   const isGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
   const isRozerAiRoute = /^\/contact-us(?:\/|$)/i.test(location.pathname);
+  const isHiddenRoute = /^\/admin\/login(?:\/|$)/i.test(location.pathname);
+
+  if (isHiddenRoute) {
+    return null;
+  }
   const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
