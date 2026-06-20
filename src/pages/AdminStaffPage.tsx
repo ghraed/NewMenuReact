@@ -42,6 +42,39 @@ const isValidEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.te
 
 const normalizePhone = (value: string): string => value.replace(/[^\d+]/g, '');
 
+const copyText = async (value: string): Promise<boolean> => {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch {
+      // Fall back to legacy copy path below.
+    }
+  }
+
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  const textArea = document.createElement('textarea');
+  textArea.value = value;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  textArea.style.pointerEvents = 'none';
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
+
 const staffCreationRoles: Array<{ value: Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>; label: string }> = [
   { value: 'staff', label: 'Staff' },
   { value: 'chef', label: 'Chef' },
@@ -250,7 +283,10 @@ const AdminStaffPage: React.FC = () => {
 
   const handleCopyTableUrl = async (url: string) => {
     try {
-      await navigator.clipboard.writeText(url);
+      const copied = await copyText(url);
+      if (!copied) {
+        throw new Error('copy-failed');
+      }
       showToast('Table URL copied.', 'secondary');
     } catch {
       setPageError('Failed to copy table URL.');
