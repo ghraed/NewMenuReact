@@ -27,6 +27,7 @@ interface PushConfigResponse {
 
 const SERVICE_WORKER_URL = '/sw.js';
 const SERVICE_WORKER_READY_TIMEOUT_MS = 10000;
+const SERVICE_WORKER_CACHE_PREFIXES = ['app-shell-', 'guest-api-'] as const;
 
 export class PushSetupError extends Error {
   code: PushSetupIssueCode;
@@ -137,13 +138,47 @@ const ensureServiceWorkerScriptIsReachable = async (): Promise<void> => {
   }
 };
 
+const clearManagedServiceWorkerCaches = async (): Promise<void> => {
+  if (typeof window === 'undefined' || !('caches' in window)) {
+    return;
+  }
+
+  const cacheNames = await window.caches.keys();
+  await Promise.all(
+    cacheNames
+      .filter((name) => SERVICE_WORKER_CACHE_PREFIXES.some((prefix) => name.startsWith(prefix)))
+      .map((name) => window.caches.delete(name))
+  );
+};
+
+const unregisterExistingServiceWorkers = async (): Promise<void> => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  await clearManagedServiceWorkerCaches();
+};
+
 export const registerPushServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!isWebPushSupported()) {
     return null;
   }
 
   ensureSecurePushContext();
-  await ensureServiceWorkerScriptIsReachable();
+
+  try {
+    await ensureServiceWorkerScriptIsReachable();
+  } catch (error) {
+    await unregisterExistingServiceWorkers();
+
+    if (error instanceof PushSetupError && error.code === 'service_worker_script_unavailable') {
+      return null;
+    }
+
+    throw error;
+  }
 
   const existingRegistration = await navigator.serviceWorker.getRegistration();
 
