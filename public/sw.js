@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const GUEST_API_CACHE = `guest-api-${CACHE_VERSION}`;
 const APP_ASSET_EXTENSIONS = ['.js', '.css', '.woff', '.woff2', '.ttf', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico'];
@@ -111,7 +111,7 @@ self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(request.url);
 
   if (shouldHandleGuestApi(requestUrl)) {
-    event.respondWith(staleWhileRevalidate(request, GUEST_API_CACHE));
+    event.respondWith(networkFirst(request, GUEST_API_CACHE));
     return;
   }
 
