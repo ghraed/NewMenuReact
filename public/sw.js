@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const GUEST_API_CACHE = `guest-api-${CACHE_VERSION}`;
 const APP_ASSET_EXTENSIONS = ['.js', '.css', '.woff', '.woff2', '.ttf', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico'];
@@ -16,13 +16,11 @@ const shouldHandleGuestApi = (url) => {
   return GUEST_API_PATTERNS.some((pattern) => pattern.test(url.pathname));
 };
 
+const isNavigationRequest = (request) => request.mode === 'navigate';
+
 const isAppAssetRequest = (requestUrl) => {
   if (requestUrl.origin !== self.location.origin) {
     return false;
-  }
-
-  if (requestUrl.pathname === '/' || requestUrl.pathname.endsWith('.html')) {
-    return true;
   }
 
   return APP_ASSET_EXTENSIONS.some((ext) => requestUrl.pathname.endsWith(ext));
@@ -41,6 +39,25 @@ const cacheFirst = async (request, cacheName) => {
   }
 
   return response;
+};
+
+const networkFirst = async (request, cacheName) => {
+  const cache = await caches.open(cacheName);
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+
+    throw error;
+  }
 };
 
 const staleWhileRevalidate = async (request, cacheName) => {
@@ -95,6 +112,11 @@ self.addEventListener('fetch', (event) => {
 
   if (shouldHandleGuestApi(requestUrl)) {
     event.respondWith(staleWhileRevalidate(request, GUEST_API_CACHE));
+    return;
+  }
+
+  if (isNavigationRequest(request)) {
+    event.respondWith(networkFirst(request, APP_SHELL_CACHE));
     return;
   }
 

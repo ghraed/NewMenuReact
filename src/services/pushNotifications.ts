@@ -148,11 +148,18 @@ export const registerPushServiceWorker = async (): Promise<ServiceWorkerRegistra
   const existingRegistration = await navigator.serviceWorker.getRegistration();
 
   if (existingRegistration) {
+    void existingRegistration.update().catch((error) => {
+      console.warn('[Push] Existing service worker update check failed.', error);
+    });
     return existingRegistration;
   }
 
   try {
-    return await navigator.serviceWorker.register(SERVICE_WORKER_URL, { scope: '/' });
+    const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL, { scope: '/' });
+    void registration.update().catch((error) => {
+      console.warn('[Push] Newly registered service worker update check failed.', error);
+    });
+    return registration;
   } catch (error) {
     console.warn('[Push] Service worker registration failed.', error);
     throw new PushSetupError(
