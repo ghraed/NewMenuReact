@@ -1,18 +1,17 @@
 import axios from 'axios';
 import { getStoredLanguage } from '../i18n/language';
+import { getApiBase } from './api';
 
 export const SUPER_ADMIN_TOKEN_STORAGE_KEY = 'owner_auth_token';
 
-const OWNER_API_URL = import.meta.env.VITE_API_URL || '/api';
-
 const superAdminApi = axios.create({
-  baseURL: OWNER_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 superAdminApi.interceptors.request.use((config) => {
+  config.baseURL = getApiBase();
   const token = localStorage.getItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
   const language = getStoredLanguage();
 

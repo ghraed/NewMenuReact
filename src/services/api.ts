@@ -10,6 +10,13 @@ const isLoopbackHost = (hostname: string): boolean => (
   || hostname === '[::1]'
 );
 
+const isMainRozerHost = (hostname: string): boolean => (
+  hostname === 'rozer.pro'
+  || hostname === 'www.rozer.pro'
+  || hostname === 'rozer.fun'
+  || hostname === 'www.rozer.fun'
+);
+
 export const getApiBase = (): string => {
   if (typeof window === 'undefined') {
     return CONFIGURED_API_URL;
@@ -30,6 +37,12 @@ export const getApiBase = (): string => {
     }
 
     if (isLoopbackHost(resolved.hostname) && isLoopbackHost(current.hostname)) {
+      return resolved.toString().replace(/\/+$/, '');
+    }
+
+    // Admin/super-admin routes are only served on the main Rozer domains, so they
+    // can safely talk to a configured shared backend origin.
+    if (isMainRozerHost(current.hostname) && isMainRozerHost(resolved.hostname)) {
       return resolved.toString().replace(/\/+$/, '');
     }
 
