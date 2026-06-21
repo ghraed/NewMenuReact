@@ -102,8 +102,8 @@ const showWaveNotification = (wave: TableWaveRecord, title: string, body: string
   try {
     const notification = new window.Notification(title, {
       body,
-      icon: '/vite.svg',
-      badge: '/vite.svg',
+      icon: '/rozer-favicon.svg',
+      badge: '/rozer-favicon.svg',
       tag: `table-wave-${wave.id}`,
       requireInteraction: true,
     });
@@ -132,8 +132,8 @@ const showOrderNotification = (order: OrderRecord, title: string, body: string):
   try {
     const notification = new window.Notification(title, {
       body,
-      icon: '/vite.svg',
-      badge: '/vite.svg',
+      icon: '/rozer-favicon.svg',
+      badge: '/rozer-favicon.svg',
       tag: `pending-order-${order.id}`,
       requireInteraction: true,
     });
