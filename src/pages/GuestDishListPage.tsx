@@ -1277,7 +1277,7 @@ const GuestDishListPage: React.FC = () => {
           onClick={() => setRelatedPopupDishId(null)}
         >
           <div
-            className="flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border p-4 sm:max-h-[82vh] sm:p-6"
+            className="relative z-[2147483647] flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border p-4 sm:max-h-[82vh] sm:p-6"
             style={{
               backgroundColor: 'var(--guest-panel-solid)',
               borderColor: 'var(--guest-border)',
