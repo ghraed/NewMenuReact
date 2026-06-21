@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/useAuth';
 import { getDefaultRouteForRole } from '../utils/auth';
@@ -22,7 +21,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const LoginPage: React.FC = () => {
-  const navigate = useNavigate();
   const { login, isAuthenticated, user } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
   const { t } = useTranslation();
@@ -34,9 +32,9 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(getDefaultRouteForRole(user?.role), { replace: true });
+      window.location.replace(getDefaultRouteForRole(user?.role));
     }
-  }, [isAuthenticated, navigate, user?.role]);
+  }, [isAuthenticated, user?.role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,8 +44,7 @@ const LoginPage: React.FC = () => {
     try {
       const nextUser = await login(identifier, password);
       showToast(t('login.success'), 'primary');
-      const nextRoute = getDefaultRouteForRole(nextUser.role);
-      navigate(nextRoute, { replace: true });
+      window.location.replace(getDefaultRouteForRole(nextUser.role));
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('login.failed')));
     } finally {

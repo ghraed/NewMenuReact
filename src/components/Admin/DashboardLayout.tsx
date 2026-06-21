@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/useAuth';
 import { areFeaturesEnabled } from '../../utils/features';
@@ -72,7 +72,6 @@ const MoonIcon = () => (
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useAppTheme();
   const { t, i18n } = useTranslation();
@@ -210,7 +209,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     setLogoutBusy(true);
     try {
       await logout();
-      navigate('/admin/login', { replace: true });
+      window.location.replace('/admin/login');
     } finally {
       setLogoutBusy(false);
       setLogoutConfirmOpen(false);

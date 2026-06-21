@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
         'localhost',
         'alpha.localhost',
         'sigma.localhost',
-        // 'www.rozer.pro',
+        'www.rozer.pro',
       ],
       proxy: {
         '/api': proxyTarget,

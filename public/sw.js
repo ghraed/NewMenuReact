@@ -7,6 +7,17 @@ const GUEST_API_PATTERNS = [
   /^\/api\/menu\/table\/\d+\/dish\/\d+$/,
   /^\/api\/menu\/[a-zA-Z0-9_-]+\/dishes$/,
 ];
+const NON_CACHEABLE_NAVIGATION_PATTERNS = [
+  /^\/admin(?:\/|$)/,
+  /^\/staff(?:\/|$)/,
+  /^\/chef(?:\/|$)/,
+  /^\/super-admin(?:\/|$)/,
+  /^\/owner(?:\/|$)/,
+  /^\/login(?:\/|$)/,
+  /^\/dashboard(?:\/|$)/,
+  /^\/accounting(?:\/|$)/,
+  /^\/finance(?:\/|$)/,
+];
 
 const shouldHandleGuestApi = (url) => {
   if (url.origin !== self.location.origin) {
@@ -17,6 +28,11 @@ const shouldHandleGuestApi = (url) => {
 };
 
 const isNavigationRequest = (request) => request.mode === 'navigate';
+
+const shouldBypassNavigationCache = (url) => (
+  url.origin === self.location.origin
+  && NON_CACHEABLE_NAVIGATION_PATTERNS.some((pattern) => pattern.test(url.pathname))
+);
 
 const isAppAssetRequest = (requestUrl) => {
   if (requestUrl.origin !== self.location.origin) {
@@ -116,6 +132,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isNavigationRequest(request)) {
+    if (shouldBypassNavigationCache(requestUrl)) {
+      event.respondWith(fetch(request));
+      return;
+    }
+
     event.respondWith(networkFirst(request, APP_SHELL_CACHE));
     return;
   }

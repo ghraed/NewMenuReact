@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useSuperAdminAuth } from '../contexts/useSuperAdminAuth';
 import { useAuth } from '../contexts/useAuth';
 import { getDefaultRouteForRole } from '../utils/auth';
@@ -22,7 +21,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const SuperAdminLoginPage: React.FC = () => {
-  const navigate = useNavigate();
   const { login, isAuthenticated } = useSuperAdminAuth();
   const { isAuthenticated: isAdminSessionAuthenticated, user: adminSessionUser } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast();
@@ -34,14 +32,14 @@ const SuperAdminLoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAdminSessionAuthenticated) {
-      navigate(getDefaultRouteForRole(adminSessionUser?.role), { replace: true });
+      window.location.replace(getDefaultRouteForRole(adminSessionUser?.role));
       return;
     }
 
     if (isAuthenticated) {
-      navigate('/super-admin/dashboard', { replace: true });
+      window.location.replace('/super-admin/dashboard');
     }
-  }, [adminSessionUser?.role, isAdminSessionAuthenticated, isAuthenticated, navigate]);
+  }, [adminSessionUser?.role, isAdminSessionAuthenticated, isAuthenticated]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,7 +49,7 @@ const SuperAdminLoginPage: React.FC = () => {
     try {
       await login(email.trim(), password);
       showToast('Welcome back, Super Admin.', 'primary');
-      navigate('/super-admin/dashboard', { replace: true });
+      window.location.replace('/super-admin/dashboard');
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Super Admin login failed. Please check your credentials.'));
     } finally {

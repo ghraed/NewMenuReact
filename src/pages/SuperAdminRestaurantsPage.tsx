@@ -275,7 +275,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/super-admin/login', { replace: true });
+    window.location.replace('/super-admin/login');
   };
 
   const handleSoftDelete = async () => {

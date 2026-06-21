@@ -167,14 +167,20 @@ const MainDomainOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children
   return <>{children}</>;
 };
 
-class RouteErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: React.ReactNode }) {
+class RouteErrorBoundary extends React.Component<{ children: React.ReactNode; resetKey: string }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode; resetKey: string }) {
     super(props);
     this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
+  }
+
+  componentDidUpdate(prevProps: Readonly<{ children: React.ReactNode; resetKey: string }>) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false });
+    }
   }
 
   componentDidCatch(error: unknown) {
@@ -260,7 +266,7 @@ const AppRoutes: React.FC = () => {
     <AppThemeShell>
       <RouteScrollManager />
       <AppChangeGuards />
-      <RouteErrorBoundary>
+      <RouteErrorBoundary resetKey={`${location.pathname}${location.search}${location.hash}`}>
         <Routes>
           <Route path="/" element={<GuestDishListPage />} />
           <Route path="/menu" element={<GuestDishListPage />} />
