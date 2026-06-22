@@ -6,6 +6,11 @@ import { useOrderCart } from '../../contexts/useOrderCart';
 import { callGuestTableWaiter, requestGuestTableBill } from '../../services/orderService';
 import { savePrintableInvoice } from '../../utils/printableInvoice';
 import { readBillAdjustmentsForTableInvoice } from '../../utils/billAdjustments';
+import {
+  buildPrintableInvoiceItemsFromPreview,
+  buildPrintableInvoiceSplitFromPreview,
+  buildPrintableInvoiceSummaryFromPreview,
+} from '../../utils/invoicePreviewCompensation';
 import { useGuestMenuResource } from '../../contexts/GuestMenuResourceContext';
 import { buildGuestOrderReviewPath } from '../../utils/guestTableRoutes';
 
@@ -18,17 +23,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return fallback;
-};
-
-const parseMoneyValue = (value: string | number | null | undefined): number => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (typeof value !== 'string') {
-    return 0;
-  }
-  const normalized = Number(value.replace(/[^0-9.-]/g, ''));
-  return Number.isFinite(normalized) ? normalized : 0;
 };
 
 const GuestWaveButton: React.FC = () => {
@@ -169,81 +163,8 @@ const GuestWaveButton: React.FC = () => {
           response.invoice_preview.table_name,
           response.invoice_preview.included_orders
         );
-        const byOrderItemId = new Map<number, (typeof adjustments)[number]>();
-        const localOnlyGifts: Array<(typeof adjustments)[number]> = [];
-
-        adjustments.forEach((adjustment) => {
-          if (adjustment.local_only) {
-            localOnlyGifts.push(adjustment);
-            return;
-          }
-          if (typeof adjustment.order_item_id === 'number') {
-            byOrderItemId.set(adjustment.order_item_id, adjustment);
-          }
-        });
-
-        const printableItems = response.invoice_preview.items.map((item) => {
-          const adjustment = typeof item.order_item_id === 'number'
-            ? byOrderItemId.get(item.order_item_id)
-            : undefined;
-          const quantity = item.quantity;
-          const originalUnitPrice = Number(adjustment?.original_unit_price ?? item.original_unit_price ?? item.unit_price);
-          const finalUnitPrice = Number(adjustment?.final_unit_price ?? item.final_unit_price ?? item.unit_price);
-          const lineSubtotal = Number.isFinite(finalUnitPrice) ? (finalUnitPrice * quantity).toFixed(2) : item.line_subtotal;
-          const originalLineSubtotal = Number.isFinite(originalUnitPrice) ? (originalUnitPrice * quantity).toFixed(2) : undefined;
-
-          return {
-            key: item.key,
-            dishName: item.dish_name,
-            dishNameArabic: item.dish_name_ar || undefined,
-            quantity,
-            unitPrice: `$${Number.isFinite(finalUnitPrice) ? finalUnitPrice.toFixed(2) : item.unit_price}`,
-            lineSubtotal: `$${lineSubtotal}`,
-            originalLineSubtotal: originalLineSubtotal ? `$${originalLineSubtotal}` : undefined,
-            status: adjustment?.status || item.status || 'normal',
-            compensationType: adjustment?.compensation_type || item.compensation_type || 'none',
-            reasonLabel: adjustment?.compensation_reason || item.compensation_reason || undefined,
-            note: adjustment?.compensation_note || item.compensation_note || undefined,
-            badgeLabel: adjustment?.status
-              ? adjustment.status.replace(/_/g, ' ')
-              : (item.status ? item.status.replace(/_/g, ' ') : undefined),
-            approvedBy: adjustment?.approved_by_staff_name || item.approved_by_staff_name || undefined,
-            approvedAt: adjustment?.approved_at || item.approved_at || undefined,
-            accountingBucketLabel: adjustment?.accounting_bucket || item.accounting_bucket || undefined,
-            isComplimentary: adjustment?.is_complimentary === true || item.is_complimentary === true,
-          };
-        });
-
-        localOnlyGifts.forEach((gift, index) => {
-          const qty = gift.quantity || 1;
-          printableItems.push({
-            key: `gift-local-${index + 1}-${gift.key}`,
-            dishName: gift.dish_name,
-            dishNameArabic: undefined,
-            quantity: qty,
-            unitPrice: `$${Number(gift.final_unit_price || 0).toFixed(2)}`,
-            lineSubtotal: '$0.00',
-            originalLineSubtotal: `$${(Number(gift.original_unit_price || 0) * qty).toFixed(2)}`,
-            status: gift.status,
-            compensationType: gift.compensation_type,
-            reasonLabel: gift.compensation_reason || undefined,
-            note: gift.compensation_note || undefined,
-            badgeLabel: gift.status.replace(/_/g, ' '),
-            approvedBy: gift.approved_by_staff_name || undefined,
-            approvedAt: gift.approved_at || undefined,
-            accountingBucketLabel: gift.accounting_bucket || undefined,
-            isComplimentary: true,
-          });
-        });
-
-        const adjustedSubtotal = printableItems.reduce((sum, item) => (
-          sum + parseMoneyValue(item.lineSubtotal)
-        ), 0);
-        const discountAmount = parseMoneyValue(response.invoice_preview.summary.discount_amount);
-        const vatRate = parseMoneyValue(response.invoice_preview.summary.vat_rate);
-        const adjustedTaxableSubtotal = Math.max(0, adjustedSubtotal - discountAmount);
-        const adjustedVatAmount = adjustedTaxableSubtotal * (vatRate / 100);
-        const adjustedTotal = adjustedTaxableSubtotal + adjustedVatAmount;
+        const printableItems = buildPrintableInvoiceItemsFromPreview(response.invoice_preview.items, adjustments);
+        const printableSummary = buildPrintableInvoiceSummaryFromPreview(printableItems, response.invoice_preview.summary, t);
 
         savePrintableInvoice({
           sourceTableId: activeTableId,
@@ -253,25 +174,8 @@ const GuestWaveButton: React.FC = () => {
           notes: response.invoice_preview.notes,
           items: printableItems,
           includedOrders: response.invoice_preview.included_orders,
-          summary: {
-            subtotal: `$${adjustedSubtotal.toFixed(2)}`,
-            discountLabel: t('accountingPage.discount'),
-            discountAmount: `$${discountAmount.toFixed(2)}`,
-            taxableSubtotal: `$${adjustedTaxableSubtotal.toFixed(2)}`,
-            vatLabel: t('accountingPage.vatWithValue', { value: vatRate.toFixed(2) }),
-            vatAmount: `$${adjustedVatAmount.toFixed(2)}`,
-            total: `$${adjustedTotal.toFixed(2)}`,
-          },
-          split: response.invoice_preview.invoice_split ? {
-            enabled: response.invoice_preview.invoice_split.enabled,
-            mode: response.invoice_preview.invoice_split.mode,
-            splitCount: response.invoice_preview.invoice_split.split_count,
-            breakdown: response.invoice_preview.invoice_split.breakdown.map((item) => ({
-              key: item.key,
-              label: item.label,
-              amount: `$${item.amount}`,
-            })),
-          } : undefined,
+          summary: printableSummary,
+          split: buildPrintableInvoiceSplitFromPreview(response.invoice_preview.invoice_split),
         });
 
         navigate(`/menu/table/${activeTableId}/invoice`);

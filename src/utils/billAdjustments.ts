@@ -74,7 +74,7 @@ export const readBillAdjustmentsForTableInvoice = (
 
   const included = new Set(includedOrders.map(normalizeOrderReference));
 
-  return adjustments.filter((adjustment) => {
+  const matchedAdjustments = adjustments.filter((adjustment) => {
     if (adjustment.local_only !== true) {
       return true;
     }
@@ -85,6 +85,21 @@ export const readBillAdjustmentsForTableInvoice = (
 
     return included.has(normalizeOrderReference(adjustment.source_order_reference));
   });
+
+  const hasMatchedLocalOnlyAdjustment = matchedAdjustments.some((adjustment) => adjustment.local_only === true);
+  if (hasMatchedLocalOnlyAdjustment) {
+    return matchedAdjustments;
+  }
+
+  const unmatchedLocalOnlyAdjustments = adjustments.filter((adjustment) => adjustment.local_only === true);
+  if (unmatchedLocalOnlyAdjustments.length === 0) {
+    return matchedAdjustments;
+  }
+
+  return [
+    ...matchedAdjustments,
+    ...unmatchedLocalOnlyAdjustments,
+  ];
 };
 
 export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments: BillItemAdjustment[]): void => {
