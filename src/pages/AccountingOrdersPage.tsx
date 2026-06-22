@@ -1525,7 +1525,62 @@ const AccountingOrdersPage: React.FC = () => {
     setError(null);
 
     try {
-      await persistSelectedTableAccounting(selectedTable);
+      savePrintableInvoice({
+        sourceTableId: selectedTable,
+        restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
+        tableName: selectedTable,
+        generatedAt: new Date().toLocaleString(),
+        notes: selectedTableNotes,
+        items: selectedTableLineItems.map((item) => ({
+          key: item.key,
+          dishName: item.dish_name,
+          dishNameArabic: item.dish_name_ar || undefined,
+          quantity: item.quantity,
+          unitPrice: `$${item.unit_price}`,
+          lineSubtotal: formatMoney(Number(item.line_subtotal)),
+          originalLineSubtotal: formatMoney(Number(item.original_line_subtotal)),
+          status: item.status,
+          compensationType: item.compensation_type,
+          reasonLabel: item.compensation_reason
+            ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
+            : undefined,
+          note: [
+            item.compensation_note,
+            item.operational_loss_category ? `Loss: ${OPERATIONAL_LOSS_CATEGORY_LABELS[item.operational_loss_category]}` : null,
+            item.adjustment_action_type ? `Type: ${ADJUSTMENT_ACTION_LABELS[item.adjustment_action_type]}` : null,
+          ].filter(Boolean).join(' • ') || undefined,
+          badgeLabel: item.status !== 'normal' ? ISSUE_STATUS_LABELS[item.status] : undefined,
+          approvedBy: item.approved_by_name || undefined,
+          approvedAt: item.approved_at || undefined,
+          accountingBucketLabel: item.accounting_bucket
+            ? COMPLAINT_ACCOUNTING_BUCKET_LABELS[item.accounting_bucket as keyof typeof COMPLAINT_ACCOUNTING_BUCKET_LABELS]
+            : undefined,
+          isComplimentary: item.is_complimentary,
+        })),
+        includedOrders: selectedTableOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })),
+        summary: {
+          subtotal: formatMoney(selectedTablePreview.subtotal),
+          discountLabel: selectedTablePreview.discountType === 'percentage'
+            ? t('accountingPage.discountWithValue', { value: selectedTablePreview.discountValue.toFixed(2) })
+            : t('accountingPage.discount'),
+          discountAmount: formatMoney(selectedTablePreview.discountAmount),
+          taxableSubtotal: formatMoney(selectedTablePreview.taxableSubtotal),
+          vatLabel: t('accountingPage.vatWithValue', { value: selectedTablePreview.vatRate.toFixed(2) }),
+          vatAmount: formatMoney(selectedTablePreview.vatAmount),
+          total: formatMoney(selectedTablePreview.total),
+        },
+        split: sessionInvoiceSplit?.enabled ? {
+          enabled: sessionInvoiceSplit.enabled,
+          mode: sessionInvoiceSplit.mode,
+          splitCount: sessionInvoiceSplit.split_count,
+          breakdown: sessionInvoiceSplit.breakdown.map((item) => ({
+            key: item.key,
+            label: item.label,
+            amount: formatMoney(Number(item.amount)),
+          })),
+        } : undefined,
+      });
+
       showToast(
         t('accountingPage.savedTableAccounting', {
           count: selectedTableOrders.length,
