@@ -6,6 +6,7 @@ import DishAssetThumbnail from '../Common/DishAssetThumbnail';
 import DishTags from './DishTags';
 import { getDishTags } from './guestPresentation';
 import {
+  convertPriceBetweenCurrencies,
   convertPriceFromUsdToCurrency,
   formatPriceWithCurrency,
   formatUsdEquivalent,
@@ -75,6 +76,11 @@ const DishCard: React.FC<DishCardProps> = ({
   const clickLabel = useMemo(() => {
     const amount = Number(dish.price);
     const hasRate = typeof dish.dollar_rate === 'number' && Number.isFinite(dish.dollar_rate) && dish.dollar_rate > 0;
+
+    if (hasRate && originalCurrency !== currency && (currency === 'USD' || originalCurrency === 'USD')) {
+      const converted = convertPriceBetweenCurrencies(amount, currency, originalCurrency, dish.dollar_rate);
+      return formatPriceWithCurrency(converted, originalCurrency);
+    }
 
     // If current price is USD but the configured original currency is not USD, show converted original amount on click.
     if (dish.price_is_usd_base === true && currency === 'USD' && originalCurrency !== 'USD' && hasRate) {

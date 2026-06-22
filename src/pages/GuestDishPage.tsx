@@ -18,12 +18,17 @@ import {
 } from '../utils/guestRestaurant';
 import { normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
 
-const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string | null; dollar_rate?: number | null }>(
+const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string | null; other_currency?: string | null; dollar_rate?: number | null }>(
   dish: Dish,
   restaurant: TRestaurant
 ): Dish => {
   const storedSettings = readGuestCurrencySettings();
   const restaurantCurrency = normalizeCurrency(storedSettings?.currency || restaurant.currency || dish.currency);
+  const alternateCurrency = normalizeCurrency(
+    storedSettings?.other_currency
+      || restaurant.other_currency
+      || (restaurantCurrency === 'USD' ? 'EUR' : 'USD')
+  );
   const restaurantDollarRate = typeof storedSettings?.dollar_rate === 'number'
     ? storedSettings.dollar_rate
     : (typeof restaurant.dollar_rate === 'number'
@@ -36,7 +41,9 @@ const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string |
     ...dish,
     price: Number.isFinite(basePrice) ? basePrice : 0,
     currency: dishCurrency,
-    original_currency: restaurantCurrency,
+    original_currency: alternateCurrency === dishCurrency
+      ? (dishCurrency === 'USD' ? 'EUR' : 'USD')
+      : alternateCurrency,
     price_is_usd_base: dishCurrency === 'USD',
     dollar_rate: typeof dish.dollar_rate === 'number'
       ? dish.dollar_rate

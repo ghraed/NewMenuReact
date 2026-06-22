@@ -21,6 +21,7 @@ import {
   buildGuestRestaurantDishPath,
 } from '../../utils/guestTableRoutes';
 import {
+  convertPriceBetweenCurrencies,
   convertPriceFromUsdToCurrency,
   formatPriceWithCurrency,
   formatUsdEquivalent,
@@ -80,6 +81,11 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const clickLabel = useMemo(() => {
     const amount = Number(dish.price);
     const hasRate = typeof dish.dollar_rate === 'number' && Number.isFinite(dish.dollar_rate) && dish.dollar_rate > 0;
+
+    if (hasRate && originalCurrency !== currency && (currency === 'USD' || originalCurrency === 'USD')) {
+      const converted = convertPriceBetweenCurrencies(amount, currency, originalCurrency, dish.dollar_rate);
+      return formatPriceWithCurrency(converted, originalCurrency);
+    }
 
     if (dish.price_is_usd_base === true && currency === 'USD' && originalCurrency !== 'USD' && hasRate) {
       const converted = convertPriceFromUsdToCurrency(amount, originalCurrency, dish.dollar_rate);

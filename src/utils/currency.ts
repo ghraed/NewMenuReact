@@ -118,6 +118,24 @@ export const convertPriceToUsd = (
   return safeAmount / safeRate;
 };
 
+export const convertPriceBetweenCurrencies = (
+  amount: number,
+  fromCurrency?: string | null,
+  toCurrency?: string | null,
+  dollarRate?: number | null
+): number => {
+  const from = normalizeCurrency(fromCurrency);
+  const to = normalizeCurrency(toCurrency);
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+
+  if (from === to) {
+    return safeAmount;
+  }
+
+  const usdAmount = convertPriceToUsd(safeAmount, from, dollarRate);
+  return convertPriceFromUsdToCurrency(usdAmount, to, dollarRate);
+};
+
 export const formatUsdEquivalent = (
   amount: number,
   currency?: string | null,
