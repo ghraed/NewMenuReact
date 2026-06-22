@@ -221,13 +221,13 @@ const DishCard: React.FC<DishCardProps> = ({
                     event.stopPropagation();
                     setShowDollarRate((current) => !current);
                   }}
-                  className="text-xs font-medium tracking-[0.06em] text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
+                  className="ml-auto block text-xs font-medium tracking-[0.06em] text-[var(--guest-muted)] transition hover:text-[var(--guest-text)]"
                   aria-label="Show USD equivalent"
                 >
                   {priceLabel}
                 </button>
                 {showDollarRate ? (
-                  <p className="mt-1 text-[10px] font-medium leading-4 text-[var(--guest-muted)]">
+                  <p className="mt-1 block text-[10px] font-medium leading-4 text-[var(--guest-muted)]">
                     {clickLabel}
                   </p>
                 ) : null}

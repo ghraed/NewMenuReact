@@ -42,18 +42,30 @@ export const getCurrencySymbol = (currency?: string | null): string => {
   return option?.symbol || '$';
 };
 
-export const formatMoney = (amount: number): string => {
+const currencyFractionDigits = (currency?: string | null): number => {
+  const normalized = normalizeCurrency(currency);
+
+  if (normalized === 'LBP' || normalized === 'SYP') {
+    return 0;
+  }
+
+  return 2;
+};
+
+export const formatMoney = (amount: number, currency?: string | null): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const fractionDigits = currencyFractionDigits(currency);
+
   return safeAmount.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   });
 };
 
 export const formatPriceWithCurrency = (amount: number, currency?: string | null): string => {
   const normalized = normalizeCurrency(currency);
   const symbol = getCurrencySymbol(normalized);
-  const money = formatMoney(amount);
+  const money = formatMoney(amount, normalized);
 
   if (normalized === 'USD') {
     return `${symbol}${money}`;
@@ -142,7 +154,7 @@ export const formatUsdEquivalent = (
   dollarRate?: number | null
 ): string => {
   const usdAmount = convertPriceToUsd(amount, currency, dollarRate);
-  return `USD: $${formatMoney(usdAmount)}`;
+  return `USD: $${formatMoney(usdAmount, 'USD')}`;
 };
 
 const GUEST_CURRENCY_SETTINGS_KEY = 'guest_currency_settings_v2';

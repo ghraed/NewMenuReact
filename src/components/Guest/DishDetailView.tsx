@@ -205,7 +205,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowDollarRate((current) => !current)}
-                className="rounded-full border px-4 py-2 text-lg font-semibold transition hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
+                className="ml-auto block rounded-full border px-4 py-2 text-lg font-semibold transition hover:shadow-[0_12px_28px_rgba(0,0,0,0.16)]"
                 style={{
                   backgroundColor: 'var(--guest-accent-soft)',
                   borderColor: 'var(--guest-border)',
@@ -216,7 +216,7 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
                 {priceLabel}
               </button>
               {showDollarRate ? (
-                <p className="mt-2 text-xs font-medium leading-5 text-[var(--guest-muted)]">
+                <p className="mt-2 block text-xs font-medium leading-5 text-[var(--guest-muted)]">
                   {clickLabel}
                 </p>
               ) : null}
