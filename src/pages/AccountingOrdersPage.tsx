@@ -15,6 +15,7 @@ import {
   accountConfirmedOrder,
   fetchAccountingOrders,
   fetchGuestTables,
+  fetchGuestTableMenu,
   fetchPublishedDishes,
   fetchStaffTableSessionInvoiceSplit,
   finalizeGuestTableSession,
@@ -50,6 +51,7 @@ import type {
   ComplaintCategory,
   ComplaintReasonCode,
   DiscountType,
+  Dish,
   FinalizeInvoiceStatusMode,
   FinanceExpenseCategory,
   FinancePaymentMethod,
@@ -82,6 +84,26 @@ const emptyAccountingDraft = {
 };
 
 const formatMoney = (value: number): string => `$${value.toFixed(2)}`;
+
+const normalizeGiftItemPrice = (value: unknown): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toPublishedDishSummary = (item: Dish): PublishedDishSummary => ({
+  id: item.id,
+  name: item.name || 'Unnamed item',
+  price: normalizeGiftItemPrice(item.price),
+  category: item.category || 'Uncategorized',
+  is_orderable: item.is_orderable,
+  is_out_of_stock: item.is_out_of_stock,
+  alternative_dishes: item.alternative_dishes?.map((dish) => ({
+    id: dish.id,
+    name: dish.name || 'Unnamed item',
+    price: normalizeGiftItemPrice(dish.price),
+    category: dish.category || 'Uncategorized',
+  })),
+});
 
 const findExpenseCategoryId = (
   categories: FinanceExpenseCategory[],
@@ -244,6 +266,7 @@ const AccountingOrdersPage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<FinancePaymentMethod>('cash');
   const [paymentReference, setPaymentReference] = useState('');
   const [publishedDishes, setPublishedDishes] = useState<PublishedDishSummary[]>([]);
+  const [fallbackGiftItems, setFallbackGiftItems] = useState<PublishedDishSummary[]>([]);
   const [selectedGiftDishId, setSelectedGiftDishId] = useState<string>('');
   const [localItemOverrides, setLocalItemOverrides] = useState<Record<string, Partial<OrderLineItem>>>({});
   const [localGiftItemsByTable, setLocalGiftItemsByTable] = useState<Record<string, OrderLineItem[]>>({});
@@ -592,16 +615,22 @@ const AccountingOrdersPage: React.FC = () => {
     };
   }, [isGiftDishMenuOpen]);
 
+  const availableGiftItems = useMemo(() => (
+    publishedDishes.length > 0 ? publishedDishes : fallbackGiftItems
+  ), [fallbackGiftItems, publishedDishes]);
+
   const giftDishOptions = useMemo(() => (
-    [...publishedDishes].sort((left, right) => {
-      const categoryComparison = left.category.localeCompare(right.category);
+    [...availableGiftItems].sort((left, right) => {
+      const leftCategory = left.category || 'Uncategorized';
+      const rightCategory = right.category || 'Uncategorized';
+      const categoryComparison = leftCategory.localeCompare(rightCategory);
       if (categoryComparison !== 0) {
         return categoryComparison;
       }
 
-      return left.name.localeCompare(right.name);
+      return (left.name || 'Unnamed item').localeCompare(right.name || 'Unnamed item');
     })
-  ), [publishedDishes]);
+  ), [availableGiftItems]);
 
   const filteredGiftDishOptions = useMemo(() => {
     const normalizedQuery = giftDishSearchQuery.trim().toLowerCase();
@@ -611,7 +640,9 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     return giftDishOptions.filter((dish) => (
-      `${dish.name} ${dish.category} ${dish.price.toFixed(2)}`.toLowerCase().includes(normalizedQuery)
+      `${dish.name || 'Unnamed item'} ${dish.category || 'Uncategorized'} ${normalizeGiftItemPrice(dish.price).toFixed(2)}`
+        .toLowerCase()
+        .includes(normalizedQuery)
     ));
   }, [giftDishOptions, giftDishSearchQuery]);
 
@@ -621,8 +652,8 @@ const AccountingOrdersPage: React.FC = () => {
       return null;
     }
 
-    return publishedDishes.find((dish) => dish.id === dishId) ?? null;
-  }, [publishedDishes, selectedGiftDishId]);
+    return availableGiftItems.find((dish) => dish.id === dishId) ?? null;
+  }, [availableGiftItems, selectedGiftDishId]);
 
   const selectedTableStats = useMemo(() => {
     if (!selectedTable) {
@@ -684,6 +715,49 @@ const AccountingOrdersPage: React.FC = () => {
         })()
       : []
   ), [localGiftItemsByTable, localItemOverrides, orders, selectedTable]);
+
+  const selectedTableId = useMemo(() => {
+    const orderTableId = selectedTableOrders[0]?.table?.id;
+    if (typeof orderTableId === 'number') {
+      return orderTableId;
+    }
+
+    const matchedTable = tables.find((table) => table.name === selectedTable);
+    return matchedTable?.id ?? null;
+  }, [selectedTable, selectedTableOrders, tables]);
+
+  useEffect(() => {
+    if (publishedDishes.length > 0 || !selectedTableId) {
+      setFallbackGiftItems([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    void fetchGuestTableMenu(selectedTableId)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+
+        const nextItems = (response.dishes_page ?? response.dishes ?? [])
+          .filter((item) => item.status === 'published' && item.is_orderable !== false)
+          .map(toPublishedDishSummary);
+
+        setFallbackGiftItems(nextItems);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+
+        setFallbackGiftItems([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publishedDishes.length, selectedTableId]);
 
   const splitFeatureEnabled = user?.restaurant?.feature_flags?.invoice_splitting === true;
   const finalizeInvoiceStatusMode: FinalizeInvoiceStatusMode = 'paid';
@@ -1101,7 +1175,7 @@ const AccountingOrdersPage: React.FC = () => {
     }
 
     const dishId = Number(selectedGiftDishId);
-    const selectedDish = publishedDishes.find((dish) => dish.id === dishId);
+    const selectedDish = availableGiftItems.find((dish) => dish.id === dishId);
     if (!selectedDish) {
       showToast('Choose a dish to add as complimentary.', 'secondary');
       return;
@@ -1814,7 +1888,9 @@ const AccountingOrdersPage: React.FC = () => {
                             </button>
                           )) : (
                             <p className="px-3 py-4 text-sm text-muted">
-                              No menu items match "{giftDishSearchQuery.trim()}".
+                              {giftDishSearchQuery.trim()
+                                ? `No menu items match "${giftDishSearchQuery.trim()}".`
+                                : 'No menu items available.'}
                             </p>
                           )}
                         </div>
