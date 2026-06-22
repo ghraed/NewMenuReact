@@ -31,6 +31,27 @@ const parseDollarRate = (value: unknown): string => {
   return '1';
 };
 
+const shouldPreserveStoredGuestRate = (
+  stored: ReturnType<typeof readGuestCurrencySettings>,
+  currency: CurrencyCode,
+  otherCurrency: CurrencyCode,
+  apiRate: number
+): stored is NonNullable<ReturnType<typeof readGuestCurrencySettings>> => {
+  if (!stored) {
+    return false;
+  }
+
+  if (stored.currency !== currency) {
+    return false;
+  }
+
+  if ((stored.other_currency || (currency === 'USD' ? 'EUR' : 'USD')) !== otherCurrency) {
+    return false;
+  }
+
+  return apiRate === 1 && stored.dollar_rate > 1 && currency === 'USD' && otherCurrency !== 'USD';
+};
+
 const AdminCurrencyPage: React.FC = () => {
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const [originalCurrency, setOriginalCurrency] = useState<CurrencyCode>('USD');
@@ -49,16 +70,25 @@ const AdminCurrencyPage: React.FC = () => {
       try {
         const response = await api.get<CurrencySettingsResponse>('/restaurant/currency-settings');
         const payload = response.data;
+        const stored = readGuestCurrencySettings();
         const nextCurrency = normalizeCurrency(payload.currency || payload.restaurant?.currency);
         const nextOtherCurrency = normalizeCurrency(
           payload.other_currency || payload.restaurant?.other_currency || (nextCurrency === 'USD' ? 'EUR' : 'USD')
         );
-        const nextRate = parseDollarRate(payload.dollar_rate ?? payload.restaurant?.dollar_rate);
+        const parsedApiRate = Number(parseDollarRate(payload.dollar_rate ?? payload.restaurant?.dollar_rate));
+        const effectiveRate = shouldPreserveStoredGuestRate(
+          stored,
+          nextCurrency,
+          nextOtherCurrency,
+          parsedApiRate
+        )
+          ? stored.dollar_rate
+          : parsedApiRate;
 
         setOriginalCurrency(nextCurrency);
         setOtherCurrency(nextOtherCurrency === nextCurrency ? (nextCurrency === 'USD' ? 'EUR' : 'USD') : nextOtherCurrency);
-        setDollarRate(nextRate);
-        persistGuestCurrencySettings(nextCurrency, Number(nextRate), nextOtherCurrency);
+        setDollarRate(String(effectiveRate));
+        persistGuestCurrencySettings(nextCurrency, effectiveRate, nextOtherCurrency);
       } catch (err) {
         console.error(err);
         const stored = readGuestCurrencySettings();
