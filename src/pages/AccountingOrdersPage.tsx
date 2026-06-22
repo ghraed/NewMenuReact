@@ -1946,31 +1946,6 @@ const AccountingOrdersPage: React.FC = () => {
                   Complimentary, refund, and service-recovery adjustments are restricted to Admin and Accountant roles.
                 </p>
               ) : null}
-              {selectedTable ? (
-                <div className="mt-3 space-y-2">
-                  {(localGiftItemsByTable[selectedTable] || []).map((giftItem) => (
-                    <div
-                      key={`local-gift-${giftItem.id}`}
-                      className="flex items-center justify-between gap-3 rounded-[18px] border border-emerald-300/25 bg-emerald-500/10 px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-emerald-100">{giftItem.dish_name}</p>
-                        <p className="text-xs text-emerald-100/75">
-                          Complimentary item • original value {formatMoney(Number(giftItem.original_unit_price || giftItem.unit_price || 0))}
-                        </p>
-                      </div>
-                      <LiquidButton
-                        tone="tertiary"
-                        className="shrink-0 px-3 py-1.5 text-xs"
-                        disabled={!canManageCompensation}
-                        onClick={() => removeLocalGiftItemFromAccounting(giftItem.id)}
-                      >
-                        Remove
-                      </LiquidButton>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
               <div className="mt-3 space-y-3">
                 {selectedTableIssueItems.length > 0 ? (
                   <div className="rounded-[20px] border border-amber-300/30 bg-amber-500/10 px-4 py-3">
@@ -2069,7 +2044,22 @@ const AccountingOrdersPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="mt-2 flex justify-end">
+                      <div className="mt-2 flex justify-end gap-2">
+                        {item.is_complimentary && item.source_refs.some((ref) => ref.order_item_id < 0) ? (
+                          <LiquidButton
+                            tone="tertiary"
+                            className="px-3 py-1.5 text-xs"
+                            disabled={!canManageCompensation}
+                            onClick={() => {
+                              const localGiftRef = item.source_refs.find((ref) => ref.order_item_id < 0);
+                              if (localGiftRef) {
+                                removeLocalGiftItemFromAccounting(localGiftRef.order_item_id);
+                              }
+                            }}
+                          >
+                            Remove
+                          </LiquidButton>
+                        ) : null}
                         <LiquidButton
                           tone="tertiary"
                           className="px-3 py-1.5 text-xs"
