@@ -26,7 +26,7 @@ import { ensureEchoConnection, getEcho } from '../services/realtime';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
 import { savePrintableInvoice } from '../utils/printableInvoice';
 import { calculateInvoicePreview } from '../utils/financeMath';
-import { clearBillAdjustmentsForTable, upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
+import { clearBillAdjustmentsForTable, readBillAdjustmentsForTable, upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
 import {
   ADJUSTMENT_ACTION_LABELS,
   COMPLAINT_CATEGORY_LABELS,
@@ -1250,6 +1250,40 @@ const AccountingOrdersPage: React.FC = () => {
     showToast(`${selectedDish.name} added as complimentary.`, 'secondary');
   };
 
+  const removeLocalGiftItemFromAccounting = (giftItemId: number) => {
+    if (!selectedTable) {
+      return;
+    }
+
+    const currentGiftItems = localGiftItemsByTable[selectedTable] || [];
+    const giftItem = currentGiftItems.find((item) => item.id === giftItemId);
+    if (!giftItem) {
+      return;
+    }
+
+    const nextGiftItems = currentGiftItems.filter((item) => item.id !== giftItemId);
+    setLocalGiftItemsByTable((current) => {
+      if (nextGiftItems.length === 0) {
+        const { [selectedTable]: _removed, ...rest } = current;
+        return rest;
+      }
+
+      return {
+        ...current,
+        [selectedTable]: nextGiftItems,
+      };
+    });
+
+    const persistedAdjustments = readBillAdjustmentsForTable(selectedTable);
+    const remainingAdjustments = persistedAdjustments.filter((item) => item.key !== `gift:${selectedTable}:${giftItemId}`);
+    clearBillAdjustmentsForTable(selectedTable);
+    if (remainingAdjustments.length > 0) {
+      upsertBillAdjustmentsForTable(selectedTable, remainingAdjustments);
+    }
+
+    showToast(`${giftItem.dish_name} removed from complimentary items.`, 'secondary');
+  };
+
   const selectedTableNotes = useMemo(() => (
     selectedTableOrders
       .map((order) => order.notes?.trim())
@@ -1911,6 +1945,31 @@ const AccountingOrdersPage: React.FC = () => {
                 <p className="mt-2 text-xs text-amber-200">
                   Complimentary, refund, and service-recovery adjustments are restricted to Admin and Accountant roles.
                 </p>
+              ) : null}
+              {selectedTable ? (
+                <div className="mt-3 space-y-2">
+                  {(localGiftItemsByTable[selectedTable] || []).map((giftItem) => (
+                    <div
+                      key={`local-gift-${giftItem.id}`}
+                      className="flex items-center justify-between gap-3 rounded-[18px] border border-emerald-300/25 bg-emerald-500/10 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-emerald-100">{giftItem.dish_name}</p>
+                        <p className="text-xs text-emerald-100/75">
+                          Complimentary item • original value {formatMoney(Number(giftItem.original_unit_price || giftItem.unit_price || 0))}
+                        </p>
+                      </div>
+                      <LiquidButton
+                        tone="tertiary"
+                        className="shrink-0 px-3 py-1.5 text-xs"
+                        disabled={!canManageCompensation}
+                        onClick={() => removeLocalGiftItemFromAccounting(giftItem.id)}
+                      >
+                        Remove
+                      </LiquidButton>
+                    </div>
+                  ))}
+                </div>
               ) : null}
               <div className="mt-3 space-y-3">
                 {selectedTableIssueItems.length > 0 ? (
