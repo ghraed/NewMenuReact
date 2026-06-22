@@ -232,6 +232,8 @@ const AccountingOrdersPage: React.FC = () => {
   const [visibleInvoiceTable, setVisibleInvoiceTable] = useState('');
   const [tableSearchQuery, setTableSearchQuery] = useState('');
   const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
+  const [giftDishSearchQuery, setGiftDishSearchQuery] = useState('');
+  const [isGiftDishMenuOpen, setIsGiftDishMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tablesLoading, setTablesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -250,6 +252,8 @@ const AccountingOrdersPage: React.FC = () => {
   const [isRealtimeDegraded, setIsRealtimeDegraded] = useState(false);
   const tableMenuRef = useRef<HTMLDivElement | null>(null);
   const tableSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const giftDishMenuRef = useRef<HTMLDivElement | null>(null);
+  const giftDishSearchInputRef = useRef<HTMLInputElement | null>(null);
   const hasLoadedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<number>>(new Set());
   const refreshInFlightRef = useRef(false);
@@ -514,6 +518,25 @@ const AccountingOrdersPage: React.FC = () => {
   }, [isTableMenuOpen]);
 
   useEffect(() => {
+    if (!isGiftDishMenuOpen) {
+      setGiftDishSearchQuery('');
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!giftDishMenuRef.current?.contains(event.target as Node)) {
+        setIsGiftDishMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isGiftDishMenuOpen]);
+
+  useEffect(() => {
     if (!isTableMenuOpen || typeof window === 'undefined') {
       return undefined;
     }
@@ -548,6 +571,58 @@ const AccountingOrdersPage: React.FC = () => {
 
     return tables.filter((table) => table.name.toLowerCase().includes(normalizedQuery));
   }, [tables, tableSearchQuery]);
+
+  useEffect(() => {
+    if (!isGiftDishMenuOpen || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const prefersDesktopPointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (!prefersDesktopPointer) {
+      return undefined;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      giftDishSearchInputRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [isGiftDishMenuOpen]);
+
+  const giftDishOptions = useMemo(() => (
+    [...publishedDishes].sort((left, right) => {
+      const categoryComparison = left.category.localeCompare(right.category);
+      if (categoryComparison !== 0) {
+        return categoryComparison;
+      }
+
+      return left.name.localeCompare(right.name);
+    })
+  ), [publishedDishes]);
+
+  const filteredGiftDishOptions = useMemo(() => {
+    const normalizedQuery = giftDishSearchQuery.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return giftDishOptions;
+    }
+
+    return giftDishOptions.filter((dish) => (
+      `${dish.name} ${dish.category} ${dish.price.toFixed(2)}`.toLowerCase().includes(normalizedQuery)
+    ));
+  }, [giftDishOptions, giftDishSearchQuery]);
+
+  const selectedGiftDish = useMemo(() => {
+    const dishId = Number(selectedGiftDishId);
+    if (!dishId) {
+      return null;
+    }
+
+    return publishedDishes.find((dish) => dish.id === dishId) ?? null;
+  }, [publishedDishes, selectedGiftDishId]);
 
   const selectedTableStats = useMemo(() => {
     if (!selectedTable) {
@@ -1667,19 +1742,85 @@ const AccountingOrdersPage: React.FC = () => {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm font-semibold text-text">{t('accountingPage.itemsAcrossTable')}</p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={selectedGiftDishId}
-                    onChange={(event) => setSelectedGiftDishId(event.target.value)}
-                    className="themed-native-select rounded-full border border-white/10 bg-bg1/70 px-3 py-1.5 text-xs text-text outline-none transition focus:border-gold"
-                    disabled={!canManageCompensation}
-                  >
-                    <option value="">Select complimentary dish</option>
-                    {publishedDishes.map((dish) => (
-                      <option key={dish.id} value={dish.id}>
-                        {dish.name} (${dish.price.toFixed(2)})
-                      </option>
-                    ))}
-                  </select>
+                  <div ref={giftDishMenuRef} className="relative min-w-[320px] flex-1">
+                    <button
+                      type="button"
+                      disabled={!canManageCompensation}
+                      aria-haspopup="listbox"
+                      aria-expanded={isGiftDishMenuOpen}
+                      onClick={() => setIsGiftDishMenuOpen((current) => !current)}
+                      className={cx(
+                        'flex w-full items-center justify-between gap-3 rounded-[22px] border px-4 py-2 text-left text-sm text-text',
+                        glassControl,
+                        glassControlHover,
+                        focusRing,
+                        !canManageCompensation && 'cursor-not-allowed opacity-60'
+                      )}
+                    >
+                      <span className="min-w-0 flex-1">
+                        {selectedGiftDish ? (
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="truncate font-medium text-text">{selectedGiftDish.name}</span>
+                            <span className="shrink-0 rounded-full bg-white/8 px-2.5 py-1 text-xs font-semibold text-gold2">
+                              {formatMoney(selectedGiftDish.price)}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-muted">Select complimentary item</span>
+                        )}
+                      </span>
+                      <span className={cx('text-xs text-muted2 transition-transform', isGiftDishMenuOpen && 'rotate-180')}>▾</span>
+                    </button>
+
+                    {isGiftDishMenuOpen ? (
+                      <div
+                        role="listbox"
+                        className="absolute right-0 z-30 mt-2 w-full min-w-[320px] rounded-[28px] border border-stroke bg-bg1 p-2 shadow-lux2"
+                      >
+                        <div className="px-1 pb-2">
+                          <GlassInput
+                            ref={giftDishSearchInputRef}
+                            type="search"
+                            value={giftDishSearchQuery}
+                            onChange={(event) => setGiftDishSearchQuery(event.target.value)}
+                            placeholder="Search dishes, drinks, desserts..."
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                          {filteredGiftDishOptions.length > 0 ? filteredGiftDishOptions.map((dish) => (
+                            <button
+                              key={dish.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedGiftDishId(String(dish.id));
+                                setIsGiftDishMenuOpen(false);
+                              }}
+                              className={cx(
+                                'flex w-full items-center justify-between gap-3 rounded-[20px] px-3 py-2 text-left transition',
+                                focusRing,
+                                selectedGiftDishId === String(dish.id)
+                                  ? 'bg-gold/15 text-text'
+                                  : 'text-muted hover:bg-white/[0.06] hover:text-text'
+                              )}
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm font-medium">{dish.name}</span>
+                                <span className="block text-xs uppercase tracking-[0.12em] text-muted2">{dish.category}</span>
+                              </span>
+                              <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-gold2">
+                                {formatMoney(dish.price)}
+                              </span>
+                            </button>
+                          )) : (
+                            <p className="px-3 py-4 text-sm text-muted">
+                              No menu items match "{giftDishSearchQuery.trim()}".
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                   <LiquidButton
                     tone="tertiary"
                     className="px-3 py-1.5 text-xs"
