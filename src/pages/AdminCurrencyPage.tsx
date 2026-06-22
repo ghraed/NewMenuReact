@@ -261,7 +261,7 @@ const AdminCurrencyPage: React.FC = () => {
                   />
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold2">
-                      1 USD = {dollarRate || '...'} {originalCurrency}
+                      1 USD = {dollarRate || '...'} {otherCurrency}
                     </span>
                     <span className="rounded-full border border-stroke bg-bg2/65 px-3 py-1 text-muted">
                       Preview pair: {originalCurrency} ↔ {otherCurrency}
