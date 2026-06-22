@@ -223,6 +223,19 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+const hasSavedCompensationAdjustment = (item: OrderLineItem): boolean => {
+  const originalUnit = Number(item.original_unit_price || item.unit_price || 0);
+  const finalUnit = Number(item.final_unit_price || item.unit_price || 0);
+  const originalLineSubtotal = Math.max(0, originalUnit * Math.max(1, Number(item.quantity || 1)));
+  const finalLineSubtotal = Math.max(0, finalUnit * Math.max(1, Number(item.quantity || 1)));
+  const hasLossValue = originalLineSubtotal > finalLineSubtotal;
+
+  return (item.status || 'normal') !== 'normal'
+    || (item.compensation_type || 'none') !== 'none'
+    || item.is_complimentary === true
+    || hasLossValue;
+};
+
 const parseDateToMillis = (value?: string | null): number => {
   if (!value) {
     return 0;
@@ -1336,71 +1349,209 @@ const AccountingOrdersPage: React.FC = () => {
     };
   }, [selectedTableOrders, selectedTableSessionIds, splitFeatureEnabled]);
 
-  const handleFinalizeSelectedTable = async () => {
-    if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
-      return;
+  const buildBaseAccountingPayload = useCallback((): AccountOrderRequest | null => {
+    if (!selectedTablePreview) {
+      return null;
     }
 
-    const basePayload: AccountOrderRequest = {
+    const payload: AccountOrderRequest = {
       vat_rate: selectedTablePreview.vatRate,
     };
 
     if (selectedTablePreview.discountType) {
-      basePayload.discount_type = selectedTablePreview.discountType;
-      basePayload.discount_value = selectedTablePreview.discountValue;
+      payload.discount_type = selectedTablePreview.discountType;
+      payload.discount_value = selectedTablePreview.discountValue;
     }
 
+    return payload;
+  }, [selectedTablePreview]);
+
+  const buildOrderAccountingPayload = useCallback((order: OrderRecord): AccountOrderRequest | null => {
+    const basePayload = buildBaseAccountingPayload();
+    if (!basePayload) {
+      return null;
+    }
+
+    return {
+      ...basePayload,
+      items: order.items
+        .filter((item) => typeof item.dish_id === 'number')
+        .map((item) => ({
+          order_item_id: item.id > 0 ? item.id : null,
+          dish_id: Number(item.dish_id),
+          quantity: Math.max(1, Number(item.quantity || 1)),
+          status: item.status || 'normal',
+          compensation_type: item.compensation_type || 'none',
+          compensation_reason: item.compensation_reason || null,
+          complaint_category: item.complaint_category || null,
+          operational_loss_category: item.operational_loss_category || null,
+          adjustment_action_type: item.adjustment_action_type || null,
+          compensation_note: item.compensation_note || null,
+          approved_by_staff_id: item.approved_by?.id || null,
+          approved_by_staff_name: item.approved_by?.name || null,
+          approved_by_staff_role: item.approved_by?.role || null,
+          approved_at: item.approved_at || null,
+          original_unit_price: Number(item.original_unit_price || item.unit_price || 0),
+          final_unit_price: Number(item.final_unit_price || item.unit_price || 0),
+          partial_discount_percentage: item.partial_discount_percentage ? Number(item.partial_discount_percentage) : null,
+          partial_discount_type: item.partial_discount_type || null,
+          partial_discount_value: item.partial_discount_value ? Number(item.partial_discount_value) : null,
+          is_complimentary: item.is_complimentary === true,
+          accounting_bucket: item.accounting_bucket || null,
+          customer_satisfaction_rating: item.customer_satisfaction_rating || null,
+          evidence_photo_url: item.evidence_photo_url || null,
+        })),
+    };
+  }, [buildBaseAccountingPayload]);
+
+  const persistAdjustmentsFromOrders = useCallback((tableName: string, nextOrders: OrderRecord[]) => {
+    clearBillAdjustmentsForTable(tableName);
+
+    const persistedAdjustments = nextOrders.flatMap((order) => (
+      order.items
+        .filter((item) => hasSavedCompensationAdjustment(item))
+        .map((item) => ({
+          key: `${order.id}:${item.id}`,
+          source_order_reference: order.order_number || String(order.id),
+          order_item_id: item.id,
+          dish_name: item.dish_name,
+          quantity: item.quantity,
+          status: item.status || 'normal',
+          compensation_type: item.compensation_type || 'none',
+          compensation_reason: item.compensation_reason || null,
+          complaint_category: item.complaint_category || null,
+          operational_loss_category: item.operational_loss_category || null,
+          adjustment_action_type: item.adjustment_action_type || null,
+          compensation_note: item.compensation_note || null,
+          approved_by_staff_name: item.approved_by?.name || null,
+          approved_by_staff_role: item.approved_by?.role || null,
+          approved_at: item.approved_at || null,
+          original_unit_price: item.original_unit_price || item.unit_price || null,
+          final_unit_price: item.final_unit_price || item.unit_price || null,
+          partial_discount_type: item.partial_discount_type || null,
+          partial_discount_value: item.partial_discount_value || null,
+          is_complimentary: item.is_complimentary === true,
+          accounting_bucket: item.accounting_bucket || null,
+        }))
+    ));
+
+    if (persistedAdjustments.length > 0) {
+      upsertBillAdjustmentsForTable(tableName, persistedAdjustments);
+    }
+  }, []);
+
+  const clearLocalAdjustmentState = useCallback((tableName: string, nextOrders: OrderRecord[]) => {
+    const selectedOrderIds = new Set(nextOrders.map((order) => order.id));
+
+    setLocalGiftItemsByTable((current) => {
+      const next = { ...current };
+      delete next[tableName];
+      return next;
+    });
+
+    setLocalItemOverrides((current) => {
+      const next = { ...current };
+      Object.keys(next).forEach((key) => {
+        const orderId = Number(key.split(':')[0]);
+        if (selectedOrderIds.has(orderId)) {
+          delete next[key];
+        }
+      });
+      return next;
+    });
+  }, []);
+
+  const persistSelectedTableAccounting = useCallback(async (
+    tableName: string,
+    options?: { allowBasePayloadFallback?: boolean }
+  ): Promise<{ savedOrders: OrderRecord[]; fallbackMessages: string[] }> => {
+    const basePayload = buildBaseAccountingPayload();
+    if (!basePayload) {
+      throw new Error('Invoice preview is not ready yet.');
+    }
+
+    const allowBasePayloadFallback = options?.allowBasePayloadFallback === true;
+    const fallbackMessages: string[] = [];
+
+    const savedOrders = await Promise.all(selectedTableOrders.map(async (order, orderIndex) => {
+      const orderPayload = buildOrderAccountingPayload(order);
+      if (!orderPayload) {
+        throw new Error('Invoice preview is not ready yet.');
+      }
+
+      try {
+        const response = await accountConfirmedOrder(order.id, orderPayload);
+        return response.order;
+      } catch (error) {
+        if (!allowBasePayloadFallback) {
+          throw error;
+        }
+
+        const fallbackResponse = await accountConfirmedOrder(order.id, basePayload);
+        fallbackMessages.push(
+          order.order_number
+            ? `Order ${order.order_number}`
+            : `Order #${orderIndex + 1}`
+        );
+        return fallbackResponse.order;
+      }
+    }));
+
+    savedOrders.forEach((order) => {
+      upsertAccountingOrder(order);
+    });
+    clearLocalAdjustmentState(tableName, savedOrders);
+    persistAdjustmentsFromOrders(tableName, savedOrders);
+
+    return {
+      savedOrders,
+      fallbackMessages,
+    };
+  }, [
+    buildBaseAccountingPayload,
+    buildOrderAccountingPayload,
+    clearLocalAdjustmentState,
+    persistAdjustmentsFromOrders,
+    selectedTableOrders,
+    upsertAccountingOrder,
+  ]);
+
+  const handleSaveSelectedTableAccounting = async () => {
+    if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
+      return;
+    }
+
+    setProcessingTarget(`save:${selectedTable}`);
+    setError(null);
+
+    try {
+      await persistSelectedTableAccounting(selectedTable);
+      showToast(
+        t('accountingPage.savedTableAccounting', {
+          count: selectedTableOrders.length,
+          table: selectedTable,
+        }),
+        'secondary',
+        4200
+      );
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('accountingPage.failedSaveTableAccounting', { table: selectedTable })));
+    } finally {
+      setProcessingTarget(null);
+    }
+  };
+
+  const handleFinalizeSelectedTable = async () => {
+    if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
+      return;
+    }
     setProcessingTarget(`table:${selectedTable}`);
     setError(null);
 
     try {
       const normalizedPaymentReference = paymentReference.trim();
       const autoPaymentReference = `AUTO-${new Date().toISOString()}`;
-
-      const fallbackMessages: string[] = [];
-      await Promise.all(selectedTableOrders.map(async (order, orderIndex) => {
-        const orderPayload: AccountOrderRequest = {
-          ...basePayload,
-          items: order.items
-            .filter((item) => typeof item.dish_id === 'number')
-            .map((item) => ({
-              order_item_id: item.id > 0 ? item.id : null,
-              dish_id: Number(item.dish_id),
-              quantity: Math.max(1, Number(item.quantity || 1)),
-              status: item.status || 'normal',
-              compensation_type: item.compensation_type || 'none',
-              compensation_reason: item.compensation_reason || null,
-              complaint_category: item.complaint_category || null,
-              operational_loss_category: item.operational_loss_category || null,
-              adjustment_action_type: item.adjustment_action_type || null,
-              compensation_note: item.compensation_note || null,
-              approved_by_staff_id: item.approved_by?.id || null,
-              approved_by_staff_name: item.approved_by?.name || null,
-              approved_by_staff_role: item.approved_by?.role || null,
-              approved_at: item.approved_at || null,
-              original_unit_price: Number(item.original_unit_price || item.unit_price || 0),
-              final_unit_price: Number(item.final_unit_price || item.unit_price || 0),
-              partial_discount_percentage: item.partial_discount_percentage ? Number(item.partial_discount_percentage) : null,
-              partial_discount_type: item.partial_discount_type || null,
-              partial_discount_value: item.partial_discount_value ? Number(item.partial_discount_value) : null,
-              is_complimentary: item.is_complimentary === true,
-              accounting_bucket: item.accounting_bucket || null,
-              customer_satisfaction_rating: item.customer_satisfaction_rating || null,
-              evidence_photo_url: item.evidence_photo_url || null,
-            })),
-        };
-
-        try {
-          await accountConfirmedOrder(order.id, orderPayload);
-        } catch {
-          await accountConfirmedOrder(order.id, basePayload);
-          fallbackMessages.push(
-            order.order_number
-              ? `Order ${order.order_number}`
-              : `Order #${orderIndex + 1}`
-          );
-        }
-      }));
+      const { fallbackMessages } = await persistSelectedTableAccounting(selectedTable, { allowBasePayloadFallback: true });
 
       if (fallbackMessages.length > 0) {
         showToast(
@@ -1561,14 +1712,6 @@ const AccountingOrdersPage: React.FC = () => {
       }
 
       setOrders((current) => current.filter((order) => !finalizedOrderIds.has(order.id)));
-      setLocalGiftItemsByTable((current) => {
-        if (!selectedTable) {
-          return current;
-        }
-        const next = { ...current };
-        delete next[selectedTable];
-        return next;
-      });
       clearBillAdjustmentsForTable(selectedTable);
       showToast(
         t('accountingPage.finalizedOrders', { count: selectedTableOrders.length, table: selectedTable }),
@@ -1586,7 +1729,6 @@ const AccountingOrdersPage: React.FC = () => {
       setProcessingTarget(null);
     }
   };
-
   const handlePrintInvoice = () => {
     if (typeof window === 'undefined' || !selectedTablePreview || !selectedTable || selectedTableOrders.length === 0) {
       return;
@@ -2482,11 +2624,23 @@ const AccountingOrdersPage: React.FC = () => {
                 ) : null}
 
                 <LiquidButton
+                  tone="secondary"
+                  onClick={handleSaveSelectedTableAccounting}
+                  disabled={
+                    processingTarget === `table:${selectedTable}` || processingTarget === `save:${selectedTable}`
+                  }
+                >
+                  {processingTarget === `save:${selectedTable}`
+                    ? t('accountingPage.savingTableAccounting')
+                    : t('accountingPage.saveTableAccounting', { table: selectedTable })}
+                </LiquidButton>
+
+                <LiquidButton
                   tone="tertiary"
                   onClick={() => setVisibleInvoiceTable(
                     isShowingSelectedInvoicePreview ? '' : selectedTable
                   )}
-                  disabled={processingTarget === `table:${selectedTable}`}
+                  disabled={processingTarget === `table:${selectedTable}` || processingTarget === `save:${selectedTable}`}
                 >
                   {isShowingSelectedInvoicePreview ? t('accountingPage.hideInvoicePreview') : t('accountingPage.showInvoiceInPage')}
                 </LiquidButton>
@@ -2494,7 +2648,7 @@ const AccountingOrdersPage: React.FC = () => {
                 <LiquidButton
                   tone="secondary"
                   onClick={handlePrintInvoice}
-                  disabled={processingTarget === `table:${selectedTable}`}
+                  disabled={processingTarget === `table:${selectedTable}` || processingTarget === `save:${selectedTable}`}
                 >
                   {t('accountingPage.printInvoice')}
                 </LiquidButton>
@@ -2503,7 +2657,7 @@ const AccountingOrdersPage: React.FC = () => {
                   tone="primary"
                   onClick={handleFinalizeSelectedTable}
                   disabled={
-                    processingTarget === `table:${selectedTable}`
+                    processingTarget === `table:${selectedTable}` || processingTarget === `save:${selectedTable}`
                   }
                 >
                   {processingTarget === `table:${selectedTable}` ? t('accountingPage.finalizing') : t('accountingPage.finalizeTableInvoice', { table: selectedTable })}
