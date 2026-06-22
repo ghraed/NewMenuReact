@@ -17,6 +17,7 @@ import {
   fetchGuestTables,
   fetchGuestTableMenu,
   fetchPublishedDishes,
+  saveAccountingOrderDraft,
   fetchStaffTableSessionInvoiceSplit,
   finalizeGuestTableSession,
 } from '../services/orderService';
@@ -1516,6 +1517,32 @@ const AccountingOrdersPage: React.FC = () => {
     upsertAccountingOrder,
   ]);
 
+  const saveSelectedTableDraft = useCallback(async (tableName: string): Promise<OrderRecord[]> => {
+    const savedOrders = await Promise.all(selectedTableOrders.map(async (order) => {
+      const orderPayload = buildOrderAccountingPayload(order);
+      if (!orderPayload) {
+        throw new Error('Invoice preview is not ready yet.');
+      }
+
+      const response = await saveAccountingOrderDraft(order.id, orderPayload);
+      return response.order;
+    }));
+
+    savedOrders.forEach((order) => {
+      upsertAccountingOrder(order);
+    });
+    clearLocalAdjustmentState(tableName, savedOrders);
+    persistAdjustmentsFromOrders(tableName, savedOrders);
+
+    return savedOrders;
+  }, [
+    buildOrderAccountingPayload,
+    clearLocalAdjustmentState,
+    persistAdjustmentsFromOrders,
+    selectedTableOrders,
+    upsertAccountingOrder,
+  ]);
+
   const handleSaveSelectedTableAccounting = async () => {
     if (!selectedTable || selectedTableOrders.length === 0 || !selectedTablePreview) {
       return;
@@ -1525,12 +1552,18 @@ const AccountingOrdersPage: React.FC = () => {
     setError(null);
 
     try {
+      const savedOrders = await saveSelectedTableDraft(selectedTable);
+      const savedNotes = savedOrders
+        .map((order) => order.notes?.trim())
+        .filter((note): note is string => Boolean(note));
+      const savedIncludedOrders = savedOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id }));
+
       savePrintableInvoice({
         sourceTableId: selectedTable,
         restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
         tableName: selectedTable,
         generatedAt: new Date().toLocaleString(),
-        notes: selectedTableNotes,
+        notes: savedNotes,
         items: selectedTableLineItems.map((item) => ({
           key: item.key,
           dishName: item.dish_name,
@@ -1557,7 +1590,7 @@ const AccountingOrdersPage: React.FC = () => {
             : undefined,
           isComplimentary: item.is_complimentary,
         })),
-        includedOrders: selectedTableOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id })),
+        includedOrders: savedIncludedOrders,
         summary: {
           subtotal: formatMoney(selectedTablePreview.subtotal),
           discountLabel: selectedTablePreview.discountType === 'percentage'

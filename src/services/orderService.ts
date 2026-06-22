@@ -605,6 +605,15 @@ export const accountConfirmedOrder = async (
   return response.data;
 };
 
+export const saveAccountingOrderDraft = async (
+  orderId: number,
+  payload: AccountOrderRequest
+): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.patch<OrderResponse>(`/orders/${orderId}/accounting-draft`, sanitizeAccountingPayload(payload));
+  return response.data;
+};
+
 export const quickPosCheckout = async (payload: PosCheckoutRequest): Promise<PosCheckoutResponse> => {
   assertOnlineForStaffWrite();
   const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload);
