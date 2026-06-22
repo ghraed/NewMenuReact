@@ -26,6 +26,7 @@ import {
   formatPriceWithCurrency,
   formatUsdEquivalent,
   normalizeCurrency,
+  parsePositiveRate,
 } from '../../utils/currency';
 
 interface DishDetailViewProps {
@@ -80,19 +81,20 @@ const DishDetailView: React.FC<DishDetailViewProps> = ({
   const priceLabel = formatPriceWithCurrency(Number(dish.price), currency);
   const clickLabel = useMemo(() => {
     const amount = Number(dish.price);
-    const hasRate = typeof dish.dollar_rate === 'number' && Number.isFinite(dish.dollar_rate) && dish.dollar_rate > 0;
+    const parsedRate = parsePositiveRate(dish.dollar_rate);
+    const hasRate = parsedRate !== null;
 
     if (hasRate && originalCurrency !== currency && (currency === 'USD' || originalCurrency === 'USD')) {
-      const converted = convertPriceBetweenCurrencies(amount, currency, originalCurrency, dish.dollar_rate);
+      const converted = convertPriceBetweenCurrencies(amount, currency, originalCurrency, parsedRate);
       return formatPriceWithCurrency(converted, originalCurrency);
     }
 
     if (dish.price_is_usd_base === true && currency === 'USD' && originalCurrency !== 'USD' && hasRate) {
-      const converted = convertPriceFromUsdToCurrency(amount, originalCurrency, dish.dollar_rate);
+      const converted = convertPriceFromUsdToCurrency(amount, originalCurrency, parsedRate);
       return formatPriceWithCurrency(converted, originalCurrency);
     }
 
-    return formatUsdEquivalent(amount, currency, dish.dollar_rate);
+    return formatUsdEquivalent(amount, currency, parsedRate);
   }, [dish.price, dish.price_is_usd_base, dish.dollar_rate, currency, originalCurrency]);
   const caloriesText = typeof dish.calories === 'number' ? `${dish.calories} cal` : null;
   const editorialLabel = getDishEditorialLabel(dish);

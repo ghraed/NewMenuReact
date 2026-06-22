@@ -16,9 +16,9 @@ import {
   getGuestRestaurantCandidateSlugs,
   getPreferredGuestRestaurantSlug,
 } from '../utils/guestRestaurant';
-import { normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
+import { normalizeCurrency, parsePositiveRate, readGuestCurrencySettings } from '../utils/currency';
 
-const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string | null; other_currency?: string | null; dollar_rate?: number | null }>(
+const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string | null; other_currency?: string | null; dollar_rate?: number | string | null }>(
   dish: Dish,
   restaurant: TRestaurant
 ): Dish => {
@@ -29,11 +29,9 @@ const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string |
       || restaurant.other_currency
       || (restaurantCurrency === 'USD' ? 'EUR' : 'USD')
   );
-  const restaurantDollarRate = typeof storedSettings?.dollar_rate === 'number'
-    ? storedSettings.dollar_rate
-    : (typeof restaurant.dollar_rate === 'number'
-      ? restaurant.dollar_rate
-      : (restaurantCurrency === 'USD' ? 1 : null));
+  const restaurantDollarRate = parsePositiveRate(storedSettings?.dollar_rate)
+    ?? parsePositiveRate(restaurant.dollar_rate)
+    ?? (restaurantCurrency === 'USD' ? 1 : null);
   const dishCurrency = normalizeCurrency(dish.currency || restaurant.currency);
   const basePrice = Number(dish.price);
 
@@ -45,9 +43,7 @@ const applyRestaurantCurrencyToDish = <TRestaurant extends { currency?: string |
       ? (dishCurrency === 'USD' ? 'EUR' : 'USD')
       : alternateCurrency,
     price_is_usd_base: dishCurrency === 'USD',
-    dollar_rate: typeof dish.dollar_rate === 'number'
-      ? dish.dollar_rate
-      : (restaurantDollarRate ?? null),
+    dollar_rate: parsePositiveRate(dish.dollar_rate) ?? (restaurantDollarRate ?? null),
   };
 };
 

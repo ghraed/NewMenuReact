@@ -36,6 +36,21 @@ export const normalizeCurrency = (value?: string | null): CurrencyCode => {
   return 'USD';
 };
 
+export const parsePositiveRate = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
 export const getCurrencySymbol = (currency?: string | null): string => {
   const normalized = normalizeCurrency(currency);
   const option = CURRENCY_OPTIONS.find((candidate) => candidate.value === normalized);
@@ -81,7 +96,7 @@ export const formatDollarRate = (currency?: string | null, dollarRate?: number |
     return '1 USD = 1.00 USD';
   }
 
-  const safeRate = typeof dollarRate === 'number' && Number.isFinite(dollarRate) && dollarRate > 0 ? dollarRate : 0;
+  const safeRate = parsePositiveRate(dollarRate) ?? 0;
 
   if (safeRate <= 0) {
     return `USD rate unavailable for ${normalized}`;
@@ -102,7 +117,7 @@ export const convertPriceFromUsdToCurrency = (
     return safeAmount;
   }
 
-  const safeRate = typeof dollarRate === 'number' && Number.isFinite(dollarRate) && dollarRate > 0 ? dollarRate : 0;
+  const safeRate = parsePositiveRate(dollarRate) ?? 0;
   if (safeRate <= 0) {
     return safeAmount;
   }
@@ -122,7 +137,7 @@ export const convertPriceToUsd = (
     return safeAmount;
   }
 
-  const safeRate = typeof dollarRate === 'number' && Number.isFinite(dollarRate) && dollarRate > 0 ? dollarRate : 0;
+  const safeRate = parsePositiveRate(dollarRate) ?? 0;
   if (safeRate <= 0) {
     return safeAmount;
   }
@@ -196,9 +211,7 @@ export const readGuestCurrencySettings = (): { currency: CurrencyCode; dollar_ra
     const parsed = JSON.parse(raw) as { currency?: string; dollar_rate?: unknown; other_currency?: string };
     const currency = normalizeCurrency(parsed.currency);
     const otherCurrency = parsed.other_currency ? normalizeCurrency(parsed.other_currency) : undefined;
-    const dollarRate = typeof parsed.dollar_rate === 'number' && Number.isFinite(parsed.dollar_rate) && parsed.dollar_rate > 0
-      ? parsed.dollar_rate
-      : 1;
+    const dollarRate = parsePositiveRate(parsed.dollar_rate) ?? 1;
 
     return {
       currency,

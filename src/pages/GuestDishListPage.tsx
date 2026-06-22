@@ -23,7 +23,7 @@ import {
 } from '../utils/guestTableRoutes';
 import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
-import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
+import { formatPriceWithCurrency, normalizeCurrency, parsePositiveRate, readGuestCurrencySettings } from '../utils/currency';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 type IngredientFilterMode = 'show' | 'hide' | 'highlight';
@@ -92,11 +92,9 @@ const applyRestaurantCurrencyToDishes = (
       || restaurant.other_currency
       || (restaurantCurrency === 'USD' ? 'EUR' : 'USD')
   );
-  const restaurantDollarRate = typeof storedSettings?.dollar_rate === 'number'
-    ? storedSettings.dollar_rate
-    : (typeof restaurant.dollar_rate === 'number'
-      ? restaurant.dollar_rate
-      : (restaurantCurrency === 'USD' ? 1 : null));
+  const restaurantDollarRate = parsePositiveRate(storedSettings?.dollar_rate)
+    ?? parsePositiveRate(restaurant.dollar_rate)
+    ?? (restaurantCurrency === 'USD' ? 1 : null);
 
   return list.map((dish) => {
     const dishCurrency = normalizeCurrency(dish.currency || restaurant.currency);
@@ -110,9 +108,7 @@ const applyRestaurantCurrencyToDishes = (
         ? (dishCurrency === 'USD' ? 'EUR' : 'USD')
         : alternateCurrency,
       price_is_usd_base: dishCurrency === 'USD',
-      dollar_rate: typeof dish.dollar_rate === 'number'
-        ? dish.dollar_rate
-        : (restaurantDollarRate ?? null),
+      dollar_rate: parsePositiveRate(dish.dollar_rate) ?? (restaurantDollarRate ?? null),
     };
   });
 };
