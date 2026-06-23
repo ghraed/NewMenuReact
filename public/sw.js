@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const APP_SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const GUEST_API_CACHE = `guest-api-${CACHE_VERSION}`;
 const APP_ASSET_EXTENSIONS = ['.js', '.css', '.woff', '.woff2', '.ttf', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.ico'];
