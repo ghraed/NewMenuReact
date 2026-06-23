@@ -42,6 +42,7 @@ import {
   getComplaintCategoryFromReason,
   getDefaultComplaintBucket,
   getDefaultOperationalLossCategory,
+  getOrderItemFinancials,
   getOperationalLossCategoryFromReason,
   inferAdjustmentActionType,
 } from '../utils/orderItemCompensation';
@@ -845,6 +846,7 @@ const AccountingOrdersPage: React.FC = () => {
 
     selectedTableOrders.forEach((order) => {
       order.items.forEach((item) => {
+        const financials = getOrderItemFinancials(item);
         const status = item.status || 'normal';
         const compensationType = item.compensation_type || 'none';
         const reason = item.compensation_reason || null;
@@ -889,11 +891,10 @@ const AccountingOrdersPage: React.FC = () => {
         ].join('-');
         const existing = grouped.get(key);
         const quantity = (existing?.quantity || 0) + item.quantity;
-        const lineSubtotal = (Number(existing?.line_subtotal || 0) + Number(item.line_subtotal || 0)).toFixed(2);
-        const itemOriginalUnit = Number(item.original_unit_price || item.unit_price || 0);
+        const lineSubtotal = (Number(existing?.line_subtotal || 0) + financials.finalLineTotal).toFixed(2);
         const originalLineSubtotal = (
           Number(existing?.original_line_subtotal || 0)
-          + (itemOriginalUnit * item.quantity)
+          + financials.originalLineTotal
         ).toFixed(2);
 
         grouped.set(key, {
@@ -2206,6 +2207,8 @@ const AccountingOrdersPage: React.FC = () => {
                     ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
                     : null;
                   const hasDiscountedLine = Number(item.original_line_subtotal) > Number(item.line_subtotal);
+                  const displayLineTotal = hasDiscountedLine ? Number(item.original_line_subtotal) : Number(item.line_subtotal);
+                  const secondaryLineTotal = hasDiscountedLine ? Number(item.line_subtotal) : null;
 
                   return (
                     <div
@@ -2261,10 +2264,12 @@ const AccountingOrdersPage: React.FC = () => {
                                 : 'text-gold2'
                           }`}
                           >
-                            ${item.line_subtotal}
+                            {formatMoney(displayLineTotal)}
                           </div>
-                          {hasDiscountedLine ? (
-                            <div className="text-xs text-muted line-through">${item.original_line_subtotal}</div>
+                          {secondaryLineTotal !== null ? (
+                            <div className="text-xs text-muted">
+                              Guest charged {formatMoney(secondaryLineTotal)}
+                            </div>
                           ) : null}
                           {item.status !== 'normal' ? (
                             <div className="mt-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted2">
@@ -2793,6 +2798,8 @@ const AccountingOrdersPage: React.FC = () => {
                         ? COMPLAINT_REASON_LABELS[item.compensation_reason as ComplaintReasonCode] || item.compensation_reason
                         : null;
                       const hasDiscountedLine = Number(item.original_line_subtotal) > Number(item.line_subtotal);
+                      const displayLineTotal = hasDiscountedLine ? Number(item.original_line_subtotal) : Number(item.line_subtotal);
+                      const secondaryLineTotal = hasDiscountedLine ? Number(item.line_subtotal) : null;
 
                       return (
                         <div
@@ -2835,10 +2842,10 @@ const AccountingOrdersPage: React.FC = () => {
                           </div>
                           <span className="text-right text-muted">{item.quantity}</span>
                           <span className="text-right font-medium">
-                            {formatMoney(Number(item.line_subtotal))}
-                            {hasDiscountedLine ? (
-                              <span className="block text-xs text-muted line-through">
-                                {formatMoney(Number(item.original_line_subtotal))}
+                            {formatMoney(displayLineTotal)}
+                            {secondaryLineTotal !== null ? (
+                              <span className="block text-xs text-muted">
+                                Guest charged {formatMoney(secondaryLineTotal)}
                               </span>
                             ) : null}
                           </span>
