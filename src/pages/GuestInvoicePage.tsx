@@ -9,6 +9,8 @@ import { useOrderCart } from '../contexts/useOrderCart';
 import { fetchGuestTableSessionInvoiceSplit, fetchGuestTableSessionOrders } from '../services/orderService';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 import { buildGuestInvoicePayload } from '../utils/guestInvoicePayload';
+import { readBillAdjustmentsForTableInvoice } from '../utils/billAdjustments';
+import { applyBillAdjustmentsToOrders } from '../utils/guestOrderCompensation';
 
 const GuestInvoicePage: React.FC = () => {
   const { t } = useTranslation();
@@ -68,6 +70,11 @@ const GuestInvoicePage: React.FC = () => {
         });
 
         const orders = await fetchGuestTableSessionOrders(data.table_session.id, draft.guestAccessToken);
+        const adjustments = readBillAdjustmentsForTableInvoice(
+          data.table.name,
+          orders.map((order) => order.order_number || String(order.id))
+        );
+        const adjustedOrders = applyBillAdjustmentsToOrders(orders, adjustments);
         const splitEnabled = data.restaurant.feature_flags?.invoice_splitting === true;
         const split = splitEnabled
           ? await fetchGuestTableSessionInvoiceSplit(data.table_session.id, draft.guestAccessToken)
@@ -78,10 +85,10 @@ const GuestInvoicePage: React.FC = () => {
           restaurantName: data.restaurant.name || restaurant?.name || t('guestOrders.title'),
           tableName: data.table.name,
           generatedAt: new Date().toLocaleString(),
-          notes: orders
+          notes: adjustedOrders
             .map((order) => order.notes?.trim())
             .filter((note): note is string => Boolean(note)),
-          orders,
+          orders: adjustedOrders,
           split,
           t,
         });

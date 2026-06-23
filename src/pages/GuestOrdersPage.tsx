@@ -15,6 +15,9 @@ import {
 import type { InvoiceSplitMode, InvoiceSplitSummary, OrderRecord, TableSessionSummary } from '../types';
 import { buildGuestMenuPath, buildGuestOrderReviewPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
+import { readBillAdjustmentsForTableInvoice } from '../utils/billAdjustments';
+import { applyBillAdjustmentsToOrders } from '../utils/guestOrderCompensation';
+import { getOrderItemFinancials } from '../utils/orderItemCompensation';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -188,7 +191,11 @@ const GuestOrdersPage: React.FC = () => {
           sessionResponse.table_session.id,
           draft.guestAccessToken
         );
-        setOrders(nextOrders);
+        const adjustments = readBillAdjustmentsForTableInvoice(
+          sessionResponse.table.name,
+          nextOrders.map((order) => order.order_number || String(order.id))
+        );
+        setOrders(applyBillAdjustmentsToOrders(nextOrders, adjustments));
 
         const splitEnabled = sessionResponse.restaurant.feature_flags?.invoice_splitting === true;
         if (splitEnabled) {
@@ -796,24 +803,36 @@ const GuestOrdersPage: React.FC = () => {
                     </div>
 
                     <div className="mt-5 space-y-3">
-                      {order.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between gap-3 rounded-[22px] border px-4 py-3"
-                          style={{
-                            backgroundColor: 'var(--guest-panel-strong)',
-                            borderColor: 'var(--guest-border)',
-                          }}
-                        >
-                          <div className="min-w-0">
-                            <p className="font-medium text-[var(--guest-text)]">{item.dish_name}</p>
-                            <p className="mt-1 text-sm text-[var(--guest-muted)]">
-                              {item.quantity} × ${item.unit_price}
-                            </p>
+                      {order.items.map((item) => {
+                        const financials = getOrderItemFinancials(item);
+                        const hasAdjustment = financials.originalLineTotal > financials.finalLineTotal;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3 rounded-[22px] border px-4 py-3"
+                            style={{
+                              backgroundColor: 'var(--guest-panel-strong)',
+                              borderColor: 'var(--guest-border)',
+                            }}
+                          >
+                            <div className="min-w-0">
+                              <p className="font-medium text-[var(--guest-text)]">{item.dish_name}</p>
+                              <p className="mt-1 text-sm text-[var(--guest-muted)]">
+                                {item.quantity} × ${financials.originalUnitPrice.toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right text-sm font-semibold text-[var(--guest-text)]">
+                              <p>${financials.finalLineTotal.toFixed(2)}</p>
+                              {hasAdjustment ? (
+                                <p className="text-xs text-[var(--guest-muted)] line-through">
+                                  ${financials.originalLineTotal.toFixed(2)}
+                                </p>
+                              ) : null}
+                            </div>
                           </div>
-                          <p className="shrink-0 text-sm font-semibold text-[var(--guest-text)]">${item.line_subtotal}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {order.notes ? (
