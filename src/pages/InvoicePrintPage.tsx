@@ -58,7 +58,7 @@ const InvoicePrintPage: React.FC = () => {
   }
 
   return (
-    <main className="min-h-screen bg-[#111111] px-4 py-10 text-[#f1ede4] print:bg-white print:px-0 print:py-0 print:text-black">
+    <main className="min-h-screen bg-[#111111] px-4 py-10 text-[#f1ede4] print:bg-white print:px-[12mm] print:py-[12mm] print:text-black">
       <style>
         {`
           @media print {
@@ -68,7 +68,7 @@ const InvoicePrintPage: React.FC = () => {
 
             @page {
               size: auto;
-              margin: 12mm;
+              margin: 0;
             }
 
             html, body {

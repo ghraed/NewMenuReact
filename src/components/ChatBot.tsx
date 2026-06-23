@@ -1071,7 +1071,7 @@ const ChatBot: React.FC = () => {
 
   return (
     <div
-      className="fixed bottom-24 right-4 z-[1000] sm:bottom-6 sm:right-6"
+      className="fixed bottom-24 right-4 z-[1000] print:hidden sm:bottom-6 sm:right-6"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {isOpen ? (
@@ -1225,7 +1225,7 @@ const ChatBot: React.FC = () => {
       )}
 
       {dishPreview && typeof document !== 'undefined' ? createPortal(
-        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-slate-900/60 p-4">
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-slate-900/60 p-4 print:hidden">
           <div className="flex min-h-full items-end justify-center sm:items-center">
           <button
             type="button"
