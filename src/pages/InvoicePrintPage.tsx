@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import InvoiceTemplate from '../components/Invoice/InvoiceTemplate';
-import { loadPrintableInvoice } from '../utils/printableInvoice';
+import { getPrintableInvoiceDownloadFilename, loadPrintableInvoice } from '../utils/printableInvoice';
 
 const InvoicePrintPage: React.FC = () => {
   const { t } = useTranslation();
@@ -22,6 +22,19 @@ const InvoicePrintPage: React.FC = () => {
 
     return () => {
       window.clearTimeout(timer);
+    };
+  }, [invoice]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || !invoice) {
+      return;
+    }
+
+    const previousTitle = document.title;
+    document.title = getPrintableInvoiceDownloadFilename(invoice);
+
+    return () => {
+      document.title = previousTitle;
     };
   }, [invoice]);
 

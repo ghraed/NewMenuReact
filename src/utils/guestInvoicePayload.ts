@@ -25,6 +25,7 @@ export const buildGuestInvoicePayload = (input: {
   restaurantName: string;
   tableName: string;
   generatedAt: string;
+  generatedAtIso?: string;
   notes: string[];
   orders: OrderRecord[];
   split?: InvoiceSplitSummary | null;
@@ -81,6 +82,7 @@ export const buildGuestInvoicePayload = (input: {
     restaurantName: input.restaurantName,
     tableName: input.tableName,
     generatedAt: input.generatedAt,
+    generatedAtIso: input.generatedAtIso,
     notes: input.notes,
     items,
     includedOrders: input.orders.map((order) => order.order_number || input.t('accountingPage.orderNumberLabel', { id: order.id })),

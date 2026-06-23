@@ -45,6 +45,7 @@ export interface PrintableInvoicePayload {
   restaurantName: string;
   tableName: string;
   generatedAt: string;
+  generatedAtIso?: string;
   notes: string[];
   items: PrintableInvoiceItem[];
   includedOrders: string[];
@@ -70,4 +71,34 @@ export const loadPrintableInvoice = (): PrintableInvoicePayload | null => {
   } catch {
     return null;
   }
+};
+
+const sanitizeFilenamePart = (value: string): string => {
+  const normalized = value
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return normalized || 'invoice';
+};
+
+const resolveInvoiceDate = (invoice: PrintableInvoicePayload): Date => {
+  const generatedAt = invoice.generatedAtIso ? new Date(invoice.generatedAtIso) : new Date(invoice.generatedAt);
+  return Number.isNaN(generatedAt.getTime()) ? new Date() : generatedAt;
+};
+
+export const getPrintableInvoiceDownloadFilename = (invoice: PrintableInvoicePayload): string => {
+  const generatedAt = resolveInvoiceDate(invoice);
+  const year = generatedAt.getFullYear();
+  const month = String(generatedAt.getMonth() + 1).padStart(2, '0');
+  const day = String(generatedAt.getDate()).padStart(2, '0');
+  const hours = String(generatedAt.getHours()).padStart(2, '0');
+  const minutes = String(generatedAt.getMinutes()).padStart(2, '0');
+
+  const restaurantName = sanitizeFilenamePart(invoice.restaurantName);
+  const tableId = sanitizeFilenamePart(String(invoice.sourceTableId ?? invoice.tableName));
+
+  return `${restaurantName}-${tableId}-${year}-${month}-${day}-${hours}-${minutes}.pdf`;
 };

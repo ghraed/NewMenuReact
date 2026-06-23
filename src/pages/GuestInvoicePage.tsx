@@ -85,6 +85,7 @@ const GuestInvoicePage: React.FC = () => {
           restaurantName: data.restaurant.name || restaurant?.name || t('guestOrders.title'),
           tableName: data.table.name,
           generatedAt: new Date().toLocaleString(),
+          generatedAtIso: new Date().toISOString(),
           notes: adjustedOrders
             .map((order) => order.notes?.trim())
             .filter((note): note is string => Boolean(note)),

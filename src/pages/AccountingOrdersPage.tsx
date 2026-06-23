@@ -1564,6 +1564,7 @@ const AccountingOrdersPage: React.FC = () => {
         restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
         tableName: selectedTable,
         generatedAt: new Date().toLocaleString(),
+        generatedAtIso: new Date().toISOString(),
         notes: savedNotes,
         items: selectedTableLineItems.map((item) => ({
           key: item.key,
@@ -1828,6 +1829,7 @@ const AccountingOrdersPage: React.FC = () => {
       restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
       tableName: selectedTable,
       generatedAt: new Date().toLocaleString(),
+      generatedAtIso: new Date().toISOString(),
       notes: selectedTableNotes,
       items: selectedTableLineItems.map((item) => ({
         key: item.key,

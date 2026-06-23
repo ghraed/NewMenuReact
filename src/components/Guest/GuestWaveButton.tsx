@@ -171,6 +171,7 @@ const GuestWaveButton: React.FC = () => {
           restaurantName: response.invoice_preview.restaurant_name,
           tableName: response.invoice_preview.table_name,
           generatedAt: new Date(response.invoice_preview.generated_at).toLocaleString(),
+          generatedAtIso: response.invoice_preview.generated_at,
           notes: response.invoice_preview.notes,
           items: printableItems,
           includedOrders: response.invoice_preview.included_orders,
