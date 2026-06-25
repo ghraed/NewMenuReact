@@ -580,15 +580,17 @@ const ChatBot: React.FC = () => {
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
     const isTableScoped = typeof fromPath.table_id === 'number' && Number.isFinite(fromPath.table_id);
+    const resolvedSlug = restaurant?.slug;
 
     if (isTableScoped) {
       return {
         table_id: fromPath.table_id,
+        restaurant_slug: resolvedSlug,
       };
     }
 
     return {
-      restaurant_slug: fromPath.restaurant_slug ?? restaurant?.slug,
+      restaurant_slug: fromPath.restaurant_slug ?? resolvedSlug,
       table_id: fromPath.table_id,
     };
   }, [location.pathname, restaurant?.slug]);

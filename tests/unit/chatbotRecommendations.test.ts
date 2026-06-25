@@ -34,6 +34,21 @@ describe('chatbot recommendations', () => {
     expect(result.dishes[0]?.name).toBe('BBQ Chicken Pizza');
   });
 
+  it('matches a generic category term across sibling categories', () => {
+    const dishes = [
+      makeDish({ id: 1, name: 'Margherita Pizza', category: 'Classic Pizza' }),
+      makeDish({ id: 2, name: 'Four Cheese Pizza', category: 'Classic Pizza' }),
+      makeDish({ id: 3, name: 'BBQ Chicken Pizza', category: 'Specialty Pizza', isProfitable: true }),
+      makeDish({ id: 4, name: 'Buffalo Chicken Pizza', category: 'Specialty Pizza' }),
+    ];
+
+    const result = resolveChatRecommendation('what pizza do you have?', dishes);
+
+    expect(result.type).toBe('category');
+    expect(result.category).toBe('Pizza');
+    expect(result.dishes[0]?.name).toBe('BBQ Chicken Pizza');
+  });
+
   it('prefers profitable related dishes for direct dish questions', () => {
     const dishes = [
       makeDish({ id: 1, name: 'Margherita Pizza', category: 'Pizza', suggestedDishIds: [2, 3] }),

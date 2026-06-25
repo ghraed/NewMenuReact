@@ -297,6 +297,26 @@ export const buildDishAliasLinks = (dishes: ChatRecommendationDish[]): Array<{
 
 type CategoryBucket = { label: string; dishes: ChatRecommendationDish[]; aliases: Set<string> };
 
+const buildCategoryAliases = (label: string): string[] => {
+  const normalizedLabel = normalizeCategoryText(label);
+  if (!normalizedLabel) {
+    return [];
+  }
+
+  const aliases = new Set<string>();
+  aliases.add(normalizedLabel);
+  aliases.add(singularizeCategoryText(normalizedLabel));
+
+  const words = normalizedLabel.split(' ').filter(Boolean);
+  if (words.length > 1) {
+    const lastWord = words[words.length - 1];
+    aliases.add(lastWord);
+    aliases.add(singularizeCategoryText(lastWord));
+  }
+
+  return Array.from(aliases);
+};
+
 export const getCategorySuggestionPool = (
   text: string,
   dishes: ChatRecommendationDish[]
@@ -325,39 +345,46 @@ export const getCategorySuggestionPool = (
     };
 
     rawLabels.forEach((label) => {
-      const normalizedLabel = normalizeCategoryText(label);
-      if (!normalizedLabel) {
-        return;
-      }
-
-      existing.aliases.add(normalizedLabel);
-      existing.aliases.add(singularizeCategoryText(normalizedLabel));
+      buildCategoryAliases(label).forEach((alias) => {
+        if (alias) {
+          existing.aliases.add(alias);
+        }
+      });
     });
 
     existing.dishes.push(dish);
     categoryBuckets.set(key, existing);
   });
 
-  let bestMatch: CategoryBucket | null = null;
+  const matchingBuckets: Array<{ bucket: CategoryBucket; score: number }> = [];
 
   for (const entry of categoryBuckets.values()) {
-    const matchesCategory = Array.from(entry.aliases).some((alias) => alias !== '' && normalizedText.includes(alias));
-    if (!matchesCategory) {
+    const matchedAliases = Array.from(entry.aliases).filter((alias) => alias !== '' && normalizedText.includes(alias));
+    if (matchedAliases.length === 0) {
       continue;
     }
 
-    if (!bestMatch || entry.dishes.length > bestMatch.dishes.length) {
-      bestMatch = entry;
-    }
+    const score = matchedAliases.reduce((best, alias) => Math.max(best, alias.length), 0);
+    matchingBuckets.push({ bucket: entry, score });
   }
 
-  if (!bestMatch) {
+  if (matchingBuckets.length === 0) {
     return null;
   }
 
+  const highestScore = matchingBuckets.reduce((best, entry) => Math.max(best, entry.score), 0);
+  const selectedBuckets = matchingBuckets
+    .filter((entry) => entry.score === highestScore)
+    .map((entry) => entry.bucket);
+  const combinedDishes = selectedBuckets.flatMap((entry) => entry.dishes);
+
   return {
-    category: bestMatch.label,
-    dishes: takePreferredPool(bestMatch.dishes),
+    category: selectedBuckets.length === 1
+      ? selectedBuckets[0].label
+      : normalizedText.includes('pizza')
+        ? 'Pizza'
+        : selectedBuckets[0].label,
+    dishes: takePreferredPool(combinedDishes),
   };
 };
 
