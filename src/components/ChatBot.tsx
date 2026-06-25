@@ -298,18 +298,17 @@ const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: str
   return `If you want a solid place to start, I'd go with ${primaryName}. ${secondaryName} and ${tertiaryName} are also good options depending on what you're in the mood for.`;
 };
 
-const responseMentionsAnyDish = (text: string, dishes: ChatDishLink[]): boolean => {
-  const loweredText = text.toLowerCase();
-  return dishes.some((dish) => dish.normalized && loweredText.includes(dish.normalized));
-};
-
-const responseHighlightsDish = (text: string, dish: ChatDishLink | null | undefined): boolean => {
+const responseExplicitlyRecommendsDish = (text: string, dish: ChatDishLink | null | undefined): boolean => {
   if (!dish) {
     return false;
   }
 
   const loweredText = text.toLowerCase();
-  return dish.normalized !== '' && loweredText.includes(dish.normalized);
+  if (dish.normalized === '' || !loweredText.includes(dish.normalized)) {
+    return false;
+  }
+
+  return /(\brecommend\b|\bsuggest\b|\bhonest pick\b|\bstart with\b|\bgo with\b|\bsafe choice\b|\bstrong pick\b|\bsolid place to start\b|\bbest pick\b|\bmy pick\b|\btry\b|ارشح|بنصح|اقترح|أنصح|recommande|je choisirais)/i.test(text);
 };
 
 const buildDishHref = (
@@ -1155,8 +1154,9 @@ const ChatBot: React.FC = () => {
         suggestionPool,
         categorySuggestion?.category ?? null
       );
-      const replyMentionsSuggestedDish = reply ? responseMentionsAnyDish(reply, suggestionPool) : false;
-      const replyHighlightsPrimarySuggestion = reply ? responseHighlightsDish(reply, primarySuggestedDish) : false;
+      const replyExplicitlyRecommendsPrimarySuggestion = reply
+        ? responseExplicitlyRecommendsDish(reply, primarySuggestedDish)
+        : false;
 
       if (reply) {
         pushMessage('assistant', reply);
@@ -1167,7 +1167,7 @@ const ChatBot: React.FC = () => {
       if (
         (recommendationIntent || categorySuggestion)
         && profitableSuggestionMessage
-        && (!replyMentionsSuggestedDish || !replyHighlightsPrimarySuggestion)
+        && !replyExplicitlyRecommendsPrimarySuggestion
       ) {
         pushMessage('assistant', profitableSuggestionMessage);
       }
