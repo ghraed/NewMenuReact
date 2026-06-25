@@ -52,6 +52,8 @@ interface ChatDishLink {
   isProfitable?: boolean;
   isOrderable?: boolean;
   isOutOfStock?: boolean;
+  category?: string;
+  categoryAr?: string;
 }
 
 interface ChatDishPreview {
@@ -147,6 +149,20 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
 };
 
 const normalizeDishName = (value: string): string => value.trim().toLowerCase();
+const normalizeCategoryText = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const singularizeCategoryText = (value: string): string => {
+  if (value.endsWith('ies') && value.length > 3) {
+    return `${value.slice(0, -3)}y`;
+  }
+  if (value.endsWith('es') && value.length > 2) {
+    return value.slice(0, -2);
+  }
+  if (value.endsWith('s') && value.length > 1) {
+    return value.slice(0, -1);
+  }
+  return value;
+};
 
 const sortChatDishesByPriority = (dishes: ChatDishLink[]): ChatDishLink[] => {
   return [...dishes].sort((left, right) => {
@@ -175,6 +191,75 @@ const getProfitableSuggestionPool = (dishes: ChatDishLink[]): ChatDishLink[] => 
   return sortChatDishesByPriority(prioritized).slice(0, 3);
 };
 
+const getCategorySuggestionPool = (text: string, dishes: ChatDishLink[]): { category: string; dishes: ChatDishLink[] } | null => {
+  const normalizedText = normalizeCategoryText(text);
+  if (!normalizedText) {
+    return null;
+  }
+
+  const availableDishes = dishes.filter((dish) => dish.isOrderable !== false && dish.isOutOfStock !== true);
+  type CategoryBucket = { label: string; dishes: ChatDishLink[]; aliases: Set<string> };
+  const categoryBuckets = new Map<string, CategoryBucket>();
+
+  availableDishes.forEach((dish) => {
+    const rawLabels = [dish.category, dish.categoryAr]
+      .filter((value): value is string => typeof value === 'string' && value.trim() !== '');
+
+    if (rawLabels.length === 0) {
+      return;
+    }
+
+    const key = normalizeCategoryText(rawLabels[0]);
+    const existing = categoryBuckets.get(key) ?? {
+      label: rawLabels[0].trim(),
+      dishes: [],
+      aliases: new Set<string>(),
+    };
+
+    rawLabels.forEach((label) => {
+      const normalizedLabel = normalizeCategoryText(label);
+      if (!normalizedLabel) {
+        return;
+      }
+
+      existing.aliases.add(normalizedLabel);
+      existing.aliases.add(singularizeCategoryText(normalizedLabel));
+    });
+
+    existing.dishes.push(dish);
+    categoryBuckets.set(key, existing);
+  });
+
+  let bestMatch: CategoryBucket | null = null;
+
+  for (const entry of categoryBuckets.values()) {
+    const matchesCategory = Array.from(entry.aliases).some((alias) => {
+      if (!alias) {
+        return false;
+      }
+
+      return normalizedText.includes(alias);
+    });
+
+    if (!matchesCategory) {
+      continue;
+    }
+
+    if (!bestMatch || entry.dishes.length > bestMatch.dishes.length) {
+      bestMatch = entry;
+    }
+  }
+
+  if (!bestMatch) {
+    return null;
+  }
+
+  return {
+    category: bestMatch.label,
+    dishes: getProfitableSuggestionPool(bestMatch.dishes),
+  };
+};
+
 const isRecommendationIntent = (text: string): boolean => {
   const normalized = text.trim().toLowerCase();
   if (!normalized) {
@@ -184,22 +269,23 @@ const isRecommendationIntent = (text: string): boolean => {
   return /(\brecommend\b|\bsuggest\b|\bbest\b|\bpopular\b|\btop\b|\bpairing\b|\bwhat should i order\b|\bwhat do you recommend\b|\bchef'?s pick\b|رشح|اقترح|شو بتنصح|شو أطلب|شو الاقوى|recommande|suggestion|qu'est-ce que tu recommandes|que recommandes-tu)/i.test(normalized);
 };
 
-const buildProfitableSuggestionMessage = (dishes: ChatDishLink[]): string | null => {
+const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: string | null): string | null => {
   if (dishes.length === 0) {
     return null;
   }
 
   const names = dishes.map((dish) => `**${dish.name}**`);
+  const categoryLead = category ? `If you're in the mood for ${category}, ` : '';
 
   if (names.length === 1) {
-    return `A strong pick to start with is ${names[0]}.`;
+    return `${categoryLead}I'd start with ${names[0]}.`;
   }
 
   if (names.length === 2) {
-    return `Good options to start with are ${names[0]} and ${names[1]}.`;
+    return `${categoryLead}I'd point you first to ${names[0]} and ${names[1]}.`;
   }
 
-  return `Good options to start with are ${names[0]}, ${names[1]}, and ${names[2]}.`;
+  return `${categoryLead}a good place to start would be ${names[0]}, ${names[1]}, or ${names[2]}.`;
 };
 
 const responseMentionsAnyDish = (text: string, dishes: ChatDishLink[]): boolean => {
@@ -638,11 +724,6 @@ const ChatBot: React.FC = () => {
 
   const apiBase = useMemo(() => getApiBase(), []);
   const previousConversationScopeKeyRef = useRef(conversationScopeKey);
-  const profitableSuggestions = useMemo(
-    () => getProfitableSuggestionPool(chatDishes),
-    [chatDishes]
-  );
-
   useEffect(() => {
     if (!isOpen) return;
     inputRef.current?.focus();
@@ -1047,8 +1128,14 @@ const ChatBot: React.FC = () => {
       const reply = (data.reply || '').trim();
       const nextPendingOrder = normalizePlaceOrder(data.order_data);
       const recommendationIntent = isRecommendationIntent(content);
-      const profitableSuggestionMessage = buildProfitableSuggestionMessage(profitableSuggestions);
-      const replyMentionsSuggestedDish = reply ? responseMentionsAnyDish(reply, profitableSuggestions) : false;
+      const categorySuggestion = getCategorySuggestionPool(content, chatDishes);
+      const suggestionPool = categorySuggestion?.dishes
+        ?? (recommendationIntent ? getProfitableSuggestionPool(chatDishes) : []);
+      const profitableSuggestionMessage = buildProfitableSuggestionMessage(
+        suggestionPool,
+        categorySuggestion?.category ?? null
+      );
+      const replyMentionsSuggestedDish = reply ? responseMentionsAnyDish(reply, suggestionPool) : false;
 
       if (reply) {
         pushMessage('assistant', reply);
@@ -1057,7 +1144,7 @@ const ChatBot: React.FC = () => {
       }
 
       if (
-        recommendationIntent
+        (recommendationIntent || categorySuggestion)
         && profitableSuggestionMessage
         && !replyMentionsSuggestedDish
       ) {
@@ -1186,27 +1273,8 @@ const ChatBot: React.FC = () => {
             className="h-72 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-3 py-3 sm:h-80"
           >
             {messages.length === 0 ? (
-              <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500">
-                <p>Hi! I can help with menu questions, ingredients, allergies, and recommendations.</p>
-                {profitableSuggestions.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Recommended now
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {profitableSuggestions.map((dish) => (
-                        <button
-                          key={`starter-${dish.id}`}
-                          type="button"
-                          onClick={() => setInput(`What do you recommend about ${dish.name}?`)}
-                          className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-                        >
-                          {dish.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500">
+                Hi! I can help with menu questions, ingredients, allergies, and recommendations.
               </div>
             ) : null}
 
