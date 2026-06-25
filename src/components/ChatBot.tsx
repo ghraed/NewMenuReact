@@ -49,6 +49,9 @@ interface ChatDishLink {
   name: string;
   normalized: string;
   imageUrl?: string;
+  isProfitable?: boolean;
+  isOrderable?: boolean;
+  isOutOfStock?: boolean;
 }
 
 interface ChatDishPreview {
@@ -144,6 +147,65 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
 };
 
 const normalizeDishName = (value: string): string => value.trim().toLowerCase();
+
+const sortChatDishesByPriority = (dishes: ChatDishLink[]): ChatDishLink[] => {
+  return [...dishes].sort((left, right) => {
+    const leftAvailableScore = left.isOrderable !== false && left.isOutOfStock !== true ? 1 : 0;
+    const rightAvailableScore = right.isOrderable !== false && right.isOutOfStock !== true ? 1 : 0;
+
+    if (leftAvailableScore !== rightAvailableScore) {
+      return rightAvailableScore - leftAvailableScore;
+    }
+
+    const leftProfitScore = left.isProfitable === true ? 1 : 0;
+    const rightProfitScore = right.isProfitable === true ? 1 : 0;
+
+    if (leftProfitScore !== rightProfitScore) {
+      return rightProfitScore - leftProfitScore;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+};
+
+const getProfitableSuggestionPool = (dishes: ChatDishLink[]): ChatDishLink[] => {
+  const available = dishes.filter((dish) => dish.isOrderable !== false && dish.isOutOfStock !== true);
+  const profitable = available.filter((dish) => dish.isProfitable === true);
+  const prioritized = profitable.length > 0 ? profitable : available;
+  return sortChatDishesByPriority(prioritized).slice(0, 3);
+};
+
+const isRecommendationIntent = (text: string): boolean => {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return /(\brecommend\b|\bsuggest\b|\bbest\b|\bpopular\b|\btop\b|\bpairing\b|\bwhat should i order\b|\bwhat do you recommend\b|\bchef'?s pick\b|رشح|اقترح|شو بتنصح|شو أطلب|شو الاقوى|recommande|suggestion|qu'est-ce que tu recommandes|que recommandes-tu)/i.test(normalized);
+};
+
+const buildProfitableSuggestionMessage = (dishes: ChatDishLink[]): string | null => {
+  if (dishes.length === 0) {
+    return null;
+  }
+
+  const names = dishes.map((dish) => `**${dish.name}**`);
+
+  if (names.length === 1) {
+    return `A strong pick to start with is ${names[0]}.`;
+  }
+
+  if (names.length === 2) {
+    return `Good options to start with are ${names[0]} and ${names[1]}.`;
+  }
+
+  return `Good options to start with are ${names[0]}, ${names[1]}, and ${names[2]}.`;
+};
+
+const responseMentionsAnyDish = (text: string, dishes: ChatDishLink[]): boolean => {
+  const loweredText = text.toLowerCase();
+  return dishes.some((dish) => dish.normalized && loweredText.includes(dish.normalized));
+};
 
 const buildDishHref = (
   dishId: number,
@@ -576,6 +638,10 @@ const ChatBot: React.FC = () => {
 
   const apiBase = useMemo(() => getApiBase(), []);
   const previousConversationScopeKeyRef = useRef(conversationScopeKey);
+  const profitableSuggestions = useMemo(
+    () => getProfitableSuggestionPool(chatDishes),
+    [chatDishes]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -684,12 +750,15 @@ const ChatBot: React.FC = () => {
               name: variant.trim(),
               normalized,
               imageUrl: resolveAssetUrl(dish.image_url || null),
+              isProfitable: dish.is_profitable === true,
+              isOrderable: dish.is_orderable,
+              isOutOfStock: dish.is_out_of_stock,
             });
           });
         });
 
         if (isOpen) {
-          const nextDishes = Array.from(dedupe.values());
+          const nextDishes = sortChatDishesByPriority(Array.from(dedupe.values()));
           setChatDishes((current) => {
             if (current.length !== nextDishes.length) {
               return nextDishes;
@@ -977,11 +1046,22 @@ const ChatBot: React.FC = () => {
       const data = (await response.json()) as ChatApiResponse;
       const reply = (data.reply || '').trim();
       const nextPendingOrder = normalizePlaceOrder(data.order_data);
+      const recommendationIntent = isRecommendationIntent(content);
+      const profitableSuggestionMessage = buildProfitableSuggestionMessage(profitableSuggestions);
+      const replyMentionsSuggestedDish = reply ? responseMentionsAnyDish(reply, profitableSuggestions) : false;
 
       if (reply) {
         pushMessage('assistant', reply);
       } else if (!nextPendingOrder) {
         pushMessage('assistant', 'Sorry, I could not generate a response.');
+      }
+
+      if (
+        recommendationIntent
+        && profitableSuggestionMessage
+        && !replyMentionsSuggestedDish
+      ) {
+        pushMessage('assistant', profitableSuggestionMessage);
       }
 
       if (nextPendingOrder) {
@@ -1106,8 +1186,27 @@ const ChatBot: React.FC = () => {
             className="h-72 space-y-3 overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-3 py-3 sm:h-80"
           >
             {messages.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500">
-                Hi! I can help with menu questions, ingredients, allergies, and recommendations.
+              <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-sm text-slate-500">
+                <p>Hi! I can help with menu questions, ingredients, allergies, and recommendations.</p>
+                {profitableSuggestions.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Recommended now
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {profitableSuggestions.map((dish) => (
+                        <button
+                          key={`starter-${dish.id}`}
+                          type="button"
+                          onClick={() => setInput(`What do you recommend about ${dish.name}?`)}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                        >
+                          {dish.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
