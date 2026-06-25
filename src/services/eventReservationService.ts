@@ -1,9 +1,11 @@
 import api from './api';
 import type {
+  Dish,
   EventForecast,
   EventReservationMenuItem,
   EventReservationRecord,
   EventReservationStatus,
+  PublishedDishSummary,
 } from '../types';
 
 interface EventListResponse {
@@ -37,6 +39,29 @@ interface EventOrderDraftResponse {
     created_at: string | null;
   };
 }
+
+interface DishListPayload {
+  data?: unknown;
+  current_page?: number;
+  last_page?: number;
+}
+
+const parseDishListPage = (payload: unknown): { items: Dish[]; currentPage: number; lastPage: number } => {
+  if (Array.isArray(payload)) {
+    return { items: payload as Dish[], currentPage: 1, lastPage: 1 };
+  }
+
+  if (typeof payload !== 'object' || payload === null) {
+    return { items: [], currentPage: 1, lastPage: 1 };
+  }
+
+  const pagePayload = payload as DishListPayload;
+  const items = Array.isArray(pagePayload.data) ? (pagePayload.data as Dish[]) : [];
+  const currentPage = Number.isFinite(pagePayload.current_page) ? Number(pagePayload.current_page) : 1;
+  const lastPage = Number.isFinite(pagePayload.last_page) ? Number(pagePayload.last_page) : 1;
+
+  return { items, currentPage, lastPage };
+};
 
 export interface EventReservationPayload {
   title: string;
@@ -87,6 +112,48 @@ export const setAdminEventStatus = async (
 ): Promise<EventReservationRecord> => {
   const response = await api.post<EventResponse>(`/admin/events/${eventId}/${action}`);
   return response.data.event;
+};
+
+export const fetchAdminEventDishOptions = async (): Promise<PublishedDishSummary[]> => {
+  const perPage = 200;
+  let currentPage = 1;
+  let lastPage = 1;
+  const dishes: PublishedDishSummary[] = [];
+
+  do {
+    const response = await api.get('/dishes', {
+      params: {
+        include_deleted: '0',
+        page: String(currentPage),
+        per_page: String(perPage),
+      },
+    });
+
+    const parsed = parseDishListPage(response.data);
+    dishes.push(
+      ...parsed.items
+        .filter((dish) => dish.status === 'published')
+        .map((dish) => ({
+          id: dish.id,
+          name: dish.name,
+          price: Number(dish.price),
+          category: dish.category,
+          is_orderable: dish.is_orderable,
+          is_out_of_stock: dish.is_out_of_stock,
+          alternative_dishes: dish.alternative_dishes?.map((alternative) => ({
+            id: alternative.id,
+            name: alternative.name,
+            price: Number(alternative.price),
+            category: alternative.category,
+          })),
+        }))
+    );
+
+    currentPage += 1;
+    lastPage = parsed.lastPage;
+  } while (currentPage <= lastPage);
+
+  return dishes;
 };
 
 export const replaceAdminEventMenuItems = async (

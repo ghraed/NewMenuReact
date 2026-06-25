@@ -7,6 +7,7 @@ import { getEcho } from '../services/realtime';
 import { useAuth } from '../contexts/useAuth';
 import {
   createAdminEvent,
+  fetchAdminEventDishOptions,
   fetchAdminEventForecast,
   fetchAdminEvents,
   generateAdminEventOrderDraft,
@@ -16,7 +17,6 @@ import {
   type EventReservationPayload,
 } from '../services/eventReservationService';
 import { fetchRoomPlans } from '../services/roomPlanService';
-import { fetchPublishedDishes } from '../services/orderService';
 import type {
   EventForecast,
   EventReservationMenuItem,
@@ -146,7 +146,7 @@ const AdminEventsPage: React.FC = () => {
       try {
         const [plans, dishes] = await Promise.all([
           fetchRoomPlans(),
-          fetchPublishedDishes(),
+          fetchAdminEventDishOptions(),
         ]);
         setRoomPlans(plans);
         setPublishedDishes(dishes);
@@ -255,7 +255,9 @@ const AdminEventsPage: React.FC = () => {
       return;
     }
 
+    const allowedDishIds = new Set(publishedDishes.map((dish) => dish.id));
     const items: EventReservationMenuItem[] = Object.entries(menuDraft)
+      .filter(([dishId]) => allowedDishIds.has(Number(dishId)))
       .map(([dishId, row]) => ({
         dish_id: Number(dishId),
         planned_quantity: row.planned_quantity,
