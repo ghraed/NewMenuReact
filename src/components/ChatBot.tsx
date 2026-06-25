@@ -500,15 +500,25 @@ const ChatBot: React.FC = () => {
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
+    const isTableScoped = typeof fromPath.table_id === 'number' && Number.isFinite(fromPath.table_id);
+
+    if (isTableScoped) {
+      return {
+        table_id: fromPath.table_id,
+      };
+    }
 
     return {
       restaurant_slug: fromPath.restaurant_slug ?? restaurant?.slug,
-      // Only send table context when URL is explicitly table-scoped.
       table_id: fromPath.table_id,
     };
   }, [location.pathname, restaurant?.slug]);
 
   const conversationScopeKey = useMemo(() => {
+    if (chatContext.table_id && Number.isFinite(chatContext.table_id) && chatContext.table_id > 0) {
+      return `table:${chatContext.table_id}`;
+    }
+
     const slug = (restaurant?.slug || chatContext.restaurant_slug || 'guest').trim() || 'guest';
     const sessionId = draft.tableSessionId;
 

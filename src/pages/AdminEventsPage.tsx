@@ -10,7 +10,6 @@ import {
   fetchAdminEventDishOptions,
   fetchAdminEventForecast,
   fetchAdminEvents,
-  generateAdminEventOrderDraft,
   replaceAdminEventMenuItems,
   setAdminEventStatus,
   updateAdminEvent,
@@ -25,6 +24,7 @@ import type {
   PublishedDishSummary,
   RoomPlan,
 } from '../types';
+import { downloadEventPlanPdf } from '../utils/eventPlanPdf';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -301,16 +301,54 @@ const AdminEventsPage: React.FC = () => {
     }
   };
 
-  const handleGenerateDraftOrder = async () => {
-    if (!draft.id) return;
+  const handleDownloadPdf = async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
+
     try {
-      const response = await generateAdminEventOrderDraft(draft.id);
-      setSuccess(`${response.message} Order #${response.order.order_number || response.order.id}.`);
+      const nextForecast = draft.id
+        ? await fetchAdminEventForecast(draft.id)
+        : null;
+
+      if (nextForecast) {
+        setForecast(nextForecast);
+      }
+
+      downloadEventPlanPdf({
+        restaurantName: user?.restaurant?.name || 'Restaurant',
+        event: {
+          id: draft.id ?? 0,
+          title: draft.title,
+          customer_name: draft.customer_name,
+          customer_phone: draft.customer_phone,
+          customer_email: draft.customer_email || null,
+          status: draft.status,
+          notes: draft.notes || null,
+          event_date: draft.event_date,
+          start_time: draft.start_time,
+          end_time: draft.end_time,
+          room_plan: roomPlans.find((plan) => plan.id === draft.room_plan_id)
+            ? {
+                id: Number(draft.room_plan_id),
+                name: roomPlans.find((plan) => plan.id === draft.room_plan_id)?.name || '',
+              }
+            : null,
+        },
+        plannedMenu: groupedDishes.map(([category, dishes]) => ({
+          category,
+          items: dishes.map((dish) => ({
+            dishName: dish.name,
+            plannedQuantity: menuDraft[dish.id]?.planned_quantity ?? 0,
+            prepNotes: menuDraft[dish.id]?.prep_notes ?? '',
+          })),
+        })),
+        forecast: nextForecast ?? forecast,
+      });
+
+      setSuccess('Event plan PDF downloaded.');
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to generate event order draft.'));
+      setError(getErrorMessage(err, 'Failed to download event PDF.'));
     } finally {
       setSaving(false);
     }
@@ -541,7 +579,7 @@ const AdminEventsPage: React.FC = () => {
                 <button type="button" onClick={() => void handleStatusAction('confirm', 'confirmed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Confirm</button>
                 <button type="button" onClick={() => void handleStatusAction('cancel', 'cancelled')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Cancel</button>
                 <button type="button" onClick={() => void handleStatusAction('complete', 'completed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Complete</button>
-                <button type="button" onClick={() => void handleGenerateDraftOrder()} disabled={!draft.id || saving} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Generate Order Draft</button>
+                <button type="button" onClick={() => void handleDownloadPdf()} disabled={saving} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Download PDF</button>
               </div>
             </div>
 
