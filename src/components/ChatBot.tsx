@@ -274,23 +274,42 @@ const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: str
     return null;
   }
 
-  const names = dishes.map((dish) => `**${dish.name}**`);
-  const categoryLead = category ? `If you're in the mood for ${category}, ` : '';
+  const [primaryDish, secondaryDish, tertiaryDish] = dishes;
+  const primaryName = `**${primaryDish.name}**`;
+  const secondaryName = secondaryDish ? `**${secondaryDish.name}**` : null;
+  const tertiaryName = tertiaryDish ? `**${tertiaryDish.name}**` : null;
 
-  if (names.length === 1) {
-    return `${categoryLead}I'd start with ${names[0]}.`;
+  if (category) {
+    if (secondaryName) {
+      return `If you want my honest pick from the ${category}, I'd start with ${primaryName}. If you want a second option, ${secondaryName} is also a safe choice.`;
+    }
+
+    return `If you want my honest pick from the ${category}, I'd start with ${primaryName}.`;
   }
 
-  if (names.length === 2) {
-    return `${categoryLead}I'd point you first to ${names[0]} and ${names[1]}.`;
+  if (!secondaryName) {
+    return `If you want a solid place to start, I'd go with ${primaryName}.`;
   }
 
-  return `${categoryLead}a good place to start would be ${names[0]}, ${names[1]}, or ${names[2]}.`;
+  if (!tertiaryName) {
+    return `If you want a solid place to start, I'd go with ${primaryName}. ${secondaryName} is another good option if you want a second choice.`;
+  }
+
+  return `If you want a solid place to start, I'd go with ${primaryName}. ${secondaryName} and ${tertiaryName} are also good options depending on what you're in the mood for.`;
 };
 
 const responseMentionsAnyDish = (text: string, dishes: ChatDishLink[]): boolean => {
   const loweredText = text.toLowerCase();
   return dishes.some((dish) => dish.normalized && loweredText.includes(dish.normalized));
+};
+
+const responseHighlightsDish = (text: string, dish: ChatDishLink | null | undefined): boolean => {
+  if (!dish) {
+    return false;
+  }
+
+  const loweredText = text.toLowerCase();
+  return dish.normalized !== '' && loweredText.includes(dish.normalized);
 };
 
 const buildDishHref = (
@@ -1131,11 +1150,13 @@ const ChatBot: React.FC = () => {
       const categorySuggestion = getCategorySuggestionPool(content, chatDishes);
       const suggestionPool = categorySuggestion?.dishes
         ?? (recommendationIntent ? getProfitableSuggestionPool(chatDishes) : []);
+      const primarySuggestedDish = suggestionPool[0] ?? null;
       const profitableSuggestionMessage = buildProfitableSuggestionMessage(
         suggestionPool,
         categorySuggestion?.category ?? null
       );
       const replyMentionsSuggestedDish = reply ? responseMentionsAnyDish(reply, suggestionPool) : false;
+      const replyHighlightsPrimarySuggestion = reply ? responseHighlightsDish(reply, primarySuggestedDish) : false;
 
       if (reply) {
         pushMessage('assistant', reply);
@@ -1146,7 +1167,7 @@ const ChatBot: React.FC = () => {
       if (
         (recommendationIntent || categorySuggestion)
         && profitableSuggestionMessage
-        && !replyMentionsSuggestedDish
+        && (!replyMentionsSuggestedDish || !replyHighlightsPrimarySuggestion)
       ) {
         pushMessage('assistant', profitableSuggestionMessage);
       }
