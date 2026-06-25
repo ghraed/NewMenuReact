@@ -1,14 +1,31 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useOrderCart } from '../contexts/useOrderCart';
-import { getApiBase, resolveAssetUrl } from '../services/api';
+import api, { getApiBase } from '../services/api';
+import { fetchGuestTableDish } from '../services/orderService';
+import type { Dish } from '../types';
 import {
   buildGenericGuestDishPath,
   buildGuestDishPath,
   buildGuestRestaurantDishPath,
 } from '../utils/guestTableRoutes';
+import { getGuestRestaurantCandidateSlugs } from '../utils/guestRestaurant';
+import {
+  buildDishAliasLinks,
+  collectRecommendationDishesFromFullMenu,
+  findMentionedDish,
+  isDirectDishIntent,
+  mergeRecommendationDishes,
+  normalizeDishName,
+  resolveChatRecommendation,
+  responseExplicitlyRecommendsDishName,
+  sortRecommendationDishesByPriority,
+  toChatRecommendationDishFromIndex,
+  type ChatRecommendationDish,
+  type ChatRecommendationResolution,
+} from '../utils/chatbotRecommendations';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 
 type Role = 'user' | 'assistant';
@@ -53,7 +70,7 @@ interface ChatDishLink {
   isOrderable?: boolean;
   isOutOfStock?: boolean;
   category?: string;
-  categoryAr?: string;
+  categoryAr?: string | null;
 }
 
 interface ChatDishPreview {
@@ -148,22 +165,6 @@ const normalizePlaceOrder = (raw?: ChatApiResponse['order_data']): PlaceOrderDat
   };
 };
 
-const normalizeDishName = (value: string): string => value.trim().toLowerCase();
-const normalizeCategoryText = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, ' ');
-
-const singularizeCategoryText = (value: string): string => {
-  if (value.endsWith('ies') && value.length > 3) {
-    return `${value.slice(0, -3)}y`;
-  }
-  if (value.endsWith('es') && value.length > 2) {
-    return value.slice(0, -2);
-  }
-  if (value.endsWith('s') && value.length > 1) {
-    return value.slice(0, -1);
-  }
-  return value;
-};
-
 const sortChatDishesByPriority = (dishes: ChatDishLink[]): ChatDishLink[] => {
   return [...dishes].sort((left, right) => {
     const leftAvailableScore = left.isOrderable !== false && left.isOutOfStock !== true ? 1 : 0;
@@ -183,93 +184,10 @@ const sortChatDishesByPriority = (dishes: ChatDishLink[]): ChatDishLink[] => {
     return left.name.localeCompare(right.name);
   });
 };
-
-const getProfitableSuggestionPool = (dishes: ChatDishLink[]): ChatDishLink[] => {
-  const available = dishes.filter((dish) => dish.isOrderable !== false && dish.isOutOfStock !== true);
-  const profitable = available.filter((dish) => dish.isProfitable === true);
-  const prioritized = profitable.length > 0 ? profitable : available;
-  return sortChatDishesByPriority(prioritized).slice(0, 3);
-};
-
-const getCategorySuggestionPool = (text: string, dishes: ChatDishLink[]): { category: string; dishes: ChatDishLink[] } | null => {
-  const normalizedText = normalizeCategoryText(text);
-  if (!normalizedText) {
-    return null;
-  }
-
-  const availableDishes = dishes.filter((dish) => dish.isOrderable !== false && dish.isOutOfStock !== true);
-  type CategoryBucket = { label: string; dishes: ChatDishLink[]; aliases: Set<string> };
-  const categoryBuckets = new Map<string, CategoryBucket>();
-
-  availableDishes.forEach((dish) => {
-    const rawLabels = [dish.category, dish.categoryAr]
-      .filter((value): value is string => typeof value === 'string' && value.trim() !== '');
-
-    if (rawLabels.length === 0) {
-      return;
-    }
-
-    const key = normalizeCategoryText(rawLabels[0]);
-    const existing = categoryBuckets.get(key) ?? {
-      label: rawLabels[0].trim(),
-      dishes: [],
-      aliases: new Set<string>(),
-    };
-
-    rawLabels.forEach((label) => {
-      const normalizedLabel = normalizeCategoryText(label);
-      if (!normalizedLabel) {
-        return;
-      }
-
-      existing.aliases.add(normalizedLabel);
-      existing.aliases.add(singularizeCategoryText(normalizedLabel));
-    });
-
-    existing.dishes.push(dish);
-    categoryBuckets.set(key, existing);
-  });
-
-  let bestMatch: CategoryBucket | null = null;
-
-  for (const entry of categoryBuckets.values()) {
-    const matchesCategory = Array.from(entry.aliases).some((alias) => {
-      if (!alias) {
-        return false;
-      }
-
-      return normalizedText.includes(alias);
-    });
-
-    if (!matchesCategory) {
-      continue;
-    }
-
-    if (!bestMatch || entry.dishes.length > bestMatch.dishes.length) {
-      bestMatch = entry;
-    }
-  }
-
-  if (!bestMatch) {
-    return null;
-  }
-
-  return {
-    category: bestMatch.label,
-    dishes: getProfitableSuggestionPool(bestMatch.dishes),
-  };
-};
-
-const isRecommendationIntent = (text: string): boolean => {
-  const normalized = text.trim().toLowerCase();
-  if (!normalized) {
-    return false;
-  }
-
-  return /(\brecommend\b|\bsuggest\b|\bbest\b|\bpopular\b|\btop\b|\bpairing\b|\bwhat should i order\b|\bwhat do you recommend\b|\bchef'?s pick\b|رشح|اقترح|شو بتنصح|شو أطلب|شو الاقوى|recommande|suggestion|qu'est-ce que tu recommandes|que recommandes-tu)/i.test(normalized);
-};
-
-const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: string | null): string | null => {
+const buildProfitableSuggestionMessage = (
+  resolution: ChatRecommendationResolution,
+  dishes: ChatDishLink[]
+): string | null => {
   if (dishes.length === 0) {
     return null;
   }
@@ -279,12 +197,20 @@ const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: str
   const secondaryName = secondaryDish ? `**${secondaryDish.name}**` : null;
   const tertiaryName = tertiaryDish ? `**${tertiaryDish.name}**` : null;
 
-  if (category) {
+  if (resolution.type === 'direct') {
     if (secondaryName) {
-      return `If you want my honest pick from the ${category}, I'd start with ${primaryName}. If you want a second option, ${secondaryName} is also a safe choice.`;
+      return `If you want something in that direction, I'd start with ${primaryName}. ${secondaryName} is also a good second choice.`;
     }
 
-    return `If you want my honest pick from the ${category}, I'd start with ${primaryName}.`;
+    return `If you want something in that direction, I'd start with ${primaryName}.`;
+  }
+
+  if (resolution.type === 'category' && resolution.category) {
+    if (secondaryName) {
+      return `If you want my honest pick from the ${resolution.category}, I'd start with ${primaryName}. If you want a second option, ${secondaryName} is also a safe choice.`;
+    }
+
+    return `If you want my honest pick from the ${resolution.category}, I'd start with ${primaryName}.`;
   }
 
   if (!secondaryName) {
@@ -296,19 +222,6 @@ const buildProfitableSuggestionMessage = (dishes: ChatDishLink[], category?: str
   }
 
   return `If you want a solid place to start, I'd go with ${primaryName}. ${secondaryName} and ${tertiaryName} are also good options depending on what you're in the mood for.`;
-};
-
-const responseExplicitlyRecommendsDish = (text: string, dish: ChatDishLink | null | undefined): boolean => {
-  if (!dish) {
-    return false;
-  }
-
-  const loweredText = text.toLowerCase();
-  if (dish.normalized === '' || !loweredText.includes(dish.normalized)) {
-    return false;
-  }
-
-  return /(\brecommend\b|\bsuggest\b|\bhonest pick\b|\bstart with\b|\bgo with\b|\bsafe choice\b|\bstrong pick\b|\bsolid place to start\b|\bbest pick\b|\bmy pick\b|\btry\b|ارشح|بنصح|اقترح|أنصح|recommande|je choisirais)/i.test(text);
 };
 
 const buildDishHref = (
@@ -714,7 +627,7 @@ const ChatBot: React.FC = () => {
     () => initialStoredStateRef.current?.pendingOrder ?? null
   );
   const [orderNotice, setOrderNotice] = useState<string | null>(null);
-  const [chatDishes, setChatDishes] = useState<ChatDishLink[]>([]);
+  const [chatCatalog, setChatCatalog] = useState<ChatRecommendationDish[]>([]);
   const [dishPreview, setDishPreview] = useState<ChatDishPreview | null>(null);
   const [animatingUserMessageId, setAnimatingUserMessageId] = useState<string | null>(null);
   const guestMenuResource = useGuestMenuResource({
@@ -722,12 +635,18 @@ const ChatBot: React.FC = () => {
     restaurantSlug: chatContext.table_id ? null : chatContext.restaurant_slug ?? null,
     guestAccessToken: draft.guestAccessToken,
     language: i18n.resolvedLanguage,
-    includeDishes: 'none',
+    includeDishes: 'all',
     includeIndex: true,
   }, {
     enabled: isOpen && isGuestMenuRoute,
     ttlMs: 10_000,
   });
+  const chatCatalogRef = useRef<ChatRecommendationDish[]>([]);
+  const chatDetailRequestsRef = useRef<Map<number, Promise<ChatRecommendationDish[]>>>(new Map());
+  const chatDishes = useMemo<ChatDishLink[]>(
+    () => sortChatDishesByPriority(buildDishAliasLinks(chatCatalog)),
+    [chatCatalog]
+  );
 
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -796,13 +715,21 @@ const ChatBot: React.FC = () => {
   }, [conversationScopeKey, conversationId, messages, pendingOrder]);
 
   useEffect(() => {
+    chatCatalogRef.current = chatCatalog;
+  }, [chatCatalog]);
+
+  const mergeChatCatalog = useCallback((incoming: ChatRecommendationDish[]) => {
+    setChatCatalog((current) => mergeRecommendationDishes(current, incoming));
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const hydrateDishes = async () => {
       const onGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
       if (!onGuestMenuRoute) {
         setIsAiChatbotEnabled((current) => (current === true ? current : true));
-        setChatDishes((current) => (current.length === 0 ? current : []));
+        setChatCatalog((current) => (current.length === 0 ? current : []));
         return;
       }
 
@@ -814,11 +741,9 @@ const ChatBot: React.FC = () => {
         const entry = guestMenuResource.data
           ? { data: guestMenuResource.data }
           : await guestMenuResource.ensure();
-        const indexedDishes = entry.data?.dish_index ?? [];
-        const dishes = indexedDishes.length > 0
-          ? indexedDishes
-          : (entry.data?.dishes ?? []);
         const featureFlags = entry.data?.restaurant?.feature_flags;
+        const fullDishes = entry.data?.dishes ?? [];
+        const indexedDishes = entry.data?.dish_index ?? [];
 
         if (cancelled) {
           return;
@@ -831,57 +756,17 @@ const ChatBot: React.FC = () => {
           return current === null ? true : current;
         });
 
-        const dedupe = new Map<string, ChatDishLink>();
-
-        dishes.forEach((dish) => {
-          const variants = [dish.name, dish.name_ar].filter(
-            (value): value is string => typeof value === 'string' && value.trim() !== ''
-          );
-
-          variants.forEach((variant) => {
-            const normalized = normalizeDishName(variant);
-            if (!normalized || dedupe.has(normalized)) {
-              return;
-            }
-
-            dedupe.set(normalized, {
-              id: dish.id,
-              name: variant.trim(),
-              normalized,
-              imageUrl: resolveAssetUrl(dish.image_url || null),
-              isProfitable: dish.is_profitable === true,
-              isOrderable: dish.is_orderable,
-              isOutOfStock: dish.is_out_of_stock,
-            });
-          });
-        });
-
         if (isOpen) {
-          const nextDishes = sortChatDishesByPriority(Array.from(dedupe.values()));
-          setChatDishes((current) => {
-            if (current.length !== nextDishes.length) {
-              return nextDishes;
-            }
-            for (let index = 0; index < current.length; index += 1) {
-              const left = current[index];
-              const right = nextDishes[index];
-              if (
-                left.id !== right.id
-                || left.name !== right.name
-                || left.normalized !== right.normalized
-                || left.imageUrl !== right.imageUrl
-              ) {
-                return nextDishes;
-              }
-            }
-            return current;
-          });
+          const nextCatalog = fullDishes.length > 0
+            ? collectRecommendationDishesFromFullMenu(fullDishes)
+            : sortRecommendationDishesByPriority(indexedDishes.map((dish) => toChatRecommendationDishFromIndex(dish)));
+          setChatCatalog(nextCatalog);
         }
       } catch {
         if (!cancelled) {
           setIsAiChatbotEnabled(false);
           if (isOpen) {
-            setChatDishes((current) => (current.length === 0 ? current : []));
+            setChatCatalog((current) => (current.length === 0 ? current : []));
           }
         }
       }
@@ -1098,6 +983,80 @@ const ChatBot: React.FC = () => {
     setOrderNotice(null);
   };
 
+  const fetchChatDishDetail = useCallback(async (dishId: number): Promise<Dish | null> => {
+    if (chatContext.table_id) {
+      const response = await fetchGuestTableDish(chatContext.table_id, dishId, draft.guestAccessToken);
+      return response.dish;
+    }
+
+    const candidateSlugs = getGuestRestaurantCandidateSlugs(chatContext.restaurant_slug);
+    for (const candidateSlug of candidateSlugs) {
+      try {
+        const response = await api.get<{ dish?: Dish } | Dish>(`/menu/${candidateSlug}/dish/${dishId}`, {
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+          },
+        });
+        const payload = response.data;
+        if (payload && typeof payload === 'object' && 'dish' in payload && payload.dish) {
+          return payload.dish;
+        }
+        return payload as Dish;
+      } catch (error) {
+        if (candidateSlug === candidateSlugs[candidateSlugs.length - 1]) {
+          throw error;
+        }
+      }
+    }
+
+    const fallbackResponse = await api.get<{ dish?: Dish } | Dish>(`/menu/dish/${dishId}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+    const fallbackPayload = fallbackResponse.data;
+    if (fallbackPayload && typeof fallbackPayload === 'object' && 'dish' in fallbackPayload && fallbackPayload.dish) {
+      return fallbackPayload.dish;
+    }
+
+    return fallbackPayload as Dish;
+  }, [chatContext.restaurant_slug, chatContext.table_id, draft.guestAccessToken]);
+
+  const ensureDetailedChatDish = useCallback(async (dishId: number): Promise<ChatRecommendationDish[]> => {
+    const existing = chatCatalogRef.current.find((dish) => dish.id === dishId) ?? null;
+    if (existing?.relationsLoaded) {
+      return [existing];
+    }
+
+    const pending = chatDetailRequestsRef.current.get(dishId);
+    if (pending) {
+      return pending;
+    }
+
+    const request = (async () => {
+      const detailDish = await fetchChatDishDetail(dishId);
+      if (!detailDish) {
+        return [];
+      }
+
+      const nextCatalog = collectRecommendationDishesFromFullMenu([
+        detailDish,
+        ...(detailDish.suggested_dishes || []),
+        ...(detailDish.related_dishes || []),
+      ]);
+      mergeChatCatalog(nextCatalog);
+      return nextCatalog;
+    })();
+
+    chatDetailRequestsRef.current.set(dishId, request);
+
+    try {
+      return await request;
+    } finally {
+      chatDetailRequestsRef.current.delete(dishId);
+    }
+  }, [fetchChatDishDetail, mergeChatCatalog]);
+
   const sendMessage = async () => {
     const content = input.trim();
     if (!content || isLoading || isConfirmingOrder) return;
@@ -1111,12 +1070,22 @@ const ChatBot: React.FC = () => {
     let timeoutId: number | null = null;
 
     try {
+      const matchedDish = findMentionedDish(content, chatCatalogRef.current);
+      const shouldFetchDetailedDish = Boolean(
+        matchedDish
+        && isDirectDishIntent(content)
+        && matchedDish.relationsLoaded !== true
+      );
+      const detailedCatalogPromise = shouldFetchDetailedDish && matchedDish
+        ? ensureDetailedChatDish(matchedDish.id)
+        : Promise.resolve<ChatRecommendationDish[]>([]);
+
       chatRequestAbortRef.current?.abort();
       const controller = new AbortController();
       chatRequestAbortRef.current = controller;
       timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
-      const response = await fetch(`${apiBase}/chat`, {
+      const chatResponsePromise = fetch(`${apiBase}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1132,6 +1101,7 @@ const ChatBot: React.FC = () => {
           table_id: chatContext.table_id,
         }),
       });
+      const [response, detailedCatalog] = await Promise.all([chatResponsePromise, detailedCatalogPromise]);
       chatRequestAbortRef.current = null;
 
       if (!response.ok) {
@@ -1145,17 +1115,29 @@ const ChatBot: React.FC = () => {
       const data = (await response.json()) as ChatApiResponse;
       const reply = (data.reply || '').trim();
       const nextPendingOrder = normalizePlaceOrder(data.order_data);
-      const recommendationIntent = isRecommendationIntent(content);
-      const categorySuggestion = getCategorySuggestionPool(content, chatDishes);
-      const suggestionPool = categorySuggestion?.dishes
-        ?? (recommendationIntent ? getProfitableSuggestionPool(chatDishes) : []);
+      const recommendationCatalog = detailedCatalog.length > 0
+        ? mergeRecommendationDishes(chatCatalogRef.current, detailedCatalog)
+        : chatCatalogRef.current;
+      const detailedDish = matchedDish
+        ? detailedCatalog.find((dish) => dish.id === matchedDish.id) ?? null
+        : null;
+      const recommendation = resolveChatRecommendation(content, recommendationCatalog, { detailedDish });
+      const suggestionPool = recommendation.dishes
+        .map((dish) => ({
+          id: dish.id,
+          name: dish.name,
+          normalized: normalizeDishName(dish.name),
+          imageUrl: dish.imageUrl,
+          isProfitable: dish.isProfitable,
+          isOrderable: dish.isOrderable,
+          isOutOfStock: dish.isOutOfStock,
+          category: dish.category,
+          categoryAr: dish.categoryAr ?? undefined,
+        }));
       const primarySuggestedDish = suggestionPool[0] ?? null;
-      const profitableSuggestionMessage = buildProfitableSuggestionMessage(
-        suggestionPool,
-        categorySuggestion?.category ?? null
-      );
+      const profitableSuggestionMessage = buildProfitableSuggestionMessage(recommendation, suggestionPool);
       const replyExplicitlyRecommendsPrimarySuggestion = reply
-        ? responseExplicitlyRecommendsDish(reply, primarySuggestedDish)
+        ? responseExplicitlyRecommendsDishName(reply, primarySuggestedDish?.name)
         : false;
 
       if (reply) {
@@ -1165,7 +1147,7 @@ const ChatBot: React.FC = () => {
       }
 
       if (
-        (recommendationIntent || categorySuggestion)
+        recommendation.type !== 'none'
         && profitableSuggestionMessage
         && !replyExplicitlyRecommendsPrimarySuggestion
       ) {
