@@ -65,7 +65,8 @@ describe('AdminEventsPage', () => {
     mockedRealtime.getEcho.mockReturnValue(null);
     mockedRoomPlanService.fetchRoomPlans.mockResolvedValue([{ id: 2, restaurant_id: 1, name: 'Main Hall', width: 1000, height: 800 }]);
     mockedEventService.fetchAdminEventDishOptions.mockResolvedValue([
-      { id: 11, name: 'Mixed Grill', price: 14, category: 'Food' },
+      { id: 11, name: 'Mixed Grill', price: 14, category: 'Main' },
+      { id: 12, name: 'Caesar Salad', price: 9, category: 'Salad' },
     ]);
     mockedEventService.fetchAdminEvents.mockResolvedValue([]);
     mockedEventService.createAdminEvent.mockResolvedValue({
@@ -153,7 +154,7 @@ describe('AdminEventsPage', () => {
         start_time: '19:00',
         end_time: '22:00',
         menu_items: [
-          { dish_id: 11, dish_name: 'Mixed Grill', planned_quantity: 3, prep_notes: 'Less salt' },
+          { dish_id: 11, dish_name: 'Mixed Grill', category: 'Main', planned_quantity: 3, prep_notes: 'Less salt' },
           { dish_id: 999, dish_name: 'Foreign Dish', planned_quantity: 4, prep_notes: 'Should be filtered' },
         ],
         linked_orders: [],
@@ -175,5 +176,53 @@ describe('AdminEventsPage', () => {
     expect(mockedEventService.replaceAdminEventMenuItems).toHaveBeenCalledWith(10, [
       { dish_id: 11, planned_quantity: 3, prep_notes: 'Less salt' },
     ]);
+  });
+
+  it('lets the user add a dish from search and set its quantity inside the category group', async () => {
+    mockedEventService.fetchAdminEvents.mockResolvedValue([
+      {
+        id: 10,
+        restaurant_id: 1,
+        room_plan_id: null,
+        invoice_id: null,
+        title: 'Corporate Night',
+        customer_name: 'Rania',
+        customer_phone: '+96170000001',
+        customer_email: null,
+        status: 'draft',
+        notes: null,
+        start_at: '2026-05-20T16:00:00.000000Z',
+        end_at: '2026-05-20T19:00:00.000000Z',
+        event_date: '2026-05-20',
+        start_time: '19:00',
+        end_time: '22:00',
+        menu_items: [],
+        linked_orders: [],
+      },
+    ]);
+
+    render(<AdminEventsPage />);
+
+    await screen.findByText('Planned Menu Quantities');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Search dishes to add/i })).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Search dishes to add/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Caesar Salad · Salad/i }));
+
+    expect(await screen.findByText('Salad')).toBeInTheDocument();
+    expect(await screen.findByText('Caesar Salad')).toBeInTheDocument();
+
+    const quantityInputs = screen.getAllByDisplayValue('1');
+    fireEvent.change(quantityInputs[0], { target: { value: '5' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Planned Menu' }));
+
+    await waitFor(() => {
+      expect(mockedEventService.replaceAdminEventMenuItems).toHaveBeenCalledWith(10, [
+        { dish_id: 12, planned_quantity: 5, prep_notes: null },
+      ]);
+    });
   });
 });

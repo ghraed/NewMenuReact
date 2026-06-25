@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
 import DashboardLayout from '../components/Admin/DashboardLayout';
-import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassSearchSelect, GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
 import { getEcho } from '../services/realtime';
 import { useAuth } from '../contexts/useAuth';
@@ -106,6 +106,7 @@ const AdminEventsPage: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [draft, setDraft] = useState<EventDraft>(defaultDraft);
   const [menuDraft, setMenuDraft] = useState<Record<number, { planned_quantity: number; prep_notes: string }>>({});
+  const [menuPickerValue, setMenuPickerValue] = useState('');
   const [forecast, setForecast] = useState<EventForecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -187,6 +188,7 @@ const AdminEventsPage: React.FC = () => {
     if (!selectedEvent) {
       setDraft(defaultDraft);
       setMenuDraft({});
+      setMenuPickerValue('');
       setForecast(null);
       return;
     }
@@ -200,6 +202,7 @@ const AdminEventsPage: React.FC = () => {
       };
     });
     setMenuDraft(nextMenuDraft);
+    setMenuPickerValue('');
     setForecast(null);
   }, [selectedEvent]);
 
@@ -219,6 +222,7 @@ const AdminEventsPage: React.FC = () => {
     setSelectedEventId(null);
     setDraft(defaultDraft);
     setMenuDraft({});
+    setMenuPickerValue('');
     setForecast(null);
     setError(null);
     setSuccess(null);
@@ -324,15 +328,66 @@ const AdminEventsPage: React.FC = () => {
   };
 
   const groupedDishes = useMemo(() => {
+    const selectedDishIds = new Set(Object.keys(menuDraft).map((dishId) => Number(dishId)));
     const groups = new Map<string, PublishedDishSummary[]>();
-    publishedDishes.forEach((dish) => {
+    publishedDishes
+      .filter((dish) => selectedDishIds.has(dish.id))
+      .forEach((dish) => {
       const key = dish.category || 'Uncategorized';
       const bucket = groups.get(key) ?? [];
       bucket.push(dish);
       groups.set(key, bucket);
     });
-    return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [publishedDishes]);
+    return Array.from(groups.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, dishes]) => [
+        category,
+        [...dishes].sort((a, b) => a.name.localeCompare(b.name)),
+      ] as const);
+  }, [menuDraft, publishedDishes]);
+
+  const addableDishOptions = useMemo(() => {
+    const selectedDishIds = new Set(Object.keys(menuDraft).map((dishId) => Number(dishId)));
+    return publishedDishes
+      .filter((dish) => !selectedDishIds.has(dish.id))
+      .sort((a, b) => {
+        const categoryCompare = (a.category || 'Uncategorized').localeCompare(b.category || 'Uncategorized');
+        return categoryCompare !== 0 ? categoryCompare : a.name.localeCompare(b.name);
+      })
+      .map((dish) => ({
+        value: String(dish.id),
+        label: `${dish.name} · ${dish.category || 'Uncategorized'}`,
+      }));
+  }, [menuDraft, publishedDishes]);
+
+  const handleAddMenuDish = (dishId: number) => {
+    setMenuDraft((current) => {
+      if (current[dishId]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [dishId]: {
+          planned_quantity: 1,
+          prep_notes: '',
+        },
+      };
+    });
+    setMenuPickerValue('');
+  };
+
+  const handleRemoveMenuDish = (dishId: number) => {
+    setMenuDraft((current) => {
+      if (!(dishId in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[dishId];
+      return next;
+    });
+  };
 
   return (
     <DashboardLayout title="Event Planner">
@@ -497,7 +552,30 @@ const AdminEventsPage: React.FC = () => {
                   {menuSaving ? 'Saving...' : 'Save Planned Menu'}
                 </button>
               </div>
+              <div className="rounded-xl border border-stroke bg-bg1/40 p-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-gold2">Add menu item</p>
+                <GlassSearchSelect
+                  value={menuPickerValue}
+                  options={addableDishOptions}
+                  onChange={(nextValue) => {
+                    setMenuPickerValue(nextValue);
+                    const dishId = Number(nextValue);
+                    if (Number.isFinite(dishId) && dishId > 0) {
+                      handleAddMenuDish(dishId);
+                    }
+                  }}
+                  placeholder="Search dishes to add"
+                  searchPlaceholder="Search by dish or category"
+                  emptyText="All available dishes are already added."
+                  disabled={!draft.id || menuSaving}
+                />
+              </div>
               <div className="max-h-[340px] space-y-3 overflow-auto pr-1">
+                {groupedDishes.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-stroke bg-bg1/30 px-4 py-6 text-center text-sm text-muted">
+                    Add dishes to build this event plan.
+                  </div>
+                ) : null}
                 {groupedDishes.map(([category, dishes]) => (
                   <div key={category} className="rounded-xl border border-stroke bg-bg1/40 p-3">
                     <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-gold2">{category}</p>
@@ -505,37 +583,47 @@ const AdminEventsPage: React.FC = () => {
                       {dishes.map((dish) => {
                         const entry = menuDraft[dish.id] ?? { planned_quantity: 0, prep_notes: '' };
                         return (
-                          <div key={dish.id} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px]">
-                            <div>
-                              <p className="text-sm font-medium text-text">{dish.name}</p>
+                          <div key={dish.id} className="rounded-xl border border-stroke bg-bg1/55 p-3">
+                            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_auto] md:items-start">
+                              <div>
+                                <p className="text-sm font-medium text-text">{dish.name}</p>
+                                <p className="mt-1 text-xs text-muted">Qty is assigned per selected dish.</p>
+                              </div>
                               <input
-                                value={entry.prep_notes}
-                                onChange={(event) => setMenuDraft((current) => ({
-                                  ...current,
-                                  [dish.id]: {
-                                    ...entry,
-                                    prep_notes: event.target.value,
-                                  },
-                                }))}
-                                placeholder="Prep note (optional)"
-                                className="mt-1 w-full rounded-lg border border-stroke bg-bg1 px-2 py-1.5 text-xs text-text"
+                                type="number"
+                                min={0}
+                                value={entry.planned_quantity}
+                                onChange={(event) => {
+                                  const plannedQuantity = Number(event.target.value) || 0;
+                                  setMenuDraft((current) => ({
+                                    ...current,
+                                    [dish.id]: {
+                                      ...entry,
+                                      planned_quantity: Math.max(0, plannedQuantity),
+                                    },
+                                  }));
+                                }}
+                                className="rounded-lg border border-stroke bg-bg1 px-2 py-1.5 text-sm text-text"
                               />
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMenuDish(dish.id)}
+                                className="rounded-lg border border-stroke bg-bg1 px-3 py-1.5 text-xs text-text"
+                              >
+                                Remove
+                              </button>
                             </div>
                             <input
-                              type="number"
-                              min={0}
-                              value={entry.planned_quantity}
-                              onChange={(event) => {
-                                const plannedQuantity = Number(event.target.value) || 0;
-                                setMenuDraft((current) => ({
-                                  ...current,
-                                  [dish.id]: {
-                                    ...entry,
-                                    planned_quantity: Math.max(0, plannedQuantity),
-                                  },
-                                }));
-                              }}
-                              className="rounded-lg border border-stroke bg-bg1 px-2 py-1.5 text-sm text-text"
+                              value={entry.prep_notes}
+                              onChange={(event) => setMenuDraft((current) => ({
+                                ...current,
+                                [dish.id]: {
+                                  ...entry,
+                                  prep_notes: event.target.value,
+                                },
+                              }))}
+                              placeholder="Prep note (optional)"
+                              className="mt-3 w-full rounded-lg border border-stroke bg-bg1 px-2 py-1.5 text-xs text-text"
                             />
                           </div>
                         );
