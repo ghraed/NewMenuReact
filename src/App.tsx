@@ -314,11 +314,14 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/dishes/:dish_id/edit" element={lazyRoute(<EditDishPage />)} />
             <Route path="/admin/ingredients/library" element={lazyRoute(<IngredientLibrary />)} />
             <Route path="/admin/ingredients/global" element={lazyRoute(<GlobalIngredientsPage />)} />
-            <Route path="/admin/staff" element={lazyRoute(<AdminStaffPage />)} />
             <Route path="/admin/currency" element={lazyRoute(<AdminCurrencyPage />)} />
             <Route path="/admin/theme-demo" element={lazyRoute(<LiquidGlassDemoPage />)} />
 
-            <Route element={<ProtectedRoute requiredFeatures={['staff_scheduling']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route path="/admin/staff" element={lazyRoute(<AdminStaffPage />)} />
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['admin']} requiredFeatures={['staff_scheduling']} />}>
               <Route path="/admin/staff/scheduling" element={lazyRoute(<AdminStaffSchedulingPage />)} />
             </Route>
           </Route>
