@@ -8,9 +8,8 @@ import LoadingSpinner from '../components/Common/LoadingSpinner';
 import api, { resolveAssetUrl } from '../services/api';
 import type { Dish, InventoryIngredient } from '../types';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
-import { buildGuestDishPath } from '../utils/guestTableRoutes';
-
-const guestPreviewTableId = import.meta.env.VITE_GUEST_TABLE_ID || '50';
+import { useAuth } from '../contexts/useAuth';
+import { buildGenericGuestDishPath, buildGuestRestaurantDishPath } from '../utils/guestTableRoutes';
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { message?: string } } }).response;
@@ -67,6 +66,7 @@ const EditDishPage: React.FC = () => {
   const { dish_id } = useParams<{ dish_id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const [dish, setDish] = useState<Dish | null>(null);
   const [recipeIngredientOptions, setRecipeIngredientOptions] = useState<InventoryIngredient[]>([]);
@@ -294,6 +294,10 @@ const EditDishPage: React.FC = () => {
   const glbFileName = getAssetFileName(glbAsset);
   const usdzFileName = getAssetFileName(usdzAsset);
   const ModelViewer = 'model-viewer' as React.ElementType;
+  const restaurantSlug = user?.restaurant?.slug?.trim();
+  const guestPreviewPath = restaurantSlug
+    ? buildGuestRestaurantDishPath(restaurantSlug, dish.id, dish.name)
+    : buildGenericGuestDishPath(dish.id, dish.name);
 
   return (
     <DashboardLayout title="Edit Menu Item">
@@ -307,7 +311,7 @@ const EditDishPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={buildGuestDishPath(guestPreviewTableId, dish.id, dish.name)} target="_blank">
+          <Link to={guestPreviewPath} target="_blank">
             <LiquidButton tone="tertiary" className="px-3 py-2 text-sm">{t('adminDish.openGuestView')}</LiquidButton>
           </Link>
           {dish.deleted_at ? (
