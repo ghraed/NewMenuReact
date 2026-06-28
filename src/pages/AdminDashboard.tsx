@@ -142,13 +142,13 @@ const AdminDashboard: React.FC = () => {
 
   const handleDelete = async (dish: Dish) => {
     const confirmed = window.confirm(
-      `Delete "${dish.name}"?\n\nThis is a soft delete. You can restore it later.\n\nIts 3D model files will be removed after 7 days if you do not restore the dish or permanently delete it.`
+      t('adminDashboard.confirmDelete', { dishName: dish.name })
     );
     if (!confirmed) return;
 
     try {
       const response = await api.delete(`/dishes/${dish.id}`);
-      showToast(response?.data?.message || `Dish "${dish.name}" moved to deleted state.`, 'secondary', 4200);
+      showToast(response?.data?.message || t('adminDashboard.deletedToast', { dishName: dish.name }), 'secondary', 4200);
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
@@ -159,7 +159,7 @@ const AdminDashboard: React.FC = () => {
   const handleRestore = async (dish: Dish) => {
     try {
       const response = await api.post(`/dishes/${dish.id}/restore`);
-      showToast(response?.data?.message || `Dish "${dish.name}" restored.`, 'secondary', 4200);
+      showToast(response?.data?.message || t('adminDashboard.restoredToast', { dishName: dish.name }), 'secondary', 4200);
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
@@ -169,13 +169,13 @@ const AdminDashboard: React.FC = () => {
 
   const handlePermanentDelete = async (dish: Dish) => {
     const confirmed = window.confirm(
-      `Permanently delete "${dish.name}"?\n\nThis action cannot be undone. The dish and all related model files will be removed forever.`
+      t('adminDashboard.confirmPermanentDelete', { dishName: dish.name })
     );
     if (!confirmed) return;
 
     try {
       const response = await api.delete(`/dishes/${dish.id}/force`);
-      showToast(response?.data?.message || `Dish "${dish.name}" permanently deleted.`, 'secondary', 4200);
+      showToast(response?.data?.message || t('adminDashboard.permanentlyDeletedToast', { dishName: dish.name }), 'secondary', 4200);
       setOpenMenuDishId(null);
       void fetchDishes();
     } catch (err: unknown) {
@@ -186,7 +186,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <DashboardLayout title={t('admin.dashboard')}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-text">Your Menu Items</h2>
+        <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourMenuItems')}</h2>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -196,10 +196,10 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <GlassPill active={itemTypeFilter === 'all'} onClick={() => setItemTypeFilter('all')}>All Types</GlassPill>
-        <GlassPill active={itemTypeFilter === 'prepared_dish'} onClick={() => setItemTypeFilter('prepared_dish')}>Prepared Dishes</GlassPill>
-        <GlassPill active={itemTypeFilter === 'packaged_drink'} onClick={() => setItemTypeFilter('packaged_drink')}>Drinks</GlassPill>
-        <GlassPill active={itemTypeFilter === 'other_product'} onClick={() => setItemTypeFilter('other_product')}>Other Products</GlassPill>
+        <GlassPill active={itemTypeFilter === 'all'} onClick={() => setItemTypeFilter('all')}>{t('adminDashboard.itemTypes.all')}</GlassPill>
+        <GlassPill active={itemTypeFilter === 'prepared_dish'} onClick={() => setItemTypeFilter('prepared_dish')}>{t('adminDashboard.itemTypes.preparedDishPlural')}</GlassPill>
+        <GlassPill active={itemTypeFilter === 'packaged_drink'} onClick={() => setItemTypeFilter('packaged_drink')}>{t('adminDashboard.itemTypes.packagedDrinkPlural')}</GlassPill>
+        <GlassPill active={itemTypeFilter === 'other_product'} onClick={() => setItemTypeFilter('other_product')}>{t('adminDashboard.itemTypes.otherProductPlural')}</GlassPill>
       </div>
 
       {loading ? (
@@ -239,7 +239,7 @@ const AdminDashboard: React.FC = () => {
           <h3 className="mb-2 text-xl font-medium text-text">{t('adminDashboard.noDishesYet')}</h3>
           <p className="mb-4 text-muted">{t('adminDashboard.noDishesDescription')}</p>
           <Link to="/admin/dishes/create">
-            <LiquidButton tone="primary">Create Menu Item</LiquidButton>
+            <LiquidButton tone="primary">{t('adminDashboard.createMenuItem')}</LiquidButton>
           </Link>
         </div>
       ) : (
@@ -259,12 +259,12 @@ const AdminDashboard: React.FC = () => {
                         <span>{translateCategoryLabel(dish.category, dish.category_ar)}</span>
                         <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs font-medium text-muted2">
                           {(dish.item_type || 'prepared_dish') === 'packaged_drink'
-                            ? 'Packaged Drink'
+                            ? t('adminDashboard.itemTypes.packagedDrink')
                             : (dish.item_type || 'prepared_dish') === 'other_product'
-                              ? 'Other Product'
+                              ? t('adminDashboard.itemTypes.otherProduct')
                               : (dish.item_type || 'prepared_dish') === 'prepared_drink'
-                                ? 'Prepared Drink'
-                                : 'Prepared Dish'}
+                                ? t('adminDashboard.itemTypes.preparedDrink')
+                                : t('adminDashboard.itemTypes.preparedDish')}
                         </span>
                         <span
                           className={
@@ -292,12 +292,12 @@ const AdminDashboard: React.FC = () => {
                         )}
                         {(dish.item_type === 'packaged_drink' || dish.item_type === 'other_product') && (
                           <span className="inline-flex items-center rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-xs font-medium text-sky-200">
-                            Direct Stock: {dish.packaged_stock_quantity ?? '-'}
+                            {t('adminDashboard.directStock', { quantity: dish.packaged_stock_quantity ?? '-' })}
                           </span>
                         )}
                         {((dish.item_type || 'prepared_dish') === 'prepared_dish' || (dish.item_type || 'prepared_dish') === 'prepared_drink') && (
                           <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-xs font-medium text-gold2">
-                            Recipe Inventory
+                            {t('adminDashboard.recipeInventory')}
                           </span>
                         )}
                       </div>
@@ -329,7 +329,7 @@ const AdminDashboard: React.FC = () => {
                         <div className="relative" ref={openMenuDishId === dish.id ? actionMenuRef : null}>
                           <button
                             type="button"
-                            aria-label={`More actions for ${dish.name}`}
+                            aria-label={t('adminDashboard.moreActions', { dishName: dish.name })}
                             aria-expanded={openMenuDishId === dish.id}
                             onClick={() => setOpenMenuDishId((current) => (current === dish.id ? null : dish.id))}
                             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-lg text-text transition hover:border-gold/30 hover:bg-white/10 hover:text-white"
