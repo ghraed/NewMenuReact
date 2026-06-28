@@ -630,16 +630,16 @@ const CashierPosPage: React.FC = () => {
   }, [checkout, clearOrder, holdCurrentOrder]);
 
   return (
-    <DashboardLayout title="Cashier POS">
+    <DashboardLayout title={t('cashierPosPage.pageTitle')}>
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading POS...</div>
+        <div className="py-12 text-center text-muted">{t('cashierPosPage.loading')}</div>
       ) : error ? (
         <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>
       ) : (
         <div className="space-y-4">
           {!canManageCompensation ? (
             <div className="rounded-xl2 border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-              Your role is read-only for cancellations, complimentary items, and invoice total edits.
+              {t('cashierPosPage.readOnlyCompensation')}
             </div>
           ) : null}
 
@@ -648,14 +648,14 @@ const CashierPosPage: React.FC = () => {
               <GlassCard>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-text">Product Catalog</h2>
-                    <p className="text-xs text-muted">Shortcut: / search, F4 hold order</p>
+                    <h2 className="text-lg font-semibold text-text">{t('cashierPosPage.productCatalog')}</h2>
+                    <p className="text-xs text-muted">{t('cashierPosPage.shortcutHint')}</p>
                   </div>
                   <input
                     ref={searchInputRef}
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search dishes..."
+                    placeholder={t('cashierPosPage.searchDishes')}
                     className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45 sm:w-72"
                   />
                 </div>
@@ -682,11 +682,11 @@ const CashierPosPage: React.FC = () => {
                 {visibleDishes.length === 0 ? (
                   <GlassCard className="md:col-span-2 xl:col-span-3">
                     <div className="py-8 text-center">
-                      <p className="text-base font-semibold text-text">No dishes match this search/filter.</p>
+                      <p className="text-base font-semibold text-text">{t('cashierPosPage.noDishesTitle')}</p>
                       <p className="mt-1 text-sm text-muted">
                         {hasCatalogFilters
-                          ? 'Try a different keyword or switch category to "All".'
-                          : 'No orderable dishes are available right now.'}
+                          ? t('cashierPosPage.noDishesFiltered')
+                          : t('cashierPosPage.noDishesAvailable')}
                       </p>
                     </div>
                   </GlassCard>
@@ -701,7 +701,7 @@ const CashierPosPage: React.FC = () => {
                         <div className="text-lg font-semibold text-gold2">{toMoney(dish.price)}</div>
                         <div className="grid grid-cols-2 gap-2">
                           <LiquidButton onClick={() => addDish(dish)} className="px-3 py-1.5 text-xs">
-                            Add
+                            {t('cashierPosPage.add')}
                           </LiquidButton>
                           <LiquidButton
                             tone="tertiary"
@@ -709,7 +709,7 @@ const CashierPosPage: React.FC = () => {
                             onClick={() => addDish(dish, true)}
                             className="px-3 py-1.5 text-xs"
                           >
-                            Complimentary
+                            {t('cashierPosPage.complimentary')}
                           </LiquidButton>
                         </div>
                       </div>
@@ -720,13 +720,13 @@ const CashierPosPage: React.FC = () => {
 
               <GlassCard>
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted2">Held Orders</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.heldOrders')}</h3>
                   <span className="rounded-full border border-gold/35 bg-gold/10 px-2 py-1 text-xs text-gold2">
                     {heldOrders.length}
                   </span>
                 </div>
                 {heldOrders.length === 0 ? (
-                  <p className="text-sm text-muted">No held POS orders.</p>
+                  <p className="text-sm text-muted">{t('cashierPosPage.noHeldOrders')}</p>
                 ) : (
                   <div className="space-y-2">
                     {heldOrders.map((heldOrder) => (
@@ -740,14 +740,14 @@ const CashierPosPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <LiquidButton tone="tertiary" onClick={() => resumeHeldOrder(heldOrder)} className="px-3 py-1.5 text-xs">
-                            Resume
+                            {t('cashierPosPage.resume')}
                           </LiquidButton>
                           <LiquidButton
                             tone="secondary"
                             onClick={() => setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id))}
                             className="px-3 py-1.5 text-xs"
                           >
-                            Remove
+                            {t('cashierPosPage.remove')}
                           </LiquidButton>
                         </div>
                       </div>
@@ -760,14 +760,14 @@ const CashierPosPage: React.FC = () => {
             <div className="space-y-4">
               <GlassCard>
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-text">Current Sale</h2>
+                  <h2 className="text-lg font-semibold text-text">{t('cashierPosPage.currentSale')}</h2>
                   <LiquidButton tone="tertiary" onClick={clearOrder} className="px-3 py-1.5 text-xs">
-                    Clear (F2)
+                    {t('cashierPosPage.clear')}
                   </LiquidButton>
                 </div>
 
                 {cartItems.length === 0 ? (
-                  <p className="text-sm text-muted">No items selected.</p>
+                  <p className="text-sm text-muted">{t('cashierPosPage.noItemsSelected')}</p>
                 ) : (
                   <div className="space-y-2">
                     {cartItems.map((item) => {
@@ -807,18 +807,18 @@ const CashierPosPage: React.FC = () => {
                                 ) : null}
                               </div>
                               <p className="mt-1 text-xs text-muted">
-                                {toMoney(item.originalUnitPrice)} each
-                                {item.finalUnitPrice !== item.originalUnitPrice ? ` → ${toMoney(item.finalUnitPrice)} each` : ''}
+                                {toMoney(item.originalUnitPrice)} {t('cashierPosPage.each')}
+                                {item.finalUnitPrice !== item.originalUnitPrice ? ` → ${toMoney(item.finalUnitPrice)} ${t('cashierPosPage.each')}` : ''}
                               </p>
                               {item.complaintReason ? (
                                 <p className="mt-1 text-xs text-muted2">
-                                  Reason: {COMPLAINT_REASON_LABELS[item.complaintReason]}
+                                  {t('cashierPosPage.reason')}: {COMPLAINT_REASON_LABELS[item.complaintReason]}
                                   {item.complaintNote ? ` • ${item.complaintNote}` : ''}
                                 </p>
                               ) : null}
                               {item.approvedBy?.name && item.approvedAt ? (
                                 <p className="mt-1 text-[11px] text-muted2">
-                                  Approved by {item.approvedBy.name} • {new Date(item.approvedAt).toLocaleString()}
+                                  {t('cashierPosPage.approvedBy', { name: item.approvedBy.name, date: new Date(item.approvedAt).toLocaleString() })}
                                 </p>
                               ) : null}
                             </div>
@@ -855,7 +855,7 @@ const CashierPosPage: React.FC = () => {
                               onClick={() => openCompensationEditor(item)}
                               className="px-3 py-1.5 text-xs"
                             >
-                              Edit Issue / Compensation
+                              {t('cashierPosPage.editIssueCompensation')}
                             </LiquidButton>
                           </div>
 
@@ -864,7 +864,7 @@ const CashierPosPage: React.FC = () => {
                               <div className="grid gap-3">
                                 <div className="grid gap-2 md:grid-cols-2">
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Status</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.status')}</span>
                                     <select
                                       value={compDraft.status}
                                       onChange={(event) => {
@@ -892,7 +892,7 @@ const CashierPosPage: React.FC = () => {
                                   </label>
 
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Compensation Type</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.compensationType')}</span>
                                     <select
                                       value={compDraft.compensationType}
                                       disabled={compDraft.status === 'normal'}
@@ -915,7 +915,7 @@ const CashierPosPage: React.FC = () => {
 
                                 <div className="grid gap-2 md:grid-cols-2">
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Reason</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.reason')}</span>
                                     <select
                                       value={compDraft.reason}
                                       onChange={(event) => {
@@ -928,7 +928,7 @@ const CashierPosPage: React.FC = () => {
                                       }}
                                       className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                                     >
-                                      <option value="">Select reason</option>
+                                      <option value="">{t('cashierPosPage.selectReason')}</option>
                                       {COMPLAINT_REASON_OPTIONS.map((reasonOption) => (
                                         <option key={reasonOption.value} value={reasonOption.value}>{reasonOption.label}</option>
                                       ))}
@@ -936,13 +936,13 @@ const CashierPosPage: React.FC = () => {
                                   </label>
 
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Category</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.category')}</span>
                                     <select
                                       value={compDraft.category}
                                       onChange={(event) => setCompDraft((current) => ({ ...current, category: event.target.value as ComplaintCategory | '' }))}
                                       className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                                     >
-                                      <option value="">Auto from reason</option>
+                                      <option value="">{t('cashierPosPage.autoFromReason')}</option>
                                       {(['quality_control', 'service', 'safety', 'other'] as ComplaintCategory[]).map((category) => (
                                         <option key={category} value={category}>{COMPLAINT_CATEGORY_LABELS[category]}</option>
                                       ))}
@@ -952,7 +952,7 @@ const CashierPosPage: React.FC = () => {
 
                                 {compDraft.compensationType === 'partial_discount' ? (
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Partial Discount %</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.partialDiscount')}</span>
                                     <input
                                       type="number"
                                       min="0"
@@ -966,13 +966,13 @@ const CashierPosPage: React.FC = () => {
                                 ) : null}
 
                                 <label className="block">
-                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Accounting Bucket</span>
+                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.accountingBucket')}</span>
                                   <select
                                     value={compDraft.accountingBucket}
                                     onChange={(event) => setCompDraft((current) => ({ ...current, accountingBucket: event.target.value as ComplaintAccountingBucket | '' }))}
                                     className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                                   >
-                                    <option value="">Auto bucket</option>
+                                    <option value="">{t('cashierPosPage.autoBucket')}</option>
                                     {(['wastage', 'customer_complaint_loss', 'quality_control_loss', 'marketing_expense', 'customer_retention', 'goodwill_expense'] as ComplaintAccountingBucket[]).map((bucket) => (
                                       <option key={bucket} value={bucket}>{COMPLAINT_ACCOUNTING_BUCKET_LABELS[bucket]}</option>
                                     ))}

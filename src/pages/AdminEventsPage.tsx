@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassSearchSelect, GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
 import { getEcho } from '../services/realtime';
 import { useAuth } from '../contexts/useAuth';
+import { translateStatusLabel } from '../i18n/dynamic';
 import {
   createAdminEvent,
   fetchAdminEventDishOptions,
@@ -98,6 +100,7 @@ const toDraft = (event: EventReservationRecord): EventDraft => ({
 });
 
 const AdminEventsPage: React.FC = () => {
+  const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const { user } = useAuth();
   const [events, setEvents] = useState<EventReservationRecord[]>([]);
@@ -148,19 +151,19 @@ const AdminEventsPage: React.FC = () => {
         const [plans, dishes] = await Promise.all([
           fetchRoomPlans(),
           fetchAdminEventDishOptions(),
-        ]);
+      ]);
         setRoomPlans(plans);
         setPublishedDishes(dishes);
         await reloadEvents();
       } catch (err) {
-        setError(getErrorMessage(err, 'Failed to load event planner data.'));
+        setError(getErrorMessage(err, t('adminEventsPage.failedLoad')));
       } finally {
         setLoading(false);
       }
     };
 
     void load();
-  }, [reloadEvents]);
+  }, [reloadEvents, t]);
 
   useEffect(() => {
     if (!user?.restaurant?.id) {
@@ -243,11 +246,11 @@ const AdminEventsPage: React.FC = () => {
 
       await reloadEvents();
       setSelectedEventId(saved.id);
-      setSuccess(draft.id ? 'Event updated successfully.' : 'Event created successfully.');
+      setSuccess(draft.id ? t('adminEventsPage.updated') : t('adminEventsPage.created'));
     } catch (err) {
       const axiosError = err as AxiosError<{ errors?: { conflicts?: { blocking_reservations?: unknown[]; blocking_events?: unknown[] } }; message?: string }>;
       setConflicts(axiosError.response?.data?.errors?.conflicts ?? null);
-      setError(getErrorMessage(err, 'Failed to save event.'));
+      setError(getErrorMessage(err, t('adminEventsPage.failedSave')));
     } finally {
       setSaving(false);
     }
@@ -255,7 +258,7 @@ const AdminEventsPage: React.FC = () => {
 
   const handleSaveMenu = async () => {
     if (!draft.id) {
-      setError('Create the event first, then save planned menu quantities.');
+      setError(t('adminEventsPage.createEventFirst'));
       return;
     }
 
@@ -276,9 +279,9 @@ const AdminEventsPage: React.FC = () => {
       const updated = await replaceAdminEventMenuItems(draft.id, items);
       await reloadEvents();
       setSelectedEventId(updated.id);
-      setSuccess('Planned menu saved.');
+      setSuccess(t('adminEventsPage.plannedMenuSaved'));
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to save planned menu.'));
+      setError(getErrorMessage(err, t('adminEventsPage.failedSaveMenu')));
     } finally {
       setMenuSaving(false);
     }
@@ -293,9 +296,9 @@ const AdminEventsPage: React.FC = () => {
       const updated = await setAdminEventStatus(draft.id, action);
       await reloadEvents();
       setSelectedEventId(updated.id);
-      setSuccess(`Event marked as ${status}.`);
+      setSuccess(t('adminEventsPage.markedAs', { status: translateStatusLabel(status) }));
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to update event status.'));
+      setError(getErrorMessage(err, t('adminEventsPage.failedStatusUpdate')));
     } finally {
       setStatusBusy(null);
     }
@@ -316,7 +319,7 @@ const AdminEventsPage: React.FC = () => {
       }
 
       downloadEventPlanPdf({
-        restaurantName: user?.restaurant?.name || 'Restaurant',
+        restaurantName: user?.restaurant?.name || t('adminEventsPage.restaurantFallback'),
         event: {
           id: draft.id ?? 0,
           title: draft.title,
@@ -346,9 +349,9 @@ const AdminEventsPage: React.FC = () => {
         forecast: nextForecast ?? forecast,
       });
 
-      setSuccess('Event plan PDF downloaded.');
+      setSuccess(t('adminEventsPage.pdfDownloaded'));
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to download event PDF.'));
+      setError(getErrorMessage(err, t('adminEventsPage.failedDownloadPdf')));
     } finally {
       setSaving(false);
     }
@@ -361,7 +364,7 @@ const AdminEventsPage: React.FC = () => {
       const nextForecast = await fetchAdminEventForecast(draft.id);
       setForecast(nextForecast);
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to load event forecast.'));
+      setError(getErrorMessage(err, t('adminEventsPage.failedLoadForecast')));
     }
   };
 
@@ -371,7 +374,7 @@ const AdminEventsPage: React.FC = () => {
     publishedDishes
       .filter((dish) => selectedDishIds.has(dish.id))
       .forEach((dish) => {
-      const key = dish.category || 'Uncategorized';
+      const key = dish.category || t('adminEventsPage.uncategorized');
       const bucket = groups.get(key) ?? [];
       bucket.push(dish);
       groups.set(key, bucket);
@@ -389,14 +392,14 @@ const AdminEventsPage: React.FC = () => {
     return publishedDishes
       .filter((dish) => !selectedDishIds.has(dish.id))
       .sort((a, b) => {
-        const categoryCompare = (a.category || 'Uncategorized').localeCompare(b.category || 'Uncategorized');
+        const categoryCompare = (a.category || t('adminEventsPage.uncategorized')).localeCompare(b.category || t('adminEventsPage.uncategorized'));
         return categoryCompare !== 0 ? categoryCompare : a.name.localeCompare(b.name);
       })
       .map((dish) => ({
         value: String(dish.id),
-        label: `${dish.name} · ${dish.category || 'Uncategorized'}`,
+        label: `${dish.name} · ${dish.category || t('adminEventsPage.uncategorized')}`,
       }));
-  }, [menuDraft, publishedDishes]);
+  }, [menuDraft, publishedDishes, t]);
 
   const handleAddMenuDish = (dishId: number) => {
     setMenuDraft((current) => {
@@ -428,26 +431,26 @@ const AdminEventsPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Event Planner">
+    <DashboardLayout title={t('adminEventsPage.pageTitle')}>
       <div className="space-y-4">
         <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
           <div className="grid gap-3 md:grid-cols-4">
             <label className="text-sm text-text">
-              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Status</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.status')}</span>
               <select
                 value={filters.status}
                 onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as EventReservationStatus | 'all' }))}
                 className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
               >
-                <option value="all">All</option>
-                <option value="draft">Draft</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="completed">Completed</option>
+                <option value="all">{t('adminEventsPage.all')}</option>
+                <option value="draft">{t('dynamic.status.draft')}</option>
+                <option value="confirmed">{t('dynamic.status.confirmed')}</option>
+                <option value="cancelled">{t('dynamic.status.cancelled')}</option>
+                <option value="completed">{t('dynamic.status.completed')}</option>
               </select>
             </label>
             <label className="text-sm text-text">
-              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Date From</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.dateFrom')}</span>
               <input
                 type="date"
                 value={filters.date_from}
@@ -456,7 +459,7 @@ const AdminEventsPage: React.FC = () => {
               />
             </label>
             <label className="text-sm text-text">
-              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Date To</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.dateTo')}</span>
               <input
                 type="date"
                 value={filters.date_to}
@@ -470,14 +473,14 @@ const AdminEventsPage: React.FC = () => {
                 onClick={() => void reloadEvents()}
                 className="rounded-xl border border-gold/45 bg-gold/20 px-4 py-2 text-sm font-semibold text-gold2"
               >
-                Refresh
+                {t('adminEventsPage.refresh')}
               </button>
               <button
                 type="button"
                 onClick={handleCreateNew}
                 className="rounded-xl border border-stroke bg-bg1 px-4 py-2 text-sm text-text"
               >
-                New Event
+                {t('adminEventsPage.newEvent')}
               </button>
             </div>
           </div>
@@ -485,13 +488,13 @@ const AdminEventsPage: React.FC = () => {
 
         <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.9fr)_minmax(0,1.1fr)]">
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-            <h2 className="text-lg font-semibold text-text">Events</h2>
+            <h2 className="text-lg font-semibold text-text">{t('adminEventsPage.events')}</h2>
             {loading ? (
               <div className="mt-3">
-                <PageSkeleton rows={4} columns={1} loadingText="Loading events..." />
+                <PageSkeleton rows={4} columns={1} loadingText={t('adminEventsPage.loadingEvents')} />
               </div>
             ) : events.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">No events found for selected filters.</p>
+              <p className="mt-3 text-sm text-muted">{t('adminEventsPage.noEvents')}</p>
             ) : (
               <div className="mt-3 space-y-2">
                 {events.map((event) => (
@@ -505,7 +508,7 @@ const AdminEventsPage: React.FC = () => {
                   >
                     <p className="text-sm font-semibold text-text">{event.title}</p>
                     <p className="text-xs text-muted">{event.event_date} {event.start_time} - {event.end_time}</p>
-                    <p className="text-xs uppercase tracking-[0.08em] text-gold2">{event.status}</p>
+                    <p className="text-xs uppercase tracking-[0.08em] text-gold2">{translateStatusLabel(event.status)}</p>
                   </button>
                 ))}
               </div>
@@ -514,7 +517,7 @@ const AdminEventsPage: React.FC = () => {
 
           <div className="space-y-4">
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-              <h2 className="text-lg font-semibold text-text">Event Details</h2>
+              <h2 className="text-lg font-semibold text-text">{t('adminEventsPage.eventDetails')}</h2>
               {draft.status === 'confirmed' && selectedEvent?.lead_time_warning ? (
                 <div className="mt-2 rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy">
                   {selectedEvent.lead_time_warning}
@@ -523,75 +526,75 @@ const AdminEventsPage: React.FC = () => {
 
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event title</span>
-                  <input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Event title" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.eventTitle')}</span>
+                  <input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} placeholder={t('adminEventsPage.eventTitle')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer name</span>
-                  <input value={draft.customer_name} onChange={(event) => setDraft((current) => ({ ...current, customer_name: event.target.value }))} placeholder="Customer name" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.customerName')}</span>
+                  <input value={draft.customer_name} onChange={(event) => setDraft((current) => ({ ...current, customer_name: event.target.value }))} placeholder={t('adminEventsPage.customerName')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer phone</span>
-                  <input value={draft.customer_phone} onChange={(event) => setDraft((current) => ({ ...current, customer_phone: event.target.value }))} placeholder="Customer phone" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.customerPhone')}</span>
+                  <input value={draft.customer_phone} onChange={(event) => setDraft((current) => ({ ...current, customer_phone: event.target.value }))} placeholder={t('adminEventsPage.customerPhone')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Customer email (optional)</span>
-                  <input type="email" value={draft.customer_email} onChange={(event) => setDraft((current) => ({ ...current, customer_email: event.target.value }))} placeholder="Customer email (optional)" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.customerEmailOptional')}</span>
+                  <input type="email" value={draft.customer_email} onChange={(event) => setDraft((current) => ({ ...current, customer_email: event.target.value }))} placeholder={t('adminEventsPage.customerEmailOptional')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event date</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.eventDate')}</span>
                   <input type="date" value={draft.event_date} onChange={(event) => setDraft((current) => ({ ...current, event_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
                 <div>
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Event time</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.eventTime')}</span>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="text-sm text-text">
-                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">Start time</span>
+                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.startTime')}</span>
                       <input type="time" value={draft.start_time} onChange={(event) => setDraft((current) => ({ ...current, start_time: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                     </label>
                     <label className="text-sm text-text">
-                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">End time</span>
+                      <span className="mb-1 block text-[11px] uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.endTime')}</span>
                       <input type="time" value={draft.end_time} onChange={(event) => setDraft((current) => ({ ...current, end_time: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                     </label>
                   </div>
                 </div>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Room plan</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.roomPlan')}</span>
                   <select value={draft.room_plan_id} onChange={(event) => setDraft((current) => ({ ...current, room_plan_id: event.target.value === '' ? '' : Number(event.target.value) }))} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text">
-                    <option value="">All Room Plans</option>
+                    <option value="">{t('adminEventsPage.allRoomPlans')}</option>
                     {roomPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
                   </select>
                 </label>
                 <label className="text-sm text-text">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Invoice ID (optional)</span>
-                  <input type="number" min={1} value={draft.invoice_id === '' ? '' : draft.invoice_id} onChange={(event) => setDraft((current) => ({ ...current, invoice_id: event.target.value === '' ? '' : Number(event.target.value) }))} placeholder="Invoice ID (optional)" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                  <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.invoiceIdOptional')}</span>
+                  <input type="number" min={1} value={draft.invoice_id === '' ? '' : draft.invoice_id} onChange={(event) => setDraft((current) => ({ ...current, invoice_id: event.target.value === '' ? '' : Number(event.target.value) }))} placeholder={t('adminEventsPage.invoiceIdOptional')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
                 </label>
               </div>
               <label className="mt-3 block text-sm text-text">
-                <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">Operational notes</span>
-                <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder="Operational notes" className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
+                <span className="mb-1 block text-xs uppercase tracking-[0.08em] text-muted2">{t('adminEventsPage.operationalNotes')}</span>
+                <textarea value={draft.notes} onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} placeholder={t('adminEventsPage.operationalNotes')} className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text" />
               </label>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={() => void handleSaveEvent()} disabled={saving} className="rounded-xl border border-gold/45 bg-gold/20 px-4 py-2 text-sm font-semibold text-gold2 disabled:opacity-60">
-                  {saving ? 'Saving...' : draft.id ? 'Save Event' : 'Create Event'}
+                  {saving ? t('adminEventsPage.saving') : draft.id ? t('adminEventsPage.saveEvent') : t('adminEventsPage.createEvent')}
                 </button>
-                <button type="button" onClick={() => void handleStatusAction('confirm', 'confirmed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Confirm</button>
-                <button type="button" onClick={() => void handleStatusAction('cancel', 'cancelled')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Cancel</button>
-                <button type="button" onClick={() => void handleStatusAction('complete', 'completed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Complete</button>
-                <button type="button" onClick={() => void handleDownloadPdf()} disabled={saving} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">Download PDF</button>
+                <button type="button" onClick={() => void handleStatusAction('confirm', 'confirmed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">{t('adminEventsPage.confirm')}</button>
+                <button type="button" onClick={() => void handleStatusAction('cancel', 'cancelled')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">{t('adminEventsPage.cancel')}</button>
+                <button type="button" onClick={() => void handleStatusAction('complete', 'completed')} disabled={!draft.id || statusBusy !== null} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">{t('adminEventsPage.complete')}</button>
+                <button type="button" onClick={() => void handleDownloadPdf()} disabled={saving} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">{t('adminEventsPage.downloadPdf')}</button>
               </div>
             </div>
 
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-text">Planned Menu Quantities</h3>
+                <h3 className="text-lg font-semibold text-text">{t('adminEventsPage.plannedMenuQuantities')}</h3>
                 <button type="button" onClick={() => void handleSaveMenu()} disabled={!draft.id || menuSaving} className="rounded-xl border border-gold/45 bg-gold/20 px-3 py-2 text-sm font-semibold text-gold2 disabled:opacity-60">
-                  {menuSaving ? 'Saving...' : 'Save Planned Menu'}
+                  {menuSaving ? t('adminEventsPage.saving') : t('adminEventsPage.savePlannedMenu')}
                 </button>
               </div>
               <div className="rounded-xl border border-stroke bg-bg1/40 p-3">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-gold2">Add menu item</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-gold2">{t('adminEventsPage.addMenuItem')}</p>
                 <GlassSearchSelect
                   value={menuPickerValue}
                   options={addableDishOptions}
@@ -602,16 +605,16 @@ const AdminEventsPage: React.FC = () => {
                       handleAddMenuDish(dishId);
                     }
                   }}
-                  placeholder="Search dishes to add"
-                  searchPlaceholder="Search by dish or category"
-                  emptyText="All available dishes are already added."
+                  placeholder={t('adminEventsPage.searchDishesToAdd')}
+                  searchPlaceholder={t('adminEventsPage.searchByDishOrCategory')}
+                  emptyText={t('adminEventsPage.allAvailableDishesAdded')}
                   disabled={!draft.id || menuSaving}
                 />
               </div>
               <div className="max-h-[340px] space-y-3 overflow-auto pr-1">
                 {groupedDishes.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-stroke bg-bg1/30 px-4 py-6 text-center text-sm text-muted">
-                    Add dishes to build this event plan.
+                    {t('adminEventsPage.addDishesHint')}
                   </div>
                 ) : null}
                 {groupedDishes.map(([category, dishes]) => (
@@ -625,7 +628,7 @@ const AdminEventsPage: React.FC = () => {
                             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_auto] md:items-start">
                               <div>
                                 <p className="text-sm font-medium text-text">{dish.name}</p>
-                                <p className="mt-1 text-xs text-muted">Qty is assigned per selected dish.</p>
+                                <p className="mt-1 text-xs text-muted">{t('adminEventsPage.quantityAssignedHint')}</p>
                               </div>
                               <input
                                 type="number"
@@ -648,7 +651,7 @@ const AdminEventsPage: React.FC = () => {
                                 onClick={() => handleRemoveMenuDish(dish.id)}
                                 className="rounded-lg border border-stroke bg-bg1 px-3 py-1.5 text-xs text-text"
                               >
-                                Remove
+                                {t('adminEventsPage.remove')}
                               </button>
                             </div>
                             <input
@@ -660,7 +663,7 @@ const AdminEventsPage: React.FC = () => {
                                   prep_notes: event.target.value,
                                 },
                               }))}
-                              placeholder="Prep note (optional)"
+                              placeholder={t('adminEventsPage.prepNoteOptional')}
                               className="mt-3 w-full rounded-lg border border-stroke bg-bg1 px-2 py-1.5 text-xs text-text"
                             />
                           </div>
@@ -673,15 +676,19 @@ const AdminEventsPage: React.FC = () => {
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <button type="button" onClick={() => void handleForecast()} disabled={!draft.id} className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text disabled:opacity-60">
-                  Load Forecast
+                  {t('adminEventsPage.loadForecast')}
                 </button>
               </div>
 
               {forecast ? (
                 <div className="mt-3 rounded-xl border border-stroke bg-bg1/40 p-3">
-                  <p className="text-sm font-semibold text-text">Forecast Summary</p>
+                  <p className="text-sm font-semibold text-text">{t('adminEventsPage.forecastSummary')}</p>
                   <p className="text-xs text-muted">
-                    Dishes: {forecast.summary.dish_count} | Ingredients: {forecast.summary.ingredient_count} | Shortages: {forecast.summary.shortage_count}
+                    {t('adminEventsPage.forecastCounts', {
+                      dishes: forecast.summary.dish_count,
+                      ingredients: forecast.summary.ingredient_count,
+                      shortages: forecast.summary.shortage_count,
+                    })}
                   </p>
                   <div className="mt-2 max-h-44 overflow-auto rounded-lg border border-stroke bg-bg1/45 p-2">
                     {forecast.ingredient_totals.map((ingredient) => (
@@ -690,7 +697,10 @@ const AdminEventsPage: React.FC = () => {
                           {ingredient.ingredient_name} ({ingredient.unit})
                         </span>
                         <span className={ingredient.is_shortage ? 'text-spicy' : 'text-muted'}>
-                          Need {ingredient.required_quantity} / Available {ingredient.available_quantity}
+                          {t('adminEventsPage.needAvailable', {
+                            required: ingredient.required_quantity,
+                            available: ingredient.available_quantity,
+                          })}
                         </span>
                       </div>
                     ))}
@@ -701,10 +711,13 @@ const AdminEventsPage: React.FC = () => {
 
             {conflicts ? (
               <div className="rounded-2xl border border-spicy/45 bg-spicy/10 p-4 text-sm text-spicy">
-                <p className="font-semibold">Conflicts detected</p>
-                <p className="mt-1">Resolve overlapping table reservations/events before saving this full-venue event.</p>
+                <p className="font-semibold">{t('adminEventsPage.conflictsDetected')}</p>
+                <p className="mt-1">{t('adminEventsPage.conflictsHint')}</p>
                 <p className="mt-1 text-xs">
-                  Reservations: {conflicts.blocking_reservations?.length ?? 0} | Events: {conflicts.blocking_events?.length ?? 0}
+                  {t('adminEventsPage.conflictsCounts', {
+                    reservations: conflicts.blocking_reservations?.length ?? 0,
+                    events: conflicts.blocking_events?.length ?? 0,
+                  })}
                 </p>
               </div>
             ) : null}

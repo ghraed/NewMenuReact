@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import api from '../services/api';
 import type { CurrencyCode } from '../types';
@@ -53,6 +54,7 @@ const shouldPreserveStoredGuestRate = (
 };
 
 const AdminCurrencyPage: React.FC = () => {
+  const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const [originalCurrency, setOriginalCurrency] = useState<CurrencyCode>('USD');
   const [otherCurrency, setOtherCurrency] = useState<CurrencyCode>('EUR');
@@ -101,7 +103,7 @@ const AdminCurrencyPage: React.FC = () => {
           );
           setDollarRate(String(stored.dollar_rate));
         } else {
-          setError('Failed to load currency settings.');
+          setError(t('adminCurrency.failedLoad'));
         }
       } finally {
         setLoading(false);
@@ -109,7 +111,7 @@ const AdminCurrencyPage: React.FC = () => {
     };
 
     void fetchSettings();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (error) {
@@ -137,7 +139,7 @@ const AdminCurrencyPage: React.FC = () => {
         : otherCurrency;
 
       if (!Number.isFinite(safeDollarRate) || safeDollarRate <= 0) {
-        setError('Exchange rate must be a number greater than 0.');
+        setError(t('adminCurrency.invalidExchangeRate'));
         setSaving(false);
         return;
       }
@@ -154,30 +156,30 @@ const AdminCurrencyPage: React.FC = () => {
       setDollarRate(String(safeDollarRate));
       setOtherCurrency(safeOtherCurrency);
 
-      setSuccess('Currency settings saved.');
+      setSuccess(t('adminCurrency.saved'));
     } catch (err: unknown) {
       console.error(err);
-      setSuccess('Saved locally for guest view on this device.');
-      setError('Backend sync failed. Please run API migration/deploy so currency saves for all devices.');
+      setSuccess(t('adminCurrency.savedLocally'));
+      setError(t('adminCurrency.backendSyncFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <DashboardLayout title="Currency Settings">
+    <DashboardLayout title={t('adminCurrency.pageTitle')}>
       {loading ? (
-        <div className="py-12 text-center text-muted">Loading currency settings...</div>
+        <div className="py-12 text-center text-muted">{t('adminCurrency.loading')}</div>
       ) : (
         <div className="space-y-6">
           <GlassCard className="relative overflow-hidden p-6">
             <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-gold/15 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-10 -left-8 h-32 w-32 rounded-full bg-gold2/10 blur-2xl" />
             <div className="relative">
-              <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">Finance Control</p>
-              <h2 className="mt-2 text-2xl font-semibold text-text sm:text-3xl">Currency Configuration</h2>
+              <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">{t('adminCurrency.eyebrow')}</p>
+              <h2 className="mt-2 text-2xl font-semibold text-text sm:text-3xl">{t('adminCurrency.heading')}</h2>
               <p className="mt-2 max-w-2xl text-sm text-muted">
-                Set the restaurant default currency, secondary currency, and exchange rate used across finance, expenses, and guest-facing values.
+                {t('adminCurrency.description')}
               </p>
             </div>
           </GlassCard>
@@ -186,15 +188,15 @@ const AdminCurrencyPage: React.FC = () => {
             <GlassCard className="relative space-y-5 overflow-hidden p-6">
               <div className="pointer-events-none absolute -right-10 top-6 h-24 w-24 rounded-full bg-gold/10 blur-xl" />
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-text">Settings</h3>
+                <h3 className="text-base font-semibold text-text">{t('adminCurrency.settingsTitle')}</h3>
                 <span className="rounded-full border border-gold/35 bg-gold/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold2">
-                  Finance Sync
+                  {t('adminCurrency.financeSync')}
                 </span>
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 <div>
                   <label htmlFor="currency" className="mb-1 block text-sm font-medium text-text">
-                    Default Currency
+                    {t('adminCurrency.defaultCurrency')}
                   </label>
                   <select
                     id="currency"
@@ -219,7 +221,7 @@ const AdminCurrencyPage: React.FC = () => {
 
                 <div>
                   <label htmlFor="other_currency" className="mb-1 block text-sm font-medium text-text">
-                    Other Currency
+                    {t('adminCurrency.otherCurrency')}
                   </label>
                   <select
                     id="other_currency"
@@ -242,12 +244,12 @@ const AdminCurrencyPage: React.FC = () => {
                         </option>
                       ))}
                   </select>
-                  <p className="mt-2 text-xs text-muted">Used for alternate currency views and quick switching.</p>
+                  <p className="mt-2 text-xs text-muted">{t('adminCurrency.otherCurrencyHint')}</p>
                 </div>
 
                 <div className="md:col-span-2">
                   <label htmlFor="dollar_rate" className="mb-1 block text-sm font-medium text-text">
-                    Exchange Rate
+                    {t('adminCurrency.exchangeRate')}
                   </label>
                   <GlassInput
                     id="dollar_rate"
@@ -257,14 +259,14 @@ const AdminCurrencyPage: React.FC = () => {
                     step="0.01"
                     value={dollarRate}
                     onChange={(event) => setDollarRate(event.target.value)}
-                    placeholder="e.g. 89500"
+                    placeholder={t('adminCurrency.exchangeRatePlaceholder')}
                   />
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 font-medium text-gold2">
-                      1 USD = {dollarRate || '...'} {otherCurrency}
+                      {t('adminCurrency.exchangePair', { rate: dollarRate || '...', currency: otherCurrency })}
                     </span>
                     <span className="rounded-full border border-stroke bg-bg2/65 px-3 py-1 text-muted">
-                      Preview pair: {originalCurrency} ↔ {otherCurrency}
+                      {t('adminCurrency.previewPair', { original: originalCurrency, other: otherCurrency })}
                     </span>
                   </div>
                 </div>
@@ -280,36 +282,36 @@ const AdminCurrencyPage: React.FC = () => {
 
               <div className="flex justify-end">
                 <LiquidButton onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Currency Settings'}
+                  {saving ? t('adminDashboard.saving') : t('adminCurrency.save')}
                 </LiquidButton>
               </div>
             </GlassCard>
 
             <GlassCard className="space-y-4 p-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-text">Live Preview</h3>
-                <span className="text-xs font-medium text-muted">Realtime</span>
+                <h3 className="text-base font-semibold text-text">{t('adminCurrency.livePreview')}</h3>
+                <span className="text-xs font-medium text-muted">{t('adminCurrency.realtime')}</span>
               </div>
               <div className="space-y-3">
                 <div className="rounded-2xl border border-stroke bg-bg2/65 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted">Default</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted">{t('adminCurrency.defaultLabel')}</p>
                   <p className="mt-1 text-lg font-semibold text-text">{originalCurrency}</p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg2/65 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-muted">Secondary</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted">{t('adminCurrency.secondaryLabel')}</p>
                   <p className="mt-1 text-lg font-semibold text-text">{otherCurrency}</p>
                 </div>
                 <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/10 to-gold2/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-gold2/85">Sample Conversion</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-gold2/85">{t('adminCurrency.sampleConversion')}</p>
                   <p className="mt-2 text-sm text-text">
-                    1 USD ≈ {Number.isFinite(Number(dollarRate)) && Number(dollarRate) > 0
+                    {t('adminCurrency.sampleConversionValue', { value: Number.isFinite(Number(dollarRate)) && Number(dollarRate) > 0
                       ? (1 * Number(dollarRate)).toLocaleString(undefined, { maximumFractionDigits: 2 })
-                      : '...'} "LBP"
+                      : '...' })}
                   </p>
                 </div>
               </div>
               <p className="text-xs leading-5 text-muted">
-                Tip: keep exchange rates updated before downloading finance reports so charts, summaries, and exported workbooks stay consistent.
+                {t('adminCurrency.tip')}
               </p>
             </GlassCard>
           </div>

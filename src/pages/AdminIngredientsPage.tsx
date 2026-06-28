@@ -205,11 +205,11 @@ const AdminIngredientsPage: React.FC = () => {
       setExpenseCategories(categories.filter((category) => category.is_active));
       setExpenseVendors(vendors.filter((vendor) => vendor.is_active));
     } catch (err: unknown) {
-      showToast(getErrorMessage(err, 'Failed to load expense categories/vendors.'), 'tertiary');
+      showToast(getErrorMessage(err, t('inventoryIngredients.failedLoadExpenseLinks')), 'tertiary');
     } finally {
       setExpenseLinkLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   useEffect(() => {
     void fetchIngredients();
@@ -891,10 +891,10 @@ const AdminIngredientsPage: React.FC = () => {
           <PageSkeleton rows={6} columns={1} className="py-2" loadingText={t('inventoryIngredients.loading')} />
         ) : filteredIngredients.length === 0 ? (
           <div className="py-12 text-center text-muted">
-            <p className="font-semibold text-text">No ingredients match your search/filter.</p>
+            <p className="font-semibold text-text">{t('inventoryIngredients.noMatches')}</p>
             <p className="mt-1">
               {hasIngredientListFilters
-                ? 'Try a different search term or reset status/unit filters.'
+                ? t('inventoryIngredients.noMatchesHint')
                 : t('inventoryIngredients.empty')}
             </p>
           </div>
@@ -1075,7 +1075,7 @@ const AdminIngredientsPage: React.FC = () => {
 
                               <div>
                                 <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
-                                  Currency
+                                  {t('inventoryIngredients.expenseCurrency')}
                                 </label>
                                 <GlassInput
                                   value={actionState.expenseCurrency}
@@ -1084,13 +1084,13 @@ const AdminIngredientsPage: React.FC = () => {
                                     expenseCurrency: event.target.value.toUpperCase().slice(0, 3),
                                   }))}
                                   disabled={submittingAction || expenseLinkLoading}
-                                  placeholder="USD"
+                                  placeholder={t('inventoryIngredients.expenseCurrencyPlaceholder')}
                                 />
                               </div>
 
                               <div>
                                 <label className="mb-1 block text-xs uppercase tracking-[0.14em] text-muted2">
-                                  Amount
+                                  {t('inventoryIngredients.expenseAmount')}
                                 </label>
                                 <GlassInput
                                   type="number"
@@ -1251,10 +1251,10 @@ const AdminIngredientsPage: React.FC = () => {
               </div>
             ) : filteredGlobalImportRows.length === 0 ? (
               <div className="mt-5 rounded-[20px] border border-modalStroke bg-modalRow p-6 text-center text-sm text-muted">
-                <p className="font-semibold text-text">No global ingredients match your search/filter.</p>
+                <p className="font-semibold text-text">{t('inventoryIngredients.importGlobal.noMatches')}</p>
                 <p className="mt-1">
                   {hasGlobalImportFilters
-                    ? 'Clear search or show already-added ingredients to broaden results.'
+                    ? t('inventoryIngredients.importGlobal.noMatchesHint')
                     : t('inventoryIngredients.importGlobal.empty')}
                 </p>
               </div>

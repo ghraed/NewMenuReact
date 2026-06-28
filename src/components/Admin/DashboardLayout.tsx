@@ -95,59 +95,59 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   const navItems: NavItem[] = user?.role === 'chef'
     ? [
       { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-      { path: '/admin/dishes/create', label: 'Create Menu Item', icon: 'plus' },
-      { path: '/chef/dashboard', label: 'Kitchen Dashboard', icon: 'kitchen' },
-      { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
+      { path: '/admin/dishes/create', label: t('admin.createMenuItem'), icon: 'plus' },
+      { path: '/chef/dashboard', label: t('admin.kitchenDashboard'), icon: 'kitchen' },
+      { path: '/admin/events', label: t('admin.eventPlanner'), icon: 'calendar', requiredFeatures: ['event_reservations'] },
     ]
     : user?.role === 'accountant'
       ? [
         { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-        { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-        { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
-        { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
-        { path: '/admin/currency', label: 'Currency', icon: 'currency' },
+        { path: '/admin/finance', label: t('admin.finance'), icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/finance/expenses', label: t('admin.expenses'), icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
+        { path: '/admin/finance/payroll', label: t('admin.payroll'), icon: 'payroll', requiredFeatures: ['payroll_management'] },
+        { path: '/admin/currency', label: t('admin.currency'), icon: 'currency' },
       ]
       : user?.role === 'stock_manager'
         ? [
           { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-          { path: '/admin/dishes/create', label: 'Create Menu Item', icon: 'plus' },
-          { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
+          { path: '/admin/dishes/create', label: t('admin.createMenuItem'), icon: 'plus' },
+          { path: '/admin/events', label: t('admin.eventPlanner'), icon: 'calendar', requiredFeatures: ['event_reservations'] },
           { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
           { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
-          { path: '/admin/inventory/ingredient-tracker', label: 'Ingredient Tracker', icon: 'tracker', requiredFeatures: ['inventory'] },
+          { path: '/admin/inventory/ingredient-tracker', label: t('admin.ingredientTracker'), icon: 'tracker', requiredFeatures: ['inventory'] },
         ]
         : user?.role === 'staff'
           ? [
             { path: '/staff/orders', label: t('admin.pendingOrders'), icon: 'receipt' },
-            { path: '/staff/today-orders', label: 'Today Orders', icon: 'clock' },
-            { path: '/admin/reservations', label: 'Reservations', icon: 'calendar' },
+            { path: '/staff/today-orders', label: t('admin.todayOrders'), icon: 'clock' },
+            { path: '/admin/reservations', label: t('admin.reservations'), icon: 'calendar' },
           ]
           : [
             { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
-            { path: '/admin/room-plans', label: 'Room Plans', icon: 'map', requiredFeatures: ['room_plan_editor'] },
-            { path: '/admin/reservations', label: 'Reservations', icon: 'calendar', requiredFeatures: ['table_reservations'] },
-            { path: '/admin/events', label: 'Event Planner', icon: 'calendar', requiredFeatures: ['event_reservations'] },
+            { path: '/admin/room-plans', label: t('admin.roomPlans'), icon: 'map', requiredFeatures: ['room_plan_editor'] },
+            { path: '/admin/reservations', label: t('admin.reservations'), icon: 'calendar', requiredFeatures: ['table_reservations'] },
+            { path: '/admin/events', label: t('admin.eventPlanner'), icon: 'calendar', requiredFeatures: ['event_reservations'] },
             { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-            { path: '/admin/finance', label: 'Finance', icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
-            { path: '/admin/finance/expenses', label: 'Expenses', icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
-            { path: '/admin/finance/payroll', label: 'Payroll', icon: 'payroll', requiredFeatures: ['payroll_management'] },
+            { path: '/admin/finance', label: t('admin.finance'), icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+            { path: '/admin/finance/expenses', label: t('admin.expenses'), icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
+            { path: '/admin/finance/payroll', label: t('admin.payroll'), icon: 'payroll', requiredFeatures: ['payroll_management'] },
             { path: '/admin/staff', label: t('admin.staff'), icon: 'users' },
-            { path: '/admin/staff/scheduling', label: 'Staff Schedule', icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
+            { path: '/admin/staff/scheduling', label: t('admin.staffSchedule'), icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
             { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
-            { path: '/staff/today-orders', label: 'Today Orders', icon: 'clock' },
-            { path: '/staff/pos', label: 'Cashier POS', icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
-            { path: '/admin/currency', label: 'Currency', icon: 'currency' },
-            { path: '/admin/dishes/create', label: 'Create Menu Item', icon: 'plus' },
+            { path: '/staff/today-orders', label: t('admin.todayOrders'), icon: 'clock' },
+            { path: '/staff/pos', label: t('admin.cashierPos'), icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
+            { path: '/admin/currency', label: t('admin.currency'), icon: 'currency' },
+            { path: '/admin/dishes/create', label: t('admin.createMenuItem'), icon: 'plus' },
             { path: '/admin/inventory/ingredients', label: t('admin.inventoryIngredients'), icon: 'box', requiredFeatures: ['inventory'] },
             { path: '/admin/inventory/stock-history', label: t('admin.stockHistory'), icon: 'scroll', requiredFeatures: ['inventory'] },
-            { path: '/admin/inventory/ingredient-tracker', label: 'Ingredient Tracker', icon: 'tracker', requiredFeatures: ['inventory'] },
+            { path: '/admin/inventory/ingredient-tracker', label: t('admin.ingredientTracker'), icon: 'tracker', requiredFeatures: ['inventory'] },
             { path: '/admin/ingredients/library', label: t('admin.ingredientsLibrary'), icon: 'leaf' },
-            { path: '/admin/ingredients/global', label: 'Global Ingredients', icon: 'globe' },
+            { path: '/admin/ingredients/global', label: t('admin.globalIngredients'), icon: 'globe' },
           ];
 
   const visibleNavItems = useMemo(() => navItems.filter((item) => (
-    areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures)
-  )), [navItems, user?.restaurant?.feature_flags]);
+    areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures, user?.email)
+  )), [navItems, user?.email, user?.restaurant?.feature_flags]);
 
   const activeLanguage = (i18n.resolvedLanguage || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
@@ -223,11 +223,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
   };
 
   const roleLabel = user?.role === 'chef'
-    ? 'Kitchen Team'
+    ? t('admin.kitchenTeam')
     : user?.role === 'accountant'
-      ? 'Accounting Team'
+      ? t('admin.accountingTeam')
       : user?.role === 'stock_manager'
-        ? 'Stock Manager'
+        ? t('admin.stockManager')
         : user?.role === 'staff'
           ? t('admin.staffTitle')
           : t('admin.adminTitle');
@@ -299,7 +299,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                   <Link
                     to="/admin/user-profile"
                     className="block truncate text-xs font-semibold text-gold2/90 transition-colors hover:text-gold"
-                    title="User profile"
+                    title={t('admin.userProfile')}
                   >
                     {user?.restaurant?.name || t('admin.dashboard')}
                   </Link>
@@ -307,7 +307,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
                 <Link
                   to="/admin/user-profile"
                   className="block truncate text-xs text-muted transition-colors hover:text-text"
-                  title="User profile"
+                  title={t('admin.userProfile')}
                 >
                   {user?.name || user?.email || '-'}
                 </Link>

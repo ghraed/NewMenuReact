@@ -75,22 +75,6 @@ const copyText = async (value: string): Promise<boolean> => {
   }
 };
 
-const staffCreationRoles: Array<{ value: Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>; label: string }> = [
-  { value: 'staff', label: 'Staff' },
-  { value: 'chef', label: 'Chef' },
-  { value: 'stock_manager', label: 'Stock Manager' },
-  { value: 'accountant', label: 'Accountant' },
-];
-
-const roleLabelByValue: Record<UserRole, string> = {
-  admin: 'Admin',
-  add: 'ADD',
-  staff: 'Staff',
-  chef: 'Chef',
-  stock_manager: 'Stock Manager',
-  accountant: 'Accountant',
-};
-
 const AdminStaffPage: React.FC = () => {
   const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast();
@@ -127,6 +111,22 @@ const AdminStaffPage: React.FC = () => {
       url: `${window.location.origin}/menu/table/${table.number ?? table.id}`,
     }));
   }, [tables]);
+
+  const staffCreationRoles: Array<{ value: Extract<UserRole, 'staff' | 'chef' | 'stock_manager' | 'accountant'>; label: string }> = [
+    { value: 'staff', label: t('adminStaff.roleLabels.staff') },
+    { value: 'chef', label: t('adminStaff.roleLabels.chef') },
+    { value: 'stock_manager', label: t('adminStaff.roleLabels.stockManager') },
+    { value: 'accountant', label: t('adminStaff.roleLabels.accountant') },
+  ];
+
+  const roleLabelByValue: Record<UserRole, string> = {
+    admin: t('adminStaff.roleLabels.admin'),
+    add: t('adminStaff.roleLabels.add'),
+    staff: t('adminStaff.roleLabels.staff'),
+    chef: t('adminStaff.roleLabels.chef'),
+    stock_manager: t('adminStaff.roleLabels.stockManager'),
+    accountant: t('adminStaff.roleLabels.accountant'),
+  };
 
   const syncStaffMembers = useCallback((nextStaffMembers: StaffMember[]) => {
     setStaffMembers(nextStaffMembers);
@@ -169,7 +169,7 @@ const AdminStaffPage: React.FC = () => {
   const handleSaveManualCount = async () => {
     const parsed = Number.parseInt(manualCountInput, 10);
     if (!Number.isFinite(parsed) || parsed < 1) {
-      setPageError('Table count must be greater than 0.');
+      setPageError(t('adminStaff.tableCountGreaterThanZero'));
       return;
     }
 
@@ -187,7 +187,7 @@ const AdminStaffPage: React.FC = () => {
       await loadStaffMembers();
       showToast(response.message, 'primary');
     } catch (error: unknown) {
-      setPageError(getErrorMessage(error, 'Failed to update manual table count.'));
+      setPageError(getErrorMessage(error, t('adminStaff.failedManualTableCount')));
     } finally {
       setSavingManualCount(false);
     }
@@ -212,22 +212,22 @@ const AdminStaffPage: React.FC = () => {
     }
 
     if (normalizedEmail && !isValidEmail(normalizedEmail)) {
-      setPageError('Please enter a valid email address.');
+      setPageError(t('adminStaff.invalidEmail'));
       return;
     }
 
     if (normalizedPhone && normalizePhone(normalizedPhone).length < 7) {
-      setPageError('Please enter a valid phone number.');
+      setPageError(t('adminStaff.invalidPhone'));
       return;
     }
 
     if (password.trim() !== '' && password.trim().length < 8) {
-      setPageError('Password must be at least 8 characters.');
+      setPageError(t('adminStaff.passwordMinLength'));
       return;
     }
 
     if (manualModeRequiresCount) {
-      setPageError('Set manual table count before assigning tables.');
+      setPageError(t('adminStaff.setManualTableCountBeforeAssigning'));
       return;
     }
 
@@ -287,9 +287,9 @@ const AdminStaffPage: React.FC = () => {
       if (!copied) {
         throw new Error('copy-failed');
       }
-      showToast('Table URL copied.', 'secondary');
+      showToast(t('adminStaff.tableUrlCopied'), 'secondary');
     } catch {
-      setPageError('Failed to copy table URL.');
+      setPageError(t('adminStaff.failedCopyTableUrl'));
     }
   };
 
@@ -300,33 +300,33 @@ const AdminStaffPage: React.FC = () => {
           <h2 className="text-2xl font-semibold text-text">{t('adminStaff.heading')}</h2>
           <form onSubmit={handleSubmit} className="mt-6 space-y-5">
             <div>
-              <label htmlFor="staff-name" className="mb-2 block text-sm font-medium text-text">Staff Name</label>
-              <GlassInput id="staff-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Maya Hassan" disabled={creating} required />
+              <label htmlFor="staff-name" className="mb-2 block text-sm font-medium text-text">{t('adminStaff.staffName')}</label>
+              <GlassInput id="staff-name" value={name} onChange={(event) => setName(event.target.value)} placeholder={t('adminStaff.staffNamePlaceholder')} disabled={creating} required />
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <label htmlFor="staff-email" className="mb-2 block text-sm font-medium text-text">Email (Optional)</label>
-                <GlassInput id="staff-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="maya@restaurant.com" disabled={creating} />
+                <label htmlFor="staff-email" className="mb-2 block text-sm font-medium text-text">{t('adminStaff.emailOptional')}</label>
+                <GlassInput id="staff-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('adminStaff.emailPlaceholder')} disabled={creating} />
               </div>
               <div>
-                <label htmlFor="staff-phone" className="mb-2 block text-sm font-medium text-text">Phone (Optional)</label>
-                <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+961 70 000 000" disabled={creating} />
+                <label htmlFor="staff-phone" className="mb-2 block text-sm font-medium text-text">{t('adminStaff.phoneOptional')}</label>
+                <GlassInput id="staff-phone" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('adminStaff.phonePlaceholder')} disabled={creating} />
               </div>
             </div>
             <div>
-              <label htmlFor="staff-password" className="mb-2 block text-sm font-medium text-text">Password (Optional)</label>
+              <label htmlFor="staff-password" className="mb-2 block text-sm font-medium text-text">{t('adminStaff.passwordOptional')}</label>
               <GlassInput
                 id="staff-password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Leave blank to auto-generate"
+                placeholder={t('adminStaff.passwordPlaceholder')}
                 disabled={creating}
               />
-              <p className="mt-2 text-xs text-muted">If left empty, the system generates a temporary password automatically.</p>
+              <p className="mt-2 text-xs text-muted">{t('adminStaff.passwordHint')}</p>
             </div>
             <div>
-              <div className="mb-2 block text-sm font-medium text-text">Role</div>
+              <div className="mb-2 block text-sm font-medium text-text">{t('adminStaff.role')}</div>
               <div className="flex flex-wrap gap-2">
                 {staffCreationRoles.map((roleOption) => (
                   <GlassChip
@@ -353,7 +353,7 @@ const AdminStaffPage: React.FC = () => {
                   {managementLoading ? (
                     <p className="text-sm text-muted">{t('common.loading')}</p>
                   ) : manualModeRequiresCount ? (
-                    <p className="text-sm text-muted">Set manual table count first.</p>
+                    <p className="text-sm text-muted">{t('adminStaff.setManualTableCountFirst')}</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {tables.map((table) => (
@@ -384,17 +384,17 @@ const AdminStaffPage: React.FC = () => {
 
         <div className="space-y-6">
           <GlassCard noise={false}>
-            <h3 className="text-lg font-semibold text-text">Table Management</h3>
-            <p className="mt-2 text-sm text-muted">Mode: {management?.mode ?? '...'}</p>
+            <h3 className="text-lg font-semibold text-text">{t('adminStaff.tableManagement')}</h3>
+            <p className="mt-2 text-sm text-muted">{t('adminStaff.modeLabel', { mode: management?.mode ?? '...' })}</p>
             {management?.mode === 'MANUAL' ? (
               <div className="mt-4 space-y-3">
-                <GlassInput value={manualCountInput} onChange={(event) => setManualCountInput(event.target.value)} placeholder="Number of tables" type="number" min={1} />
+                <GlassInput value={manualCountInput} onChange={(event) => setManualCountInput(event.target.value)} placeholder={t('adminStaff.numberOfTables')} type="number" min={1} />
                 <LiquidButton type="button" tone="primary" onClick={handleSaveManualCount} disabled={savingManualCount}>
-                  {savingManualCount ? t('adminDashboard.saving') : 'Save Table Count'}
+                  {savingManualCount ? t('adminDashboard.saving') : t('adminStaff.saveTableCount')}
                 </LiquidButton>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-muted">Tables are synced from Room Plan items.</p>
+              <p className="mt-3 text-sm text-muted">{t('adminStaff.tablesSyncedFromRoomPlans')}</p>
             )}
           </GlassCard>
 
@@ -404,14 +404,14 @@ const AdminStaffPage: React.FC = () => {
               <div className="mt-4 space-y-3 text-sm text-muted">
                 <div className="relative isolate overflow-hidden rounded-xl2 border border-sage/35 bg-sage/10 p-4">
                   <p className="text-base font-semibold text-text">{createdStaff.name}</p>
-                  <p className="mt-1">Role: {roleLabelByValue[createdStaff.role]}</p>
-                  <p>Email: {createdStaff.email || 'Not provided'}</p>
-                  <p>Phone: {createdStaff.phone || 'Not provided'}</p>
-                  <p>Login: {createdStaff.email || createdStaff.phone || 'Use assigned contact'}</p>
+                  <p className="mt-1">{t('adminStaff.latestCreatedRole', { role: roleLabelByValue[createdStaff.role] })}</p>
+                  <p>{t('adminStaff.latestCreatedEmail', { value: createdStaff.email || t('adminStaff.notProvided') })}</p>
+                  <p>{t('adminStaff.latestCreatedPhone', { value: createdStaff.phone || t('adminStaff.notProvided') })}</p>
+                  <p>{t('adminStaff.latestCreatedLogin', { value: createdStaff.email || createdStaff.phone || t('adminStaff.useAssignedContact') })}</p>
                   <p>
-                    Password:{' '}
+                    {t('adminStaff.latestCreatedPassword')}{' '}
                     <span className="font-semibold text-text">
-                      {temporaryPassword || 'Used the password entered in the form'}
+                      {temporaryPassword || t('adminStaff.usedEnteredPassword')}
                     </span>
                   </p>
                 </div>
@@ -422,14 +422,14 @@ const AdminStaffPage: React.FC = () => {
           </GlassCard>
 
           <GlassCard interactive={false} noise={false}>
-            <h3 className="text-lg font-semibold text-text">Guest Table URLs</h3>
+            <h3 className="text-lg font-semibold text-text">{t('adminStaff.guestTableUrls')}</h3>
             <p className="mt-2 text-sm text-muted">
-              Share these links with guests so they can open the menu and place orders directly for a table.
+              {t('adminStaff.guestTableUrlsDescription')}
             </p>
             {managementLoading ? (
               <p className="mt-4 text-sm text-muted">{t('common.loading')}</p>
             ) : tableGuestLinks.length === 0 ? (
-              <p className="mt-4 text-sm text-muted">No active tables yet. Create or sync tables first.</p>
+              <p className="mt-4 text-sm text-muted">{t('adminStaff.noActiveTablesYet')}</p>
             ) : (
               <div className="mt-4 space-y-3">
                 {tableGuestLinks.map((table) => (
@@ -440,8 +440,8 @@ const AdminStaffPage: React.FC = () => {
                     </div>
                     <GlassIconButton
                       type="button"
-                      aria-label={`Copy URL for ${table.name}`}
-                      title="Copy table URL"
+                      aria-label={t('adminStaff.copyUrlForTable', { table: table.name })}
+                      title={t('adminStaff.copyTableUrl')}
                       onClick={() => void handleCopyTableUrl(table.url)}
                     >
                       ⧉
@@ -467,7 +467,7 @@ const AdminStaffPage: React.FC = () => {
         ) : staffMembers.length === 0 ? (
           <p className="text-sm text-muted">{t('adminStaff.noStaffYet')}</p>
         ) : manualModeRequiresCount ? (
-          <p className="text-sm text-muted">Set manual table count to start assignments.</p>
+          <p className="text-sm text-muted">{t('adminStaff.setManualTableCountToStartAssignments')}</p>
         ) : (
           <div className="space-y-4">
             {staffMembers.map((staff) => {

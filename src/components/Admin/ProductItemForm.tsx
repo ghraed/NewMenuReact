@@ -79,11 +79,11 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
     const sizeText = form.sizeValue.trim() ? ` ${form.sizeValue.trim()}${unitText}` : '';
 
     if (isPackagedDrink) {
-      const base = form.brand.trim() || 'Packaged Drink';
+      const base = form.brand.trim() || t('dishForm.packagedDrinkFallbackName');
       return `${base}${sizeText}`.trim();
     }
 
-    const base = form.brand.trim() || 'Other Product';
+    const base = form.brand.trim() || t('dishForm.otherProductFallbackName');
     return `${base}${sizeText}`.trim();
   };
 
@@ -92,15 +92,15 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
     setFormError(null);
 
     if (!form.category) {
-      setFormError('Please choose a category.');
+      setFormError(t('dishForm.productErrors.chooseCategory'));
       return;
     }
     if (!form.price || Number(form.price) <= 0) {
-      setFormError('Please enter a valid selling price.');
+      setFormError(t('dishForm.productErrors.validSellingPrice'));
       return;
     }
     if (requirePreviewUpload && !form.previewFile) {
-      setFormError('Please upload a preview image.');
+      setFormError(t('dishForm.productErrors.uploadPreviewImage'));
       return;
     }
 
@@ -146,7 +146,7 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <GlassSurface className="space-y-4 p-5" sheen={false}>
         <h3 className="text-lg font-semibold text-text">
-          {isPackagedDrink ? 'Packaged Drink Details' : 'Product Details'}
+          {isPackagedDrink ? t('dishForm.packagedDrinkDetails') : t('dishForm.productDetails')}
         </h3>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -163,7 +163,7 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Currency</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.currencyLabel')}</label>
             <GlassSelect
               name="currency"
               value={form.currency}
@@ -187,97 +187,97 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Dish Status</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.dishStatus')}</label>
             <GlassSelect
               name="status"
               value={form.status}
               onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value as 'draft' | 'published' }))}
               options={[
-                { value: 'published', label: 'Published' },
-                { value: 'draft', label: 'Draft' },
+                { value: 'published', label: t('dynamic.status.published') },
+                { value: 'draft', label: t('dynamic.status.draft') },
               ]}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Brand</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.brandLabel')}</label>
             <GlassInput
               value={form.brand}
               onChange={(event) => setForm((prev) => ({ ...prev, brand: event.target.value }))}
-              placeholder={isPackagedDrink ? 'Pepsi / Coca-Cola' : 'Product brand (optional)'}
+              placeholder={isPackagedDrink ? t('dishForm.brandPlaceholderDrink') : t('dishForm.brandPlaceholderProduct')}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Size</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.sizeLabel')}</label>
             <div className="grid grid-cols-2 gap-2">
               <GlassInput
                 value={form.sizeValue}
                 onChange={(event) => setForm((prev) => ({ ...prev, sizeValue: event.target.value }))}
-                placeholder="330 / 500 / 1.25"
+                placeholder={t('dishForm.sizePlaceholder')}
               />
               <GlassSelect
                 value={form.packagedUnit}
                 onChange={(event) => setForm((prev) => ({ ...prev, packagedUnit: event.target.value }))}
                 options={PACKAGED_UNITS}
-                placeholder="Unit"
+                placeholder={t('dishForm.unitPlaceholder')}
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Cost Price</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.costPriceLabel')}</label>
             <GlassInput
               type="number"
               min="0"
               step="0.01"
               value={form.costPrice}
               onChange={(event) => setForm((prev) => ({ ...prev, costPrice: event.target.value }))}
-              placeholder="0.00"
+              placeholder={t('dishForm.costPricePlaceholder')}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Stock Quantity</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.stockQuantityLabel')}</label>
             <GlassInput
               type="number"
               min="0"
               step="0.001"
               value={form.packagedStockQuantity}
               onChange={(event) => setForm((prev) => ({ ...prev, packagedStockQuantity: event.target.value }))}
-              placeholder="0"
+              placeholder={t('dishForm.stockQuantityPlaceholder')}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Barcode (Optional)</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.barcodeOptional')}</label>
             <GlassInput
               value={form.barcode}
               onChange={(event) => setForm((prev) => ({ ...prev, barcode: event.target.value }))}
-              placeholder="Barcode"
+              placeholder={t('dishForm.barcodePlaceholder')}
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-text">Supplier (Optional)</label>
+            <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.supplierOptional')}</label>
             <GlassInput
               value={form.supplier}
               onChange={(event) => setForm((prev) => ({ ...prev, supplier: event.target.value }))}
-              placeholder="Supplier name"
+              placeholder={t('dishForm.supplierPlaceholder')}
             />
           </div>
 
           {isPackagedDrink ? (
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Serving Temperature</label>
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.servingTemperatureLabel')}</label>
               <GlassSelect
                 value={form.servingTemperature}
                 onChange={(event) => setForm((prev) => ({ ...prev, servingTemperature: event.target.value as '' | 'cold' | 'room' }))}
                 options={[
-                  { value: '', label: 'Not set' },
-                  { value: 'cold', label: 'Cold' },
-                  { value: 'room', label: 'Room Temperature' },
+                  { value: '', label: t('dishForm.servingTemperatureOptions.notSet') },
+                  { value: 'cold', label: t('dishForm.servingTemperatureOptions.cold') },
+                  { value: 'room', label: t('dishForm.servingTemperatureOptions.room') },
                 ]}
               />
             </div>
@@ -298,7 +298,7 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
           required={requirePreviewUpload}
         />
         {form.previewFile ? (
-          <p className="text-xs text-muted">Selected preview: {form.previewFile.name}</p>
+          <p className="text-xs text-muted">{t('dishForm.selectedPreview', { name: form.previewFile.name })}</p>
         ) : null}
       </GlassSurface>
 

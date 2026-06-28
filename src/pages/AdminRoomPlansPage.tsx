@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AxiosError } from 'axios';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import {
@@ -53,11 +54,6 @@ const DEFAULT_ITEM_SIZE: Record<RoomPlanItemType, { width: number; height: numbe
   wc: { width: 90, height: 90 },
 };
 
-const typeLabel = (type: RoomPlanItemType): string => {
-  const found = ROOM_PLAN_ITEM_GROUPS.flatMap((group) => group.options).find((option) => option.value === type);
-  return found?.label || type;
-};
-
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as AxiosError<{ message?: string; errors?: Record<string, string[]> }>).response;
@@ -103,6 +99,7 @@ const neutralButtonClass = 'rounded-xl border border-stroke bg-bg1 px-3 py-2 tex
 const dangerButtonClass = 'rounded-xl border border-spicy/45 bg-spicy/10 px-3 py-2 text-sm text-spicy transition hover:border-spicy/65 disabled:cursor-not-allowed disabled:opacity-60';
 
 const AdminRoomPlansPage: React.FC = () => {
+  const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const roomRef = useRef<HTMLDivElement | null>(null);
   const borderOverlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -145,6 +142,25 @@ const AdminRoomPlansPage: React.FC = () => {
 
   const selectedType = pendingType;
   const selectedPlanBackgroundImageUrl = resolveAssetUrl(selectedPlan?.background_image_url);
+  const itemGroupLabels = useMemo(() => ({
+    Tables: t('roomPlansPage.itemGroups.tables'),
+    Structure: t('roomPlansPage.itemGroups.structure'),
+    Furniture: t('roomPlansPage.itemGroups.furniture'),
+  }), [t]);
+  const itemTypeLabels = useMemo<Record<RoomPlanItemType, string>>(() => ({
+    table: t('roomPlansPage.itemTypes.table'),
+    table_circle: t('roomPlansPage.itemTypes.tableCircle'),
+    window: t('roomPlansPage.itemTypes.window'),
+    counter: t('roomPlansPage.itemTypes.counter'),
+    bar: t('roomPlansPage.itemTypes.bar'),
+    kitchen: t('roomPlansPage.itemTypes.kitchen'),
+    cashier: t('roomPlansPage.itemTypes.cashier'),
+    fridge: t('roomPlansPage.itemTypes.fridge'),
+    sofa: t('roomPlansPage.itemTypes.sofa'),
+    plant: t('roomPlansPage.itemTypes.plant'),
+    wc: t('roomPlansPage.itemTypes.wc'),
+  }), [t]);
+  const typeLabel = useCallback((type: RoomPlanItemType): string => itemTypeLabels[type] ?? type, [itemTypeLabels]);
 
   const constrainItemToPlan = useCallback((item: RoomPlanItem, preferredSnapIndex: number | null = null): RoomPlanItem => {
     if (!selectedPlan) return item;
@@ -216,11 +232,11 @@ const AdminRoomPlansPage: React.FC = () => {
         setItems([]);
       }
     } catch (loadError: unknown) {
-      setError(getApiErrorMessage(loadError, 'Failed to load room plans.'));
+      setError(getApiErrorMessage(loadError, t('roomPlansPage.failedLoad')));
     } finally {
       setLoading(false);
     }
-  }, [selectedPlanId]);
+  }, [selectedPlanId, t]);
 
   useEffect(() => {
     void loadRoomPlans();
@@ -241,12 +257,12 @@ const AdminRoomPlansPage: React.FC = () => {
         setItems((plan.items ?? []).sort((left, right) => left.z_index - right.z_index));
         setSelectedItemId(null);
       } catch (loadError: unknown) {
-        setError(getApiErrorMessage(loadError, 'Failed to load selected room plan.'));
+        setError(getApiErrorMessage(loadError, t('roomPlansPage.failedLoadSelected')));
       }
     };
 
     void loadPlan();
-  }, [selectedPlanId]);
+  }, [selectedPlanId, t]);
 
   useEffect(() => {
     if (error) {
@@ -287,7 +303,7 @@ const AdminRoomPlansPage: React.FC = () => {
 
     setUploadedBorderPoints([]);
     setBorderPoints([]);
-    setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
+    setSnapWarning(t('roomPlansPage.noUploadedBorderPath'));
   }, [selectedPlan]);
 
   useEffect(() => {
@@ -388,7 +404,7 @@ const AdminRoomPlansPage: React.FC = () => {
     setSuccess(null);
 
     if (!newPlanName.trim()) {
-      setError('Plan name is required.');
+      setError(t('roomPlansPage.planNameRequired'));
       return;
     }
 
@@ -398,11 +414,11 @@ const AdminRoomPlansPage: React.FC = () => {
         width: Number(newPlanWidth),
         height: Number(newPlanHeight),
       });
-      setSuccess('Room plan created.');
+      setSuccess(t('roomPlansPage.created'));
       await loadRoomPlans();
       setSelectedPlanId(plan.id);
     } catch (createError: unknown) {
-      setError(getApiErrorMessage(createError, 'Failed to create room plan.'));
+      setError(getApiErrorMessage(createError, t('roomPlansPage.failedCreate')));
     }
   };
 
@@ -415,7 +431,7 @@ const AdminRoomPlansPage: React.FC = () => {
       const originalWidth = imageNaturalSize?.width ?? selectedPlan.width;
       const originalHeight = imageNaturalSize?.height ?? selectedPlan.height;
       if (originalWidth <= 0 || originalHeight <= 0) {
-        setError('Could not resolve source image size for scaling.');
+        setError(t('roomPlansPage.couldNotResolveImageSize'));
         return;
       }
 
@@ -426,16 +442,16 @@ const AdminRoomPlansPage: React.FC = () => {
 
       const snapTrack = buildSnapPoints(scaledPoints, 8);
       if (!snapTrack.length) {
-        setError('Uploaded border points could not generate a snap path.');
+        setError(t('roomPlansPage.borderPointsCouldNotGenerateSnapPath'));
         return;
       }
 
       setUploadedBorderPoints(scaledPoints);
       setBorderPoints(snapTrack);
       setSnapWarning(null);
-      setSuccess(`Border loaded (${scaledPoints.length} points). Window snapping now follows uploaded border.`);
+      setSuccess(t('roomPlansPage.borderLoaded', { count: scaledPoints.length }));
     } catch (uploadError: unknown) {
-      const message = uploadError instanceof Error ? uploadError.message : 'Failed to parse uploaded border JSON.';
+      const message = uploadError instanceof Error ? uploadError.message : t('roomPlansPage.failedParseBorderJson');
       setError(message);
     } finally {
       if (borderInputRef.current) borderInputRef.current.value = '';
@@ -449,7 +465,7 @@ const AdminRoomPlansPage: React.FC = () => {
     }
     setUploadedBorderPoints([]);
     setBorderPoints([]);
-    setSnapWarning('No uploaded border path. Upload a border JSON to enable window snapping.');
+    setSnapWarning(t('roomPlansPage.noUploadedBorderPath'));
     setDetectedContours([]);
     setSelectedContourId(null);
   }, [selectedPlan]);
@@ -473,7 +489,7 @@ const AdminRoomPlansPage: React.FC = () => {
 
   const runContourDetection = useCallback(async () => {
     if (!selectedPlan || !selectedPlanBackgroundImageUrl || !borderOverlayRef.current) {
-      setError('Please upload/select a background image before detection.');
+      setError(t('roomPlansPage.uploadBackgroundBeforeDetection'));
       return;
     }
 
@@ -483,7 +499,7 @@ const AdminRoomPlansPage: React.FC = () => {
       image.src = selectedPlanBackgroundImageUrl;
       await new Promise<void>((resolve, reject) => {
         image.onload = () => resolve();
-        image.onerror = () => reject(new Error('Failed to load image.'));
+        image.onerror = () => reject(new Error(t('roomPlansPage.failedLoadImage')));
       });
 
       const width = Math.max(1, selectedPlan.width);
@@ -493,7 +509,7 @@ const AdminRoomPlansPage: React.FC = () => {
       offscreen.height = height;
       const context = offscreen.getContext('2d', { willReadFrequently: true });
       if (!context) {
-        setError('Detection is unavailable in this browser context.');
+        setError(t('roomPlansPage.detectionUnavailable'));
         return;
       }
 
@@ -506,29 +522,29 @@ const AdminRoomPlansPage: React.FC = () => {
         setDetectedContours([]);
         setSelectedContourId(null);
         clearBorderOverlay(borderOverlayRef.current);
-        setError('No valid contours found. Try lowering threshold.');
+        setError(t('roomPlansPage.noValidContours'));
         return;
       }
 
       const selected = contours[0];
       setDetectedContours(contours);
       setSelectedContourId(selected.id);
-      setSuccess(`Detected ${contours.length} contours. Largest contour selected.`);
+      setSuccess(t('roomPlansPage.detectedContours', { count: contours.length }));
     } catch {
-      setError('Failed to detect contours from image.');
+      setError(t('roomPlansPage.failedDetectContours'));
     }
-  }, [edgeThreshold, selectedPlan?.height, selectedPlan?.width, selectedPlanBackgroundImageUrl]);
+  }, [edgeThreshold, selectedPlan?.height, selectedPlan?.width, selectedPlanBackgroundImageUrl, t]);
 
   const exportSelectedContour = useCallback(() => {
     const selectedRaw = detectedContours.find((contour) => contour.id === selectedContourId)?.points;
     if (!selectedRaw || selectedRaw.length < 3) {
-      setError('No selected contour to export.');
+      setError(t('roomPlansPage.noSelectedContour'));
       return;
     }
 
     const simplified = simplifyPath(selectedRaw, simplifyTolerance);
     if (simplified.length < 3) {
-      setError('Selected contour became too small after simplification.');
+      setError(t('roomPlansPage.selectedContourTooSmall'));
       return;
     }
 
@@ -544,8 +560,8 @@ const AdminRoomPlansPage: React.FC = () => {
     setUploadedBorderPoints(simplified);
     setBorderPoints(buildSnapPoints(simplified, 8));
     setSnapWarning(null);
-    setSuccess(`Exported selected contour (${simplified.length} points) and applied snapping.`);
-  }, [detectedContours, selectedContourId, simplifyTolerance]);
+    setSuccess(t('roomPlansPage.exportedSelectedContour', { count: simplified.length }));
+  }, [detectedContours, selectedContourId, simplifyTolerance, t]);
 
   const handleClearDetection = useCallback(() => {
     setDetectedContours([]);
@@ -563,9 +579,9 @@ const AdminRoomPlansPage: React.FC = () => {
     const nextContourId = pickContourByPoint(detectedContours, point, 18);
     if (nextContourId) {
       setSelectedContourId(nextContourId);
-      setSuccess('Contour selected.');
+      setSuccess(t('roomPlansPage.contourSelected'));
     }
-  }, [detectedContours, showContours]);
+  }, [detectedContours, showContours, t]);
 
   const handleUpdatePlanMeta = async () => {
     if (!selectedPlan) return;
@@ -580,24 +596,24 @@ const AdminRoomPlansPage: React.FC = () => {
         height: selectedPlan.height,
       });
       setSelectedPlan(updated);
-      setSuccess('Room plan details updated.');
+      setSuccess(t('roomPlansPage.updatedDetails'));
       await loadRoomPlans();
     } catch (updateError: unknown) {
-      setError(getApiErrorMessage(updateError, 'Failed to update room plan details.'));
+      setError(getApiErrorMessage(updateError, t('roomPlansPage.failedUpdateDetails')));
     }
   };
 
   const handleDeletePlan = async () => {
     if (!selectedPlan) return;
-    const confirmed = window.confirm(`Delete room plan "${selectedPlan.name}"?`);
+    const confirmed = window.confirm(t('roomPlansPage.confirmDelete', { name: selectedPlan.name }));
     if (!confirmed) return;
 
     try {
       await deleteRoomPlan(selectedPlan.id);
-      setSuccess('Room plan deleted.');
+      setSuccess(t('roomPlansPage.deleted'));
       await loadRoomPlans();
     } catch (deleteError: unknown) {
-      setError(getApiErrorMessage(deleteError, 'Failed to delete room plan.'));
+      setError(getApiErrorMessage(deleteError, t('roomPlansPage.failedDelete')));
     }
   };
 
@@ -612,9 +628,9 @@ const AdminRoomPlansPage: React.FC = () => {
     try {
       const updated = await uploadRoomPlanBackground(selectedPlan.id, file);
       setSelectedPlan(updated);
-      setSuccess('Background image uploaded.');
+      setSuccess(t('roomPlansPage.backgroundUploaded'));
     } catch (uploadError: unknown) {
-      setError(getApiErrorMessage(uploadError, 'Failed to upload background image.'));
+      setError(getApiErrorMessage(uploadError, t('roomPlansPage.failedUploadBackground')));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -679,7 +695,7 @@ const AdminRoomPlansPage: React.FC = () => {
       {
         ...selectedItem,
         id: -Math.floor(Math.random() * 1_000_000_000),
-        label: `${selectedItem.label} Copy`,
+        label: `${selectedItem.label} ${t('roomPlansPage.copySuffix')}`,
         x: selectedItem.x + 24,
         y: selectedItem.y + 24,
         z_index: nextZIndex(items),
@@ -709,10 +725,10 @@ const AdminRoomPlansPage: React.FC = () => {
       const normalizedItems = items.map((item) => constrainItemToPlan(item));
       const savedItems = await saveRoomPlanItemsBulk(selectedPlan.id, normalizedItems);
       setItems(savedItems.sort((left, right) => left.z_index - right.z_index));
-      setSuccess('Room plan layout saved successfully.');
+      setSuccess(t('roomPlansPage.savedLayout'));
       await loadRoomPlans();
     } catch (saveError: unknown) {
-      setError(getApiErrorMessage(saveError, 'Failed to save room plan layout.'));
+      setError(getApiErrorMessage(saveError, t('roomPlansPage.failedSaveLayout')));
     } finally {
       setSaving(false);
     }
@@ -724,16 +740,16 @@ const AdminRoomPlansPage: React.FC = () => {
   );
 
   return (
-    <DashboardLayout title="Room Plan Editor">
+    <DashboardLayout title={t('roomPlansPage.pageTitle')}>
       <div className="space-y-5">
         <div className="grid gap-4 xl:grid-cols-3">
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Create Room Plan</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">{t('roomPlansPage.createRoomPlan')}</h2>
             <div className="mt-3 space-y-2">
               <input
                 value={newPlanName}
                 onChange={(event) => setNewPlanName(event.target.value)}
-                placeholder="Plan name"
+                placeholder={t('roomPlansPage.planNamePlaceholder')}
                 className="w-full rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
               />
               <div className="grid grid-cols-2 gap-2">
@@ -741,14 +757,14 @@ const AdminRoomPlansPage: React.FC = () => {
                   type="number"
                   value={newPlanWidth}
                   onChange={(event) => setNewPlanWidth(Number(event.target.value))}
-                  placeholder="Width"
+                  placeholder={t('roomPlansPage.width')}
                   className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                 />
                 <input
                   type="number"
                   value={newPlanHeight}
                   onChange={(event) => setNewPlanHeight(Number(event.target.value))}
-                  placeholder="Height"
+                  placeholder={t('roomPlansPage.height')}
                   className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                 />
               </div>
@@ -757,17 +773,17 @@ const AdminRoomPlansPage: React.FC = () => {
                 onClick={handleCreatePlan}
                 className={`w-full ${primaryButtonClass}`}
               >
-                Create Plan
+                {t('roomPlansPage.createPlan')}
               </button>
             </div>
           </div>
 
           <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Saved Plans</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">{t('roomPlansPage.savedPlans')}</h2>
             {loading ? (
-              <p className="mt-3 text-sm text-muted">Loading room plans...</p>
+              <p className="mt-3 text-sm text-muted">{t('roomPlansPage.loadingPlans')}</p>
             ) : roomPlans.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">No room plans yet.</p>
+              <p className="mt-3 text-sm text-muted">{t('roomPlansPage.noPlans')}</p>
             ) : (
               <div className="mt-3 space-y-2">
                 {roomPlans.map((plan) => (
@@ -782,7 +798,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     }`}
                   >
                     <div className="font-semibold">{plan.name}</div>
-                    <div className="text-xs text-muted">{plan.width} x {plan.height} • {plan.items_count ?? 0} items</div>
+                    <div className="text-xs text-muted">{t('roomPlansPage.planSummary', { width: plan.width, height: plan.height, count: plan.items_count ?? 0 })}</div>
                   </button>
                 ))}
               </div>
@@ -791,7 +807,7 @@ const AdminRoomPlansPage: React.FC = () => {
 
           {selectedPlan ? (
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-4">
-              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Selected Plan</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">{t('roomPlansPage.selectedPlan')}</h2>
               <div className="mt-3 space-y-2">
                 <input
                   value={selectedPlan.name}
@@ -821,7 +837,7 @@ const AdminRoomPlansPage: React.FC = () => {
                   onClick={handleUpdatePlanMeta}
                   className={`w-full ${neutralButtonClass}`}
                 >
-                  Update Plan Details
+                  {t('roomPlansPage.updatePlanDetails')}
                 </button>
                 <button
                   type="button"
@@ -829,14 +845,14 @@ const AdminRoomPlansPage: React.FC = () => {
                   disabled={uploading}
                   className={`w-full ${neutralButtonClass}`}
                 >
-                  {uploading ? 'Uploading image...' : 'Upload Background Image'}
+                  {uploading ? t('roomPlansPage.uploadingImage') : t('roomPlansPage.uploadBackgroundImage')}
                 </button>
                 <button
                   type="button"
                   onClick={handleDeletePlan}
                   className={`w-full ${dangerButtonClass}`}
                 >
-                  Delete Plan
+                  {t('roomPlansPage.deletePlan')}
                 </button>
                 <input
                   ref={fileInputRef}
@@ -861,9 +877,9 @@ const AdminRoomPlansPage: React.FC = () => {
                     className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                   >
                     {ROOM_PLAN_ITEM_GROUPS.map((group) => (
-                      <optgroup key={group.label} label={group.label}>
+                      <optgroup key={group.label} label={itemGroupLabels[group.label as keyof typeof itemGroupLabels] ?? group.label}>
                         {group.options.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
+                          <option key={option.value} value={option.value}>{itemTypeLabels[option.value] ?? option.label}</option>
                         ))}
                       </optgroup>
                     ))}
@@ -874,7 +890,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     onClick={handleAddItem}
                     className={primaryButtonClass}
                   >
-                    Add Item
+                    {t('roomPlansPage.addItem')}
                   </button>
 
                   <button
@@ -883,7 +899,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     disabled={!selectedItem}
                     className={neutralButtonClass}
                   >
-                    Duplicate
+                    {t('roomPlansPage.duplicate')}
                   </button>
 
                   <button
@@ -892,7 +908,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     disabled={!selectedItem}
                     className={dangerButtonClass}
                   >
-                    Delete
+                    {t('roomPlansPage.delete')}
                   </button>
                 </div>
 
@@ -902,21 +918,21 @@ const AdminRoomPlansPage: React.FC = () => {
                       value={selectedItem.label}
                       onChange={(event) => patchSelectedItem({ label: event.target.value })}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                      placeholder="Label"
+                      placeholder={t('roomPlansPage.label')}
                     />
                     <input
                       type="number"
                       value={selectedItem.width}
                       onChange={(event) => patchSelectedItem({ width: Number(event.target.value) })}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                      placeholder="Width"
+                      placeholder={t('roomPlansPage.width')}
                     />
                     <input
                       type="number"
                       value={selectedItem.height}
                       onChange={(event) => patchSelectedItem({ height: Number(event.target.value) })}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                      placeholder="Height"
+                      placeholder={t('roomPlansPage.height')}
                     />
                     <input
                       type="number"
@@ -930,14 +946,14 @@ const AdminRoomPlansPage: React.FC = () => {
                       }}
                       disabled={selectedItem.type === 'window'}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                      placeholder="Rotation"
+                      placeholder={t('roomPlansPage.rotation')}
                     />
                     <input
                       type="number"
                       value={selectedItem.z_index}
                       onChange={(event) => patchSelectedItem({ z_index: Number(event.target.value) })}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                      placeholder="Z index"
+                      placeholder={t('roomPlansPage.zIndex')}
                     />
                     <select
                       value={selectedItem.container}
@@ -945,8 +961,8 @@ const AdminRoomPlansPage: React.FC = () => {
                       disabled={selectedItem.type === 'window'}
                       className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
                     >
-                      <option value="room">Room</option>
-                      <option value="wrapper">Wrapper</option>
+                      <option value="room">{t('roomPlansPage.containerOptions.room')}</option>
+                      <option value="wrapper">{t('roomPlansPage.containerOptions.wrapper')}</option>
                     </select>
                     {selectedItem.type === 'table' || selectedItem.type === 'table_circle' ? (
                       <input
@@ -954,26 +970,26 @@ const AdminRoomPlansPage: React.FC = () => {
                         value={selectedItem.seats ?? 2}
                         onChange={(event) => patchSelectedItem({ seats: Number(event.target.value) })}
                         className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-sm text-text"
-                        placeholder="Seats"
+                        placeholder={t('roomPlansPage.seats')}
                       />
                     ) : null}
                     <div className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
                       {selectedItem.type === 'window'
-                        ? 'Windows slide along walls and auto-rotate.'
-                        : 'Drag on canvas to move'}
+                        ? t('roomPlansPage.windowHint')
+                        : t('roomPlansPage.dragHint')}
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-muted">Select an item to edit width, height, rotation, z-index, seats, and label.</p>
+                  <p className="mt-3 text-sm text-muted">{t('roomPlansPage.selectItemHint')}</p>
                 )}
               </div>
 
               <div className="rounded-2xl border border-stroke bg-bg0/50 p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">Layout Canvas</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted2">{t('roomPlansPage.layoutCanvas')}</h3>
                     <p className="text-xs text-muted">
-                      Tables stay inside the room. Windows snap to wall borders and follow wall direction ({selectedPlan.width} x {selectedPlan.height}).
+                      {t('roomPlansPage.layoutCanvasHint', { width: selectedPlan.width, height: selectedPlan.height })}
                     </p>
                   </div>
                   <button
@@ -982,7 +998,7 @@ const AdminRoomPlansPage: React.FC = () => {
                     disabled={saving}
                     className={`${primaryButtonClass} px-4`}
                   >
-                    {saving ? 'Saving...' : 'Save Layout'}
+                    {saving ? t('adminDashboard.saving') : t('roomPlansPage.saveLayout')}
                   </button>
                 </div>
                 <div className="mb-3 space-y-2">
@@ -992,28 +1008,28 @@ const AdminRoomPlansPage: React.FC = () => {
                       onClick={() => void runContourDetection()}
                       className={primaryButtonClass}
                     >
-                      Detect Edges
+                      {t('roomPlansPage.detectEdges')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowContours((current) => !current)}
                       className={neutralButtonClass}
                     >
-                      {showContours ? 'Hide Contours' : 'Show Contours'}
+                      {showContours ? t('roomPlansPage.hideContours') : t('roomPlansPage.showContours')}
                     </button>
                     <button
                       type="button"
                       onClick={() => borderInputRef.current?.click()}
                       className={neutralButtonClass}
                     >
-                      Upload Border
+                      {t('roomPlansPage.uploadBorder')}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowBorderOverlay((current) => !current)}
                       className={neutralButtonClass}
                     >
-                      {showBorderOverlay ? 'Hide Border' : 'Show Border'}
+                      {showBorderOverlay ? t('roomPlansPage.hideBorder') : t('roomPlansPage.showBorder')}
                     </button>
                     <button
                       type="button"
@@ -1021,7 +1037,7 @@ const AdminRoomPlansPage: React.FC = () => {
                       disabled={!selectedContourId}
                       className={primaryButtonClass}
                     >
-                      Export Selected Contour
+                      {t('roomPlansPage.exportSelectedContour')}
                     </button>
                     <button
                       type="button"
@@ -1029,7 +1045,7 @@ const AdminRoomPlansPage: React.FC = () => {
                       disabled={uploadedBorderPoints.length === 0}
                       className={dangerButtonClass}
                     >
-                      Clear Border
+                      {t('roomPlansPage.clearBorder')}
                     </button>
                     <button
                       type="button"
@@ -1037,12 +1053,12 @@ const AdminRoomPlansPage: React.FC = () => {
                       disabled={detectedContours.length === 0}
                       className={dangerButtonClass}
                     >
-                      Clear Detection
+                      {t('roomPlansPage.clearDetection')}
                     </button>
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
                     <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                      Simplify: {simplifyTolerance}
+                      {t('roomPlansPage.simplify', { value: simplifyTolerance })}
                       <input
                         type="range"
                         min={1}
@@ -1053,7 +1069,7 @@ const AdminRoomPlansPage: React.FC = () => {
                       />
                     </label>
                     <label className="rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                      Edge Threshold: {edgeThreshold}
+                      {t('roomPlansPage.edgeThreshold', { value: edgeThreshold })}
                       <input
                         type="range"
                         min={8}
@@ -1075,12 +1091,12 @@ const AdminRoomPlansPage: React.FC = () => {
                 </div>
                 {uploadedBorderPoints.length > 0 ? (
                   <div className="mb-3 rounded-xl border border-gold/35 bg-gold/10 px-3 py-2 text-xs text-gold2">
-                    Border loaded: {uploadedBorderPoints.length} points
+                    {t('roomPlansPage.borderLoadedInline', { count: uploadedBorderPoints.length })}
                   </div>
                 ) : null}
                 {detectedContours.length > 0 ? (
                   <div className="mb-3 rounded-xl border border-stroke bg-bg1 px-3 py-2 text-xs text-muted">
-                    Contours: {detectedContours.length}. Click a contour on canvas to select.
+                    {t('roomPlansPage.contoursInline', { count: detectedContours.length })}
                   </div>
                 ) : null}
                 {snapWarning ? (
@@ -1170,7 +1186,7 @@ const AdminRoomPlansPage: React.FC = () => {
                       >
                         <div className="pointer-events-none text-[11px] font-semibold uppercase tracking-[0.08em]">{item.label}</div>
                         <div className="pointer-events-none text-[10px] text-muted">
-                          {typeLabel(item.type)}{item.type === 'table' || item.type === 'table_circle' ? ` • ${item.seats ?? 0} seats` : ''}
+                          {typeLabel(item.type)}{item.type === 'table' || item.type === 'table_circle' ? ` • ${t('roomPlansPage.seatsCount', { count: item.seats ?? 0 })}` : ''}
                         </div>
                       </button>
                     ))}
@@ -1180,7 +1196,7 @@ const AdminRoomPlansPage: React.FC = () => {
             </>
           ) : (
             <div className="rounded-2xl border border-stroke bg-bg1/60 p-6 text-center text-muted">
-              Select or create a room plan to start editing.
+              {t('roomPlansPage.selectOrCreateHint')}
             </div>
           )}
 

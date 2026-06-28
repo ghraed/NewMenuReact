@@ -1382,12 +1382,12 @@ const StaffOrdersPage: React.FC = () => {
       ) : null}
       {queuedWaiterActions.length > 0 ? (
         <div className="mb-4 space-y-2 rounded-xl2 border border-gold/30 bg-gold/10 p-3 text-sm text-text">
-          <p className="font-semibold">Queued waiter actions</p>
+          <p className="font-semibold">{t('staffOrdersExtra.queuedWaiterActions')}</p>
           {queuedWaiterActions.map((item) => (
             <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-gold/20 bg-black/5 px-2 py-2">
               <span>#{item.id}</span>
               <span>{item.type}</span>
-              <span>order #{item.orderId}</span>
+              <span>{t('staffOrdersExtra.orderLabel', { id: item.orderId })}</span>
               <span>({item.status})</span>
               <button
                 type="button"
@@ -1812,7 +1812,7 @@ const StaffOrdersPage: React.FC = () => {
             <GlassCard key={`ready-${order.id}`} className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Ready To Serve</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersExtra.readyToServe')}</p>
                   <h3 className="mt-2 text-2xl font-semibold text-text">
                     {order.order_number || `Order #${order.id}`}
                   </h3>
@@ -1822,7 +1822,7 @@ const StaffOrdersPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/20 bg-gold/10 px-4 py-3 text-right">
-                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Total</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('staffOrdersExtra.total')}</p>
                   <p className="mt-2 text-2xl font-semibold text-text">${order.invoice.total}</p>
                 </div>
               </div>
@@ -1940,7 +1940,7 @@ const StaffOrdersPage: React.FC = () => {
         <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/55 p-4">
           <div className="flex min-h-full items-center justify-center">
             <div className="w-full max-w-lg rounded-2xl border border-modalStroke bg-modalSurface p-5">
-            <h3 className="text-lg font-semibold text-text">Guest Table URL</h3>
+            <h3 className="text-lg font-semibold text-text">{t('staffOrdersExtra.guestTableUrl')}</h3>
             <p className="mt-1 text-sm text-muted">{tableUrlPopup.label}</p>
             <div className="mt-4 break-all rounded-xl border border-modalStroke bg-modalRow p-3 text-sm text-text">
               {tableUrlPopup.url}

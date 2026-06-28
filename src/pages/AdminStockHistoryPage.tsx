@@ -375,7 +375,7 @@ const AdminStockHistoryPage: React.FC = () => {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('stockHistory.currency')}</p>
           <GlassSelect
             value={currency}
             options={CURRENCY_OPTIONS.map((option) => ({
@@ -388,7 +388,7 @@ const AdminStockHistoryPage: React.FC = () => {
           <p className="mt-1 text-[11px] text-muted2">{formatDollarRate(baseCurrency, dollarRate)}</p>
         </div>
         <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Quantity Unit</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('stockHistory.quantityUnit')}</p>
           <div className="mt-1 flex gap-2">
             <button
               type="button"
@@ -399,7 +399,7 @@ const AdminStockHistoryPage: React.FC = () => {
                   : 'border-stroke bg-bg1/60 text-muted hover:border-gold/35'
               }`}
             >
-              g / ml
+              {t('stockHistory.baseUnit')}
             </button>
             <button
               type="button"
@@ -410,7 +410,7 @@ const AdminStockHistoryPage: React.FC = () => {
                   : 'border-stroke bg-bg1/60 text-muted hover:border-gold/35'
               }`}
             >
-              kg / L
+              {t('stockHistory.convertedUnit')}
             </button>
           </div>
         </div>
@@ -530,7 +530,7 @@ const AdminStockHistoryPage: React.FC = () => {
 
                     <div className="space-y-3 p-6 lg:border-r lg:border-stroke">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">Movement Type</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.columns.movementType')}</p>
                         <div className="mt-1">
                           <span className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-[14px] leading-none ${movementBadgeClasses}`}>
                             <span>{movementIcon}</span>
@@ -547,7 +547,7 @@ const AdminStockHistoryPage: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">Linked Expense</p>
+                        <p className="text-[15px] font-medium uppercase tracking-[0.14em] text-muted">{t('stockHistory.linkedExpense')}</p>
                         <p className="mt-0.5 text-[14px] leading-tight text-text">
                           {record.linked_expense_id
                             ? `${formatNumericValue(record.linked_expense_id)} • ${linkedExpenseAmountById[record.linked_expense_id] !== undefined ? formatAmountInSelectedCurrency(linkedExpenseAmountById[record.linked_expense_id]) : '-'}`
@@ -612,13 +612,13 @@ const AdminStockHistoryPage: React.FC = () => {
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <div className="mr-auto flex items-center gap-2">
-            <label className="text-xs uppercase tracking-[0.12em] text-muted2">Rows</label>
+            <label className="text-xs uppercase tracking-[0.12em] text-muted2">{t('stockHistory.pagination.rows')}</label>
             <GlassSelect
               value={String(perPage)}
               options={[
-                { value: '20', label: '20 / page' },
-                { value: '50', label: '50 / page' },
-                { value: '100', label: '100 / page' },
+                { value: '20', label: t('stockHistory.pagination.perPage', { count: 20 }) },
+                { value: '50', label: t('stockHistory.pagination.perPage', { count: 50 }) },
+                { value: '100', label: t('stockHistory.pagination.perPage', { count: 100 }) },
               ]}
               onChange={(event) => {
                 const nextPerPage = Number(event.target.value);

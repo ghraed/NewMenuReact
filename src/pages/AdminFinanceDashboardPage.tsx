@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   BarElement,
@@ -60,12 +61,7 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, LineController, Tooltip, Legend);
 
-const INVOICE_STATUS_OPTIONS: Array<{ value: FinanceInvoiceStatus; label: string }> = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'issued', label: 'Issued' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
+const INVOICE_STATUS_VALUES: FinanceInvoiceStatus[] = ['draft', 'issued', 'paid', 'cancelled'];
 
 type RevenueRange = 'daily' | 'monthly' | 'yearly';
 
@@ -193,15 +189,6 @@ const DEFAULT_SELECTED_METRICS: MetricKey[] = ['revenue', 'totalCosts', 'netProf
 const VALID_REVENUE_STATUSES: FinanceInvoiceStatus[] = ['draft', 'issued', 'paid'];
 const INCLUDED_EXPENSE_STATUSES = new Set(['approved', 'paid']);
 const INCLUDED_PAYROLL_STATUSES = new Set(['approved', 'paid']);
-
-const metricLabels: Record<MetricKey, string> = {
-  revenue: 'Revenue',
-  totalCosts: 'Total Costs',
-  netProfit: 'Net Profit',
-  cogs: 'COGS',
-  operatingExpenses: 'Operating Expenses',
-  payroll: 'Payroll',
-};
 
 const formatFinanceCurrencyValue = (amount: number, currency: CurrencyCode): string => {
   if (currency === 'AED') {
@@ -419,6 +406,7 @@ const AnimatedIntegerValue: React.FC<{
 };
 
 const AdminFinanceDashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const storedCurrencySettings = readGuestCurrencySettings();
@@ -480,6 +468,22 @@ const AdminFinanceDashboardPage: React.FC = () => {
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+
+  const invoiceStatusOptions = useMemo<Array<{ value: FinanceInvoiceStatus; label: string }>>(() => (
+    INVOICE_STATUS_VALUES.map((value) => ({
+      value,
+      label: t(`adminFinancePage.invoiceStatus.${value}`),
+    }))
+  ), [t]);
+
+  const metricLabels = useMemo<Record<MetricKey, string>>(() => ({
+    revenue: t('adminFinancePage.metrics.revenue'),
+    totalCosts: t('adminFinancePage.metrics.totalCosts'),
+    netProfit: t('adminFinancePage.metrics.netProfit'),
+    cogs: t('adminFinancePage.metrics.cogs'),
+    operatingExpenses: t('adminFinancePage.metrics.operatingExpenses'),
+    payroll: t('adminFinancePage.metrics.payroll'),
+  }), [t]);
 
   useEffect(() => {
     const userRate = parsePositiveRate(user?.restaurant?.dollar_rate);
@@ -594,11 +598,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setInvoiceTableTotal(totalInvoices);
       setInvoiceTableLastPage(computedLastPage);
     } catch (loadError: unknown) {
-      setError(getErrorMessage(loadError, 'Failed to load invoice table data.'));
+      setError(getErrorMessage(loadError, t('adminFinancePage.failedLoadInvoiceTable')));
     } finally {
       setInvoiceTableLoading(false);
     }
-  }, [dateFrom, dateTo, invoiceTablePage, invoiceTablePerPage, statusFilter]);
+  }, [dateFrom, dateTo, invoiceTablePage, invoiceTablePerPage, statusFilter, t]);
 
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
@@ -817,13 +821,13 @@ const AdminFinanceDashboardPage: React.FC = () => {
         setTaxSummary(emptyTax());
       }
     } catch (loadError: unknown) {
-      setError(getErrorMessage(loadError, 'Failed to load finance dashboard data.'));
+      setError(getErrorMessage(loadError, t('adminFinancePage.failedLoadDashboard')));
       setOperationalLossReport(emptyOperationalLossReport());
     } finally {
       setOperationsLoading(false);
       setLoading(false);
     }
-  }, [dateFrom, dateTo, range, statusFilter]);
+  }, [dateFrom, dateTo, range, statusFilter, t]);
 
   useEffect(() => {
     void loadDashboardData();
@@ -1017,7 +1021,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       const unitPrice = parseNonNegativeNumber(item.unit_price);
 
       if (name === '' || quantity === null || unitPrice === null) {
-        setCreateError(`Please complete item ${index + 1} with valid name, quantity, and unit price.`);
+        setCreateError(t('adminFinancePage.createItemInvalid', { index: index + 1 }));
         return;
       }
 
@@ -1029,7 +1033,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
 
     if (normalizedItems.length === 0) {
-      setCreateError('Please add at least one invoice item.');
+      setCreateError(t('adminFinancePage.addAtLeastOneItem'));
       return;
     }
 
@@ -1043,12 +1047,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
         items: normalizedItems,
       });
 
-      setCreateSuccess('Invoice created successfully.');
+      setCreateSuccess(t('adminFinancePage.invoiceCreated'));
       setNewInvoiceNotes('');
       setNewInvoiceItems([{ name: '', quantity: '1', unit_price: '' }]);
       await Promise.all([loadDashboardData(), loadInvoiceTablePage()]);
     } catch (createInvoiceError: unknown) {
-      setCreateError(getErrorMessage(createInvoiceError, 'Failed to create invoice.'));
+      setCreateError(getErrorMessage(createInvoiceError, t('adminFinancePage.failedCreateInvoice')));
     } finally {
       setCreatingInvoice(false);
     }
@@ -1066,7 +1070,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
       await loadDashboardData();
     } catch (updateError: unknown) {
-      setError(getErrorMessage(updateError, 'Failed to update invoice status.'));
+      setError(getErrorMessage(updateError, t('adminFinancePage.failedUpdateInvoiceStatus')));
     } finally {
       setStatusSavingInvoiceId(null);
     }
@@ -1074,7 +1078,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
   const handleDownloadFinanceReport = async () => {
     await downloadFinanceExecutiveWorkbook({
-      companyName: user?.restaurant?.name ?? 'Executive Finance',
+      companyName: user?.restaurant?.name ?? t('adminFinancePage.executiveFinanceFallback'),
       currency,
       dateFrom,
       dateTo,
@@ -1113,7 +1117,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Finance Dashboard">
+    <DashboardLayout title={t('adminFinancePage.pageTitle')}>
       <div className="space-y-6">
         <motion.section
           initial={{ opacity: 0, y: 16 }}
@@ -1125,22 +1129,22 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <div className="absolute -bottom-12 left-4 h-40 w-40 rounded-full bg-gold2/8 blur-[64px]" />
           <div className="relative flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">Revenue Intelligence</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">{t('adminFinancePage.heroEyebrow')}</p>
               <h2 className="mt-2 text-3xl font-semibold text-text sm:text-4xl">
-                Luxury Financial Overview
+                {t('adminFinancePage.heroTitle')}
               </h2>
               <p className="mt-3 max-w-2xl text-sm text-muted">
-                Track revenue momentum and manage invoice lifecycle from one elegant control panel.
+                {t('adminFinancePage.heroDescription')}
               </p>
             </div>
               <div className="flex flex-wrap gap-3">
               <div className="rounded-2xl border border-gold/30 bg-bg1/65 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Currency</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('adminFinancePage.currency')}</p>
                 <button
                   type="button"
                   onClick={() => setCurrency((current) => (current === baseCurrency ? otherCurrency : baseCurrency))}
                   className="mt-1 rounded-full border border-gold/70 bg-gold/20 px-3 py-1 text-xs font-semibold text-text transition hover:bg-gold/30"
-                  title={`Toggle finance currency between ${baseCurrency} and ${otherCurrency}`}
+                  title={t('adminFinancePage.toggleCurrencyTitle', { base: baseCurrency, other: otherCurrency })}
                 >
                   {financeCurrencyBadge(currency)}
                   <span aria-hidden="true" className="mx-1 inline-flex h-5 w-5 items-center justify-center text-lg leading-none">↔</span>
@@ -1148,19 +1152,19 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 </button>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Revenue</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('adminFinancePage.revenue')}</p>
                 <p className="mt-1 text-xl font-semibold text-text">
                   <AnimatedCurrencyValue value={convertFinanceAmount(totalRevenue)} currency={currency} />
                 </p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Invoices In Range</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('adminFinancePage.invoicesInRange')}</p>
                 <p className="mt-1 text-xl font-semibold text-text">
                   <AnimatedIntegerValue value={totalInvoicesInRange} />
                 </p>
               </div>
               <div className="rounded-2xl border border-gold/25 bg-bg1/65 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Net Payroll</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('adminFinancePage.netPayroll')}</p>
                 <p className="mt-1 text-xl font-semibold text-text">
                   <AnimatedCurrencyValue value={convertFinanceAmount(payrollTotals.net_pay)} currency={currency} />
                 </p>
@@ -1178,8 +1182,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">Financial Performance</p>
-                <h3 className="mt-1 text-xl font-semibold text-text">Daily, Monthly, Yearly</h3>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('adminFinancePage.performanceEyebrow')}</p>
+                <h3 className="mt-1 text-xl font-semibold text-text">{t('adminFinancePage.performanceTitle')}</h3>
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-stroke bg-bg1/70 p-1">
                 {(['daily', 'monthly', 'yearly'] as RevenueRange[]).map((candidateRange) => (
@@ -1193,7 +1197,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                         : 'text-muted hover:text-text'
                     }`}
                   >
-                    {candidateRange}
+                    {t(`adminFinancePage.ranges.${candidateRange}`)}
                   </button>
                 ))}
               </div>
@@ -1216,7 +1220,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 onClick={() => setShowDetailedCosts((current) => !current)}
                 className="rounded-md border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 transition hover:bg-gold/20"
               >
-                {showDetailedCosts ? 'Hide Cost Details' : 'Show Cost Details'}
+                {showDetailedCosts ? t('adminFinancePage.hideCostDetails') : t('adminFinancePage.showCostDetails')}
               </button>
             </div>
             {showDetailedCosts ? (
@@ -1240,7 +1244,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 <Chart type="bar" data={chartData} options={chartOptions} />
               ) : (
                 <div className="flex h-full items-center justify-center rounded-lg border border-stroke/70 bg-bg1/35 px-4 text-center text-sm text-muted">
-                  No finance data found for the selected period.
+                  {t('adminFinancePage.noChartData')}
                 </div>
               )}
             </div>
@@ -1248,13 +1252,13 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
           <GlassCard>
             <div className="mb-3">
-              <h3 className="text-lg font-semibold text-text">Filters</h3>
-              <p className="mt-1 text-sm text-muted">Refine records by invoice date and status.</p>
+              <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.filtersTitle')}</h3>
+              <p className="mt-1 text-sm text-muted">{t('adminFinancePage.filtersDescription')}</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-4 md:items-end">
               <label className="block md:col-span-1">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date From</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.dateFrom')}</span>
                 <input
                   type="date"
                   value={dateFrom}
@@ -1264,7 +1268,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </label>
 
               <label className="block md:col-span-1">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Date To</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.dateTo')}</span>
                 <input
                   type="date"
                   value={dateTo}
@@ -1274,14 +1278,14 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </label>
 
               <label className="block md:col-span-1">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Status</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.status')}</span>
                 <select
                   value={statusFilter}
                   onChange={(event) => setStatusFilter(event.target.value as FinanceInvoiceStatus | '')}
                   className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm outline-none transition focus:border-gold/60"
                 >
-                  <option value="">All statuses</option>
-                  {INVOICE_STATUS_OPTIONS.map((option) => (
+                  <option value="">{t('adminFinancePage.allStatuses')}</option>
+                  {invoiceStatusOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
@@ -1297,7 +1301,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                   setStatusFilter('');
                 }}
               >
-                Clear Filters
+                {t('adminFinancePage.clearFilters')}
               </LiquidButton>
             </div>
           </GlassCard>
@@ -1305,14 +1309,14 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-text">Operations Snapshot</h3>
-                <p className="mt-1 text-sm text-muted">Payroll and staffing metrics for the selected date range.</p>
+                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.operationsTitle')}</h3>
+                <p className="mt-1 text-sm text-muted">{t('adminFinancePage.operationsDescription')}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  aria-label={operationsLoading ? 'Refreshing snapshot' : 'Refresh snapshot'}
-                  title={operationsLoading ? 'Refreshing snapshot' : 'Refresh snapshot'}
+                  aria-label={operationsLoading ? t('adminFinancePage.refreshingSnapshot') : t('adminFinancePage.refreshSnapshot')}
+                  title={operationsLoading ? t('adminFinancePage.refreshingSnapshot') : t('adminFinancePage.refreshSnapshot')}
                   onClick={() => void loadDashboardData()}
                   disabled={operationsLoading}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text disabled:opacity-60"
@@ -1323,8 +1327,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  aria-label="Download finance excel"
-                  title="Download finance excel"
+                  aria-label={t('adminFinancePage.downloadFinanceExcel')}
+                  title={t('adminFinancePage.downloadFinanceExcel')}
                   onClick={() => void handleDownloadFinanceReport()}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stroke bg-bg1/70 text-muted shadow-lux2 transition hover:border-gold/35 hover:text-text"
                 >
@@ -1336,25 +1340,25 @@ const AdminFinanceDashboardPage: React.FC = () => {
             </div>
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Payroll</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.grossPayroll')}</p>
                 <p className="mt-1 text-base font-semibold text-text">
                   <AnimatedCurrencyValue value={convertFinanceAmount(payrollTotals.gross_pay)} currency={currency} />
                 </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.employeesPaid')}</p>
                 <p className="mt-1 text-base font-semibold text-text">
                   <AnimatedIntegerValue value={payrollTotals.employee_count} />
                 </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll Periods</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.payrollPeriods')}</p>
                 <p className="mt-1 text-base font-semibold text-text">
                   <AnimatedIntegerValue value={payrollPeriodCount} />
                 </p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Scheduled Shifts</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.scheduledShifts')}</p>
                 <p className="mt-1 text-base font-semibold text-text">
                   <AnimatedIntegerValue value={scheduledShiftsCount} />
                 </p>
@@ -1364,45 +1368,45 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
           <GlassCard>
             <div className="mb-3">
-              <h3 className="text-lg font-semibold text-text">Operational Loss Tracking</h3>
-              <p className="mt-1 text-sm text-muted">Backend-synced losses from invoice/order refunds, complimentary gifts, and guest recovery actions.</p>
+                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.lossTitle')}</h3>
+                <p className="mt-1 text-sm text-muted">{t('adminFinancePage.lossDescription')}</p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Internal Loss Total</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.internalLossTotal')}</p>
                 <p className="mt-1 text-base font-semibold text-text">{formatFinanceAmount(operationalLossReport.totalAdjustmentCost)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Issue / Refund Cost</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.issueRefundCost')}</p>
                 <p className="mt-1 text-base font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(operationalLossReport.issueRefundCost)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Complimentary / Recovery Cost</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.complimentaryRecoveryCost')}</p>
                 <p className="mt-1 text-base font-semibold text-[#067647] dark:text-[#32d583]">{formatFinanceAmount(operationalLossReport.complimentaryGiftCost + operationalLossReport.serviceRecoveryCost)}</p>
               </div>
             </div>
 
             <div className="mt-3 grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Daily Loss</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.dailyLoss')}</p>
                 <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestDailyComplaintLoss)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Weekly Loss</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.weeklyLoss')}</p>
                 <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestWeeklyComplaintLoss)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Monthly Loss</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.monthlyLoss')}</p>
                 <p className="mt-1 text-sm font-semibold text-[#b42318] dark:text-[#ff6b6b]">{formatFinanceAmount(latestMonthlyComplaintLoss)}</p>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Operational Loss Categories</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">{t('adminFinancePage.lossCategories')}</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
                   {operationalLossReport.byCategory.length === 0 ? (
-                    <p>No complaint records yet.</p>
+                    <p>{t('adminFinancePage.noComplaintRecords')}</p>
                   ) : operationalLossReport.byCategory.slice(0, 5).map((row) => (
                     <p key={row.category} className="flex items-center justify-between">
                       <span className="text-text">{OPERATIONAL_LOSS_CATEGORY_LABELS[row.category]}</span>
@@ -1412,10 +1416,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Loss Action Types</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">{t('adminFinancePage.lossActionTypes')}</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
                   {operationalLossReport.byAction.length === 0 ? (
-                    <p>No reason data yet.</p>
+                    <p>{t('adminFinancePage.noReasonData')}</p>
                   ) : operationalLossReport.byAction.slice(0, 5).map((row) => (
                     <p key={row.action} className="flex items-center justify-between">
                       <span className="text-text">{ADJUSTMENT_ACTION_LABELS[row.action]}</span>
@@ -1425,10 +1429,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.12em] text-muted2">Top Approvals</p>
+                <p className="text-xs uppercase tracking-[0.12em] text-muted2">{t('adminFinancePage.topApprovals')}</p>
                 <div className="mt-2 space-y-1 text-sm text-muted">
                   {operationalLossReport.approvers.length === 0 ? (
-                    <p>No approvals recorded yet.</p>
+                    <p>{t('adminFinancePage.noApprovals')}</p>
                   ) : operationalLossReport.approvers.slice(0, 5).map((staff) => (
                     <p key={staff.name} className="flex items-center justify-between">
                       <span className="text-text">{staff.name}</span>
@@ -1443,42 +1447,42 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <div className="grid gap-5 xl:grid-cols-2">
             <GlassCard>
               <div className="mb-3">
-                <h3 className="text-lg font-semibold text-text">Profit &amp; Loss</h3>
-                <p className="mt-1 text-sm text-muted">Period performance by revenue, costs, and net outcome.</p>
+                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.profitLossTitle')}</h3>
+                <p className="mt-1 text-sm text-muted">{t('adminFinancePage.profitLossDescription')}</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Revenue</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.revenue')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.revenue)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">COGS</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.metrics.cogs')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.cogs)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Gross Profit</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.grossProfit')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.gross_profit)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Operating Expenses</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.metrics.operatingExpenses')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.operating_expenses)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Payroll</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.metrics.payroll')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(chartMetrics.payroll.reduce((sum, val) => sum + val, 0))} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3 sm:col-span-2">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Profit</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.metrics.netProfit')}</p>
                   <p className="mt-1 text-lg font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(pnlSummary.net_profit)} currency={currency} />
                   </p>
@@ -1488,30 +1492,30 @@ const AdminFinanceDashboardPage: React.FC = () => {
 
             <GlassCard>
               <div className="mb-3">
-                <h3 className="text-lg font-semibold text-text">Tax Summary</h3>
-                <p className="mt-1 text-sm text-muted">VAT position based on current filter date range.</p>
+                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.taxSummaryTitle')}</h3>
+                <p className="mt-1 text-sm text-muted">{t('adminFinancePage.taxSummaryDescription')}</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Taxable Sales</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.taxableSales')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.taxable_sales)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Output VAT</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.outputVat')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.output_vat)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Input VAT</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.inputVat')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.input_vat)} currency={currency} />
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gold/35 bg-gold/8 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net VAT Payable</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminFinancePage.netVatPayable')}</p>
                   <p className="mt-1 text-base font-semibold text-text">
                     <AnimatedCurrencyValue value={convertFinanceAmount(taxSummary.net_vat_payable)} currency={currency} />
                   </p>
@@ -1528,12 +1532,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
           className="grid gap-5 xl:grid-cols-3"
         >
           <GlassCard className="xl:col-span-1">
-            <h3 className="text-lg font-semibold text-text">Create Invoice</h3>
-            <p className="mt-1 text-sm text-muted">Add line items and publish instantly to the dashboard table.</p>
+            <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.createInvoiceTitle')}</h3>
+            <p className="mt-1 text-sm text-muted">{t('adminFinancePage.createInvoiceDescription')}</p>
 
             <form className="mt-4 space-y-4" onSubmit={handleCreateInvoice}>
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Invoice Date</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.invoiceDate')}</span>
                 <input
                   type="date"
                   value={newInvoiceDate}
@@ -1544,26 +1548,26 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Status</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.status')}</span>
                 <select
                   value={newInvoiceStatus}
                   onChange={(event) => setNewInvoiceStatus(event.target.value as FinanceInvoiceStatus)}
                   className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm outline-none transition focus:border-gold/60"
                 >
-                  {INVOICE_STATUS_OPTIONS.map((option) => (
+                  {invoiceStatusOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.notes')}</span>
                 <textarea
                   value={newInvoiceNotes}
                   onChange={(event) => setNewInvoiceNotes(event.target.value)}
                   rows={2}
                   className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                  placeholder="Optional notes for your accounting team"
+                  placeholder={t('adminFinancePage.accountingNotesPlaceholder')}
                 />
               </label>
 
@@ -1571,14 +1575,14 @@ const AdminFinanceDashboardPage: React.FC = () => {
                 {newInvoiceItems.map((item, index) => (
                   <div key={`draft-item-${index + 1}`} className="rounded-2xl border border-stroke bg-bg1/55 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="text-xs uppercase tracking-[0.14em] text-gold2/85">Item {index + 1}</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminFinancePage.itemLabel', { index: index + 1 })}</p>
                       <button
                         type="button"
                         onClick={() => removeInvoiceItemRow(index)}
                         className="text-xs font-semibold uppercase tracking-[0.12em] text-spicy transition hover:text-spicy/80"
                         disabled={newInvoiceItems.length <= 1}
                       >
-                        Remove
+                        {t('adminFinancePage.remove')}
                       </button>
                     </div>
 
@@ -1587,7 +1591,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                         type="text"
                         value={item.name}
                         onChange={(event) => updateInvoiceItemRow(index, 'name', event.target.value)}
-                        placeholder="Item name"
+                        placeholder={t('adminFinancePage.itemNamePlaceholder')}
                         className="w-full rounded-xl border border-stroke bg-bg1/70 px-3 py-2 text-sm text-text outline-none transition focus:border-gold/60"
                       />
                       <div className="grid grid-cols-2 gap-2">
@@ -1597,7 +1601,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                           step="0.001"
                           value={item.quantity}
                           onChange={(event) => updateInvoiceItemRow(index, 'quantity', event.target.value)}
-                          placeholder="Qty"
+                          placeholder={t('adminFinancePage.quantityPlaceholder')}
                           className="w-full rounded-xl border border-stroke bg-bg1/70 px-3 py-2 text-sm text-text outline-none transition focus:border-gold/60"
                         />
                         <input
@@ -1606,7 +1610,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                           step="0.01"
                           value={item.unit_price}
                           onChange={(event) => updateInvoiceItemRow(index, 'unit_price', event.target.value)}
-                          placeholder="Unit price"
+                          placeholder={t('adminFinancePage.unitPricePlaceholder')}
                           className="w-full rounded-xl border border-stroke bg-bg1/70 px-3 py-2 text-sm text-text outline-none transition focus:border-gold/60"
                         />
                       </div>
@@ -1621,7 +1625,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                   onClick={addInvoiceItemRow}
                   className="rounded-full border border-gold/40 bg-gold/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 transition hover:bg-gold/20"
                 >
-                  Add Item
+                  {t('adminFinancePage.addItem')}
                 </button>
                 <p className="text-sm font-semibold text-text">
                   {formatFinanceAmount(draftInvoiceTotal)}
@@ -1637,7 +1641,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               ) : null}
 
               <LiquidButton type="submit" className="w-full" disabled={creatingInvoice}>
-                {creatingInvoice ? 'Creating...' : 'Create Invoice'}
+                {creatingInvoice ? t('adminFinancePage.creating') : t('adminFinancePage.createInvoice')}
               </LiquidButton>
             </form>
           </GlassCard>
@@ -1645,42 +1649,42 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard className="xl:col-span-2">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-text">Invoice Records</h3>
+                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.invoiceRecords')}</h3>
                 <p className="mt-1 text-sm text-muted">
-                  {invoiceTableTotal} invoice{invoiceTableTotal === 1 ? '' : 's'} in current filter range.
+                  {t('adminFinancePage.invoiceCount', { count: invoiceTableTotal })}
                 </p>
               </div>
               <LiquidButton type="button" tone="tertiary" onClick={() => void loadDashboardData()} disabled={loading}>
-                {loading ? 'Refreshing...' : 'Refresh'}
+                {loading ? t('adminFinancePage.refreshing') : t('adminFinancePage.refresh')}
               </LiquidButton>
             </div>
 
             {loading ? (
-              <PageSkeleton rows={6} columns={1} className="mt-4" loadingText="Loading finance records..." />
+              <PageSkeleton rows={6} columns={1} className="mt-4" loadingText={t('adminFinancePage.loadingFinanceRecords')} />
             ) : (
               <div className="mt-4 space-y-3">
                 <div className="overflow-x-auto rounded-xl border border-stroke">
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-gold2/85">
                     <tr>
-                      <th className="px-4 py-3">Invoice</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Items</th>
-                      <th className="px-4 py-3">Total</th>
-                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">{t('adminFinancePage.invoice')}</th>
+                      <th className="px-4 py-3">{t('adminFinancePage.date')}</th>
+                      <th className="px-4 py-3">{t('adminFinancePage.items')}</th>
+                      <th className="px-4 py-3">{t('adminFinancePage.total')}</th>
+                      <th className="px-4 py-3">{t('adminFinancePage.status')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoiceTableLoading ? (
                       <tr>
                         <td className="px-4 py-10 text-center text-muted" colSpan={5}>
-                          Loading invoices...
+                          {t('adminFinancePage.loadingInvoices')}
                         </td>
                       </tr>
                     ) : invoiceTableRows.length === 0 ? (
                       <tr>
                         <td className="px-4 py-10 text-center text-muted" colSpan={5}>
-                          No invoices found for the current filters.
+                          {t('adminFinancePage.noInvoices')}
                         </td>
                       </tr>
                     ) : invoiceTableRows.map((invoice) => (
@@ -1697,7 +1701,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                         </td>
                         <td className="px-4 py-4 text-muted">{invoice.invoice_date}</td>
                         <td className="px-4 py-4 text-muted">
-                          {invoice.items.length} item{invoice.items.length === 1 ? '' : 's'}
+                          {t('adminFinancePage.itemCount', { count: invoice.items.length })}
                         </td>
                         <td className="px-4 py-4 font-semibold text-text">
                           {formatFinanceAmount(Number(invoice.total))}
@@ -1714,7 +1718,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                             disabled={statusSavingInvoiceId === invoice.id}
                             className="themed-native-select rounded-md border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none transition focus:border-gold disabled:opacity-60"
                           >
-                            {INVOICE_STATUS_OPTIONS.map((option) => (
+                            {invoiceStatusOptions.map((option) => (
                               <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                           </select>
@@ -1726,7 +1730,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
               </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-muted">
-                    Page {invoiceTablePage} of {invoiceTableLastPage} • {invoiceTableTotal} total
+                    {t('adminFinancePage.pagination', { page: invoiceTablePage, lastPage: invoiceTableLastPage, total: invoiceTableTotal })}
                   </p>
                   <div className="flex items-center gap-2">
                     <select
@@ -1740,7 +1744,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                       className="themed-native-select rounded-xl border border-stroke bg-bg1/65 px-3 py-2 text-sm outline-none focus:border-gold/55"
                     >
                       {[25, 50, 100].map((size) => (
-                        <option key={size} value={size}>{size} / page</option>
+                        <option key={size} value={size}>{t('adminFinancePage.perPage', { count: size })}</option>
                       ))}
                     </select>
                     <LiquidButton
@@ -1749,7 +1753,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                       disabled={invoiceTableLoading || invoiceTablePage <= 1}
                       onClick={() => setInvoiceTablePage((current) => Math.max(1, current - 1))}
                     >
-                      Previous
+                      {t('adminFinancePage.previous')}
                     </LiquidButton>
                     <LiquidButton
                       type="button"
@@ -1757,7 +1761,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
                       disabled={invoiceTableLoading || invoiceTablePage >= invoiceTableLastPage}
                       onClick={() => setInvoiceTablePage((current) => Math.min(invoiceTableLastPage, current + 1))}
                     >
-                      Next
+                      {t('adminFinancePage.next')}
                     </LiquidButton>
                   </div>
                 </div>
@@ -1774,10 +1778,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
           <GlassCard className="border-gold/15 bg-gradient-to-r from-bg1/82 via-bg1/72 to-bg1/82">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted">
-                Financial performance reflects revenue (`draft`, `issued`, `paid`) vs costs (COGS + operating + payroll) to show true profit/loss.
+                {t('adminFinancePage.footerDescription')}
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-gold2/80">
-                Total Bars: <AnimatedIntegerValue value={chartLabels.length} className="inline-block" /> • Invoices Counted: <AnimatedIntegerValue value={totalInvoicesInRange} className="inline-block" />
+                {t('adminFinancePage.footerStats', { bars: chartLabels.length, invoices: totalInvoicesInRange })}
               </p>
             </div>
           </GlassCard>

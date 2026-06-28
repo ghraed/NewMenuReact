@@ -565,7 +565,7 @@ const DishForm: React.FC<DishFormProps> = ({
     } else if (formData.direct_stock_ingredient_id !== null) {
       const directQty = Number(formData.direct_stock_quantity_per_sale || '1');
       if (!Number.isFinite(directQty) || directQty <= 0) {
-        setFormError('Direct stock quantity per sale must be greater than zero.');
+        setFormError(t('dishForm.directStockQuantityError'));
         return;
       }
     }
@@ -714,7 +714,7 @@ const DishForm: React.FC<DishFormProps> = ({
       <div className="space-y-4">
         <div>
           <label htmlFor="description" className="mb-1 block text-sm font-medium text-text">
-            {t('dishForm.descriptionEn')} {isPreparedDish ? '*' : '(Optional)'}
+            {t('dishForm.descriptionEn')} {isPreparedDish ? '*' : t('dishForm.optionalMarker')}
           </label>
           <textarea
             id="description"
@@ -872,11 +872,11 @@ const DishForm: React.FC<DishFormProps> = ({
             aria-expanded={suggestedDishesPickerOpen}
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-text">
-                {selectedSuggestedDishOptions.length > 0
-                  ? `${selectedSuggestedDishOptions.length} suggested dish${selectedSuggestedDishOptions.length > 1 ? 'es' : ''}`
+                <p className="truncate text-sm font-medium text-text">
+                  {selectedSuggestedDishOptions.length > 0
+                  ? t('dishForm.suggestedDishesSelected', { count: selectedSuggestedDishOptions.length })
                   : t('dishForm.chooseSuggestedDishes')}
-              </p>
+                </p>
               <p className="truncate text-xs text-muted">
                 {selectedSuggestedDishOptions.length > 0
                   ? selectedSuggestedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
@@ -981,11 +981,11 @@ const DishForm: React.FC<DishFormProps> = ({
             aria-expanded={relatedDishesPickerOpen}
           >
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-text">
-                {selectedRelatedDishOptions.length > 0
-                  ? `${selectedRelatedDishOptions.length} related dish${selectedRelatedDishOptions.length > 1 ? 'es' : ''}`
+                <p className="truncate text-sm font-medium text-text">
+                  {selectedRelatedDishOptions.length > 0
+                  ? t('dishForm.relatedDishesSelected', { count: selectedRelatedDishOptions.length })
                   : t('dishForm.chooseRelatedDishes')}
-              </p>
+                </p>
               <p className="truncate text-xs text-muted">
                 {selectedRelatedDishOptions.length > 0
                   ? selectedRelatedDishOptions.map((dish) => translateDishLabel(dish.name, i18n.language)).join(', ')
@@ -1182,10 +1182,10 @@ const DishForm: React.FC<DishFormProps> = ({
           required={requirePreviewUpload && !existingFiles?.previewImage}
         />
         {formData.preview_file ? (
-          <p className="mt-2 text-xs text-muted">Selected preview: {formData.preview_file.name}</p>
+          <p className="mt-2 text-xs text-muted">{t('dishForm.selectedPreview', { name: formData.preview_file.name })}</p>
         ) : (
           existingFiles?.previewImage && (
-            <p className="mt-2 text-xs text-muted">Current preview file: {existingFiles.previewImage}</p>
+            <p className="mt-2 text-xs text-muted">{t('dishForm.currentPreviewFile', { name: existingFiles.previewImage })}</p>
           )
         )}
         <p className="mt-2 text-xs text-muted">
@@ -1220,7 +1220,7 @@ const DishForm: React.FC<DishFormProps> = ({
 
         <p className="text-xs text-muted">
           {formData.recipe_ingredients.length > 0
-            ? `${formData.recipe_ingredients.length} ingredient${formData.recipe_ingredients.length > 1 ? 's' : ''} configured`
+            ? t('dishForm.recipeIngredientsConfigured', { count: formData.recipe_ingredients.length })
             : t('dishForm.noRecipeIngredients')}
         </p>
 
@@ -1360,65 +1360,65 @@ const DishForm: React.FC<DishFormProps> = ({
       {!isPreparedDish ? (
         <GlassSurface className="space-y-4 p-5" sheen={false}>
           <h3 className="text-lg font-semibold text-text">
-            {isPackagedDrink ? 'Packaged Drink Details' : 'Product Details'}
+            {isPackagedDrink ? t('dishForm.packagedDrinkDetails') : t('dishForm.productDetails')}
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {isPackagedDrink ? (
               <div>
-                <label className="mb-1 block text-sm font-medium text-text">Brand</label>
-                <GlassInput name="brand" value={formData.brand} onChange={handleChange} placeholder="Pepsi / Coca-Cola" />
+                <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.brandLabel')}</label>
+                <GlassInput name="brand" value={formData.brand} onChange={handleChange} placeholder={t('dishForm.brandPlaceholderDrink')} />
               </div>
             ) : null}
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Size</label>
-              <GlassInput name="size_label" value={formData.size_label} onChange={handleChange} placeholder="330ml / 500ml / 1.25L" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.sizeLabel')}</label>
+              <GlassInput name="size_label" value={formData.size_label} onChange={handleChange} placeholder={t('dishForm.sizeLabelPlaceholderDetailed')} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Unit Type</label>
-              <GlassInput name="packaged_unit" value={formData.packaged_unit} onChange={handleChange} placeholder="can / bottle / pack / piece" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.unitTypeLabel')}</label>
+              <GlassInput name="packaged_unit" value={formData.packaged_unit} onChange={handleChange} placeholder={t('dishForm.unitTypePlaceholder')} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Barcode (Optional)</label>
-              <GlassInput name="barcode" value={formData.barcode} onChange={handleChange} placeholder="Barcode" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.barcodeOptional')}</label>
+              <GlassInput name="barcode" value={formData.barcode} onChange={handleChange} placeholder={t('dishForm.barcodePlaceholder')} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Cost Price</label>
-              <GlassInput type="number" min="0" step="0.01" name="cost_price" value={formData.cost_price} onChange={handleChange} placeholder="0.00" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.costPriceLabel')}</label>
+              <GlassInput type="number" min="0" step="0.01" name="cost_price" value={formData.cost_price} onChange={handleChange} placeholder={t('dishForm.costPricePlaceholder')} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Stock Quantity</label>
-              <GlassInput type="number" min="0" step="0.001" name="packaged_stock_quantity" value={formData.packaged_stock_quantity} onChange={handleChange} placeholder="0" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.stockQuantityLabel')}</label>
+              <GlassInput type="number" min="0" step="0.001" name="packaged_stock_quantity" value={formData.packaged_stock_quantity} onChange={handleChange} placeholder={t('dishForm.stockQuantityPlaceholder')} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Supplier (Optional)</label>
-              <GlassInput name="supplier" value={formData.supplier} onChange={handleChange} placeholder="Supplier name" />
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.supplierOptional')}</label>
+              <GlassInput name="supplier" value={formData.supplier} onChange={handleChange} placeholder={t('dishForm.supplierPlaceholder')} />
             </div>
             {isPackagedDrink ? (
               <div>
-                <label className="mb-1 block text-sm font-medium text-text">Serving Temperature</label>
+                <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.servingTemperatureLabel')}</label>
                 <GlassSelect
                   name="serving_temperature"
                   value={formData.serving_temperature}
                   onChange={handleChange}
                   options={[
-                    { value: '', label: 'Not set' },
-                    { value: 'cold', label: 'Cold' },
-                    { value: 'room', label: 'Room Temperature' },
+                    { value: '', label: t('dishForm.servingTemperatureOptions.notSet') },
+                    { value: 'cold', label: t('dishForm.servingTemperatureOptions.cold') },
+                    { value: 'room', label: t('dishForm.servingTemperatureOptions.room') },
                   ]}
                 />
               </div>
             ) : null}
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Direct Stock Ingredient (Optional)</label>
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.directStockIngredientOptional')}</label>
               <GlassSearchSelect
                 value={formData.direct_stock_ingredient_id !== null ? String(formData.direct_stock_ingredient_id) : ''}
                 onChange={(value) => setFormData((prev) => ({ ...prev, direct_stock_ingredient_id: value ? Number(value) : null }))}
                 options={recipeIngredientSelectOptions}
-                placeholder="Select inventory ingredient if this item should deduct from ingredient stock"
+                placeholder={t('dishForm.directStockIngredientPlaceholder')}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-text">Stock Deduction Per Sale</label>
+              <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.stockDeductionPerSale')}</label>
               <GlassInput
                 type="number"
                 min="0.001"
@@ -1426,7 +1426,7 @@ const DishForm: React.FC<DishFormProps> = ({
                 name="direct_stock_quantity_per_sale"
                 value={formData.direct_stock_quantity_per_sale}
                 onChange={handleChange}
-                placeholder="1"
+                placeholder={t('dishForm.stockDeductionPlaceholder')}
               />
             </div>
           </div>
@@ -1442,9 +1442,9 @@ const DishForm: React.FC<DishFormProps> = ({
             </label>
             <GlassInput type="file" id="glb_file" name="glb_file" accept=".glb" onChange={handleFileChange} />
             {formData.glb_file ? (
-              <p className="mt-2 text-xs text-muted">Selected file: {formData.glb_file.name}</p>
+              <p className="mt-2 text-xs text-muted">{t('dishForm.selectedFile', { name: formData.glb_file.name })}</p>
             ) : (
-              existingFiles?.glb && <p className="mt-2 text-xs text-muted">Uploaded file found: {existingFiles.glb}</p>
+              existingFiles?.glb && <p className="mt-2 text-xs text-muted">{t('dishForm.uploadedFileFound', { name: existingFiles.glb })}</p>
             )}
           </div>
           <div>
@@ -1453,9 +1453,9 @@ const DishForm: React.FC<DishFormProps> = ({
             </label>
             <GlassInput type="file" id="usdz_file" name="usdz_file" accept=".usdz" onChange={handleFileChange} />
             {formData.usdz_file ? (
-              <p className="mt-2 text-xs text-muted">Selected file: {formData.usdz_file.name}</p>
+              <p className="mt-2 text-xs text-muted">{t('dishForm.selectedFile', { name: formData.usdz_file.name })}</p>
             ) : (
-              existingFiles?.usdz && <p className="mt-2 text-xs text-muted">Uploaded file found: {existingFiles.usdz}</p>
+              existingFiles?.usdz && <p className="mt-2 text-xs text-muted">{t('dishForm.uploadedFileFound', { name: existingFiles.usdz })}</p>
             )}
           </div>
           <p className="text-xs text-muted">

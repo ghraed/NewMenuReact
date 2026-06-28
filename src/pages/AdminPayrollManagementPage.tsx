@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -94,6 +95,7 @@ const IconGlyph: React.FC<{ d: string }> = ({ d }) => (
 );
 
 const AdminPayrollManagementPage: React.FC = () => {
+  const { t } = useTranslation();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const { user } = useAuth();
   const storedGuestCurrency = readGuestCurrencySettings()?.currency;
@@ -142,11 +144,11 @@ const AdminPayrollManagementPage: React.FC = () => {
       setSummaryNet(summary.totals.net_pay);
       setSummaryEmployees(summary.totals.employee_count);
     } catch (e) {
-      setError(getErrorMessage(e, 'Failed to load salary records.'));
+      setError(getErrorMessage(e, t('adminPayrollPage.failedLoad')));
     } finally {
       setLoading(false);
     }
-  }, [summaryFrom, summaryTo]);
+  }, [summaryFrom, summaryTo, t]);
 
   useEffect(() => {
     void refresh();
@@ -186,12 +188,12 @@ const AdminPayrollManagementPage: React.FC = () => {
 
     try {
       if (!draft.employeeId) {
-        setError('Select an employee.');
+        setError(t('adminPayrollPage.selectEmployeeError'));
         return;
       }
       const range = resolveRange(draft);
       if (range.start > range.end) {
-        setError('Salary range end date must be on or after start date.');
+        setError(t('adminPayrollPage.invalidRange'));
         return;
       }
 
@@ -212,9 +214,9 @@ const AdminPayrollManagementPage: React.FC = () => {
 
       setRecords((current) => [created, ...current.filter((p) => p.id !== created.id)]);
       setDraft(defaultDraft());
-      setSuccess('Salary record created.');
+      setSuccess(t('adminPayrollPage.created'));
     } catch (e) {
-      setError(getErrorMessage(e, 'Failed to create salary record.'));
+      setError(getErrorMessage(e, t('adminPayrollPage.failedCreate')));
     } finally {
       setSavingCreate(false);
     }
@@ -367,44 +369,44 @@ const AdminPayrollManagementPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Payroll Management">
+    <DashboardLayout title={t('adminPayrollPage.pageTitle')}>
       <div className="space-y-6">
         <GlassCard>
-          <h2 className="text-lg font-semibold text-text">Employee Salary Record</h2>
-          <p className="mt-1 text-sm text-muted">Create independent salary records per employee. Each record can be approved/paid and adjusted later.</p>
+          <h2 className="text-lg font-semibold text-text">{t('adminPayrollPage.employeeSalaryRecord')}</h2>
+          <p className="mt-1 text-sm text-muted">{t('adminPayrollPage.employeeSalaryRecordHint')}</p>
 
           <form className="mt-5 grid gap-4" onSubmit={createSalaryRecord}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="block sm:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.employee')}</span>
                 <select value={draft.employeeId} onChange={(e) => setDraft((d) => ({ ...d, employeeId: e.target.value }))} className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60">
-                  <option value="">Select employee</option>
+                  <option value="">{t('adminPayrollPage.selectEmployee')}</option>
                   {eligibleStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </label>
               <label className="flex items-center gap-2 rounded-xl border border-stroke bg-bg1/55 px-3 py-2 text-sm text-text">
                 <input type="checkbox" checked={draft.monthly} onChange={(e) => setDraft((d) => ({ ...d, monthly: e.target.checked }))} className="h-4 w-4 accent-gold" />
-                Monthly Range
+                {t('adminPayrollPage.monthlyRange')}
               </label>
               {draft.monthly ? (
                 <>
                   <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Year</span>
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.year')}</span>
                     <input type="number" value={draft.year} onChange={(e) => setDraft((d) => ({ ...d, year: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Month</span>
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.month')}</span>
                     <input type="number" min={1} max={12} value={draft.month} onChange={(e) => setDraft((d) => ({ ...d, month: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                 </>
               ) : (
                 <>
                   <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Date</span>
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.startDate')}</span>
                     <input type="date" value={draft.startDate} onChange={(e) => setDraft((d) => ({ ...d, startDate: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">End Date</span>
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.endDate')}</span>
                     <input type="date" value={draft.endDate} onChange={(e) => setDraft((d) => ({ ...d, endDate: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
                   </label>
                 </>
@@ -421,7 +423,7 @@ const AdminPayrollManagementPage: React.FC = () => {
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.notes')}</span>
               <input value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" />
             </label>
 
@@ -429,7 +431,7 @@ const AdminPayrollManagementPage: React.FC = () => {
               <LiquidButton type="submit" disabled={savingCreate || loading}>
                 <span className="inline-flex items-center">
                   <ActionIcon><IconGlyph d="M12 5v14M5 12h14" /></ActionIcon>
-                  {savingCreate ? 'Saving...' : 'Create Salary Record'}
+                  {savingCreate ? t('adminPayrollPage.saving') : t('adminPayrollPage.createSalaryRecord')}
                 </span>
               </LiquidButton>
             </div>
@@ -439,32 +441,32 @@ const AdminPayrollManagementPage: React.FC = () => {
         <GlassCard>
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-text">Salary Summary</h3>
-              <p className="mt-1 text-sm text-muted">Finance totals are based on saved salary records and adjustments.</p>
+              <h3 className="text-lg font-semibold text-text">{t('adminPayrollPage.salarySummary')}</h3>
+              <p className="mt-1 text-sm text-muted">{t('adminPayrollPage.salarySummaryHint')}</p>
             </div>
             <LiquidButton type="button" tone="tertiary" onClick={() => void refresh()} disabled={loading}>
               <span className="inline-flex items-center">
                 <ActionIcon><IconGlyph d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></ActionIcon>
-                {loading ? 'Loading...' : 'Refresh'}
+                {loading ? t('adminPayrollPage.loading') : t('adminPayrollPage.refresh')}
               </span>
             </LiquidButton>
           </div>
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">From</span><input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
-            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">To</span><input type="date" value={summaryTo} onChange={(e) => setSummaryTo(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
+            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.from')}</span><input type="date" value={summaryFrom} onChange={(e) => setSummaryFrom(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
+            <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('adminPayrollPage.to')}</span><input type="date" value={summaryTo} onChange={(e) => setSummaryTo(e.target.value)} className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text" /></label>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Net Payroll</p><p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, currency)}</p></div>
-            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">Employees Paid</p><p className="mt-1 text-xl font-semibold text-text">{summaryEmployees}</p></div>
+            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminPayrollPage.netPayroll')}</p><p className="mt-1 text-xl font-semibold text-text">{formatPriceWithCurrency(summaryNet, currency)}</p></div>
+            <div className="rounded-2xl border border-stroke bg-bg1/55 p-4"><p className="text-xs uppercase tracking-[0.12em] text-gold2/85">{t('adminPayrollPage.employeesPaid')}</p><p className="mt-1 text-xl font-semibold text-text">{summaryEmployees}</p></div>
           </div>
         </GlassCard>
 
         <GlassCard>
-          <h3 className="text-lg font-semibold text-text">Employee Salary Records</h3>
-          <p className="mt-1 text-sm text-muted">Main row = original salary. Expanded rows = correction history.</p>
+          <h3 className="text-lg font-semibold text-text">{t('adminPayrollPage.employeeSalaryRecords')}</h3>
+          <p className="mt-1 text-sm text-muted">{t('adminPayrollPage.recordsHint')}</p>
 
           <div className="mt-4 space-y-3">
-            {regularRecords.length === 0 ? <div className="rounded-2xl border border-stroke bg-bg1/55 p-4 text-sm text-muted">No salary records yet.</div> : regularRecords.map((record) => {
+            {regularRecords.length === 0 ? <div className="rounded-2xl border border-stroke bg-bg1/55 p-4 text-sm text-muted">{t('adminPayrollPage.noSalaryRecords')}</div> : regularRecords.map((record) => {
               const recordEdit = editDrafts[record.id];
               const adjDraft = adjustmentDrafts[record.id] ?? { date: today, amount: '', note: '' };
               const adjusted = (record.adjustment_count ?? 0) > 0;

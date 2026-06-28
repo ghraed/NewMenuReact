@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import GlassToast from '../components/ui/liquid-glass/GlassToast';
@@ -182,6 +183,7 @@ const matchesMonthlyPattern = (candidateDate: string, anchorDate: string): boole
 };
 
 const AdminStaffSchedulingPage: React.FC = () => {
+  const { t } = useTranslation();
   const { theme } = useAppTheme();
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [shifts, setShifts] = useState<StaffShift[]>([]);
@@ -634,27 +636,27 @@ const AdminStaffSchedulingPage: React.FC = () => {
   }, [employeeNameById]);
 
   return (
-    <DashboardLayout title="Staff Scheduling">
+    <DashboardLayout title={t('staffSchedulingPage.pageTitle')}>
       <div className="grid gap-6">
         <GlassCard>
-          <h2 className="text-lg font-semibold text-text">Create Shift</h2>
-          <p className="mt-1 text-sm text-muted">Weekly-first planning with conflict-safe shift creation.</p>
+          <h2 className="text-lg font-semibold text-text">{t('staffSchedulingPage.createShift')}</h2>
+          <p className="mt-1 text-sm text-muted">{t('staffSchedulingPage.createShiftHint')}</p>
 
           <form className="mt-5 space-y-4" onSubmit={handleCreate}>
             <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Schedule Type</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.scheduleType')}</span>
               <select
                 value={shiftEntryMode}
                 onChange={(event) => setShiftEntryMode(event.target.value as ShiftEntryMode)}
                 className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
               >
-                <option value="single">Single shift</option>
-                <option value="recurring">Recurring schedule</option>
+                <option value="single">{t('staffSchedulingPage.singleShift')}</option>
+                <option value="recurring">{t('staffSchedulingPage.recurringSchedule')}</option>
               </select>
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Employee</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.employee')}</span>
               <select
                 value={employeeId}
                 onChange={(event) => {
@@ -664,7 +666,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
                 required
               >
-                <option value="">Select employee</option>
+                <option value="">{t('staffSchedulingPage.selectEmployee')}</option>
                 {scheduleEligibleStaff.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name} ({member.role})
@@ -676,7 +678,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">
-                  {shiftEntryMode === 'single' ? 'Shift Date' : 'Recurring Start Date'}
+                  {shiftEntryMode === 'single' ? t('staffSchedulingPage.shiftDate') : t('staffSchedulingPage.recurringStartDate')}
                 </span>
                 <input
                   type="date"
@@ -688,7 +690,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
               </label>
               {shiftEntryMode === 'recurring' ? (
                 <label className="block">
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Recurring Until</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.recurringUntil')}</span>
                   <input
                     type="date"
                     value={recurrenceUntilDate}
@@ -699,14 +701,14 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 </label>
               ) : null}
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Position</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.position')}</span>
                 <select
                   value={position}
                   onChange={(event) => setPosition(event.target.value as PositionCode | '')}
                   className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
                   required
                 >
-                  <option value="">Select position</option>
+                  <option value="">{t('staffSchedulingPage.selectPosition')}</option>
                   {POSITION_OPTIONS.map((item) => (
                     <option key={item.value} value={item.value}>
                       {item.label}
@@ -720,19 +722,19 @@ const AdminStaffSchedulingPage: React.FC = () => {
               <div className="space-y-3 rounded-2xl border border-stroke bg-bg1/40 p-3">
                 <div className="grid gap-3 sm:grid-cols-1">
                   <label className="block">
-                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Frequency</span>
+                    <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.frequency')}</span>
                     <select
                       value={recurrenceFrequency}
                       onChange={(event) => setRecurrenceFrequency(event.target.value as RecurrenceFrequency)}
                       className="themed-native-select w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
                     >
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
+                      <option value="weekly">{t('staffSchedulingPage.weekly')}</option>
+                      <option value="monthly">{t('staffSchedulingPage.monthly')}</option>
                     </select>
                   </label>
                 </div>
                 <div>
-                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Weekdays Included</span>
+                  <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.weekdaysIncluded')}</span>
                   <div className="flex flex-wrap gap-2">
                     {WEEKDAY_OPTIONS.map((day) => {
                       const active = recurrenceWeekdays.includes(day.value);
@@ -754,16 +756,14 @@ const AdminStaffSchedulingPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="rounded-xl border border-stroke/70 bg-bg1/50 px-3 py-2 text-xs text-muted">
-                  Rule preview: {recurrenceFrequency}, days{' '}
-                  {recurrenceWeekdays.length > 0 ? recurrenceWeekdays.map(dayName).join(', ') : 'none selected'}, time{' '}
-                  {startTime} - {endTime}.
+                  {t('staffSchedulingPage.rulePreview', { frequency: recurrenceFrequency === 'weekly' ? t('staffSchedulingPage.weekly') : t('staffSchedulingPage.monthly'), days: recurrenceWeekdays.length > 0 ? recurrenceWeekdays.map(dayName).join(', ') : t('staffSchedulingPage.noneSelected'), start: startTime, end: endTime })}
                 </div>
               </div>
             ) : null}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Start Time</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.startTime')}</span>
                 <input
                   type="time"
                   value={startTime}
@@ -773,7 +773,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">End Time</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.endTime')}</span>
                 <input
                   type="time"
                   value={endTime}
@@ -792,10 +792,10 @@ const AdminStaffSchedulingPage: React.FC = () => {
                   onChange={(event) => setAllowOvernight(event.target.checked)}
                   className="h-4 w-4 accent-[rgb(var(--color-gold))]"
                 />
-                Overnight shift
+                {t('staffSchedulingPage.overnightShift')}
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Break (minutes)</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.breakMinutes')}</span>
                 <input
                   type="number"
                   min={0}
@@ -809,22 +809,22 @@ const AdminStaffSchedulingPage: React.FC = () => {
             </div>
 
             <div className="rounded-2xl border border-stroke bg-bg1/40 px-4 py-2.5 text-sm text-muted">
-              Worked hours preview: <span className="font-semibold text-text">{workedHoursPreview}h</span>
+              {t('staffSchedulingPage.workedHoursPreview', { hours: workedHoursPreview })}
             </div>
 
             <label className="block">
-              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">Notes</span>
+              <span className="mb-1 block text-xs uppercase tracking-[0.14em] text-gold2/85">{t('staffSchedulingPage.notes')}</span>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
                 className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text outline-none transition focus:border-gold/60"
-                placeholder="Optional shift instructions"
+                placeholder={t('staffSchedulingPage.notesPlaceholder')}
               />
             </label>
 
             <LiquidButton type="submit" disabled={creating || loading}>
-              {creating ? 'Creating...' : shiftEntryMode === 'single' ? 'Create Shift' : 'Generate Recurring Shifts'}
+              {creating ? t('staffSchedulingPage.creating') : shiftEntryMode === 'single' ? t('staffSchedulingPage.createShiftAction') : t('staffSchedulingPage.generateRecurringShifts')}
             </LiquidButton>
           </form>
         </GlassCard>
@@ -832,11 +832,11 @@ const AdminStaffSchedulingPage: React.FC = () => {
         <GlassCard>
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-text">Scheduled Shifts</h3>
-              <p className="mt-1 text-sm text-muted">Plan weekly by default, then refine by day, employee, position, and status.</p>
+              <h3 className="text-lg font-semibold text-text">{t('staffSchedulingPage.scheduledShifts')}</h3>
+              <p className="mt-1 text-sm text-muted">{t('staffSchedulingPage.scheduledShiftsHint')}</p>
             </div>
             <LiquidButton type="button" tone="tertiary" onClick={() => void loadPageData()} disabled={loading}>
-              {loading ? 'Loading...' : 'Refresh'}
+              {loading ? t('staffSchedulingPage.loading') : t('staffSchedulingPage.refresh')}
             </LiquidButton>
           </div>
 

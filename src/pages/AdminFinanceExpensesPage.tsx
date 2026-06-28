@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
@@ -98,34 +99,6 @@ interface ExpenseDraft {
   due_date: string;
   paid_at: string;
 }
-
-const validateExpenseDates = (draft: ExpenseDraft): string | null => {
-  const expenseDate = toDateValue(draft.expense_date);
-  const dueDate = toDateValue(draft.due_date);
-  const paidAt = toDateValue(draft.paid_at);
-
-  if (!expenseDate) {
-    return 'Expense date is required.';
-  }
-
-  if (dueDate && dueDate < expenseDate) {
-    return 'Due date must be the same day or after expense date.';
-  }
-
-  if (draft.status === 'paid' && !paidAt) {
-    return 'Paid At date is required when status is paid.';
-  }
-
-  if (paidAt && paidAt < expenseDate) {
-    return 'Paid At date cannot be before expense date.';
-  }
-
-  if (draft.status !== 'paid' && paidAt) {
-    return 'Paid At should only be set when status is paid.';
-  }
-
-  return null;
-};
 
 const blankDraft = (currency: string): ExpenseDraft => ({
   expense_category_id: '',
@@ -306,6 +279,7 @@ const Drawer: React.FC<{
 };
 
 const AdminFinanceExpensesPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const storedGuestSettings = readGuestCurrencySettings();
   const storedGuestCurrency = storedGuestSettings?.currency;
@@ -367,6 +341,19 @@ const AdminFinanceExpensesPage: React.FC = () => {
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismiss } = useGlassToast(4800);
+
+  const validateExpenseDatesWithTranslation = useCallback((draft: ExpenseDraft): string | null => {
+    const expenseDate = toDateValue(draft.expense_date);
+    const dueDate = toDateValue(draft.due_date);
+    const paidAt = toDateValue(draft.paid_at);
+
+    if (!expenseDate) return t('adminFinanceExpensesPage.expenseDateRequired');
+    if (dueDate && dueDate < expenseDate) return t('adminFinanceExpensesPage.dueDateInvalid');
+    if (draft.status === 'paid' && !paidAt) return t('adminFinanceExpensesPage.paidAtRequired');
+    if (paidAt && paidAt < expenseDate) return t('adminFinanceExpensesPage.paidAtBeforeExpenseDate');
+    if (draft.status !== 'paid' && paidAt) return t('adminFinanceExpensesPage.paidAtOnlyForPaid');
+    return null;
+  }, [t]);
 
   const showFormError = useCallback((message: string) => {
     setError(message);
@@ -515,11 +502,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     try {
       await Promise.all([loadReferenceData(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
-      showFormError(getErrorMessage(loadError, 'Failed to load expense management data.'));
+      showFormError(getErrorMessage(loadError, t('adminFinanceExpensesPage.failedLoad')));
     } finally {
       setLoading(false);
     }
-  }, [loadReferenceData, loadUnlinkedRestocks, showFormError]);
+  }, [loadReferenceData, loadUnlinkedRestocks, showFormError, t]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -527,11 +514,11 @@ const AdminFinanceExpensesPage: React.FC = () => {
     try {
       await Promise.all([loadReferenceData(), loadExpenses(), loadUnlinkedRestocks()]);
     } catch (loadError: unknown) {
-      showFormError(getErrorMessage(loadError, 'Failed to load expense management data.'));
+      showFormError(getErrorMessage(loadError, t('adminFinanceExpensesPage.failedLoad')));
     } finally {
       setLoading(false);
     }
-  }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks, showFormError]);
+  }, [loadExpenses, loadReferenceData, loadUnlinkedRestocks, showFormError, t]);
 
   useEffect(() => {
     void loadInitialData();
@@ -577,10 +564,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
       setCategoryCode('');
       setCategoryName('');
       setCategoryActive(true);
-      showFormSuccess('Expense category created.');
+      showFormSuccess(t('adminFinanceExpensesPage.categoryCreated'));
       setDrawerMode(null);
     } catch (createError: unknown) {
-      showFormError(getErrorMessage(createError, 'Failed to create expense category.'));
+      showFormError(getErrorMessage(createError, t('adminFinanceExpensesPage.failedCreateCategory')));
     } finally {
       setSavingCategory(false);
     }
@@ -603,7 +590,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
           is_active: vendorActive,
         });
         setVendors((current) => [created, ...current]);
-        showFormSuccess('Vendor created.');
+        showFormSuccess(t('adminFinanceExpensesPage.vendorCreated'));
       } else {
         const updated = await updateVendor(editingVendorId, {
           name: vendorName.trim(),
@@ -615,12 +602,12 @@ const AdminFinanceExpensesPage: React.FC = () => {
           is_active: vendorActive,
         });
         setVendors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-        showFormSuccess('Vendor updated.');
+        showFormSuccess(t('adminFinanceExpensesPage.vendorUpdated'));
       }
       resetVendorForm();
       setDrawerMode(null);
     } catch (createError: unknown) {
-      showFormError(getErrorMessage(createError, 'Failed to create vendor.'));
+      showFormError(getErrorMessage(createError, t('adminFinanceExpensesPage.failedCreateVendor')));
     } finally {
       setSavingVendor(false);
     }
@@ -648,22 +635,22 @@ const AdminFinanceExpensesPage: React.FC = () => {
     setError(null);
 
     if (!expenseDraft.expense_category_id) {
-      showFormError('Please select an expense category.');
+      showFormError(t('adminFinanceExpensesPage.selectExpenseCategory'));
       return;
     }
     if (!expenseDraft.expense_date) {
-      showFormError('Please select the expense date.');
+      showFormError(t('adminFinanceExpensesPage.selectExpenseDate'));
       return;
     }
     if (!allowedCurrencies.includes(normalizeCurrency(expenseDraft.currency) as CurrencyCode)) {
-      showFormError('Please select a valid currency.');
+      showFormError(t('adminFinanceExpensesPage.selectValidCurrency'));
       return;
     }
     if (!expenseDraft.amount || centsFromInput(expenseDraft.amount) <= 0) {
-      showFormError('Expense amount must be greater than 0.');
+      showFormError(t('adminFinanceExpensesPage.expenseAmountRequired'));
       return;
     }
-    const dateValidationError = validateExpenseDates(expenseDraft);
+    const dateValidationError = validateExpenseDatesWithTranslation(expenseDraft);
     if (dateValidationError) {
       showFormError(dateValidationError);
       return;
@@ -676,18 +663,18 @@ const AdminFinanceExpensesPage: React.FC = () => {
         await createExpense(expensePayloadFromDraft(expenseDraft));
         setExpensePage(1);
         await loadExpenses();
-        showFormSuccess('Expense created.');
+        showFormSuccess(t('adminFinanceExpensesPage.expenseCreated'));
         resetExpenseForm();
       } else {
         const updatePayload: UpdateExpensePayload = expensePayloadFromDraft(expenseDraft);
         await updateExpense(editingExpenseId, updatePayload);
         await loadExpenses();
-        showFormSuccess('Expense updated.');
+        showFormSuccess(t('adminFinanceExpensesPage.expenseUpdated'));
       }
       setDrawerMode(null);
       void loadUnlinkedRestocks();
     } catch (saveError: unknown) {
-      showFormError(getErrorMessage(saveError, 'Failed to save expense.'));
+      showFormError(getErrorMessage(saveError, t('adminFinanceExpensesPage.failedSaveExpense')));
     } finally {
       setSavingExpense(false);
     }
@@ -746,10 +733,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
     try {
       const updated = await updateExpense(expense.id, { status: nextStatus });
       setExpenses((current) => expenseSortNewestFirst(current.map((item) => (item.id === updated.id ? updated : item))));
-      showFormSuccess(`Expense ${updated.id} moved to ${nextStatus}.`);
+      showFormSuccess(t('adminFinanceExpensesPage.expenseMovedTo', { id: updated.id, status: t(`adminFinanceExpensesPage.statuses.${nextStatus}`) }));
       void loadUnlinkedRestocks();
     } catch (updateError: unknown) {
-      showFormError(getErrorMessage(updateError, 'Failed to update expense status.'));
+      showFormError(getErrorMessage(updateError, t('adminFinanceExpensesPage.failedUpdateExpenseStatus')));
     } finally {
       setUpdatingStatusId(null);
     }
@@ -761,7 +748,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
       const updated = await updateExpenseCategory(category.id, { is_active: !category.is_active });
       setCategories((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (updateError: unknown) {
-      showFormError(getErrorMessage(updateError, 'Failed to update category status.'));
+      showFormError(getErrorMessage(updateError, t('adminFinanceExpensesPage.failedUpdateCategoryStatus')));
     }
   };
 
@@ -771,28 +758,28 @@ const AdminFinanceExpensesPage: React.FC = () => {
       const updated = await updateVendor(vendor.id, { is_active: !vendor.is_active });
       setVendors((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (updateError: unknown) {
-      showFormError(getErrorMessage(updateError, 'Failed to update vendor status.'));
+      showFormError(getErrorMessage(updateError, t('adminFinanceExpensesPage.failedUpdateVendorStatus')));
     }
   };
 
   return (
-    <DashboardLayout title="Expense Management">
+    <DashboardLayout title={t('adminFinanceExpensesPage.pageTitle')}>
       <div className="space-y-5">
         <GlassCard>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">Finance Operations</p>
-              <h2 className="mt-1 text-3xl font-semibold text-text">Expense Management</h2>
+              <p className="text-xs uppercase tracking-[0.2em] text-gold2/85">{t('adminFinanceExpensesPage.financeOperations')}</p>
+              <h2 className="mt-1 text-3xl font-semibold text-text">{t('adminFinanceExpensesPage.heading')}</h2>
               <p className="mt-2 max-w-2xl text-sm text-muted">
-                Track expenses, vendors, categories, payment status, and stock-linked expenses.
+                {t('adminFinanceExpensesPage.description')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <LiquidButton type="button" onClick={openExpenseDrawer}>+ New Expense</LiquidButton>
-              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('vendor')}>New Vendor</LiquidButton>
-              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('category')}>New Category</LiquidButton>
+              <LiquidButton type="button" onClick={openExpenseDrawer}>{t('adminFinanceExpensesPage.newExpense')}</LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('vendor')}>{t('adminFinanceExpensesPage.newVendor')}</LiquidButton>
+              <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode('category')}>{t('adminFinanceExpensesPage.newCategory')}</LiquidButton>
               <LiquidButton type="button" tone="tertiary" onClick={() => void loadAll()} disabled={loading}>
-                {loading ? 'Refreshing...' : 'Export'}
+                {loading ? t('adminFinanceExpensesPage.refreshing') : t('adminFinanceExpensesPage.export')}
               </LiquidButton>
             </div>
           </div>
@@ -800,9 +787,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <StatCard
-            label={"Expense\u00A0Total"}
+            label={t('adminFinanceExpensesPage.expenseTotal')}
             value={<AnimatedCurrencyValue value={expenseTotals.totalAmount} currency={currency} />}
-            helper="Across selected range"
+            helper={t('adminFinanceExpensesPage.acrossSelectedRange')}
             tone="neutral"
             icon={(
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.8} aria-hidden="true">
@@ -813,9 +800,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
             )}
           />
           <StatCard
-            label="Paid"
+            label={t('adminFinanceExpensesPage.paid')}
             value={<AnimatedCurrencyValue value={expenseTotals.paidAmount} currency={currency} />}
-            helper={`${expenseTotals.paidCount} on this page`}
+            helper={t('adminFinanceExpensesPage.onThisPage', { count: expenseTotals.paidCount })}
             tone="green"
             icon={(
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={2.2} aria-hidden="true">
@@ -824,9 +811,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
             )}
           />
           <StatCard
-            label="Approved"
+            label={t('adminFinanceExpensesPage.approved')}
             value={<AnimatedCurrencyValue value={expenseTotals.approvedAmount} currency={currency} />}
-            helper={`${expenseTotals.approvedCount} on this page`}
+            helper={t('adminFinanceExpensesPage.onThisPage', { count: expenseTotals.approvedCount })}
             tone="blue"
             icon={(
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={2.2} aria-hidden="true">
@@ -835,9 +822,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
             )}
           />
           <StatCard
-            label="Draft"
+            label={t('adminFinanceExpensesPage.draft')}
             value={<AnimatedCurrencyValue value={expenseTotals.draftAmount} currency={currency} />}
-            helper={`${expenseTotals.draftCount} on this page`}
+            helper={t('adminFinanceExpensesPage.onThisPage', { count: expenseTotals.draftCount })}
             tone="amber"
             icon={(
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9} aria-hidden="true">
@@ -847,9 +834,9 @@ const AdminFinanceExpensesPage: React.FC = () => {
             )}
           />
           <StatCard
-            label="Void"
+            label={t('adminFinanceExpensesPage.void')}
             value={<AnimatedCurrencyValue value={expenseTotals.voidAmount} currency={currency} />}
-            helper={`${expenseTotals.voidCount} on this page`}
+            helper={t('adminFinanceExpensesPage.onThisPage', { count: expenseTotals.voidCount })}
             tone="red"
             icon={(
               <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth={1.9} aria-hidden="true">
@@ -863,10 +850,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
         <GlassCard className="p-2">
           <div className="flex gap-2 overflow-x-auto">
             {([
-              ['expenses', 'Expenses'],
-              ['vendors', 'Vendors'],
-              ['categories', 'Categories'],
-              ['unlinked', 'Unlinked Stocks'],
+              ['expenses', t('adminFinanceExpensesPage.tabs.expenses')],
+              ['vendors', t('adminFinanceExpensesPage.tabs.vendors')],
+              ['categories', t('adminFinanceExpensesPage.tabs.categories')],
+              ['unlinked', t('adminFinanceExpensesPage.tabs.unlinked')],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
@@ -886,46 +873,46 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 grid gap-3 md:grid-cols-12 md:items-end">
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Date From</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.dateFrom')}</span>
                 <input type="date" value={dateFrom} onChange={(event) => { setExpensePage(1); setDateFrom(event.target.value); }} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Date To</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.dateTo')}</span>
                 <input type="date" value={dateTo} onChange={(event) => { setExpensePage(1); setDateTo(event.target.value); }} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.status')}</span>
                 <select value={statusFilter} onChange={(event) => { setExpensePage(1); setStatusFilter(event.target.value as FinanceExpenseStatus | ''); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
-                  <option value="">All statuses</option>
-                  {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  <option value="">{t('adminFinanceExpensesPage.allStatuses')}</option>
+                  {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{t(`adminFinanceExpensesPage.statuses.${status}`)}</option>)}
                 </select>
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Category</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.category')}</span>
                 <select value={categoryFilter} onChange={(event) => { setExpensePage(1); setCategoryFilter(event.target.value); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
-                  <option value="">All categories</option>
+                  <option value="">{t('adminFinanceExpensesPage.allCategories')}</option>
                   {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                 </select>
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.vendor')}</span>
                 <select value={vendorFilter} onChange={(event) => { setExpensePage(1); setVendorFilter(event.target.value); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
-                  <option value="">All vendors</option>
+                  <option value="">{t('adminFinanceExpensesPage.allVendors')}</option>
                   {vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
                 </select>
               </label>
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Rows</span>
+                <span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.rows')}</span>
                 <select value={String(expensePerPage)} onChange={(event) => { const parsed = Number(event.target.value); setExpensePage(1); setExpensePerPage(Number.isFinite(parsed) && parsed > 0 ? parsed : 25); }} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">
-                  {[25, 50, 100].map((size) => <option key={size} value={size}>{size} / page</option>)}
+                  {[25, 50, 100].map((size) => <option key={size} value={size}>{t('adminFinanceExpensesPage.perPage', { count: size })}</option>)}
                 </select>
               </label>
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder="Search by invoice #, adjustment ref, category, complimentary, guest recovery, quality complaint, burned food, wrong order sent, kitchen mistake" className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+              <input value={expenseSearch} onChange={(event) => setExpenseSearch(event.target.value)} placeholder={t('adminFinanceExpensesPage.expenseSearchPlaceholder')} className="min-w-[280px] flex-1 rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
               <LiquidButton type="button" tone="tertiary" onClick={() => { setExpensePage(1); setDateFrom(''); setDateTo(''); setStatusFilter(''); setCategoryFilter(''); setVendorFilter(''); setExpenseSearch(''); }}>
-                Clear Filters
+                {t('adminFinanceExpensesPage.clearFilters')}
               </LiquidButton>
             </div>
 
@@ -933,14 +920,14 @@ const AdminFinanceExpensesPage: React.FC = () => {
               <table className="min-w-[920px] w-full text-left text-sm">
                 <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-muted">
                   <tr>
-                    <th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Vendor</th><th className="px-4 py-3">Inventory Link</th><th className="px-4 py-3">Total</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Actions</th>
+                    <th className="px-4 py-3">{t('adminFinanceExpensesPage.date')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.category')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.vendor')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.inventoryLink')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.total')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.status')}</th><th className="px-4 py-3">{t('adminFinanceExpensesPage.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loadingExpenses ? (
-                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>Loading expenses...</td></tr>
+                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>{t('adminFinanceExpensesPage.loadingExpenses')}</td></tr>
                   ) : filteredExpenses.length === 0 ? (
-                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>No expenses found for current filters.</td></tr>
+                    <tr><td className="px-4 py-10 text-center text-muted" colSpan={7}>{t('adminFinanceExpensesPage.noExpenses')}</td></tr>
                   ) : filteredExpenses.map((expense) => {
                     const adjustmentMeta = parseInvoiceAdjustmentExpenseMeta(expense);
                     const isAdjustmentExpense = adjustmentMeta.isAdjustment;
@@ -957,23 +944,24 @@ const AdminFinanceExpensesPage: React.FC = () => {
                       </td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-amber-900' : 'px-4 py-3 text-muted'}>
                         <div>{expense.vendor?.name || '-'}</div>
-                        {expense.reference_no ? <p className="mt-1 text-[11px]">Ref: {expense.reference_no}</p> : null}
-                        {adjustmentMeta.adjustmentReference ? <p className="mt-1 text-[11px]">Adjustment: {adjustmentMeta.adjustmentReference}</p> : null}
-                        {adjustmentMeta.invoiceNumber ? <p className="mt-1 text-[11px]">Invoice: {adjustmentMeta.invoiceNumber}</p> : null}
+                        {expense.reference_no ? <p className="mt-1 text-[11px]">{t('adminFinanceExpensesPage.referenceLine', { value: expense.reference_no })}</p> : null}
+                        {adjustmentMeta.adjustmentReference ? <p className="mt-1 text-[11px]">{t('adminFinanceExpensesPage.adjustmentLine', { value: adjustmentMeta.adjustmentReference })}</p> : null}
+                        {adjustmentMeta.invoiceNumber ? <p className="mt-1 text-[11px]">{t('adminFinanceExpensesPage.invoiceLine', { value: adjustmentMeta.invoiceNumber })}</p> : null}
                       </td>
                       <td className={isAdjustmentExpense ? 'px-4 py-3 text-xs text-amber-900' : 'px-4 py-3 text-xs text-muted'}>
-                        {expense.linked_stock_movement ? <div><p className={isAdjustmentExpense ? 'text-amber-900' : 'text-text'}>Stock Move #{expense.linked_stock_movement.id}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : 'Not linked'}
+                        {expense.linked_stock_movement ? <div><p className={isAdjustmentExpense ? 'text-amber-900' : 'text-text'}>{t('adminFinanceExpensesPage.stockMoveLine', { id: expense.linked_stock_movement.id })}</p><p>{expense.linked_stock_movement.ingredient_name || '-'}</p></div> : t('adminFinanceExpensesPage.notLinked')}
                         {expense.description ? <p className="mt-1">{expense.description}</p> : null}
                         {isAdjustmentExpense ? (
                           <div className="mt-1 space-y-1">
-                            <p className="font-semibold text-amber-700">Source: Invoice/order adjustment (not supplier bill)</p>
+                            <p className="font-semibold text-amber-700">{t('adminFinanceExpensesPage.sourceInvoiceOrderAdjustment')}</p>
                             {adjustmentMeta.actionType ? (
-                              <p className="text-[11px]">Type: {ADJUSTMENT_ACTION_LABELS[adjustmentMeta.actionType]}</p>
+                              <p className="text-[11px]">{t('adminFinanceExpensesPage.typeLine', { value: ADJUSTMENT_ACTION_LABELS[adjustmentMeta.actionType] })}</p>
                             ) : null}
                             {adjustmentMeta.approvedBy ? (
                               <p className="text-[11px]">
-                                Approved by: {adjustmentMeta.approvedBy}
-                                {adjustmentMeta.approvedAt ? ` • ${new Date(adjustmentMeta.approvedAt).toLocaleString()}` : ''}
+                                {adjustmentMeta.approvedAt
+                                  ? t('adminFinanceExpensesPage.approvedByWithDateLine', { value: adjustmentMeta.approvedBy, date: new Date(adjustmentMeta.approvedAt).toLocaleString() })
+                                  : t('adminFinanceExpensesPage.approvedByLine', { value: adjustmentMeta.approvedBy })}
                               </p>
                             ) : null}
                           </div>
@@ -984,7 +972,7 @@ const AdminFinanceExpensesPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <select value={expense.status} onChange={(event) => void handleExpenseStatusUpdate(expense, event.target.value as FinanceExpenseStatus)} disabled={updatingStatusId === expense.id} className="themed-native-select rounded-full border border-stroke bg-bg1/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
-                          {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                          {EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{t(`adminFinanceExpensesPage.statuses.${status}`)}</option>)}
                         </select>
                       </td>
                       <td className="px-4 py-3">
@@ -998,10 +986,10 @@ const AdminFinanceExpensesPage: React.FC = () => {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-xs text-muted">Page {expensePage} of {expenseLastPage} • {totalExpensesCount} total</p>
+              <p className="text-xs text-muted">{t('adminFinanceExpensesPage.pagination', { page: expensePage, lastPage: expenseLastPage, total: totalExpensesCount })}</p>
               <div className="flex gap-2">
-                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage <= 1} onClick={() => setExpensePage((current) => Math.max(1, current - 1))}>Previous</LiquidButton>
-                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage >= expenseLastPage} onClick={() => setExpensePage((current) => Math.min(expenseLastPage, current + 1))}>Next</LiquidButton>
+                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage <= 1} onClick={() => setExpensePage((current) => Math.max(1, current - 1))}>{t('adminFinanceExpensesPage.previous')}</LiquidButton>
+                <LiquidButton type="button" tone="tertiary" disabled={loadingExpenses || expensePage >= expenseLastPage} onClick={() => setExpensePage((current) => Math.min(expenseLastPage, current + 1))}>{t('adminFinanceExpensesPage.next')}</LiquidButton>
               </div>
             </div>
           </GlassCard>
@@ -1011,12 +999,12 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-2xl font-semibold text-text">Vendors</h3>
-                <p className="text-sm text-muted">Manage supplier and service provider records.</p>
+                <h3 className="text-2xl font-semibold text-text">{t('adminFinanceExpensesPage.vendorsTitle')}</h3>
+                <p className="text-sm text-muted">{t('adminFinanceExpensesPage.vendorsDescription')}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <input value={vendorSearch} onChange={(event) => setVendorSearch(event.target.value)} placeholder="Search vendors" className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
-                <LiquidButton type="button" onClick={() => { resetVendorForm(); setDrawerMode('vendor'); }}>+ New Vendor</LiquidButton>
+                <input value={vendorSearch} onChange={(event) => setVendorSearch(event.target.value)} placeholder={t('adminFinanceExpensesPage.searchVendors')} className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+                <LiquidButton type="button" onClick={() => { resetVendorForm(); setDrawerMode('vendor'); }}>{t('adminFinanceExpensesPage.newVendor')}</LiquidButton>
               </div>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1024,15 +1012,15 @@ const AdminFinanceExpensesPage: React.FC = () => {
                 <div key={vendor.id} className="rounded-2xl border border-stroke bg-bg1/55 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="text-lg font-semibold text-text">{vendor.name}</h4>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${vendor.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{vendor.is_active ? 'Active' : 'Inactive'}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${vendor.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{vendor.is_active ? t('adminFinanceExpensesPage.active') : t('adminFinanceExpensesPage.inactive')}</span>
                   </div>
                   <p className="mt-1 text-sm text-muted">{vendor.contact_name || '-'}</p>
                   <p className="mt-3 text-sm text-muted">{vendor.phone || '-'}</p>
                   <p className="text-sm text-muted">{vendor.email || '-'}</p>
                   <p className="text-sm text-muted">{vendor.tax_number || '-'}</p>
                   <div className="mt-3 flex gap-2">
-                    <LiquidButton type="button" tone="tertiary" onClick={() => startEditVendor(vendor)}>Edit</LiquidButton>
-                    <LiquidButton type="button" tone="tertiary" onClick={() => void toggleVendorActive(vendor)}>{vendor.is_active ? 'Deactivate' : 'Activate'}</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" onClick={() => startEditVendor(vendor)}>{t('adminFinanceExpensesPage.edit')}</LiquidButton>
+                    <LiquidButton type="button" tone="tertiary" onClick={() => void toggleVendorActive(vendor)}>{vendor.is_active ? t('adminFinanceExpensesPage.deactivate') : t('adminFinanceExpensesPage.activate')}</LiquidButton>
                   </div>
                 </div>
               ))}
@@ -1044,24 +1032,24 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-2xl font-semibold text-text">Expense Categories</h3>
-                <p className="text-sm text-muted">Keep codes and display names clean for reporting.</p>
+                <h3 className="text-2xl font-semibold text-text">{t('adminFinanceExpensesPage.categoriesTitle')}</h3>
+                <p className="text-sm text-muted">{t('adminFinanceExpensesPage.categoriesDescription')}</p>
               </div>
-              <LiquidButton type="button" onClick={() => setDrawerMode('category')}>+ New Category</LiquidButton>
+              <LiquidButton type="button" onClick={() => setDrawerMode('category')}>{t('adminFinanceExpensesPage.newCategory')}</LiquidButton>
             </div>
 
             <div className="overflow-x-auto rounded-2xl border border-stroke">
               <table className="min-w-[720px] w-full text-sm">
                 <thead className="bg-bg1/90 text-xs uppercase tracking-[0.14em] text-muted">
-                  <tr><th className="px-4 py-3 text-left">Category</th><th className="px-4 py-3 text-left">Code</th><th className="px-4 py-3 text-left">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+                  <tr><th className="px-4 py-3 text-left">{t('adminFinanceExpensesPage.category')}</th><th className="px-4 py-3 text-left">{t('adminFinanceExpensesPage.code')}</th><th className="px-4 py-3 text-left">{t('adminFinanceExpensesPage.status')}</th><th className="px-4 py-3 text-right">{t('adminFinanceExpensesPage.actions')}</th></tr>
                 </thead>
                 <tbody>
                   {categories.map((category) => (
                     <tr key={category.id} className="border-t border-stroke/70 bg-bg1/45">
                       <td className="px-4 py-3 font-medium text-text">{category.name}</td>
                       <td className="px-4 py-3 text-muted">{category.code}</td>
-                      <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${category.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{category.is_active ? 'Active' : 'Inactive'}</span></td>
-                      <td className="px-4 py-3 text-right"><LiquidButton type="button" tone="tertiary" onClick={() => void toggleCategoryActive(category)}>{category.is_active ? 'Deactivate' : 'Activate'}</LiquidButton></td>
+                      <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${category.is_active ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'}`}>{category.is_active ? t('adminFinanceExpensesPage.active') : t('adminFinanceExpensesPage.inactive')}</span></td>
+                      <td className="px-4 py-3 text-right"><LiquidButton type="button" tone="tertiary" onClick={() => void toggleCategoryActive(category)}>{category.is_active ? t('adminFinanceExpensesPage.deactivate') : t('adminFinanceExpensesPage.activate')}</LiquidButton></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1074,12 +1062,12 @@ const AdminFinanceExpensesPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-2xl font-semibold text-text">Unlinked Stocks</h3>
-                <p className="text-sm text-muted">{unlinkedRestocksCount} stock movements without a linked expense.</p>
+                <h3 className="text-2xl font-semibold text-text">{t('adminFinanceExpensesPage.unlinkedTitle')}</h3>
+                <p className="text-sm text-muted">{t('adminFinanceExpensesPage.unlinkedCount', { count: unlinkedRestocksCount })}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <input value={unlinkedSearch} onChange={(event) => setUnlinkedSearch(event.target.value)} placeholder="Search stock item" className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
-                <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()} disabled={loadingUnlinkedRestocks}>{loadingUnlinkedRestocks ? 'Refreshing...' : 'Refresh Unlinked'}</LiquidButton>
+                <input value={unlinkedSearch} onChange={(event) => setUnlinkedSearch(event.target.value)} placeholder={t('adminFinanceExpensesPage.searchStockItem')} className="min-w-[220px] rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" />
+                <LiquidButton type="button" tone="tertiary" onClick={() => void loadUnlinkedRestocks()} disabled={loadingUnlinkedRestocks}>{loadingUnlinkedRestocks ? t('adminFinanceExpensesPage.refreshing') : t('adminFinanceExpensesPage.refreshUnlinked')}</LiquidButton>
               </div>
             </div>
 
@@ -1089,15 +1077,15 @@ const AdminFinanceExpensesPage: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-text">{restock.ingredient_name} • {restock.quantity_delta} {restock.unit}</p>
                     <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>{restock.age_days} stage diff</span>
-                      <LiquidButton type="button" tone="tertiary" onClick={() => startLinkExpenseFromRestock(restock)}>Link Expense</LiquidButton>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${restock.is_flagged ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'}`}>{t('adminFinanceExpensesPage.stageDiff', { count: restock.age_days })}</span>
+                      <LiquidButton type="button" tone="tertiary" onClick={() => startLinkExpenseFromRestock(restock)}>{t('adminFinanceExpensesPage.linkExpense')}</LiquidButton>
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted">Ref: {restock.reference || '-'}</p>
+                  <p className="mt-1 text-xs text-muted">{t('adminFinanceExpensesPage.referenceLine', { value: restock.reference || '-' })}</p>
                 </div>
               ))}
               {!loadingUnlinkedRestocks && filteredUnlinkedRestocks.length === 0 ? (
-                <div className="rounded-xl border border-stroke bg-bg1/55 px-4 py-6 text-center text-sm text-muted">No unlinked restocks found.</div>
+                <div className="rounded-xl border border-stroke bg-bg1/55 px-4 py-6 text-center text-sm text-muted">{t('adminFinanceExpensesPage.noUnlinkedRestocks')}</div>
               ) : null}
             </div>
           </GlassCard>
@@ -1108,54 +1096,54 @@ const AdminFinanceExpensesPage: React.FC = () => {
 
       <Drawer
         open={drawerMode === 'expense'}
-        title={editingExpenseId ? `Edit Expense #${editingExpenseId}` : 'Create Expense'}
-        subtitle="Capture category, vendor, amount, payment details, and timeline."
+        title={editingExpenseId ? t('adminFinanceExpensesPage.editExpenseTitle', { id: editingExpenseId }) : t('adminFinanceExpensesPage.createExpenseTitle')}
+        subtitle={t('adminFinanceExpensesPage.expenseDrawerSubtitle')}
         onClose={() => setDrawerMode(null)}
       >
         <form className="space-y-3" onSubmit={handleSaveExpense}>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Category</span><select value={expenseDraft.expense_category_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required><option value="">Select Category</option>{activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name} ({category.code})</option>)}</select></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor</span><select value={expenseDraft.vendor_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Vendor</option>{activeVendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</select></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Expense Date</span><input type="date" value={expenseDraft.expense_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
-          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Tax Amount</span><input type="number" min="0" step="0.01" value={expenseDraft.tax_amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
-          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Currency</span><select value={normalizeCurrency(expenseDraft.currency)} onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: normalizeCurrency(event.target.value) }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm uppercase" required>{CURRENCY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Status</span><select value={expenseDraft.status} onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus, paid_at: event.target.value === 'paid' ? current.paid_at : '' }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Payment Method</span><select value={expenseDraft.payment_method} onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">No Payment Method</option>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{method}</option>)}</select></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Reference Number</span><input type="text" value={expenseDraft.reference_no} onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Description</span><input type="text" value={expenseDraft.description} onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={expenseDraft.notes} onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Due Date</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.due_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Paid At</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.paid_at} onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))} disabled={expenseDraft.status !== 'paid'} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-55" /></label></div>
-          <p className="rounded-xl border border-stroke bg-bg1/45 px-3 py-2 text-xs text-muted">Date rules: Expense Date is required. Due Date is optional but cannot be before Expense Date. Paid At is required only when Status is paid, and cannot be before Expense Date.</p>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.category')}</span><select value={expenseDraft.expense_category_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_category_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required><option value="">{t('adminFinanceExpensesPage.selectCategory')}</option>{activeCategories.map((category) => <option key={category.id} value={category.id}>{category.name} ({category.code})</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.vendor')}</span><select value={expenseDraft.vendor_id} onChange={(event) => setExpenseDraft((current) => ({ ...current, vendor_id: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">{t('adminFinanceExpensesPage.noVendor')}</option>{activeVendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.expenseDate')}</span><input type="date" value={expenseDraft.expense_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, expense_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.amount')}</span><input type="number" min="0" step="0.01" value={expenseDraft.amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.taxAmount')}</span><input type="number" min="0" step="0.01" value={expenseDraft.tax_amount} onChange={(event) => setExpenseDraft((current) => ({ ...current, tax_amount: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label></div>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.currency')}</span><select value={normalizeCurrency(expenseDraft.currency)} onChange={(event) => setExpenseDraft((current) => ({ ...current, currency: normalizeCurrency(event.target.value) }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm uppercase" required>{CURRENCY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.status')}</span><select value={expenseDraft.status} onChange={(event) => setExpenseDraft((current) => ({ ...current, status: event.target.value as FinanceExpenseStatus, paid_at: event.target.value === 'paid' ? current.paid_at : '' }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm">{EXPENSE_STATUSES.map((status) => <option key={status} value={status}>{t(`adminFinanceExpensesPage.statuses.${status}`)}</option>)}</select></label></div>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.paymentMethod')}</span><select value={expenseDraft.payment_method} onChange={(event) => setExpenseDraft((current) => ({ ...current, payment_method: event.target.value }))} className="themed-native-select w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm"><option value="">{t('adminFinanceExpensesPage.noPaymentMethod')}</option>{PAYMENT_METHODS.map((method) => <option key={method} value={method}>{t(`adminFinanceExpensesPage.paymentMethods.${method}`)}</option>)}</select></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.referenceNumber')}</span><input type="text" value={expenseDraft.reference_no} onChange={(event) => setExpenseDraft((current) => ({ ...current, reference_no: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.descriptionLabel')}</span><input type="text" value={expenseDraft.description} onChange={(event) => setExpenseDraft((current) => ({ ...current, description: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.notes')}</span><textarea value={expenseDraft.notes} onChange={(event) => setExpenseDraft((current) => ({ ...current, notes: event.target.value }))} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <div className="grid grid-cols-2 gap-2"><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.dueDate')}</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.due_date} onChange={(event) => setExpenseDraft((current) => ({ ...current, due_date: event.target.value }))} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label><label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.paidAt')}</span><input type="date" min={expenseDraft.expense_date || undefined} value={expenseDraft.paid_at} onChange={(event) => setExpenseDraft((current) => ({ ...current, paid_at: event.target.value }))} disabled={expenseDraft.status !== 'paid'} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-55" /></label></div>
+          <p className="rounded-xl border border-stroke bg-bg1/45 px-3 py-2 text-xs text-muted">{t('adminFinanceExpensesPage.dateRules')}</p>
 
           <div className="mt-5 flex justify-end gap-2 border-t border-stroke pt-4">
-            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
-            <LiquidButton type="submit" disabled={savingExpense}>{savingExpense ? 'Saving...' : editingExpenseId ? 'Update Expense' : 'Create Expense'}</LiquidButton>
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>{t('adminFinanceExpensesPage.cancel')}</LiquidButton>
+            <LiquidButton type="submit" disabled={savingExpense}>{savingExpense ? t('adminFinanceExpensesPage.saving') : editingExpenseId ? t('adminFinanceExpensesPage.updateExpense') : t('adminFinanceExpensesPage.createExpense')}</LiquidButton>
           </div>
         </form>
       </Drawer>
 
-      <Drawer open={drawerMode === 'vendor'} title={editingVendorId ? `Edit Vendor #${editingVendorId}` : 'Create Vendor'} subtitle={editingVendorId ? 'Update supplier or service provider details.' : 'Add a new supplier or service provider.'} onClose={() => setDrawerMode(null)}>
+      <Drawer open={drawerMode === 'vendor'} title={editingVendorId ? t('adminFinanceExpensesPage.editVendorTitle', { id: editingVendorId }) : t('adminFinanceExpensesPage.createVendorTitle')} subtitle={editingVendorId ? t('adminFinanceExpensesPage.editVendorSubtitle') : t('adminFinanceExpensesPage.createVendorSubtitle')} onClose={() => setDrawerMode(null)}>
         <form className="grid gap-3 md:grid-cols-2" onSubmit={handleSaveVendor}>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Vendor Name</span><input type="text" value={vendorName} onChange={(event) => setVendorName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Contact Name</span><input type="text" value={vendorContactName} onChange={(event) => setVendorContactName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Phone</span><input type="text" value={vendorPhone} onChange={(event) => setVendorPhone(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Email</span><input type="email" value={vendorEmail} onChange={(event) => setVendorEmail(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Tax Number</span><input type="text" value={vendorTaxNumber} onChange={(event) => setVendorTaxNumber(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
-          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={vendorActive} onChange={(event) => setVendorActive(event.target.checked)} /> Active</label>
-          <label className="block md:col-span-2"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Notes</span><textarea value={vendorNotes} onChange={(event) => setVendorNotes(event.target.value)} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.vendorName')}</span><input type="text" value={vendorName} onChange={(event) => setVendorName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.contactName')}</span><input type="text" value={vendorContactName} onChange={(event) => setVendorContactName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.phone')}</span><input type="text" value={vendorPhone} onChange={(event) => setVendorPhone(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.email')}</span><input type="email" value={vendorEmail} onChange={(event) => setVendorEmail(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.taxNumber')}</span><input type="text" value={vendorTaxNumber} onChange={(event) => setVendorTaxNumber(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
+          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={vendorActive} onChange={(event) => setVendorActive(event.target.checked)} /> {t('adminFinanceExpensesPage.active')}</label>
+          <label className="block md:col-span-2"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.notes')}</span><textarea value={vendorNotes} onChange={(event) => setVendorNotes(event.target.value)} rows={2} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" /></label>
           <div className="md:col-span-2 mt-2 flex justify-end gap-2 border-t border-stroke pt-4">
-            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
-            <LiquidButton type="submit" disabled={savingVendor}>{savingVendor ? 'Saving...' : editingVendorId ? 'Update Vendor' : 'Create Vendor'}</LiquidButton>
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>{t('adminFinanceExpensesPage.cancel')}</LiquidButton>
+            <LiquidButton type="submit" disabled={savingVendor}>{savingVendor ? t('adminFinanceExpensesPage.saving') : editingVendorId ? t('adminFinanceExpensesPage.updateVendor') : t('adminFinanceExpensesPage.createVendor')}</LiquidButton>
           </div>
         </form>
       </Drawer>
 
-      <Drawer open={drawerMode === 'category'} title="Create Category" subtitle="Add a code and display name for expense grouping." onClose={() => setDrawerMode(null)}>
+      <Drawer open={drawerMode === 'category'} title={t('adminFinanceExpensesPage.createCategoryTitle')} subtitle={t('adminFinanceExpensesPage.createCategorySubtitle')} onClose={() => setDrawerMode(null)}>
         <form className="space-y-3" onSubmit={handleCreateCategory}>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Code</span><input type="text" value={categoryCode} onChange={(event) => setCategoryCode(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
-          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">Display Name</span><input type="text" value={categoryName} onChange={(event) => setCategoryName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
-          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={categoryActive} onChange={(event) => setCategoryActive(event.target.checked)} /> Active</label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.code')}</span><input type="text" value={categoryCode} onChange={(event) => setCategoryCode(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="block"><span className="mb-1 block text-xs uppercase tracking-[0.12em] text-muted">{t('adminFinanceExpensesPage.displayName')}</span><input type="text" value={categoryName} onChange={(event) => setCategoryName(event.target.value)} className="w-full rounded-xl border border-stroke bg-bg1/75 px-3 py-2 text-sm" required /></label>
+          <label className="inline-flex items-center gap-2 text-sm text-text"><input type="checkbox" checked={categoryActive} onChange={(event) => setCategoryActive(event.target.checked)} /> {t('adminFinanceExpensesPage.active')}</label>
           <div className="mt-2 flex justify-end gap-2 border-t border-stroke pt-4">
-            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>Cancel</LiquidButton>
-            <LiquidButton type="submit" disabled={savingCategory}>{savingCategory ? 'Saving...' : 'Create Category'}</LiquidButton>
+            <LiquidButton type="button" tone="tertiary" onClick={() => setDrawerMode(null)}>{t('adminFinanceExpensesPage.cancel')}</LiquidButton>
+            <LiquidButton type="submit" disabled={savingCategory}>{savingCategory ? t('adminFinanceExpensesPage.saving') : t('adminFinanceExpensesPage.createCategory')}</LiquidButton>
           </div>
         </form>
       </Drawer>

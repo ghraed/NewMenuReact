@@ -163,10 +163,10 @@ const CreateDishPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Create Menu Item">
+    <DashboardLayout title={t('createDish.createMenuItemTitle')}>
       <div className="mb-6">
-        <h2 className="mb-2 text-xl font-semibold text-text">Create Menu Item</h2>
-        <p className="text-muted">Choose what kind of menu item you want to create.</p>
+        <h2 className="mb-2 text-xl font-semibold text-text">{t('createDish.createMenuItemTitle')}</h2>
+        <p className="text-muted">{t('createDish.chooseMenuItemType')}</p>
       </div>
 
       {error && <div className="mb-6 rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>}
@@ -177,23 +177,23 @@ const CreateDishPage: React.FC = () => {
           {[
             {
               key: 'prepared_dish' as const,
-              title: 'Prepared Dish',
-              description: 'Food prepared by the kitchen. Uses ingredients, recipe costing, preparation, and optional 3D model.',
+              title: t('createDish.itemTypes.preparedDish.title'),
+              description: t('createDish.itemTypes.preparedDish.description'),
             },
             {
               key: 'prepared_drink' as const,
-              title: 'Prepared Drink',
-              description: 'Fresh juices and kitchen-prepared drinks. Uses ingredients, recipe costing, preparation, and optional 3D model.',
+              title: t('createDish.itemTypes.preparedDrink.title'),
+              description: t('createDish.itemTypes.preparedDrink.description'),
             },
             {
               key: 'packaged_drink' as const,
-              title: 'Packaged Drink',
-              description: 'Pepsi, water, juice, Red Bull and bottled/canned items. Uses direct stock quantity, not recipes.',
+              title: t('createDish.itemTypes.packagedDrink.title'),
+              description: t('createDish.itemTypes.packagedDrink.description'),
             },
             {
               key: 'other_product' as const,
-              title: 'Other Product',
-              description: 'Any sellable non-recipe item like chips, packaged dessert, cake slice, and similar products.',
+              title: t('createDish.itemTypes.otherProduct.title'),
+              description: t('createDish.itemTypes.otherProduct.description'),
             },
           ].map((item) => (
             <GlassCard key={item.key} className="p-5">
@@ -201,12 +201,12 @@ const CreateDishPage: React.FC = () => {
               <p className="mt-2 text-sm text-muted">{item.description}</p>
               <LiquidButton className="mt-4 w-full" onClick={() => setSelectedType(item.key)}>
                 {item.key === 'prepared_drink'
-                  ? 'Select Prepared Drink'
+                  ? t('createDish.itemTypes.preparedDrink.select')
                   : item.key === 'packaged_drink'
-                    ? 'Select Packaged Drink'
+                    ? t('createDish.itemTypes.packagedDrink.select')
                     : item.key === 'other_product'
-                      ? 'Select Other Product'
-                      : 'Select Prepared Dish'}
+                      ? t('createDish.itemTypes.otherProduct.select')
+                      : t('createDish.itemTypes.preparedDish.select')}
               </LiquidButton>
             </GlassCard>
           ))}
@@ -224,8 +224,8 @@ const CreateDishPage: React.FC = () => {
           relatedDishOptions={relatedDishOptions}
           requireModelUpload={false}
           requirePreviewUpload
-          submitLabel="Create Menu Item"
-          submittingLabel="Creating..."
+          submitLabel={t('createDish.createMenuItemTitle')}
+          submittingLabel={t('createDish.creatingMenuItem')}
         />
       ) : isPackagedLikeSelection ? (
         <ProductItemForm
@@ -234,8 +234,8 @@ const CreateDishPage: React.FC = () => {
           onSubmit={handleSubmit}
           onCancel={() => setSelectedType(null)}
           requirePreviewUpload
-          submitLabel="Create Menu Item"
-          submittingLabel="Creating..."
+          submitLabel={t('createDish.createMenuItemTitle')}
+          submittingLabel={t('createDish.creatingMenuItem')}
         />
       ) : null}
       <GlassToast toast={toast} onClose={dismiss} />

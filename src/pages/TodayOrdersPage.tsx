@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
@@ -8,6 +9,7 @@ import { fetchInvoices } from '../services/invoiceService';
 import { fetchAccountingOrders, fetchPendingOrders } from '../services/orderService';
 import api from '../services/api';
 import type { FinanceInvoiceStatus, OrderRecord } from '../types';
+import { translateStatusLabel } from '../i18n/dynamic';
 
 interface TodayOrdersResponse {
   orders?: OrderRecord[];
@@ -70,6 +72,7 @@ const isSameLocalDay = (value: string | null | undefined, targetIso: string): bo
 };
 
 const TodayOrdersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const today = todayIsoDate();
@@ -184,13 +187,13 @@ const TodayOrdersPage: React.FC = () => {
       setLastUpdatedAt(new Date().toISOString());
       setError(null);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to load today orders.'));
+      setError(getErrorMessage(err, t('todayOrdersPage.failedLoad')));
     } finally {
       refreshInFlightRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dateFrom, dateTo, isAdmin, today]);
+  }, [dateFrom, dateTo, isAdmin, t, today]);
 
   useEffect(() => {
     void loadOrders();
@@ -277,18 +280,18 @@ const TodayOrdersPage: React.FC = () => {
   }, [rows]);
 
   return (
-    <DashboardLayout title="Today Orders">
+    <DashboardLayout title={t('todayOrdersPage.pageTitle')}>
       <div className="space-y-5">
         <GlassCard className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-text">{isAdmin ? 'All Staff Orders History' : 'Today Orders'}</h2>
+              <h2 className="text-xl font-semibold text-text">{isAdmin ? t('todayOrdersPage.adminHeading') : t('todayOrdersPage.staffHeading')}</h2>
               <p className="text-sm text-muted">
                 {isAdmin
-                  ? 'Admin view across all waiter orders with date range tracking.'
-                  : 'Tracks pending, ordered, paid, and cancelled orders for today.'}
+                  ? t('todayOrdersPage.adminDescription')
+                  : t('todayOrdersPage.staffDescription')}
               </p>
-              <p className="mt-1 text-xs text-muted2">Last updated: {formatDateTime(lastUpdatedAt)}</p>
+              <p className="mt-1 text-xs text-muted2">{t('todayOrdersPage.lastUpdated', { value: formatDateTime(lastUpdatedAt) })}</p>
             </div>
 
             <LiquidButton
@@ -297,14 +300,14 @@ const TodayOrdersPage: React.FC = () => {
               onClick={() => void loadOrders({ silent: true })}
               disabled={refreshing || loading}
             >
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              {refreshing ? t('todayOrdersPage.refreshing') : t('todayOrdersPage.refresh')}
             </LiquidButton>
           </div>
 
           {isAdmin ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <label className="text-xs text-muted2">
-                Date From
+                {t('todayOrdersPage.dateFrom')}
                 <input
                   type="date"
                   value={dateFrom}
@@ -313,7 +316,7 @@ const TodayOrdersPage: React.FC = () => {
                 />
               </label>
               <label className="text-xs text-muted2">
-                Date To
+                {t('todayOrdersPage.dateTo')}
                 <input
                   type="date"
                   value={dateTo}
@@ -329,28 +332,28 @@ const TodayOrdersPage: React.FC = () => {
                   onClick={() => void loadOrders()}
                   disabled={loading || refreshing}
                 >
-                  Apply Date Filter
+                  {t('todayOrdersPage.applyDateFilter')}
                 </LiquidButton>
               </div>
             </div>
           ) : null}
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Total: {counts.total}</div>
-            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Pending: {counts.pending}</div>
-            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Ordered: {counts.ordered}</div>
-            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Paid: {counts.paid}</div>
-            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">Cancelled: {counts.cancelled}</div>
+            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">{t('todayOrdersPage.total', { count: counts.total })}</div>
+            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">{t('todayOrdersPage.pending', { count: counts.pending })}</div>
+            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">{t('todayOrdersPage.ordered', { count: counts.ordered })}</div>
+            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">{t('todayOrdersPage.paid', { count: counts.paid })}</div>
+            <div className="rounded-xl border border-stroke/60 bg-bg1/45 p-3 text-sm text-text">{t('todayOrdersPage.cancelled', { count: counts.cancelled })}</div>
           </div>
         </GlassCard>
 
         {loading ? (
-          <PageSkeleton rows={5} columns={1} className="py-2" loadingText={isAdmin ? 'Loading order history...' : 'Loading today orders...'} />
+          <PageSkeleton rows={5} columns={1} className="py-2" loadingText={isAdmin ? t('todayOrdersPage.loadingHistory') : t('todayOrdersPage.loadingTodayOrders')} />
         ) : error ? (
           <GlassCard className="border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{error}</GlassCard>
         ) : rows.length === 0 ? (
           <GlassCard className="p-5 text-sm text-muted">
-            {isAdmin ? 'No orders found for the selected date range.' : 'No orders found for today.'}
+            {isAdmin ? t('todayOrdersPage.noOrdersForDateRange') : t('todayOrdersPage.noOrdersForToday')}
           </GlassCard>
         ) : (
           <div className="space-y-3">
@@ -374,27 +377,27 @@ const TodayOrdersPage: React.FC = () => {
                     <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:items-center">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-text">{orderLabel}</p>
-                      <p className="truncate text-xs text-muted">Table: {order.table_reference}</p>
+                      <p className="truncate text-xs text-muted">{t('todayOrdersPage.tableReference', { table: order.table_reference })}</p>
                     </div>
 
                     <div className="text-xs text-muted">
-                      <p className="text-muted2">Created</p>
+                      <p className="text-muted2">{t('todayOrdersPage.created')}</p>
                       <p className="text-text">{formatDateTime(order.created_at)}</p>
                     </div>
 
                     <div className="text-xs text-muted">
-                      <p className="text-muted2">Confirmed</p>
+                      <p className="text-muted2">{t('todayOrdersPage.confirmed')}</p>
                       <p className="text-text">{formatDateTime(order.confirmed_at)}</p>
                     </div>
 
                     <div className="text-xs text-muted">
-                      <p className="text-muted2">Invoice</p>
-                      <p className="text-text">{order.invoice_number || 'N/A'}</p>
+                      <p className="text-muted2">{t('todayOrdersPage.invoice')}</p>
+                      <p className="text-text">{order.invoice_number || t('todayOrdersPage.notAvailable')}</p>
                     </div>
 
                     <div className="flex items-center lg:justify-end">
                       <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${badgeClass}`}>
-                        {timelineStatus}
+                        {translateStatusLabel(timelineStatus)}
                       </span>
                     </div>
                     </div>
