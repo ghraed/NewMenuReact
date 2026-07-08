@@ -97,6 +97,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
       { path: '/admin/dashboard', label: t('admin.dashboard'), icon: 'dashboard' },
       { path: '/admin/dishes/create', label: t('admin.createMenuItem'), icon: 'plus' },
       { path: '/chef/dashboard', label: t('admin.kitchenDashboard'), icon: 'kitchen' },
+      { path: '/chef/history', label: 'Order History', icon: 'scroll' },
       { path: '/admin/events', label: t('admin.eventPlanner'), icon: 'calendar', requiredFeatures: ['event_reservations'] },
     ]
     : user?.role === 'accountant'
@@ -135,6 +136,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             { path: '/admin/staff/scheduling', label: t('admin.staffSchedule'), icon: 'schedule', requiredFeatures: ['staff_scheduling'] },
             { path: '/staff/orders', label: t('admin.staffOrders'), icon: 'receipt', requiredFeatures: ['realtime_staff_orders'] },
             { path: '/staff/today-orders', label: t('admin.todayOrders'), icon: 'clock' },
+            { path: '/chef/history', label: 'Order History', icon: 'scroll' },
             { path: '/staff/pos', label: t('admin.cashierPos'), icon: 'cart', requiredFeatures: ['realtime_staff_orders', 'table_ordering'] },
             { path: '/admin/currency', label: t('admin.currency'), icon: 'currency' },
             { path: '/admin/dishes/create', label: t('admin.createMenuItem'), icon: 'plus' },

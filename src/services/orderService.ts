@@ -581,6 +581,29 @@ export const markOrderServed = async (orderId: number): Promise<OrderResponse> =
   return response.data;
 };
 
+export const fetchKitchenOrderHistory = async (): Promise<KitchenOrderRecord[]> => {
+  const response = await api.get<KitchenOrdersResponse>('/kitchen/orders/history');
+  return response.data.orders;
+};
+
+export const undoKitchenStart = async (orderId: number): Promise<KitchenOrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/undo-start`);
+  return response.data;
+};
+
+export const undoKitchenReady = async (orderId: number): Promise<KitchenOrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.post<KitchenOrderResponse>(`/kitchen/orders/${orderId}/undo-ready`);
+  return response.data;
+};
+
+export const undoMarkOrderServed = async (orderId: number): Promise<KitchenOrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.post<KitchenOrderResponse>(`/orders/${orderId}/undo-served`);
+  return response.data;
+};
+
 export const fetchPublishedDishes = async (): Promise<PublishedDishSummary[]> => {
   const response = await api.get<PublishedDishesResponse>('/dishes/published');
   return response.data.dishes;

@@ -25,6 +25,7 @@ import TodayOrdersPage from './pages/TodayOrdersPage';
 import TodayOrderDetailsPage from './pages/TodayOrderDetailsPage';
 import CashierPosPage from './pages/CashierPosPage';
 import ChefDashboardPage from './pages/ChefDashboardPage';
+import KitchenOrderHistoryPage from './pages/KitchenOrderHistoryPage';
 import AdminStaffPage from './pages/AdminStaffPage';
 import AccountingOrdersPage from './pages/AccountingOrdersPage';
 import AdminCurrencyPage from './pages/AdminCurrencyPage';
@@ -368,8 +369,9 @@ const AppRoutes: React.FC = () => {
             <Route path="/staff/pos" element={lazyRoute(<CashierPosPage />)} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['chef']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'chef']} />}>
             <Route path="/chef/dashboard" element={lazyRoute(<ChefDashboardPage />)} />
+            <Route path="/chef/history" element={lazyRoute(<KitchenOrderHistoryPage />)} />
           </Route>
 
           <Route

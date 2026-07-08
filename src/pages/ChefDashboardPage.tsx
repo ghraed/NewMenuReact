@@ -5,7 +5,11 @@ import { ensureEchoConnection, getEcho } from '../services/realtime';
 import {
   fetchKitchenOrders,
   markKitchenOrderReady,
+  markOrderServed,
   startKitchenOrder,
+  undoKitchenReady,
+  undoKitchenStart,
+  undoMarkOrderServed,
 } from '../services/orderService';
 import type { KitchenOrderRecord, KitchenOrderStatus } from '../types';
 import { useAuth } from '../contexts/useAuth';
@@ -18,13 +22,6 @@ const KITCHEN_COLUMNS: Array<{ key: ActiveKitchenStatus; label: string; empty: s
   { key: 'in_progress', label: 'In Progress', empty: 'No orders are being prepared.' },
   { key: 'ready', label: 'Ready', empty: 'No ready tickets yet.' },
 ];
-
-const statusBadgeClass: Record<KitchenOrderStatus, string> = {
-  new: 'border-amber-300/40 bg-amber-400/15 text-amber-100',
-  in_progress: 'border-sky-300/40 bg-sky-400/15 text-sky-100',
-  ready: 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100',
-  served: 'border-white/30 bg-white/15 text-white',
-};
 
 const TABLE_CARD_PALETTE = [
   'border-rose-200/70 bg-rose-100/55',
@@ -247,6 +244,70 @@ const ChefDashboardPage: React.FC = () => {
     }
   };
 
+  const handleMarkServed = async (order: KitchenOrderRecord) => {
+    if (processingOrderId === order.id || order.kitchen_status !== 'ready') return;
+    setProcessingOrderId(order.id);
+    setError(null);
+
+    try {
+      await markOrderServed(order.id);
+      setOrders((current) => current.filter((item) => item.id !== order.id));
+      showToast(`Order #${order.order_number || order.id} marked as Served and removed from queue.`, 'primary', 3600);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to mark order as served.'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  const handleUndoStart = async (order: KitchenOrderRecord) => {
+    if (processingOrderId === order.id || order.kitchen_status !== 'in_progress') return;
+    setProcessingOrderId(order.id);
+    setError(null);
+
+    try {
+      const response = await undoKitchenStart(order.id);
+      replaceOrder(response.order);
+      showToast(`Order #${response.order.order_number || response.order.id} sent back to New.`, 'secondary', 3600);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to undo start.'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  const handleUndoReady = async (order: KitchenOrderRecord) => {
+    if (processingOrderId === order.id || order.kitchen_status !== 'ready') return;
+    setProcessingOrderId(order.id);
+    setError(null);
+
+    try {
+      const response = await undoKitchenReady(order.id);
+      replaceOrder(response.order);
+      showToast(`Order #${response.order.order_number || response.order.id} sent back to In Progress.`, 'secondary', 3600);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to undo ready.'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
+  const handleUndoServed = async (order: KitchenOrderRecord) => {
+    if (processingOrderId === order.id) return;
+    setProcessingOrderId(order.id);
+    setError(null);
+
+    try {
+      const response = await undoMarkOrderServed(order.id);
+      replaceOrder(response.order);
+      showToast(`Order #${response.order.order_number || response.order.id} sent back to Ready.`, 'secondary', 3600);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to undo served.'));
+    } finally {
+      setProcessingOrderId(null);
+    }
+  };
+
   return (
     <DashboardLayout title="Kitchen Dashboard">
       <div className="flex flex-col gap-6 lg:h-[calc(100vh-160px)]">
@@ -328,9 +389,7 @@ const ChefDashboardPage: React.FC = () => {
                               Ordered {formatElapsed(order.time_ordered || order.confirmed_at || order.created_at)} ago
                             </p>
                           </div>
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${statusBadgeClass[order.kitchen_status]}`}>
-                            {order.kitchen_status.replace('_', ' ')}
-                          </span>
+                          
                         </div>
 
                         <div className="mt-3 space-y-1.5 text-sm text-muted">
@@ -344,9 +403,9 @@ const ChefDashboardPage: React.FC = () => {
                         </div>
 
                         {(order.special_requests || order.notes) ? (
-                          <div className="mt-3 rounded-xl2 border border-amber-300/30 bg-amber-300/10 p-3 text-xs text-amber-100">
-                            <p className="mb-1 font-semibold uppercase tracking-[0.12em]">Special Request</p>
-                            <p>{order.special_requests || order.notes}</p>
+                          <div className="mt-3 rounded-xl2 p-3 text-xs text-amber-50" style={{ backgroundColor: "#888", border: "1px solid #fff" }}>
+                            <p className="mb-1 font-semibold uppercase tracking-[0.12em] text-amber-200">Special Request</p>
+                            <p className="leading-relaxed">{order.special_requests || order.notes}</p>
                           </div>
                         ) : null}
 
@@ -368,14 +427,45 @@ const ChefDashboardPage: React.FC = () => {
                           ) : null}
 
                           {order.kitchen_status === 'in_progress' ? (
-                            <LiquidButton
-                              tone="primary"
-                              onClick={() => void handleMarkReady(order)}
-                              disabled={processingOrderId === order.id}
-                              className="px-4 py-2 text-sm"
-                            >
-                              {processingOrderId === order.id ? 'Updating...' : 'Mark as Ready'}
-                            </LiquidButton>
+                            <>
+                              <LiquidButton
+                                tone="primary"
+                                onClick={() => void handleMarkReady(order)}
+                                disabled={processingOrderId === order.id}
+                                className="px-4 py-2 text-sm"
+                              >
+                                {processingOrderId === order.id ? 'Updating...' : 'Mark as Ready'}
+                              </LiquidButton>
+                              <LiquidButton
+                                tone="tertiary"
+                                onClick={() => void handleUndoStart(order)}
+                                disabled={processingOrderId === order.id}
+                                className="px-4 py-2 text-sm"
+                              >
+                                {processingOrderId === order.id ? 'Updating...' : 'Undo'}
+                              </LiquidButton>
+                            </>
+                          ) : null}
+
+                          {order.kitchen_status === 'ready' ? (
+                            <>
+                              <LiquidButton
+                                tone="primary"
+                                onClick={() => void handleMarkServed(order)}
+                                disabled={processingOrderId === order.id}
+                                className="px-4 py-2 text-sm"
+                              >
+                                {processingOrderId === order.id ? 'Updating...' : 'Mark as Served'}
+                              </LiquidButton>
+                              <LiquidButton
+                                tone="tertiary"
+                                onClick={() => void handleUndoReady(order)}
+                                disabled={processingOrderId === order.id}
+                                className="px-4 py-2 text-sm"
+                              >
+                                {processingOrderId === order.id ? 'Updating...' : 'Undo'}
+                              </LiquidButton>
+                            </>
                           ) : null}
                         </div>
                       </GlassCard>
