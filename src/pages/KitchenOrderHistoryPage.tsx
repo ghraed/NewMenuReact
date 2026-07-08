@@ -105,7 +105,7 @@ const KitchenOrderHistoryPage: React.FC = () => {
     }
   }, []);
 
-  const handleUndoServed = async (orderId: number, orderNumber: string | number) => {
+  const handleUndoServed = async (orderId: number) => {
     if (processingOrderId === orderId) return;
     setProcessingOrderId(orderId);
 
@@ -214,7 +214,7 @@ const KitchenOrderHistoryPage: React.FC = () => {
                     {order.kitchen_status === 'served' ? (
                       <button
                         type="button"
-                        onClick={() => void handleUndoServed(order.id, order.order_number || order.id)}
+                        onClick={() => void handleUndoServed(order.id)}
                         disabled={processingOrderId === order.id}
                         className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-medium text-text transition hover:bg-white/20 disabled:opacity-50"
                       >

@@ -9,7 +9,6 @@ import {
   startKitchenOrder,
   undoKitchenReady,
   undoKitchenStart,
-  undoMarkOrderServed,
 } from '../services/orderService';
 import type { KitchenOrderRecord, KitchenOrderStatus } from '../types';
 import { useAuth } from '../contexts/useAuth';
@@ -287,22 +286,6 @@ const ChefDashboardPage: React.FC = () => {
       showToast(`Order #${response.order.order_number || response.order.id} sent back to In Progress.`, 'secondary', 3600);
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to undo ready.'));
-    } finally {
-      setProcessingOrderId(null);
-    }
-  };
-
-  const handleUndoServed = async (order: KitchenOrderRecord) => {
-    if (processingOrderId === order.id) return;
-    setProcessingOrderId(order.id);
-    setError(null);
-
-    try {
-      const response = await undoMarkOrderServed(order.id);
-      replaceOrder(response.order);
-      showToast(`Order #${response.order.order_number || response.order.id} sent back to Ready.`, 'secondary', 3600);
-    } catch (err: unknown) {
-      setError(getErrorMessage(err, 'Failed to undo served.'));
     } finally {
       setProcessingOrderId(null);
     }
