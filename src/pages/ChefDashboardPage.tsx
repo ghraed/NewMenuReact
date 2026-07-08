@@ -249,8 +249,8 @@ const ChefDashboardPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Kitchen Dashboard">
-      <div className="space-y-6">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="flex flex-col gap-6 lg:h-[calc(100vh-160px)]">
+        <div className="grid shrink-0 gap-3 md:grid-cols-2 lg:grid-cols-4">
           <GlassCard className="bg-gradient-to-br from-amber-300/12 via-amber-200/8 to-transparent">
             <p className="text-xs uppercase tracking-[0.16em] text-gold2/85">New Orders</p>
             <p className="mt-3 text-3xl font-semibold text-text">{groupedOrders.new.length}</p>
@@ -269,7 +269,7 @@ const ChefDashboardPage: React.FC = () => {
           </GlassCard>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {(['all', 'new', 'in_progress', 'ready'] as const).map((status) => (
               <GlassChip
@@ -289,24 +289,25 @@ const ChefDashboardPage: React.FC = () => {
         </div>
 
         {error ? (
-          <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
+          <div className="shrink-0 rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
             {error}
           </div>
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3 lg:flex-1 lg:min-h-0">
           {KITCHEN_COLUMNS.map((column) => {
             const columnOrders = groupedOrders[column.key];
 
             return (
-              <div key={column.key} className="rounded-[28px] border border-stroke/80 bg-panel2/30 p-4 shadow-lux1">
-                <div className="mb-3 flex items-center justify-between">
+              <div key={column.key} className="flex flex-col rounded-[28px] border border-stroke/80 bg-panel2/30 p-4 shadow-lux1 lg:min-h-0">
+                <div className="mb-3 flex shrink-0 items-center justify-between">
                   <h3 className="text-lg font-semibold text-text">{column.label}</h3>
                   <span className="rounded-full border border-gold/35 bg-gold/10 px-2.5 py-1 text-xs font-semibold text-gold2">
                     {columnOrders.length}
                   </span>
                 </div>
 
+                <div className="lg:flex-1 lg:overflow-y-auto lg:min-h-0 lg:overscroll-contain lg:pr-1">
                 {columnOrders.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-muted">
                     {column.empty}
@@ -381,6 +382,7 @@ const ChefDashboardPage: React.FC = () => {
                     ))}
                   </div>
                 )}
+                </div>
               </div>
             );
           })}
