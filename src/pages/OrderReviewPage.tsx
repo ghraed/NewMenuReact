@@ -55,6 +55,7 @@ const OrderReviewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
   const [queuedOffline, setQueuedOffline] = useState(false);
+  const [submitIdempotencyKey, setSubmitIdempotencyKey] = useState<string | null>(null);
   const { isOnline } = useNetworkStatus();
   const [queuedOrders, setQueuedOrders] = useState<Array<{
     id: number;
@@ -148,6 +149,12 @@ const OrderReviewPage: React.FC = () => {
       });
   }, [activeTableId, submittedOrder, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
+  useEffect(() => {
+    if (!submitting && !submittedOrder) {
+      setSubmitIdempotencyKey(null);
+    }
+  }, [items, draft.notes, draft.tableSessionId, submitting, submittedOrder]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -184,15 +191,19 @@ const OrderReviewPage: React.FC = () => {
         return;
       }
 
+      const nextIdempotencyKey = submitIdempotencyKey || createIdempotencyKey();
+      setSubmitIdempotencyKey(nextIdempotencyKey);
+
       const response = await createGuestTableSessionOrder(draft.tableSessionId, {
         notes: draft.notes.trim() || undefined,
         items: items.map((item) => ({
           dish_id: item.dishId,
           quantity: item.quantity,
         })),
-      }, draft.guestAccessToken);
+      }, draft.guestAccessToken, nextIdempotencyKey);
 
       setSubmittedOrder(response.order);
+      setSubmitIdempotencyKey(null);
       clearCart();
     } catch (err: unknown) {
       const status = typeof err === 'object' && err !== null && 'response' in err

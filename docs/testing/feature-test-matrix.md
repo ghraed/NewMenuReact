@@ -16,11 +16,20 @@ Current execution snapshot:
 - Public-menu automated coverage now validates search, category filters, language switching, RTL/LTR direction, direct dish URLs, empty-menu handling, and no `console.error` emissions during those route flows.
 - A true browser-console and `pageerror` pass with Playwright remains blocked in this sandbox because Chrome exits before a stable Playwright-managed session can be established.
 
+## July 26, 2026 Order Lifecycle Update
+- Date of lifecycle pass: Sunday, July 26, 2026.
+- Backend lifecycle coverage added or extended in `TableSessionSecurityTest`, `OrderWorkflowTest`, `WaveWorkflowTest`, `KitchenWorkflowTest`, and `TenantRestaurantResolverCustomDomainTest`.
+- Backend lifecycle result on July 26, 2026: 51 passing tests, 395 assertions, 0 failures.
+- New browser coverage was added in `tests/e2e/guest-order-lifecycle.spec.ts` for the critical guest flow: table unlock, cart review, note entry, order submit, idempotency header assertion, and progressed order-state rendering.
+- The new Playwright flow currently uses API route mocks, so it validates the browser UX and request contract but not a live backend/service path yet.
+- Browser execution was run on Sunday, July 26, 2026 after installing Playwright Chromium, and it failed in the guest menu UI before review-page navigation because the floating quick-actions cart button was not clickable under real browser pointer-event checks.
+
 ### Defects Found On July 26, 2026
 - Reserved restaurant slugs are not validated in `Menu_API/app/Http/Controllers/SuperAdmin/SuperAdminRestaurantManagementController.php`; duplicate slugs are rejected, but reserved names still have no enforcement path.
 - The requested menu-category management surface does not exist as a first-class feature. Categories are stored only as a restaurant `profile.menu_categories` array, so there is no dedicated CRUD/order/hide API or UI that matches the requested category matrix.
 - The public menu currently exposes ingredient filtering, not explicit allergy filtering. The requested allergy-filter behavior is not implemented as a distinct UI or backend contract.
 - Authenticated profile routes are not role-gated in `routes/api.php`, but `RestaurantController::getOwnedRestaurant()` only resolves the owned restaurant. In practice, non-owner authenticated roles can hit the route and receive a 403 instead of being blocked consistently by role middleware.
+- Order-lifecycle defects and fixes from Sunday, July 26, 2026 are recorded in `docs/testing/order-lifecycle-defects.md`.
 
 ### Remaining Manual Checks
 - Run a real browser pass for the public menu in a non-sandboxed environment and inspect the browser console/network panel during the flow; current automated coverage checks route behavior and `console.error`, but not a full Playwright browser session.
@@ -65,7 +74,8 @@ Current execution snapshot:
 - Tenant-isolation requirements: guest access must be tied to one table session in one restaurant only; old session pins must not unlock new sessions.
 - Edge cases: repeated verification attempts, multiple simultaneous guests, revisiting same table, finalized or suspended sessions.
 - Current coverage: `TableSessionSecurityTest` exists and targets the right cases.
-- Missing coverage: current suite is red on core activation and protected-flow cases; no frontend tests; no E2E coverage.
+- Current coverage includes the Sunday, July 26, 2026 pass result: 18 passing tests covering valid QR access, wrong PIN lockout, expired/finalized session denial, cross-restaurant/table token rejection, duplicate session reuse, session reset, waiter call, and request-bill flows.
+- Missing coverage: no frontend component tests for `GuestTableAccessPanel`; no live-browser E2E against a real backend/session store; concurrent session creation still relies on API-level rather than load-level verification.
 - Risk level: critical.
 
 ## 4. Guest Ordering, Waiter Call, Request Bill, Split Draft
@@ -78,7 +88,9 @@ Current execution snapshot:
 - Tenant-isolation requirements: all orders, waves, and split drafts stay inside the session’s restaurant and table.
 - Edge cases: equal split remainder handling, by-person order allocation, reminder waves, legacy orders with null dish IDs, bill requests with partial guest departures.
 - Current coverage: `OrderWorkflowTest`, `WaveWorkflowTest`, `TableSessionSecurityTest`, `OrderInventoryDeductionTest`, frontend compensation math tests.
-- Missing coverage: nearly all high-value backend tests in this area are currently failing; no frontend route or interaction tests for guest ordering flow; no E2E flow.
+- Current coverage includes the Sunday, July 26, 2026 pass result: 27 passing workflow tests across `OrderWorkflowTest` and `WaveWorkflowTest`, plus the new browser spec `tests/e2e/guest-order-lifecycle.spec.ts`.
+- Missing coverage: no live end-to-end path from guest submit to backend persistence and staff/kitchen consumption; rollback and partial-database-failure cases are still not directly simulated; guest-side double-submit coverage is limited to idempotency-key contract checks and mocked browser flow.
+- Browser defect from Sunday, July 26, 2026: the critical guest flow currently fails in Playwright before review-page navigation because the `2 items in cart` quick-actions button is visually present but blocked by overlapping pointer-event interception.
 - Risk level: critical.
 
 ## 5. Staff Pending Orders, Table Operations, Waiter Dashboard
@@ -103,8 +115,8 @@ Current execution snapshot:
 - Permission scenarios: kitchen routes allowed only for chef/admin; `RestrictChefApiSurface` must not leak other endpoints.
 - Tenant-isolation requirements: kitchen channel and queries scoped by restaurant.
 - Edge cases: undo start/ready, mixed prepared and packaged items, kitchen history filters.
-- Current coverage: backend order workflow coverage exists indirectly; no dedicated backend kitchen test file; no frontend tests.
-- Missing coverage: dedicated API tests for state-machine transitions; realtime event payload assertions; history page rendering and filters.
+- Current coverage includes the Sunday, July 26, 2026 addition of `KitchenWorkflowTest` with 3 passing tests for queue scoping, valid transitions, ready-to-served handoff, filtering, and cross-tenant rejection.
+- Missing coverage: frontend kitchen dashboard/history rendering; duplicate-event and queue-retry simulation at the transport layer; browser-level verification of kitchen realtime updates.
 - Risk level: high.
 
 ## 7. Accounting Queue, Invoice Finalization, POS Checkout

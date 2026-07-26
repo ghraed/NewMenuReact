@@ -228,7 +228,7 @@ const GuestWaveButton: React.FC = () => {
         <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
           <div
             className={[
-              'overflow-hidden rounded-2xl border transition-all duration-300 ease-out',
+              'relative z-20 overflow-hidden rounded-2xl border transition-all duration-300 ease-out',
               isActionsOpen ? 'max-h-72 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2 pointer-events-none',
             ].join(' ')}
             style={{
@@ -319,7 +319,7 @@ const GuestWaveButton: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsActionsOpen((open) => !open)}
-            className="relative inline-flex h-14 w-14 items-center justify-center rounded-full border text-2xl font-semibold transition duration-300 hover:-translate-y-0.5 hover:scale-105"
+            className="relative z-10 inline-flex h-14 w-14 items-center justify-center rounded-full border text-2xl font-semibold transition duration-300 hover:-translate-y-0.5 hover:scale-105"
             style={{
               backgroundColor: 'rgb(15 23 42 / 92%)',
               borderColor: 'rgb(255 255 255 / 30%)',
