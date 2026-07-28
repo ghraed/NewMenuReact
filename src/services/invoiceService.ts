@@ -1,5 +1,13 @@
 import api from './api';
-import type { FinanceInvoice, FinanceInvoiceDetails, FinanceInvoiceStatus, FinanceRevenuePoint } from '../types';
+import type {
+  CurrencyCode,
+  DiscountType,
+  FinanceInvoice,
+  FinanceInvoiceDetails,
+  FinanceInvoiceStatus,
+  FinancePaymentMethod,
+  FinanceRevenuePoint,
+} from '../types';
 
 export interface InvoiceListFilters {
   date_from?: string;
@@ -25,6 +33,14 @@ export interface CreateInvoicePayload {
   invoice_date: string;
   status: FinanceInvoiceStatus;
   notes?: string;
+  vat_rate?: number;
+  service_charge_rate?: number;
+  discount_type?: DiscountType | null;
+  discount_value?: number;
+  currency?: CurrencyCode;
+  exchange_rate?: number;
+  payment_method?: FinancePaymentMethod | null;
+  payment_reference?: string | null;
   items: CreateInvoiceItemInput[];
 }
 
@@ -32,6 +48,14 @@ export interface UpdateInvoicePayload {
   invoice_date?: string;
   status?: FinanceInvoiceStatus;
   notes?: string | null;
+  vat_rate?: number;
+  service_charge_rate?: number;
+  discount_type?: DiscountType | null;
+  discount_value?: number;
+  currency?: CurrencyCode;
+  exchange_rate?: number;
+  payment_method?: FinancePaymentMethod | null;
+  payment_reference?: string | null;
   items?: CreateInvoiceItemInput[];
 }
 
@@ -88,6 +112,14 @@ export const updateInvoice = async (invoiceId: number, payload: UpdateInvoicePay
 export const fetchInvoiceById = async (invoiceId: number | string): Promise<FinanceInvoiceDetails> => {
   const response = await api.get<{ invoice: FinanceInvoiceDetails }>(`/admin/finance/invoices/${invoiceId}`);
   return response.data.invoice;
+};
+
+export const downloadInvoicePdf = async (invoiceId: number | string): Promise<Blob> => {
+  const response = await api.get<Blob>(`/admin/finance/invoices/${invoiceId}/pdf`, {
+    responseType: 'blob',
+  });
+
+  return response.data;
 };
 
 export const fetchInvoiceRevenueTrends = async (

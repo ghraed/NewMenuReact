@@ -47,7 +47,7 @@ export type CurrencyCode = 'USD' | 'LBP' | 'SYP' | 'SAR' | 'AED' | 'EUR' | 'QAR'
 export type MenuItemType = 'prepared_dish' | 'prepared_drink' | 'packaged_drink' | 'other_product';
 export type FinanceInvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 export type FinalizeInvoiceStatusMode = 'issued' | 'paid';
-export type FinancePaymentMethod = 'cash' | 'card' | 'transfer' | 'other';
+export type FinancePaymentMethod = 'cash' | 'card' | 'transfer' | 'other' | 'wallet';
 
 export interface RestaurantProfile {
   legal_business_name?: string | null;
@@ -413,14 +413,25 @@ export interface InvoiceSplitPersonItem {
   line_subtotal: string;
 }
 
+export interface InvoiceSplitPersonBreakdown {
+  subtotal: string;
+  discount_amount: string;
+  taxable_subtotal: string;
+  service_charge_amount: string;
+  vat_amount: string;
+  total: string;
+}
+
 export interface InvoiceSplitPerson {
   person_index: number;
   label: string;
   total: string;
   items: InvoiceSplitPersonItem[];
+  summary?: InvoiceSplitPersonBreakdown;
 }
 
 export interface InvoiceSplitEditableItem {
+  order_id?: number;
   order_item_id: number;
   key: string;
   dish_name: string;
@@ -438,6 +449,7 @@ export interface InvoiceSplitSummary {
   people?: InvoiceSplitPerson[];
   editable_items?: InvoiceSplitEditableItem[];
   remaining_items?: InvoiceSplitEditableItem[];
+  remaining_summary?: InvoiceSplitPersonBreakdown;
   is_complete?: boolean;
 }
 
@@ -682,10 +694,21 @@ export interface FinanceInvoice {
   status: FinanceInvoiceStatus;
   subtotal: string;
   total: string;
+  currency?: CurrencyCode | null;
+  exchange_rate?: string;
   notes?: string | null;
   paid_at?: string | null;
   payment_method?: FinancePaymentMethod | null;
   payment_reference?: string | null;
+  discount_type?: DiscountType | null;
+  discount_value?: string;
+  discount_amount?: string;
+  taxable_subtotal?: string;
+  service_charge_rate?: string | null;
+  service_charge_amount?: string;
+  vat_rate?: string | null;
+  vat_amount?: string;
+  pdf_available?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
   items: FinanceInvoiceItem[];
@@ -695,12 +718,6 @@ export interface FinanceInvoiceDetails extends FinanceInvoice {
   table_reference?: string | null;
   waiter_name?: string | null;
   waiter?: OrderActorSummary | null;
-  discount_type?: DiscountType | null;
-  discount_value?: string;
-  discount_amount?: string;
-  taxable_subtotal?: string;
-  vat_rate?: string;
-  vat_amount?: string;
 }
 
 export interface FinanceRevenuePoint {
