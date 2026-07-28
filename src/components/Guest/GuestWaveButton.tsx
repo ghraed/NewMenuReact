@@ -225,10 +225,10 @@ const GuestWaveButton: React.FC = () => {
       ) : null}
 
       <div className={actionWrapperClassName}>
-        <div className="pointer-events-auto flex flex-col items-center gap-2 sm:items-end">
+        <div className="pointer-events-auto relative flex items-center justify-end">
           <div
             className={[
-              'relative z-20 overflow-hidden rounded-2xl border transition-all duration-300 ease-out',
+              'absolute bottom-full right-0 z-20 mb-2 overflow-hidden rounded-2xl border transition-all duration-300 ease-out',
               isActionsOpen ? 'max-h-72 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2 pointer-events-none',
             ].join(' ')}
             style={{
@@ -282,37 +282,36 @@ const GuestWaveButton: React.FC = () => {
                   </button>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (hasCartShortcut) {
+                {!hasCartShortcut ? (
+                  <button
+                    type="button"
+                    onClick={() => {
                       navigate(buildGuestOrderReviewPath(activeTableId));
-                    }
-                    setIsActionsOpen(false);
-                  }}
-                  disabled={!hasCartShortcut}
-                  className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
-                    backgroundColor: 'rgb(255 255 255 / 62%)',
-                    borderColor: 'var(--guest-border)',
-                    color: 'var(--guest-text)',
-                  }}
-                  aria-label={t('cart.itemsInCart', { count: totalItems })}
-                >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H7" />
-                    <circle cx="10" cy="19" r="1.4" />
-                    <circle cx="17" cy="19" r="1.4" />
-                  </svg>
-                  {totalItems > 0 ? (
-                    <span
-                      className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
-                      style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
-                    >
-                      {totalItems > 99 ? '99+' : totalItems}
-                    </span>
-                  ) : null}
-                </button>
+                      setIsActionsOpen(false);
+                    }}
+                    className="relative inline-flex h-12 w-12 items-center justify-center rounded-xl border transition duration-200 hover:-translate-y-0.5"
+                    style={{
+                      backgroundColor: 'rgb(255 255 255 / 62%)',
+                      borderColor: 'var(--guest-border)',
+                      color: 'var(--guest-text)',
+                    }}
+                    aria-label={t('cart.itemsInCart', { count: totalItems })}
+                  >
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h2l2.2 10.2a1 1 0 0 0 1 .8h8.7a1 1 0 0 0 1-.8L20 8H7" />
+                      <circle cx="10" cy="19" r="1.4" />
+                      <circle cx="17" cy="19" r="1.4" />
+                    </svg>
+                    {totalItems > 0 ? (
+                      <span
+                        className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                        style={{ backgroundColor: 'var(--guest-accent)', color: 'var(--guest-accent-button-text)' }}
+                      >
+                        {totalItems > 99 ? '99+' : totalItems}
+                      </span>
+                    ) : null}
+                  </button>
+                ) : null}
             </div>
           </div>
 

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useGuestTheme } from '../../hooks/useGuestTheme';
 import { getGuestThemeStyle } from './guestTheme';
+import GuestCartShortcut from './GuestCartShortcut';
 import GuestWaveButton from './GuestWaveButton';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useOrderCart } from '../../contexts/useOrderCart';
@@ -145,6 +146,7 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
         </div>
       ) : null}
       <div className="relative z-10">{children}</div>
+      <GuestCartShortcut />
       <GuestWaveButton />
     </div>
   );

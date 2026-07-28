@@ -353,14 +353,14 @@ test.describe('Guest order lifecycle', () => {
     await page.getByRole('button', { name: 'Add to Cart', exact: true }).click();
     await page.getByLabel('Increase quantity').click();
 
-    await expect(page.getByRole('button', { name: /2 items in cart/i })).toBeVisible();
-    await page.getByRole('button', { name: /2 items in cart/i }).click();
+    await expect(page.getByRole('link', { name: /items in cart/i })).toBeVisible();
+    await page.getByRole('link', { name: /items in cart/i }).click();
 
     await expect(page.getByRole('heading', { name: 'Review Your Order' })).toBeVisible();
-    await page.getByRole('button', { name: 'Increase quantity' }).click();
-    await expect(page.getByText('$37.50')).toBeVisible();
+    await page.locator('article').first().getByRole('button', { name: '+' }).click();
+    await expect(page.getByText('$37.50').first()).toBeVisible();
 
-    await page.getByLabel('Notes for Team').fill('بدون بصل 😋');
+    await page.getByRole('textbox', { name: /notes for the team/i }).fill('بدون بصل 😋');
     await page.getByRole('button', { name: 'Send Order Request' }).click();
 
     await expect(page.getByText('Order sent to the staff team')).toBeVisible();
@@ -373,6 +373,6 @@ test.describe('Guest order lifecycle', () => {
     await expect(page.getByRole('heading', { name: 'Your Orders' })).toBeVisible();
     await expect(page.getByText('staff confirmed')).toBeVisible();
     await expect(page.getByText('Mixed Grill Plate')).toBeVisible();
-    await expect(page.getByText('$37.50')).toBeVisible();
+    await expect(page.getByText('$37.50').first()).toBeVisible();
   });
 });

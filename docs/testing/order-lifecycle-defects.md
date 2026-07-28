@@ -1,6 +1,6 @@
 # Order Lifecycle Defects
 
-Audit date: Sunday, July 26, 2026.
+Audit started on Sunday, July 26, 2026, with browser follow-up completed on Tuesday, July 28, 2026.
 
 ## Fixed During This Pass
 
@@ -34,24 +34,27 @@ Impact: double-clicks and browser retries could produce semantically identical s
 Resolution: keep one submit-time idempotency key for the active submission and reset it only when cart/session input changes or after success.
 Status: fixed on Sunday, July 26, 2026.
 
+## Fixed On Tuesday, July 28, 2026
+
+1. The guest browser flow depended on a cart entry point inside an overlapping quick-actions tray.
+Location: `Menu_React/src/components/Guest/GuestPageShell.tsx`, `Menu_React/src/components/Guest/GuestWaveButton.tsx`
+Impact: the real Playwright browser flow reached the menu but stalled before review-page navigation because the visible `2 items in cart` quick-actions button was blocked by overlapping pointer-event interception.
+Resolution: mount the standalone `GuestCartShortcut` in the shared guest shell and reserve the quick-actions tray for non-cart actions when the standard cart shortcut is available.
+Status: fixed on Tuesday, July 28, 2026.
+
 ## Coverage Gaps Still Open
 
 1. The new Playwright guest lifecycle spec currently validates the UI with mocked API routes, not a live backend stack.
 Location: `Menu_React/tests/e2e/guest-order-lifecycle.spec.ts`
 Impact: the browser flow now covers the critical guest journey shape and request contract, but it does not yet prove full-stack persistence, staff receipt, kitchen updates, or realtime delivery through a real service path.
-Status: open as of Sunday, July 26, 2026.
+Status: open as of Tuesday, July 28, 2026.
 
-2. The floating quick-actions cart entry is visually present but not clickable in a real browser run.
-Location: `Menu_React/src/components/Guest/GuestWaveButton.tsx`
-Impact: the critical guest browser flow stalls before review-page navigation because the `2 items in cart` button is overlapped by the quick-actions tray/trigger stack and Playwright reports persistent pointer-event interception.
-Status: open as of Sunday, July 26, 2026.
-
-3. No browser-level kitchen dashboard coverage exists yet.
+2. No browser-level kitchen dashboard coverage exists yet.
 Location: `Menu_React/src/pages/ChefDashboardPage.tsx`, `Menu_React/src/pages/KitchenOrderHistoryPage.tsx`
 Impact: backend kitchen API transitions are covered, but UI filtering, sorting, and realtime rendering remain unverified in-browser.
-Status: open as of Sunday, July 26, 2026.
+Status: open as of Tuesday, July 28, 2026.
 
-4. Failure-path coverage for transaction rollback and partial database failure is still missing.
+3. Failure-path coverage for transaction rollback and partial database failure is still missing.
 Location: `Menu_API/tests/Feature/OrderWorkflowTest.php`
 Impact: the order lifecycle now covers price authority, idempotency, session security, waiter calls, and kitchen transitions, but it still does not inject lower-level persistence faults to prove rollback behavior.
-Status: open as of Sunday, July 26, 2026.
+Status: open as of Tuesday, July 28, 2026.

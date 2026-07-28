@@ -24,6 +24,12 @@ Current execution snapshot:
 - The new Playwright flow currently uses API route mocks, so it validates the browser UX and request contract but not a live backend/service path yet.
 - Browser execution was run on Sunday, July 26, 2026 after installing Playwright Chromium, and it failed in the guest menu UI before review-page navigation because the floating quick-actions cart button was not clickable under real browser pointer-event checks.
 
+## July 28, 2026 Browser Follow-Up
+- Date of browser follow-up: Tuesday, July 28, 2026.
+- Guest UI changes completed in `GuestPageShell.tsx` and `GuestWaveButton.tsx` so cart navigation no longer depends on the overlapping quick-actions cart button when a standard cart shortcut is available.
+- The Playwright critical-order-flow spec was aligned with the real rendered UI and executed successfully on Tuesday, July 28, 2026.
+- Browser result on July 28, 2026: `tests/e2e/guest-order-lifecycle.spec.ts` passed in Chromium in 3.6 seconds.
+
 ### Defects Found On July 26, 2026
 - Reserved restaurant slugs are not validated in `Menu_API/app/Http/Controllers/SuperAdmin/SuperAdminRestaurantManagementController.php`; duplicate slugs are rejected, but reserved names still have no enforcement path.
 - The requested menu-category management surface does not exist as a first-class feature. Categories are stored only as a restaurant `profile.menu_categories` array, so there is no dedicated CRUD/order/hide API or UI that matches the requested category matrix.
@@ -89,8 +95,8 @@ Current execution snapshot:
 - Edge cases: equal split remainder handling, by-person order allocation, reminder waves, legacy orders with null dish IDs, bill requests with partial guest departures.
 - Current coverage: `OrderWorkflowTest`, `WaveWorkflowTest`, `TableSessionSecurityTest`, `OrderInventoryDeductionTest`, frontend compensation math tests.
 - Current coverage includes the Sunday, July 26, 2026 pass result: 27 passing workflow tests across `OrderWorkflowTest` and `WaveWorkflowTest`, plus the new browser spec `tests/e2e/guest-order-lifecycle.spec.ts`.
+- Current coverage also includes the Tuesday, July 28, 2026 browser result: the critical guest flow now passes in Playwright from unlock through review, submit, and post-submit order-status view.
 - Missing coverage: no live end-to-end path from guest submit to backend persistence and staff/kitchen consumption; rollback and partial-database-failure cases are still not directly simulated; guest-side double-submit coverage is limited to idempotency-key contract checks and mocked browser flow.
-- Browser defect from Sunday, July 26, 2026: the critical guest flow currently fails in Playwright before review-page navigation because the `2 items in cart` quick-actions button is visually present but blocked by overlapping pointer-event interception.
 - Risk level: critical.
 
 ## 5. Staff Pending Orders, Table Operations, Waiter Dashboard
