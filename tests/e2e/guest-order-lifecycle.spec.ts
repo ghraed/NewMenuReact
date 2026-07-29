@@ -10,6 +10,11 @@ test.describe('Guest order lifecycle', () => {
     let submittedQuantity = 0;
     let lastIdempotencyKey: string | null = null;
 
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
     await page.route('**/api/**', async (route) => {
       const request = route.request();
       const url = new URL(request.url());
@@ -350,7 +355,7 @@ test.describe('Guest order lifecycle', () => {
     await page.getByRole('button', { name: 'Unlock Ordering' }).click();
 
     await expect(page.getByText('Protected actions are ready')).toBeVisible();
-    await page.getByRole('button', { name: 'Add to Cart', exact: true }).click();
+    await page.getByRole('button', { name: 'Add to Cart', exact: true }).first().click();
     await page.getByLabel('Increase quantity').click();
 
     await expect(page.getByRole('link', { name: /items in cart/i })).toBeVisible();

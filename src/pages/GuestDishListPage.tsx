@@ -355,6 +355,11 @@ const GuestDishListPage: React.FC = () => {
         response.table_session?.status === 'active'
         && response.protected_actions?.ordering_unlocked === true
       );
+      const hasExistingVerifiedAccess = (
+        draft.tableId === response.table.id
+        && draft.guestAccessVerified
+        && Boolean(draft.guestAccessToken)
+      );
 
       if (hasActiveUnlockedSession && response.guest_access) {
         setGuestContext({
@@ -364,7 +369,7 @@ const GuestDishListPage: React.FC = () => {
           tableSessionId: response.table_session!.id,
           guestAccess: response.guest_access,
         });
-      } else {
+      } else if (!hasExistingVerifiedAccess) {
         clearGuestAccess();
         updateDraft({
           tableId: response.table.id,
