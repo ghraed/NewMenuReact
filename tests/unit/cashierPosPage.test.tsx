@@ -110,7 +110,7 @@ describe('CashierPosPage', () => {
     expect(screen.getByText('In Stock Dish')).toBeInTheDocument();
     expect(screen.queryByText('Out Dish')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.add' }));
     expect(mockedToast.showToast).not.toHaveBeenCalledWith(expect.stringContaining('Out Dish'), 'secondary');
   });
 });

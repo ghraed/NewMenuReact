@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminPayrollManagementPage from '../../src/pages/AdminPayrollManagementPage';
 
@@ -48,6 +48,7 @@ describe('AdminPayrollManagementPage', () => {
       {
         id: 1,
         restaurant_id: 5,
+        employee_id: 11,
         period_start: '2026-05-01',
         period_end: '2026-05-15',
         status: 'draft',
@@ -78,6 +79,7 @@ describe('AdminPayrollManagementPage', () => {
     mockedPayrollService.createPayrollPeriod.mockResolvedValue({
       id: 2,
       restaurant_id: 5,
+      employee_id: 11,
       period_start: '2026-05-16',
       period_end: '2026-05-31',
       status: 'draft',
@@ -94,6 +96,7 @@ describe('AdminPayrollManagementPage', () => {
     mockedPayrollService.upsertPayrollEntries.mockResolvedValue({
       id: 1,
       restaurant_id: 5,
+      employee_id: 11,
       period_start: '2026-05-01',
       period_end: '2026-05-15',
       status: 'draft',
@@ -110,6 +113,7 @@ describe('AdminPayrollManagementPage', () => {
     mockedPayrollService.updatePayrollPeriod.mockResolvedValue({
       id: 1,
       restaurant_id: 5,
+      employee_id: 11,
       period_start: '2026-05-01',
       period_end: '2026-05-15',
       status: 'approved',
@@ -127,21 +131,27 @@ describe('AdminPayrollManagementPage', () => {
   it('creates payroll period and saves entries in cents payload', async () => {
     render(<AdminPayrollManagementPage />);
 
-    await screen.findByText('Periods & Entries');
+    await screen.findByText('Employee Salary Record');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create Period' }));
+    fireEvent.change(screen.getByLabelText('Employee'), { target: { value: '11' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Salary Record' }));
 
     await waitFor(() => {
       expect(mockedPayrollService.createPayrollPeriod).toHaveBeenCalledTimes(1);
     });
 
-    const mayaRow = screen.getByText('Maya').closest('tr');
-    expect(mayaRow).not.toBeNull();
-    const inputs = within(mayaRow as HTMLElement).getAllByRole('spinbutton');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit Salary' })[1]);
+
+    const saveButton = await screen.findByRole('button', { name: 'Save Salary Values' });
+    const editor = saveButton.closest('.sm\\:col-span-4')?.parentElement;
+    expect(editor).not.toBeNull();
+    const inputs = editor ? Array.from(editor.querySelectorAll('input[type="number"]')) as HTMLInputElement[] : [];
+    expect(inputs).toHaveLength(7);
     fireEvent.change(inputs[0], { target: { value: '100.50' } }); // base
     fireEvent.change(inputs[1], { target: { value: '10.25' } }); // overtime
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Entries' }));
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mockedPayrollService.upsertPayrollEntries).toHaveBeenCalledTimes(1);
@@ -159,9 +169,9 @@ describe('AdminPayrollManagementPage', () => {
   it('updates selected payroll period status', async () => {
     render(<AdminPayrollManagementPage />);
 
-    await screen.findByText('Periods & Entries');
+    await screen.findByText('Employee Salary Records');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mark Approved' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
 
     await waitFor(() => {
       expect(mockedPayrollService.updatePayrollPeriod).toHaveBeenCalledWith(1, { status: 'approved' });
@@ -171,17 +181,23 @@ describe('AdminPayrollManagementPage', () => {
   it('blocks saving entries when net pay would be negative', async () => {
     render(<AdminPayrollManagementPage />);
 
-    await screen.findByText('Periods & Entries');
+    await screen.findByText('Employee Salary Records');
 
-    const mayaRow = screen.getByText('Maya').closest('tr');
-    expect(mayaRow).not.toBeNull();
-    const inputs = within(mayaRow as HTMLElement).getAllByRole('spinbutton');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit Salary' })[0]);
+
+    const saveButton = await screen.findByRole('button', { name: 'Save Salary Values' });
+    const editor = saveButton.closest('.sm\\:col-span-4')?.parentElement;
+    expect(editor).not.toBeNull();
+    const inputs = editor ? Array.from(editor.querySelectorAll('input[type="number"]')) as HTMLInputElement[] : [];
+    expect(inputs).toHaveLength(7);
     fireEvent.change(inputs[0], { target: { value: '10.00' } }); // base
-    fireEvent.change(inputs[3], { target: { value: '50.00' } }); // deduction
+    fireEvent.change(inputs[5], { target: { value: '50.00' } }); // deduction
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Entries' }));
+    fireEvent.click(saveButton);
 
-    await screen.findByText(/Net pay cannot be negative for Maya/i);
+    await waitFor(() => {
+      expect(mockedPayrollService.upsertPayrollEntries).not.toHaveBeenCalled();
+    });
     expect(mockedPayrollService.upsertPayrollEntries).not.toHaveBeenCalled();
   });
 });

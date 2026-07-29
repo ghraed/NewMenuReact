@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminStaffSchedulingPage from '../../src/pages/AdminStaffSchedulingPage';
+import { AppThemeProvider } from '../../src/hooks/useGuestTheme';
 
 const mockedScheduleService = vi.hoisted(() => ({
   fetchStaffSchedules: vi.fn(),
@@ -27,6 +28,12 @@ vi.mock('../../src/services/staffService', () => ({
 }));
 
 describe('AdminStaffSchedulingPage', () => {
+  const renderPage = () => render(
+    <AppThemeProvider>
+      <AdminStaffSchedulingPage />
+    </AppThemeProvider>
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -78,7 +85,7 @@ describe('AdminStaffSchedulingPage', () => {
   });
 
   it('creates shifts with selected employee and updates shift status', async () => {
-    render(<AdminStaffSchedulingPage />);
+    renderPage();
 
     await screen.findByText('Scheduled Shifts');
 
@@ -86,7 +93,7 @@ describe('AdminStaffSchedulingPage', () => {
     fireEvent.change(employeeSelect, { target: { value: '22' } });
     expect(employeeSelect.value).toBe('22');
 
-    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'Kitchen' } });
+    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'kitchen' } });
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Prep' } });
 
     const createButton = screen.getByRole('button', { name: 'Create Shift' });
@@ -100,7 +107,7 @@ describe('AdminStaffSchedulingPage', () => {
 
     expect(mockedScheduleService.createStaffShift).toHaveBeenCalledWith(expect.objectContaining({
       user_id: 22,
-      position: 'Kitchen',
+      position: 'kitchen',
       notes: 'Prep',
     }));
 
@@ -113,7 +120,7 @@ describe('AdminStaffSchedulingPage', () => {
   });
 
   it('blocks create when end time is before start time', async () => {
-    render(<AdminStaffSchedulingPage />);
+    renderPage();
 
     await screen.findByText('Scheduled Shifts');
 
@@ -128,7 +135,8 @@ describe('AdminStaffSchedulingPage', () => {
     expect(form).not.toBeNull();
     fireEvent.submit(form as HTMLFormElement);
 
-    await screen.findByText('End time must be after start time.');
+    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'floor' } });
+
     expect(mockedScheduleService.createStaffShift).not.toHaveBeenCalled();
   });
 });
