@@ -58,6 +58,16 @@ const cents = (value: string): number => {
   return Math.round(parsed * 100);
 };
 
+const netCents = (form: Pick<SalaryDraft, 'base' | 'overtime' | 'bonus' | 'allowance' | 'reimbursement' | 'deduction' | 'tax'>): number => (
+  cents(form.base)
+  + cents(form.overtime)
+  + cents(form.bonus)
+  + cents(form.allowance)
+  + cents(form.reimbursement)
+  - cents(form.deduction)
+  - cents(form.tax)
+);
+
 const defaultDraft = (): SalaryDraft => {
   const d = new Date();
   return {
@@ -270,6 +280,11 @@ const AdminPayrollManagementPage: React.FC = () => {
     setSuccess(null);
 
     try {
+      if (netCents(form) < 0) {
+        setError('Net pay cannot be negative.');
+        return;
+      }
+
       const updated = await upsertPayrollEntries(record.id, [{
         user_id: Number(form.employeeId),
         base_amount_cents: cents(form.base),
