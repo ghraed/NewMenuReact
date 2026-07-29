@@ -39,6 +39,19 @@ Current execution snapshot:
 - Frontend coverage now includes `tests/unit/adminRoomPlansPage.test.tsx` for the save-and-reopen room-plan flow.
 - Frontend targeted result on Wednesday, July 29, 2026: `tests/unit/adminRoomPlansPage.test.tsx`, `tests/unit/reservationsPage.test.tsx`, and `tests/unit/roomPlanUtils.test.ts` passed with 5 tests and 0 failures.
 
+## July 29, 2026 Feature Access, Queues, Realtime, And Notifications Audit
+- Date of targeted audit: Wednesday, July 29, 2026.
+- Scope of this pass: structural audit of backend enforcement paths and existing automated coverage for feature flags, subscription-plan behavior, queue jobs, broadcast authorization, and push-notification delivery.
+- Feature-flag enforcement confirmed in backend code: `FeatureFlagService`, `EnsureRestaurantFeatureEnabled`, `routes/api.php`, and `TableManagementModeService` enforce tenant-scoped feature checks on API routes; hiding a button in React is not the only control.
+- Feature catalog and plan-default behavior exist in the backend data model through `features` plus `Feature::is_active_by_default`; restaurant-level overrides exist through `restaurant_features`; audit logging exists through `FeatureFlagAuditLog`.
+- Feature dependency handling is only partially explicit: `room_plan_editor` and `table_reservations` have coupled side effects through `TableManagementModeService` and `TableProvisioningService`, but no generic dependency engine was found for arbitrary features.
+- No feature-flag cache layer or invalidation path was found in the inspected code. Current behavior appears to resolve flags from the database on demand, so cache invalidation is not covered because there is no repository-local cache implementation to invalidate.
+- Active-session risk remains: the backend enforces feature middleware on subsequent API requests, but the frontend keeps feature flags in the authenticated user payload and also contains a hardcoded bypass in `src/utils/features.ts` for `admin@alpha.com`, which can mask stale-session or disabled-feature UI regressions.
+- Queue coverage is narrow. `SuperAdminCustomDomainProvisioningTest` verifies job dispatch and direct `ProvisionRestaurantDomainJob::handle()` success/failure behavior, and the scheduler registers `events:send-planning-reminders`, but no automated tests were found for retry, failed-job persistence, delayed execution, duplicate dispatch, worker restart, serialization edge cases, or tenant context restoration inside queued workers.
+- Broadcast authorization exists in `routes/channels.php` for waves, kitchen, events, and accounting channels. Tenant checks are explicit, table-wave access is assignment-aware, and event recipients are role-scoped, but no dedicated authorization matrix tests were found. The accounting channel is broader than the finance HTTP surface because it admits `staff`.
+- Push delivery services exist for browser subscriptions and mobile tokens. Web push removes expired subscriptions and mobile push logs failures, but no automated tests were found for invalid device tokens, retry semantics, offline recipients, reconnection behavior, duplicate event suppression at the transport layer, or device-visible delivery.
+- No React Native or other mobile-app repository was found in this workspace. Mobile-app enforcement and native notification handling cannot be fully tested here beyond backend token-storage and dispatch code paths.
+
 ### Defects Found On July 26, 2026
 - Reserved restaurant slugs are not validated in `Menu_API/app/Http/Controllers/SuperAdmin/SuperAdminRestaurantManagementController.php`; duplicate slugs are rejected, but reserved names still have no enforcement path.
 - The requested menu-category management surface does not exist as a first-class feature. Categories are stored only as a restaurant `profile.menu_categories` array, so there is no dedicated CRUD/order/hide API or UI that matches the requested category matrix.
@@ -62,7 +75,7 @@ Current execution snapshot:
 - Tenant-isolation requirements: every authenticated request must resolve the correct restaurant; feature flags must be read and written only for the active tenant; cross-tenant staff membership must not fall back to the wrong restaurant.
 - Edge cases: legacy roles `add`, `stock_manger`, `accoutant`; `restaurant_admin` normalization; users attached to more than one restaurant; local-host fallback; owner and super-admin alias routes.
 - Current coverage: `SuperAdminCustomDomainProvisioningTest`, `TenantDomainRoutingTest`, `TenantRestaurantResolverCustomDomainTest`, `DomainNameTest`, `StaffManagementTest` partially cover auth, tenant routing, and super-admin flows.
-- Missing coverage: multi-restaurant user selection; feature flag audit-log verification; restricted-role route matrix; frontend route gating; hardcoded feature bypass behavior in `src/utils/features.ts`.
+- Missing coverage: global feature catalog and restaurant-feature API assertions; plan-default versus override precedence; enable and disable mutation assertions through `SuperAdminFeatureFlagController`; audit-log verification; restricted-role route matrix; active-session behavior after a feature change; direct URL and hidden-navigation checks for feature-gated routes; backend enforcement checks for more feature-gated endpoints; mobile-app enforcement outside this repository; and the hardcoded feature bypass behavior in `src/utils/features.ts`.
 - Risk level: critical.
 
 ## 2. Public Guest Menu, Dishes, QR Entry
@@ -118,7 +131,7 @@ Current execution snapshot:
 - Tenant-isolation requirements: table assignment and wave subscriptions must stay within the waiter’s current restaurant and assigned tables.
 - Edge cases: admin mode with all tables, browser notification permissions, offline waiter action replay, mobile polling fallback.
 - Current coverage: `OrderWorkflowTest`, `WaveWorkflowTest`, `StaffManagementTest`; no direct frontend tests for `StaffOrdersPage`.
-- Missing coverage: frontend state synchronization, offline queue recovery, push subscription behavior, realtime reconnection, waiter assignment regression matrix.
+- Missing coverage: frontend state synchronization, offline queue recovery, push subscription behavior, realtime reconnection, waiter assignment regression matrix, device-visible wave/order notifications, invalid mobile token handling, offline recipient behavior, duplicate event suppression at the transport layer, and explicit websocket authorization tests for assigned versus unassigned staff.
 - Risk level: high.
 
 ## 6. Kitchen Workflow
@@ -144,7 +157,7 @@ Current execution snapshot:
 - Tenant-isolation requirements: invoice totals, linked orders, expense side effects, and realtime accounting events stay within one restaurant.
 - Edge cases: complimentary items, partial discounts, operational loss buckets, draft vs paid invoice mode, selected table save-before-finalize flow.
 - Current coverage: `FinanceParityTest`, `CurrencySettingsControllerTest`, `OrderWorkflowTest`, frontend `financeMath`, `financeReporting`, `invoicePreviewCompensation`, `cashierPosPage` tests.
-- Missing coverage: current frontend POS and payroll UI tests are broken; no E2E accounting flow; no explicit test for accounting broadcast-channel authorization; role mismatch around cashier behavior.
+- Missing coverage: current frontend POS and payroll UI tests are broken; no E2E accounting flow; no explicit test for accounting broadcast-channel authorization; no duplicate accounting-event assertions; no reconnect/offline transport checks for accounting listeners; and role mismatch around cashier behavior.
 - Risk level: critical.
 
 ## 8. Restaurant Profile, Currency, QR Codes, Staff Management, Table Management
@@ -239,7 +252,7 @@ Current execution snapshot:
 - Tenant-isolation requirements: event reservations, forecast data, push targets, and notification logs stay inside one restaurant.
 - Edge cases: reminder resend suppression, order-draft regeneration, completed/cancelled events.
 - Current coverage: `AdminEventReservationApiTest`, frontend `adminEventsPage.test.tsx`.
-- Missing coverage: scheduler command path, push and broadcast alert delivery assertions, event-to-order linking lifecycle, UI happy path end-to-end.
+- Missing coverage: scheduler command path, push and broadcast alert delivery assertions, correct recipient and role assertions, payload confidentiality checks, duplicate reminder suppression verification through `EventNotificationLog`, offline recipient handling, invalid mobile token handling, notification retry semantics, event-to-order linking lifecycle, and UI happy path end-to-end.
 - Risk level: high.
 
 ## 15. Finance Dashboard, Expenses, Vendors, Tax, Profit and Loss
@@ -278,7 +291,7 @@ Current execution snapshot:
 - Tenant-isolation requirements: channel authorization by restaurant and table assignment; event payloads must not leak another tenant’s data.
 - Edge cases: disconnected transport fallback, repeated notification tags, mobile token preference flags, staff access to accounting channel.
 - Current coverage: indirect coverage inside workflow tests; no dedicated frontend tests.
-- Missing coverage: channel authorization matrix, payload confidentiality, push registration, analytics correctness, resilience under reconnect/offline behavior.
+- Missing coverage: channel authorization matrix; payload confidentiality and no-sensitive-fields assertions; correct restaurant, table, and role assertions per channel; duplicate event and duplicate notification suppression; push registration; invalid browser subscription and invalid mobile token handling; missing-recipient behavior; analytics correctness; and resilience under reconnect/offline behavior.
 - Risk level: critical.
 
 ## 18. AI Chatbot, Contact Leads, and Contact-Us Funnel
@@ -300,9 +313,16 @@ Current execution snapshot:
 - Legacy role aliases remain in both layers: frontend `UserRole` includes `add`, backend normalizes `add`, `stock_manger`, and `accoutant`, which raises data-cleanliness and auth-branch risk.
 - `User::currentRestaurant()` resolves to the first owned or staffed restaurant, which is fragile for true multi-tenant staff accounts.
 - `routes/channels.php` allows ordinary `staff` into the accounting private channel even though finance HTTP endpoints are admin/accountant only.
+- No generic feature-dependency engine or feature-flag cache invalidation path was found; only `room_plan_editor` and `table_reservations` have explicit side-effect handling through table-provisioning services.
 - Only two Laravel `FormRequest` classes exist for a 203-route API, so validation is mostly controller-local and harder to keep consistent.
 - No Laravel policies, API resources, listeners, or notification classes were found; authorization and serialization are largely ad hoc.
 - The backend migration tree contains both active migrations and a duplicate `database/migrations/current` folder, plus a typo file `create_dish_assets_table.php.php`.
 - Frontend `/admin/reservations` route is not feature-gated, even though the backend reservation endpoints are behind `table_reservations`.
-- E2E coverage is effectively absent because the only Playwright spec is permanently skipped.
-jlkimj v
+- Browser and device notification behavior is still materially unverified in this workspace because test safety disables live broadcasting and notifications by default, and no native mobile client source is present here.
+
+## Unresolved Scenarios Requiring Device Testing
+- Browser push permission, service-worker registration, and visible notification delivery on real HTTPS deployments still require manual device and browser testing.
+- iPhone Home Screen installation flow and installed-PWA push behavior still require physical iOS testing.
+- Android mobile-token registration, background delivery, and tap-through navigation still require physical Android testing.
+- WebSocket reconnect behavior after sleep, tab backgrounding, network loss, and server restarts still requires live browser testing against Reverb.
+- Offline-recipient behavior, delayed delivery, and duplicate suppression for real devices still require end-to-end verification with actual subscriptions and mobile tokens.
