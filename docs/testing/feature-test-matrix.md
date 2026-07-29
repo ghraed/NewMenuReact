@@ -30,6 +30,15 @@ Current execution snapshot:
 - The Playwright critical-order-flow spec was aligned with the real rendered UI and executed successfully on Tuesday, July 28, 2026.
 - Browser result on July 28, 2026: `tests/e2e/guest-order-lifecycle.spec.ts` passed in Chromium in 3.6 seconds.
 
+## July 29, 2026 Reservations And Room Plans Update
+- Date of targeted pass: Wednesday, July 29, 2026.
+- Backend reservation and room-plan coverage was extended in `Menu_API/tests/Feature/ReservationApiTest.php` and `Menu_API/tests/Feature/RoomPlanEditorApiTest.php`.
+- Backend targeted result on Wednesday, July 29, 2026: 15 passing tests, 102 assertions, 0 failures.
+- Reservation coverage now explicitly validates admin update flows, cancel and complete status transitions, invalid date and time validation, feature-disabled restaurant behavior, cross-tenant admin rejection, back-to-back boundary bookings, and the defined same-slot conflict policy where the first reservation succeeds and the competing request is rejected with `422 overlap`.
+- Room-plan coverage now explicitly validates saved-layout reloads, duplicate table-label auto-renaming, negative-coordinate rejection, invalid-dimension rejection, and cross-tenant room-plan access rejection.
+- Frontend coverage now includes `tests/unit/adminRoomPlansPage.test.tsx` for the save-and-reopen room-plan flow.
+- Frontend targeted result on Wednesday, July 29, 2026: `tests/unit/adminRoomPlansPage.test.tsx`, `tests/unit/reservationsPage.test.tsx`, and `tests/unit/roomPlanUtils.test.ts` passed with 5 tests and 0 failures.
+
 ### Defects Found On July 26, 2026
 - Reserved restaurant slugs are not validated in `Menu_API/app/Http/Controllers/SuperAdmin/SuperAdminRestaurantManagementController.php`; duplicate slugs are rejected, but reserved names still have no enforcement path.
 - The requested menu-category management surface does not exist as a first-class feature. Categories are stored only as a restaurant `profile.menu_categories` array, so there is no dedicated CRUD/order/hide API or UI that matches the requested category matrix.
@@ -202,7 +211,8 @@ Current execution snapshot:
 - Tenant-isolation requirements: room plans and generated tables never cross restaurant boundaries.
 - Edge cases: non-table room items, inactive tables, switching between manual and room-plan modes.
 - Current coverage: `RoomPlanEditorApiTest`, frontend geometry and overlay utilities, `room-plan-reservations.spec.ts` placeholder, `reservationsPage.test.tsx`.
-- Missing coverage: full editor UI, background uploads, manual/room-plan switching, realtime interaction with reservations; backend happy path currently failing.
+- Current coverage includes the Wednesday, July 29, 2026 additions: persisted layout reload, duplicate table-label conflict handling, invalid geometry rejection, cross-tenant room-plan access rejection, and active frontend save/reopen coverage in `tests/unit/adminRoomPlansPage.test.tsx`.
+- Missing coverage: background uploads, manual/room-plan switching, realtime interaction with reservations, concurrent edit policy, and compatibility checks for older saved layouts.
 - Risk level: high.
 
 ## 13. Table Reservations
@@ -215,7 +225,8 @@ Current execution snapshot:
 - Tenant-isolation requirements: reservation lookups and mutations scoped by room plan and tenant.
 - Edge cases: cross-midnight reservations, no-show non-blocking logic, walk-in conversion, partial feature enablement.
 - Current coverage: `ReservationApiTest`, frontend `reservationsPage.test.tsx`, skipped E2E room-plan flow.
-- Missing coverage: admin reservation UI, permission mismatch between frontend and backend, accountant mutation access, disabled-feature frontend route handling.
+- Current coverage includes the Wednesday, July 29, 2026 additions: admin update and status transitions, invalid date and time validation, disabled-feature rejection, cross-tenant admin rejection, non-overlapping boundary bookings, and explicit competing-request conflict-policy coverage for the same table/date/time slot.
+- Missing coverage: admin reservation UI, past-date policy, timezone-specific product rules, opening and closing hours, capacity rules, notification dispatch, reservation-to-table assignment beyond room-plan item linkage, and disabled-feature frontend route handling.
 - Risk level: high.
 
 ## 14. Event Reservations and Planning Alerts

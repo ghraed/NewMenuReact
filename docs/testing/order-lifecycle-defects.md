@@ -2,6 +2,18 @@
 
 Audit started on Sunday, July 26, 2026, with browser follow-up completed on Tuesday, July 28, 2026.
 
+## Added On Wednesday, July 29, 2026
+
+1. Reservation and room-plan backend conflict coverage was expanded and is currently green.
+Location: `Menu_API/tests/Feature/ReservationApiTest.php`, `Menu_API/tests/Feature/RoomPlanEditorApiTest.php`
+Impact: the suite now validates the reservation conflict policy for competing same-slot requests, admin reservation updates and transitions, room-plan persistence, duplicate table-label conflict handling, and cross-tenant rejection. This entry records the coverage expansion so the remaining gaps below are not mistaken for untested basics.
+Status: covered on Wednesday, July 29, 2026.
+
+2. The room-plan save/reopen frontend test harness issue was resolved.
+Location: `Menu_React/tests/unit/adminRoomPlansPage.test.tsx`
+Impact: the earlier non-terminating Vitest run was caused by an unstable `react-i18next` mock that recreated `t` on every render and retriggered `AdminRoomPlansPage` effects indefinitely. The mock is now stable, and the save-and-reopen room-plan test runs and exits cleanly.
+Status: fixed on Wednesday, July 29, 2026.
+
 ## Fixed During This Pass
 
 1. Guest table routes returned `404` on `testing.local`.
