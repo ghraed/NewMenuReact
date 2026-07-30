@@ -39,10 +39,11 @@ const PageScrollProgress: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    syncScrollState();
+    const animationFrameId = window.requestAnimationFrame(syncScrollState);
     window.addEventListener('scroll', syncScrollState, { passive: true });
     window.addEventListener('resize', syncScrollState);
     return () => {
+      window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener('scroll', syncScrollState);
       window.removeEventListener('resize', syncScrollState);
     };

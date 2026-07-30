@@ -44,8 +44,10 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
       return;
     }
 
-    setSyncing(true);
-    void getQueuedGuestOrders()
+    const syncAfterReconnect = async () => {
+      await Promise.resolve();
+      setSyncing(true);
+      return getQueuedGuestOrders()
       .then(async (queued) => {
         const replayable = queued.filter((item) =>
           Boolean(item.id)
@@ -81,6 +83,9 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
       .finally(() => {
         setSyncing(false);
       });
+    };
+
+    void syncAfterReconnect();
   }, [justReconnected, pendingCount, syncing]);
 
   useEffect(() => {

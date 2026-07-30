@@ -4,128 +4,125 @@ Date: Thursday, July 30, 2026
 
 ## Confirmed Launch Blockers
 
-1. Frontend lint is red.
-   Evidence:
-   - `npm run lint`
-   - Result: `52 errors`, `17 warnings`
-   - Highest-risk errors include conditional hook-order violations in [`src/components/ChatBot.tsx`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/src/components/ChatBot.tsx:575) and synchronous state-in-effect violations in guest/admin UI components.
-
-2. The guest order browser flow is still failing.
-   Evidence:
-   - `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npm run test:e2e`
-   - First run failed because Chromium could not launch in the sandbox.
-   - Escalated rerun failed in `tests/e2e/guest-order-lifecycle.spec.ts`.
-   - Latest targeted rerun:
-     - `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4174 npm run test:e2e -- --grep "Guest order lifecycle"`
-     - still failed after reaching `Review Your Order`
-     - snapshot showed stale `Alpha` cart/session state instead of the mocked `Cedar Flame` flow
-
-3. Backend static analysis/style is red.
-   Evidence:
-   - `./vendor/bin/pint --test`
-   - Result: `141 style issues` across `353 files`
-
-4. Mobile lint is red.
-   Evidence:
+1. Mobile lint is red.
    - `npm run lint` in `MenuScanApp`
-   - Result: `11 errors`, `3 warnings`
+   - Result: `11` errors and `3` warnings.
+   - The review could not edit the mobile repository because it is outside the writable workspace and already contains unrelated uncommitted changes.
 
-5. Migration validation is incomplete.
-   Evidence:
-   - `php artisan migrate:status --env=testing`
-   - Failure:
-     - `SQLSTATE[HY000] [2002] Unknown error while connecting`
-     - target DB: `restaurantdb_test` on `127.0.0.1:3306`
+2. Dependency audits are incomplete.
+   - Frontend npm, backend Composer, and mobile npm audits require explicit approval to submit dependency metadata to public registries.
+   - No vulnerability counts are available.
 
-6. Dependency audits are incomplete.
-   Evidence:
-   - Attempted:
-     - `composer audit --format=json`
-     - `npm audit --omit=dev --json` in `Menu_React`
-     - `npm audit --omit=dev --json` in `MenuScanApp`
-   - Each attempt was blocked pending explicit approval to submit dependency metadata to a public registry service.
+3. The room-plan/reservation E2E remains skipped.
+   - `tests/e2e/room-plan-reservations.spec.ts`
+   - Requires running backend APIs and seeded admin credentials.
+
+4. Critical transactional performance testing is incomplete.
+   - No seeded staging target was available.
+   - `k6` and `artillery` are not installed.
+   - The completed ApacheBench check covered static frontend HTML only.
+
+5. Local development data requires recovery.
+   - A stale generated Laravel config cache caused an intermediate backend test run to use `restaurantdb` instead of `restaurantdb_test`.
+   - Laravel's test database refresh emptied the local database.
+   - Current local counts: `0` users, `0` restaurants, `0` orders.
+   - A PHPUnit bootstrap guard now clears generated config cache before tests.
+   - No restore was attempted because available SQL dumps are older and restoration requires explicit approval.
 
 ## Critical and High Risks
 
-1. Clean browser-console review is incomplete.
-   Evidence:
-   - no browser E2E run completed cleanly end-to-end
-   - therefore no clean browser-console pass was collected
+1. Mobile Android build validation is incomplete.
+   - The Gradle wrapper requires an external Gradle distribution download.
+   - The build was stopped pending explicit authorization.
 
-2. Frontend production bundle is oversized.
-   Evidence:
-   - `npm run build`
-   - Warning:
-     - `dist/assets/index-Co199srk.js` minified size `2,319.75 kB`
-     - `dist/assets/three-BKLwnFPR.js` minified size `759.64 kB`
+2. Dependency vulnerability posture is unknown.
 
-3. Frontend unit tests still emit React warning noise.
-   Evidence:
-   - `npm run test:unit`
-   - Result: passed (`23 files`, `72 tests`)
-   - Warning emitted:
-     - React `act(...)` warnings in `tests/unit/adminStaffSchedulingPage.test.tsx`
+3. Frontend production bundle is oversized.
+   - `npm run build` passed.
+   - `dist/assets/index-q9MPttlP.js`: `2,320.01 kB` minified.
+   - `dist/assets/three-BKLwnFPR.js`: `759.64 kB` minified.
 
-4. Mobile Android build validation is still incomplete.
-   Evidence:
-   - `GRADLE_USER_HOME=/tmp/menuscanapp-gradle ./gradlew :app:assembleDebug`
-   - Failure:
-     - Gradle bootstrap download blocked by `java.net.SocketException: Operation not permitted`
+4. Production configuration artifacts remain committed.
+   - `Menu_React/.env.production`
+   - `Menu_API/.env.production`
+   - `google-services.json`
+   - This review did not prove a plaintext production secret leak; human secret/config review is still required.
 
-5. Production config artifacts are committed and should be reviewed before launch.
-   Evidence:
-   - [`Menu_React/.env.production`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/.env.production:1)
-   - [`Menu_API/.env.production`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/.env.production:1)
-   - [`google-services.json`](/media/raed/Data/from%20ubuntu/new_menu/google-services.json:1)
-   - This pass did not prove a plaintext production secret leak, but these files remain sensitive.
+## Medium Risks
 
-## Backend Status Cleared In This Pass
+1. Frontend lint passes with `16` React hook dependency warnings.
 
-1. Backend functional suite is green.
-   Evidence:
-   - `php artisan test`
-   - Result: passed
-   - Passing: `242 tests`
-   - Assertions: `2907`
+2. Frontend unit tests pass but emit React `act(...)` warnings in `tests/unit/adminStaffSchedulingPage.test.tsx`.
 
-2. Host-based tenant routing targeted suite is green.
-   Evidence:
-   - `php artisan test --filter='TenantDomainRoutingTest'`
-   - Result: passed (`6 tests`, `19 assertions`)
+3. No frontend, backend, or mobile coverage report was generated.
 
-3. Production-style backend cache commands are green.
-   Evidence:
-   - `php artisan config:cache`
-   - `php artisan route:cache`
-   - both passed
+4. PHPStan/Psalm semantic analysis is not configured.
+
+5. Browser coverage is limited to Chromium desktop.
+
+## Cleared In This Pass
+
+1. Frontend lint errors.
+   - Before: `52` errors and `17` warnings.
+   - After: `0` errors and `16` warnings; command exits successfully.
+
+2. Guest order browser E2E.
+   - Passes guest unlock, cart, submit, idempotency-key, and progressed-order assertions.
+   - Captured browser console/page errors: `0`.
+   - Service workers are blocked in API-mocked Playwright contexts to prevent cached tenant data from bypassing route mocks.
+
+3. Backend style gate.
+   - `./vendor/bin/pint --test`
+   - Passed: `353` files.
+
+4. Backend functional suite.
+   - Passed: `242` tests and `2,907` assertions against `restaurantdb_test`.
+
+5. Backend syntax and package-manifest validation.
+   - PHP syntax passed for `349` files.
+   - `composer validate --strict --no-check-publish` passed.
+
+6. Production backend validation.
+   - Production config cache passed.
+   - Production route cache passed.
+   - Production Docker Compose config passed.
+
+7. Migration validation.
+   - Migration status passed.
+   - A clean `migrate:fresh` passed for all migrations against `restaurantdb_test`.
+
+8. Frontend build, type checking, and unit tests.
+   - Build passed.
+   - Type checking passed.
+   - `23` unit-test files and `72` tests passed.
+
+9. Mobile tests and type checking.
+   - `4` Jest suites and `20` tests passed.
+   - Type checking passed.
 
 ## Skipped Tests
 
 1. Frontend E2E
    - `tests/e2e/room-plan-reservations.spec.ts`
-   - Stated reason in test:
-     - running backend APIs and seeded admin credentials are required
+   - Stated reason: running backend APIs and seeded admin credentials are required.
 
 2. Backend conditional skip paths reviewed in source
-   - [`tests/Feature/Finance/InvoicePdfDownloadTest.php`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/tests/Feature/Finance/InvoicePdfDownloadTest.php:283)
-     - `Invoice PDF tooling is not installed in this environment.`
-   - [`tests/Feature/NotificationDeliveryServicesTest.php`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/tests/Feature/NotificationDeliveryServicesTest.php:117)
-     - `OpenSSL is required for mobile push notification tests.`
-   - [`tests/Feature/NotificationDeliveryServicesTest.php`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/tests/Feature/NotificationDeliveryServicesTest.php:263)
-     - `Failed to generate an OpenSSL private key for the FCM test.`
-   - [`tests/Feature/NotificationDeliveryServicesTest.php`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/tests/Feature/NotificationDeliveryServicesTest.php:269)
-     - `Failed to export an OpenSSL private key for the FCM test.`
+   - `tests/Feature/Finance/InvoicePdfDownloadTest.php`
+     - Invoice PDF tooling may be unavailable.
+   - `tests/Feature/NotificationDeliveryServicesTest.php`
+     - OpenSSL may be unavailable or unable to generate/export an FCM test key.
+   - The final backend run reported `242` passing tests and did not report an executed skip.
 
 3. Mobile Jest
-   - No skipped mobile Jest tests were reported in the collected run.
+   - No skipped tests were reported.
 
 ## TODO / FIXME Review
 
-1. [`Menu_API/tests/Feature/Finance/FinanceParityTest.php`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/tests/Feature/Finance/FinanceParityTest.php:38)
+1. `Menu_API/tests/Feature/Finance/FinanceParityTest.php`
    - `TODO: Replace with your real service call.`
-   - Classification:
-     - test debt only
-     - not a direct production-code blocker by itself
+   - Test debt; not a direct production-code blocker by itself.
+
+No other reviewed TODO/FIXME item was classified as an unresolved launch blocker.
 
 ## Testing Documents Reviewed
 

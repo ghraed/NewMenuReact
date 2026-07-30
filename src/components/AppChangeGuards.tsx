@@ -54,8 +54,9 @@ const isLikelyDeleteAction = (target: EventTarget | null): boolean => {
 
 const AppChangeGuards = () => {
   const location = useLocation();
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [dirtyPath, setDirtyPath] = useState<string | null>(null);
   const guarded = useMemo(() => isGuardedPath(location.pathname), [location.pathname]);
+  const hasUnsavedChanges = guarded && dirtyPath === location.pathname;
 
   useBeforeUnload(
     (event) => {
@@ -70,7 +71,6 @@ const AppChangeGuards = () => {
 
   useEffect(() => {
     if (!guarded) {
-      setHasUnsavedChanges(false);
       return;
     }
 
@@ -83,7 +83,7 @@ const AppChangeGuards = () => {
         return;
       }
 
-      setHasUnsavedChanges(true);
+      setDirtyPath(location.pathname);
     };
 
     const handleSubmit = (event: Event) => {
@@ -94,7 +94,7 @@ const AppChangeGuards = () => {
       }
 
       if (form.dataset.skipSaveConfirm === 'true') {
-        setHasUnsavedChanges(false);
+        setDirtyPath(null);
         return;
       }
 
@@ -105,7 +105,7 @@ const AppChangeGuards = () => {
         return;
       }
 
-      setHasUnsavedChanges(false);
+      setDirtyPath(null);
     };
 
     const handleClick = (event: MouseEvent) => {
@@ -130,7 +130,7 @@ const AppChangeGuards = () => {
           event.preventDefault();
           event.stopPropagation();
         } else {
-          setHasUnsavedChanges(false);
+          setDirtyPath(null);
         }
         return;
       }
@@ -149,7 +149,7 @@ const AppChangeGuards = () => {
 
       const shouldLeave = window.confirm(UNSAVED_LEAVE_MESSAGE);
       if (shouldLeave) {
-        setHasUnsavedChanges(false);
+        setDirtyPath(null);
         return;
       }
 
@@ -169,7 +169,7 @@ const AppChangeGuards = () => {
       document.removeEventListener('click', handleClick, true);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [guarded, hasUnsavedChanges]);
+  }, [guarded, hasUnsavedChanges, location.pathname]);
 
   return null;
 };

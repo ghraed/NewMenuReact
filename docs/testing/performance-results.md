@@ -1,75 +1,69 @@
 # Performance Results
 
-Date: Wednesday, July 29, 2026
+Date: Thursday, July 30, 2026
 
-## Requested Minimum Scenarios
+## Requested Critical Scenarios
 
-Requested:
 - 50 concurrent menu visitors
 - 20 active table sessions
 - 10 concurrent order submissions
 - simultaneous kitchen updates
-- two reservations for the same table
-- two orders consuming the same low-stock ingredient
+- competing reservations for one table
+- competing orders consuming one low-stock ingredient
 
-Required measurements:
-- response time
-- error rate
-- database failures
-- duplicate records
-- locking behavior
-- queue behavior
+Requested measurements include latency, error rate, database failures, duplicate records, locking, and queue behavior.
 
-## What Was Actually Executed
+## Actual Result
 
-Executed on Wednesday, July 29, 2026:
-- checked local tooling availability with `which k6`
-- checked local tooling availability with `which artillery`
-- attempted browser E2E setup with local Vite server and Playwright
+### Static Production Frontend
 
-Observed:
-- `k6` not installed
-- `artillery` not installed
-- Playwright Chromium could not launch in this environment, so browser-driven load simulation was not possible
+Command:
 
-## Result
+`ab -n 200 -c 20 http://127.0.0.1:4175/`
 
-No valid performance run was executed on Wednesday, July 29, 2026.
+Actual output:
 
-No response-time, error-rate, locking, queue, or duplicate-record metrics are reported here because that data was not safely or successfully collected.
+- completed requests: `200`
+- failed requests: `0`
+- concurrency: `20`
+- mean request time: `5.018 ms`
+- longest request: `6 ms`
+- throughput: `3,985.73 requests/second`
+- target: local Vite production preview, static HTML document
 
-## Why Performance Was Blocked
+ApacheBench warned that the local waiting-time distribution may not be reliable. These local static-file results are not representative of internet, API, database, or production-hosting performance.
 
-Blocking conditions:
-- no safe staging or dedicated test backend target was provided for concurrent order/reservation load
-- `k6` and `artillery` are not installed in this environment
-- local browser automation is blocked by Chromium sandbox failure:
-  - `sandbox_host_linux.cc:41`
-  - `shutdown: Operation not permitted (1)`
+### Browser Flow
 
-## Related Evidence From Existing Repository Reviews
+The Chromium guest-order lifecycle passed against the local production frontend preview. Playwright reported a total suite duration of `2.7s` for one passing scenario and one skipped scenario. This is functional E2E timing, not a load benchmark.
 
-Although no new load test was run today, earlier repository reviews already document relevant backend behavior:
-- `docs/testing/inventory-integrity-review.md`
-  - inventory deduction idempotency exists
-  - ingredient row locking and rollback behavior were previously verified in backend tests
-  - competing low-stock ingredient consumption was previously tested at backend level
+### Backend Concurrency Evidence
 
-This is not a substitute for the requested performance run. It only indicates some concurrency protections already exist in code and prior backend tests.
+The complete backend suite passed `242` tests and `2,907` assertions. Existing tests cover ordinary idempotent order retry, competing reservation conflict policy, and low-stock inventory behavior. These functional tests do not provide sustained-load latency or throughput measurements.
 
-## Minimum Next Step To Produce Real Results
+## Not Executed
 
-To produce real performance numbers, rerun on a staging or dedicated test environment with seeded data and one of these options:
+No valid transactional load test was executed for menu APIs, active table sessions, concurrent order submission, kitchen updates, queues, reservations, or inventory locking.
 
-Option A:
-- install `k6`
-- run HTTP scenarios for guest menu, table sessions, order submit, confirm, invoice, and reservation conflict
+Reasons:
 
-Option B:
-- install `artillery`
-- run authenticated multi-role flows plus guest traffic against staging APIs
+- no safe seeded staging backend was provided
+- `k6` is not installed
+- `artillery` is not installed
+- the isolated test database was rebuilt but not seeded for multi-role load traffic
 
-Before running:
-- use test or staging only
-- seed at least two restaurants and low-stock ingredients
-- enable log capture for API errors, DB deadlocks, and duplicate order/invoice creation
+Therefore no API response-time percentile, transactional error rate, database deadlock rate, duplicate-record count under load, or queue-latency metric is reported.
+
+## Required Next Run
+
+Before pilot launch:
+
+- use a dedicated seeded staging environment
+- run at least the requested concurrency scenarios with k6 or Artillery
+- capture p50, p95, and p99 latency
+- capture 4xx/5xx and database failure rates
+- verify zero duplicate orders for ordinary retries
+- verify one inventory deduction per confirmed order
+- verify the documented reservation conflict policy
+- capture queue depth, processing latency, and broadcast failures
+- preserve database and application logs for post-run integrity checks

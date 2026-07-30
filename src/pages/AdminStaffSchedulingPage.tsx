@@ -394,7 +394,7 @@ const AdminStaffSchedulingPage: React.FC = () => {
       return [];
     }
 
-    let cursor = new Date(start);
+    const cursor = new Date(start);
     while (cursor <= end) {
       const cursorDay = cursor.getDay();
       const cursorDate = toDateKey(cursor);

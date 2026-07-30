@@ -6,206 +6,174 @@ Date: Thursday, July 30, 2026
 
 **NOT READY**
 
-The software is not bug-free. Based only on the evidence collected through July 30, 2026, it should not be launched to a real restaurant client yet.
+The software is not bug-free. The review work is complete, but unresolved launch evidence and a local test-environment data-loss incident prevent recommending the system for a real restaurant client.
 
 ## Test Evidence
 
 ### Frontend
 
-- Command: `npm run lint`
-  - Result: failed
-  - Summary: `52 errors`, `17 warnings`
-  - Highest-risk findings:
-    - conditional hook-order violations in [`src/components/ChatBot.tsx`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/src/components/ChatBot.tsx:575)
-    - synchronous state-in-effect errors in [`src/components/AppChangeGuards.tsx`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/src/components/AppChangeGuards.tsx:73), [`src/components/Common/PageScrollProgress.tsx`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/src/components/Common/PageScrollProgress.tsx:42), and [`src/components/Guest/GuestPageShell.tsx`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/src/components/Guest/GuestPageShell.tsx:47)
+- `npm run lint`
+  - Passed with `0 errors` and `16 warnings`.
+  - The remaining warnings are React hook dependency warnings and are listed as a medium risk.
+- `npx tsc -b`
+  - Passed.
+- `npm run test:unit`
+  - Passed: `23` files and `72` tests.
+  - React `act(...)` warnings remain in `tests/unit/adminStaffSchedulingPage.test.tsx`.
+  - Frontend coverage was not generated.
+- `npm run build`
+  - Passed.
+  - Production warning:
+    - `dist/assets/index-q9MPttlP.js`: `2,320.01 kB` minified
+    - `dist/assets/three-BKLwnFPR.js`: `759.64 kB` minified
+- `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4175 npm run test:e2e`
+  - Browser: Chromium using Playwright's `Desktop Chrome` project.
+  - Viewport: Playwright `Desktop Chrome` preset.
+  - Passed: guest unlock, cart review, quantity update, idempotent order request, and progressed order state.
+  - Browser console/page errors captured by the scenario: `0`.
+  - Skipped: room-plan editor and public-reservation scenario.
+  - Skip reason in the test: running backend APIs and seeded admin credentials are required.
 
-- Command: `npx tsc -b`
-  - Result: passed
-
-- Command: `npm run test:unit`
-  - Result: passed
-  - Passing: `23 files`, `72 tests`
-  - Warning emitted during run:
-    - React `act(...)` warnings in `tests/unit/adminStaffSchedulingPage.test.tsx`
-
-- Command: `npm run build`
-  - Result: passed
-  - Production-build warning:
-    - `dist/assets/index-Co199srk.js` minified size `2,319.75 kB`
-    - `dist/assets/three-BKLwnFPR.js` minified size `759.64 kB`
-
-- Commands used for browser E2E:
-  - `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npm run test:e2e`
-    - Sandboxed result: failed before app execution
-    - Failure: Chromium sandbox crash (`sandbox_host_linux.cc:41`)
-  - `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npm run test:e2e`
-    - Escalated result: failed
-    - Browser: Chromium
-    - Project: Playwright `Desktop Chrome` preset from [`playwright.config.ts`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/playwright.config.ts:1)
-    - Failing scenario:
-      - `tests/e2e/guest-order-lifecycle.spec.ts`
-    - Skipped scenario:
-      - `tests/e2e/room-plan-reservations.spec.ts`
-  - `env PLAYWRIGHT_BASE_URL=http://127.0.0.1:4174 npm run test:e2e -- --grep "Guest order lifecycle"`
-    - Result after guest-menu fixes: still failed
-    - Failure shape:
-      - reached `Review Your Order`
-      - assertion for `$37.50` failed
-      - page snapshot showed stale `Alpha` cart/session state instead of the mocked `Cedar Flame` state
-
-- Frontend coverage:
-  - not available in this run
+The guest E2E originally failed because an active service worker served cached tenant data after PIN verification. Playwright now blocks service workers for API-mocked scenarios and the test clears browser persistence before startup.
 
 ### Backend
 
-- Command: `php artisan test`
-  - Result: passed
-  - Passing: `242 tests`
-  - Assertions: `2907`
+- `php artisan test --compact` outside the network sandbox
+  - Passed: `242` tests and `2,907` assertions.
+  - Backend coverage was not generated.
+- `./vendor/bin/pint --test`
+  - Passed: `353` files.
+- PHP syntax validation across `app`, `routes`, `config`, `database`, and `tests`
+  - Passed: `349` PHP files.
+- `composer validate --strict --no-check-publish`
+  - Passed.
+- PHPStan/Psalm
+  - Not configured or available; no semantic static-analysis result exists.
+- `php artisan config:cache --env=production`
+  - Passed.
+- `php artisan route:cache --env=production`
+  - Passed.
+- `docker compose -f docker-compose.prod.yml config -q`
+  - Passed.
+- `php artisan migrate:status --env=testing`
+  - Passed; all listed migrations were applied.
+- `php artisan migrate:fresh --env=testing --force`
+  - Passed against the explicitly isolated `restaurantdb_test`; every migration rebuilt from zero.
 
-- Command: `php artisan test --filter='TenantDomainRoutingTest'`
-  - Result: passed
-  - Passing: `6 tests`
-  - Assertions: `19`
-
-- Command: `./vendor/bin/pint --test`
-  - Result: failed
-  - Summary: `141 style issues` across `353 files`
-
-- Command: `php artisan config:cache`
-  - Result: passed
-
-- Command: `php artisan route:cache`
-  - Result: passed
-
-- Command: `php artisan migrate:status --env=testing`
-  - Result: failed
-  - Failure:
-    - `SQLSTATE[HY000] [2002] Unknown error while connecting`
-    - target DB: `restaurantdb_test` on `127.0.0.1:3306`
-
-- Backend coverage:
-  - not available in this run
+An intermediate `php artisan test` run found that a stale generated config cache forced `APP_ENV=local` and database `restaurantdb`. The test refresh emptied that local development database. A new PHPUnit bootstrap deletes generated config cache before Laravel test bootstrap, and the final suite was verified against `restaurantdb_test`. The local database currently has `0` users, `0` restaurants, and `0` orders.
 
 ### Mobile
 
-- Target: `../MenuScanApp`
+Target: `../MenuScanApp`
 
-- Command: `npm test -- --runInBand`
-  - Result: passed
-  - Passing: `4 suites`, `20 tests`
+- `npm test -- --runInBand`
+  - Passed: `4` suites and `20` tests.
+- `npx tsc --noEmit`
+  - Passed.
+- `npm run lint`
+  - Failed: `11` errors and `3` warnings.
+  - Includes a missing hook dependency in `src/screens/CreateDishScreen.tsx` and unused active-screen code in `src/screens/PreviewScreen.tsx`.
+- Android debug build
+  - Not completed.
+  - The Gradle wrapper requires `gradle-9.0.0-bin.zip`; the download/build was stopped because external dependency submission/download was not explicitly authorized.
+- Mobile coverage was not generated.
 
-- Command: `npm run lint`
-  - Result: failed
-  - Summary: `11 errors`, `3 warnings`
-  - Highest-risk finding:
-    - missing hook dependency in [`src/screens/CreateDishScreen.tsx`](/media/raed/Data/from%20ubuntu/new_menu/MenuScanApp/src/screens/CreateDishScreen.tsx:255)
-
-- Command: `npx tsc --noEmit`
-  - Result: passed
-
-- Command: `GRADLE_USER_HOME=/tmp/menuscanapp-gradle ./gradlew :app:assembleDebug`
-  - Result: failed
-  - Failure:
-    - Gradle wrapper attempted to download `gradle-9.0.0-bin.zip`
-    - network error: `java.net.SocketException: Operation not permitted`
+The mobile repository also had four pre-existing uncommitted files. This review did not modify or commit them.
 
 ### Dependency Audit
 
-- Command attempted: `composer audit --format=json`
-  - Result: not completed
-  - Reason:
-    - policy rejection
-    - explicit approval is required before sending backend dependency metadata to Packagist
+- `npm audit --omit=dev --json` for the frontend
+  - Not completed; policy requires explicit approval to send dependency metadata to npm.
+- `composer audit --format=json` for the backend
+  - Not completed; policy requires explicit approval to send dependency metadata to Packagist.
+- `npm audit --omit=dev --json` for mobile
+  - Not completed; policy requires explicit approval to send dependency metadata to npm.
 
-- Command attempted: `npm audit --omit=dev --json` in `Menu_React`
-  - Result: not completed
-  - Reason:
-    - policy rejection
-    - explicit approval is required before sending frontend dependency metadata to the npm registry
-
-- Command attempted: `npm audit --omit=dev --json` in `MenuScanApp`
-  - Result: not completed
-  - Reason:
-    - policy rejection
-    - explicit approval is required before sending mobile dependency metadata to the npm registry
+No vulnerability counts are reported because no audit completed.
 
 ### Performance
 
-- Command: `which k6 || true && which artillery || true`
-  - Result:
-    - `k6 not found`
-    - `artillery not found`
+- `ab -n 200 -c 20 http://127.0.0.1:4175/`
+  - Target: local production frontend preview, static HTML only.
+  - Completed requests: `200`
+  - Failed requests: `0`
+  - Concurrency: `20`
+  - Mean request time: `5.018 ms`
+  - Longest request: `6 ms`
+  - Throughput: `3,985.73 requests/second`
+  - ApacheBench warned that the local timing distribution may not be reliable.
+- Transactional/API load scenarios
+  - Not executed.
+  - `k6` and `artillery` are not installed.
+  - No safe seeded staging target was provided.
 
-- Critical performance tests:
-  - no valid performance run completed
+The static preview benchmark is not a substitute for menu, order, inventory, reservation, queue, or database contention tests.
 
 ## Risk Summary
 
 ### Blockers
 
-- Frontend lint is red.
-- Frontend browser E2E is red.
-- Backend static analysis/style gate is red.
-- Mobile lint is red.
-- Migration validation is incomplete because the testing database is unavailable.
-- Dependency audits are incomplete because explicit approval was not granted for public-registry metadata submission.
+- Mobile lint fails.
+- Dependency vulnerability audits are incomplete.
+- The room-plan/reservation E2E remains skipped and requires a seeded backend.
+- No critical transactional load test has been run.
+- The local development database was emptied and requires an approved restore or reseed before it can support seeded validation.
 
 ### Critical Risks
 
-- The guest order lifecycle is not proven stable in a real browser run because the Playwright flow still fails after reaching the review page.
-- Clean launch evidence for browser console behavior is missing because no browser E2E run completed successfully end-to-end.
-- Migration safety is not proven because `migrate:status --env=testing` could not connect to the testing database.
+- Test execution previously connected to the wrong local database when generated config cache existed. The code-level bootstrap guard is now in place, but local data loss occurred and restore/reseed remains unresolved.
+- Broad-launch behavior under concurrent ordering, inventory deduction, reservation contention, queue processing, and kitchen updates is unmeasured.
 
 ### High Risks
 
-- The frontend build emits a large-chunk warning for the main app bundle.
-- Frontend lint contains hook-order and state-in-effect violations in launch-sensitive guest/admin components.
-- Mobile lint contains real hook/dead-code issues in active screens.
-- Production config artifacts are committed:
-  - [`Menu_React/.env.production`](/media/raed/Data/from%20ubuntu/new_menu/Menu_React/.env.production:1)
-  - [`Menu_API/.env.production`](/media/raed/Data/from%20ubuntu/new_menu/Menu_API/.env.production:1)
-  - [`google-services.json`](/media/raed/Data/from%20ubuntu/new_menu/google-services.json:1)
-  - This pass did not prove a plaintext production secret leak, but these files still require human review before launch.
+- Mobile lint and Android build validation are incomplete.
+- Dependency vulnerability posture is unknown.
+- The main frontend bundle remains `2,320.01 kB` minified.
+- Production configuration artifacts are committed and still require human secret review:
+  - `Menu_React/.env.production`
+  - `Menu_API/.env.production`
+  - `google-services.json`
+  - This review did not prove that plaintext production secrets are exposed.
 
 ### Medium Risks
 
+- Frontend lint emits `16` hook-dependency warnings.
 - Frontend unit tests emit React `act(...)` warnings.
-- Mobile Android build validation was blocked by Gradle bootstrap networking.
-- Performance tooling was not available locally.
-- Browser coverage is limited to Chromium and still failed before a clean pass.
+- Browser coverage is Chromium desktop only.
+- No frontend, backend, or mobile coverage report was generated.
+- No PHPStan/Psalm semantic analysis is configured.
 
 ### Known Limitations
 
-- One Playwright spec is intentionally skipped because it requires seeded backend data and credentials.
-- No frontend, backend, or mobile coverage report was generated.
-- No dedicated clean browser-console capture was completed.
-- No valid load/performance benchmark was executed.
+- One Playwright scenario is intentionally skipped pending a seeded backend and admin credentials.
+- No mobile device or emulator runtime test was performed.
+- Performance evidence covers only a local static frontend response.
+- Dependency audits require explicit external-registry approval.
+- The latest available SQL backups found during this review are dated June 16 and June 22, 2026; no restore was attempted.
 
 ### Manually Tested Features
 
-- None in this pass.
-- This review relied on automated checks, browser automation attempts, and source/doc review.
+None. Evidence came from automated tests, production builds, browser automation, migration commands, and source/document review.
 
 ### Untested Features
 
-- Full room-plan reservation browser flow
-- Clean end-to-end guest order lifecycle in a real browser
-- Mobile device/runtime behavior on actual hardware
-- Performance and sustained-load behavior
-- Audit vulnerability posture for Composer and npm dependencies
+- Full room-plan and public-reservation browser flow
+- Safari, Firefox, and mobile-browser guest flows
+- Android install/runtime behavior
+- Concurrent transactional performance and queue behavior
+- Dependency vulnerability posture
+- Production backup restoration
 
-### Reason Features Could Not Be Fully Tested
+### Why Features Could Not Be Tested
 
-- One E2E spec is explicitly skipped pending seeded backend data and admin credentials.
-- The remaining guest-order E2E failure still shows stale persisted browser state during review.
-- Android build validation was blocked by sandboxed network restrictions during Gradle bootstrap.
-- Dependency audits require explicit approval before package metadata can be sent to public services.
-- Testing DB connectivity blocked migration-status validation.
+- Seeded admin credentials and a safe live backend were unavailable for the skipped E2E.
+- Mobile build dependencies require external download authorization.
+- Dependency audits require explicit registry metadata authorization.
+- No seeded staging target or load-test tool was available for transactional performance testing.
 
 ## Pilot Plan
 
-Recommend a controlled pilot only after the blockers above are resolved and this report is rerun.
+Recommend a controlled pilot only after the blockers above are resolved and the launch review is rerun.
 
 - Suggested pilot duration: `2 weeks`
 - Number of pilot restaurants: `1`
@@ -218,48 +186,50 @@ Recommend a controlled pilot only after the blockers above are resolved and this
   - basic invoice generation
 - Features disabled initially:
   - finance dashboard
-  - payroll management
-  - expense management
+  - payroll and expense management
   - custom-domain onboarding
   - event reservations
-  - room-plan editor write flows
+  - room-plan write flows
   - public reservations
+  - mobile scanner production use
 - Errors and metrics to monitor:
-  - guest unlock failures
-  - order-create failures
-  - idempotency replay rate
+  - guest unlock and order-create failures
+  - idempotency replay and duplicate-order counts
   - inventory deduction mismatches
-  - invoice-generation failures
-  - JS error count
-  - 4xx/5xx rate by route
+  - invoice calculation/generation failures
+  - reservation conflicts
+  - frontend JS errors
+  - route latency and 4xx/5xx rates
+  - queue, broadcast, and database deadlock failures
 - Logging requirements:
-  - structured request logs with tenant, route, status, and latency
-  - guest access / order / invoice / inventory audit trails
+  - structured request logs with tenant, route, status, latency, and correlation ID
+  - guest access, order, invoice, inventory, payment, and reservation audit trails
   - queue and broadcast failure logs
-  - frontend error aggregation for guest and admin surfaces
+  - frontend error aggregation
 - Database backup plan:
-  - full backup immediately before pilot enablement
-  - nightly full backups during pilot
-  - point-in-time recovery enabled if infrastructure supports it
+  - verify a restore in staging before pilot
+  - take a full backup immediately before pilot
+  - take nightly full backups during pilot
+  - enable point-in-time recovery where supported
 - Rollback procedure:
-  - disable pilot-exposed features
-  - restore the last known-good frontend build
-  - restore the last known-good backend release
-  - restore database from the pre-pilot snapshot if integrity is in doubt
+  - disable pilot-exposed write features
+  - restore the last known-good frontend and backend releases
+  - stop queue workers if writes may compound corruption
+  - restore the pre-pilot database snapshot if integrity is in doubt
 - Support checklist:
-  - named on-call owner
+  - named on-call owner and client contact
   - tested support login path
-  - runbook for order/invoice/inventory incidents
-  - backup restore instructions validated in advance
+  - order/invoice/inventory incident runbook
+  - verified backup restore instructions
 - Incident-response checklist:
-  - identify tenant scope
-  - freeze affected writes if integrity is in question
-  - collect request, queue, and client logs
-  - assess rollback threshold
-  - notify pilot client with timestamps and recovery plan
+  - identify tenant and affected records
+  - freeze affected writes when integrity is in question
+  - preserve request, queue, database, and client logs
+  - assess rollback/restore threshold
+  - notify the pilot client with timestamps and recovery plan
 
 ## Final Answer
 
 Is this system ready for its first real restaurant client?
 
-**No.** Based on the evidence collected through July 30, 2026, the system is not ready for its first real restaurant client.
+**No.** Based only on the evidence collected on July 30, 2026, the system is not ready for its first real restaurant client.

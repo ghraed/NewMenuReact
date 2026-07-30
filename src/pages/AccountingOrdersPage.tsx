@@ -1279,8 +1279,9 @@ const AccountingOrdersPage: React.FC = () => {
     const nextGiftItems = currentGiftItems.filter((item) => item.id !== giftItemId);
     setLocalGiftItemsByTable((current) => {
       if (nextGiftItems.length === 0) {
-        const { [selectedTable]: _removed, ...rest } = current;
-        return rest;
+        return Object.fromEntries(
+          Object.entries(current).filter(([tableName]) => tableName !== selectedTable)
+        );
       }
 
       return {

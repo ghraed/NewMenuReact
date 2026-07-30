@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Guest order lifecycle', () => {
   test('guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state', async ({ page }) => {
+    const browserErrors: string[] = [];
     const guestToken = 'guest-token-abc';
     const sessionId = 501;
     const tableId = 1;
@@ -10,9 +11,33 @@ test.describe('Guest order lifecycle', () => {
     let submittedQuantity = 0;
     let lastIdempotencyKey: string | null = null;
 
-    await page.addInitScript(() => {
+    page.on('console', (message) => {
+      if (message.type() === 'error') {
+        browserErrors.push(message.text());
+      }
+    });
+    page.on('pageerror', (error) => browserErrors.push(error.message));
+
+    await page.addInitScript(async () => {
       window.localStorage.clear();
       window.sessionStorage.clear();
+
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      }
+
+      if ('caches' in window) {
+        const cacheNames = await window.caches.keys();
+        await Promise.all(cacheNames.map((cacheName) => window.caches.delete(cacheName)));
+      }
+
+      await new Promise<void>((resolve) => {
+        const request = window.indexedDB.deleteDatabase('menu-react-offline');
+        request.onsuccess = () => resolve();
+        request.onerror = () => resolve();
+        request.onblocked = () => resolve();
+      });
     });
 
     await page.route('**/api/**', async (route) => {
@@ -323,9 +348,34 @@ test.describe('Guest order lifecycle', () => {
 
       if (request.method() === 'GET' && path === `/api/table-session/${sessionId}/invoice-split`) {
         await route.fulfill({
-          status: 404,
+          status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ message: 'Not found' }),
+          body: JSON.stringify({
+            invoice_split: {
+              enabled: false,
+              mode: null,
+              split_count: null,
+              breakdown: [],
+            },
+          }),
+        });
+        return;
+      }
+
+      if (request.method() === 'POST' && path === `/api/table-session/${sessionId}/heartbeat`) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            table_session: tableMenuPayload.table_session,
+            guest_access: {
+              verified: true,
+              token: guestToken,
+              joined_at: '2026-07-26T12:01:00.000Z',
+              last_seen_at: '2026-07-26T12:04:00.000Z',
+              expires_at: null,
+            },
+          }),
         });
         return;
       }
@@ -379,5 +429,6 @@ test.describe('Guest order lifecycle', () => {
     await expect(page.getByText('staff confirmed')).toBeVisible();
     await expect(page.getByText('Mixed Grill Plate')).toBeVisible();
     await expect(page.getByText('$37.50').first()).toBeVisible();
+    expect(browserErrors).toEqual([]);
   });
 });

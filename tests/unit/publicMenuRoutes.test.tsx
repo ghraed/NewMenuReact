@@ -90,51 +90,51 @@ vi.mock('../../src/components/Guest/DishTags', () => ({
 }));
 
 vi.mock('../../src/components/Guest/DishCard', async () => {
-  const React = await import('react');
   const { useTranslation } = await import('react-i18next');
+  const MockDishCard = ({
+    dish,
+    onOpen,
+  }: {
+    dish: Dish;
+    onOpen?: () => void;
+  }) => {
+    const { i18n, t } = useTranslation();
+    const isArabic = i18n.resolvedLanguage === 'ar';
+    const name = isArabic ? (dish.name_ar || dish.name) : dish.name;
+
+    return (
+      <article data-testid={`dish-card-${dish.id}`}>
+        <h2>{name}</h2>
+        {onOpen ? (
+          <button type="button" onClick={onOpen}>
+            {t('dishCard.viewDetails')}
+          </button>
+        ) : null}
+      </article>
+    );
+  };
 
   return {
-    default: ({
-      dish,
-      onOpen,
-    }: {
-      dish: Dish;
-      onOpen?: () => void;
-    }) => {
-      const { i18n, t } = useTranslation();
-      const isArabic = i18n.resolvedLanguage === 'ar';
-      const name = isArabic ? (dish.name_ar || dish.name) : dish.name;
-
-      return (
-        <article data-testid={`dish-card-${dish.id}`}>
-          <h2>{name}</h2>
-          {onOpen ? (
-            <button type="button" onClick={onOpen}>
-              {t('dishCard.viewDetails')}
-            </button>
-          ) : null}
-        </article>
-      );
-    },
+    default: MockDishCard,
   };
 });
 
 vi.mock('../../src/components/Guest/DishDetailView', async () => {
-  const React = await import('react');
   const { useTranslation } = await import('react-i18next');
+  const MockDishDetailView = ({ dish }: { dish: Dish }) => {
+    const { i18n } = useTranslation();
+    const isArabic = i18n.resolvedLanguage === 'ar';
+
+    return (
+      <article>
+        <h1>{isArabic ? (dish.name_ar || dish.name) : dish.name}</h1>
+        <p>{isArabic ? (dish.description_ar || dish.description) : dish.description}</p>
+      </article>
+    );
+  };
 
   return {
-    default: ({ dish }: { dish: Dish }) => {
-      const { i18n } = useTranslation();
-      const isArabic = i18n.resolvedLanguage === 'ar';
-
-      return (
-        <article>
-          <h1>{isArabic ? (dish.name_ar || dish.name) : dish.name}</h1>
-          <p>{isArabic ? (dish.description_ar || dish.description) : dish.description}</p>
-        </article>
-      );
-    },
+    default: MockDishDetailView,
   };
 });
 

@@ -565,15 +565,13 @@ const ChatBot: React.FC = () => {
   const isRozerAiRoute = /^\/contact-us(?:\/|$)/i.test(location.pathname);
   const isHiddenRoute = /^\/admin\/login(?:\/|$)/i.test(location.pathname);
 
-  if (isHiddenRoute) {
-    return null;
-  }
   const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
   const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
   const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState<boolean | null>(null);
-  const shouldRenderChat = !isRozerAiRoute
+  const shouldRenderChat = !isHiddenRoute
+    && !isRozerAiRoute
     && (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
     && (!isGuestMenuRoute || isAiChatbotEnabled === true);
 
@@ -608,7 +606,7 @@ const ChatBot: React.FC = () => {
     }
 
     return `${slug}::no-session`;
-  }, [restaurant?.slug, chatContext.restaurant_slug, draft.tableSessionId]);
+  }, [restaurant?.slug, chatContext.restaurant_slug, chatContext.table_id, draft.tableSessionId]);
 
   const initialStoredStateRef = useRef<StoredChatState | null | undefined>(undefined);
   if (initialStoredStateRef.current === undefined) {

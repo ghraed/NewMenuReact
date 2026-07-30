@@ -76,7 +76,10 @@ export const loadPrintableInvoice = (): PrintableInvoicePayload | null => {
 const sanitizeFilenamePart = (value: string): string => {
   const normalized = value
     .trim()
-    .replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-')
+    .split('')
+    .filter((character) => character.charCodeAt(0) >= 32)
+    .join('')
+    .replace(/[<>:"/\\|?*]+/g, '-')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
