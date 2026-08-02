@@ -1,6 +1,6 @@
 # Known Issues
 
-Date: Thursday, July 30, 2026
+Date: Sunday, August 2, 2026
 
 ## Confirmed Launch Blockers
 
@@ -18,6 +18,7 @@ Date: Thursday, July 30, 2026
    - Requires running backend APIs and seeded admin credentials.
 
 4. Critical transactional performance testing is incomplete.
+   - A seeded local public-menu API benchmark was attempted at `50` and `20` concurrent requests, but the PHP development server produced no valid ApacheBench summary.
    - No seeded staging target was available.
    - `k6` and `artillery` are not installed.
    - The completed ApacheBench check covered static frontend HTML only.
@@ -77,6 +78,7 @@ Date: Thursday, July 30, 2026
 
 4. Backend functional suite.
    - Passed: `242` tests and `2,907` assertions against `restaurantdb_test`.
+   - Focused reservation, inventory, and order-lifecycle run also passed: `50` tests and `346` assertions.
 
 5. Backend syntax and package-manifest validation.
    - PHP syntax passed for `349` files.

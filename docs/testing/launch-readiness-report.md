@@ -1,6 +1,6 @@
 # Launch Readiness Report
 
-Date: Thursday, July 30, 2026
+Date: Sunday, August 2, 2026
 
 ## Executive Conclusion
 
@@ -41,6 +41,9 @@ The guest E2E originally failed because an active service worker served cached t
 - `php artisan test --compact` outside the network sandbox
   - Passed: `242` tests and `2,907` assertions.
   - Backend coverage was not generated.
+- `php artisan test --compact --filter='ReservationApiTest|OrderInventoryDeductionTest|OrderWorkflowTest'`
+  - Passed: `50` tests and `346` assertions.
+  - Covers reservation conflict policy, inventory deduction behavior, idempotent ordinary order retries, and order lifecycle transitions.
 - `./vendor/bin/pint --test`
   - Passed: `353` files.
 - PHP syntax validation across `app`, `routes`, `config`, `database`, and `tests`
@@ -83,7 +86,7 @@ The mobile repository also had four pre-existing uncommitted files. This review 
 ### Dependency Audit
 
 - `npm audit --omit=dev --json` for the frontend
-  - Not completed; policy requires explicit approval to send dependency metadata to npm.
+  - Not completed; the August 2 attempt was blocked because explicit approval is required to send dependency metadata to npm.
 - `composer audit --format=json` for the backend
   - Not completed; policy requires explicit approval to send dependency metadata to Packagist.
 - `npm audit --omit=dev --json` for mobile
@@ -102,10 +105,15 @@ No vulnerability counts are reported because no audit completed.
   - Longest request: `6 ms`
   - Throughput: `3,985.73 requests/second`
   - ApacheBench warned that the local timing distribution may not be reliable.
+- Seeded API benchmark attempts:
+  - `ab -n 500 -c 50 -H 'Accept: application/json' http://127.0.0.1:8000/api/menu/alpha/dishes`
+  - `ab -n 100 -c 20 -s 60 -H 'Accept: application/json' http://127.0.0.1:8000/api/menu/alpha/dishes`
+  - Both were inconclusive: the local PHP development server did not produce an ApacheBench summary under the seeded large-menu workload.
+  - No latency, throughput, or error-rate number is claimed for these attempts.
 - Transactional/API load scenarios
   - Not executed.
   - `k6` and `artillery` are not installed.
-  - No safe seeded staging target was provided.
+- A seeded `restaurantdb_test` dataset was used for the local API attempt, but no staging target was provided.
 
 The static preview benchmark is not a substitute for menu, order, inventory, reservation, queue, or database contention tests.
 

@@ -1,6 +1,6 @@
 # Performance Results
 
-Date: Thursday, July 30, 2026
+Date: Sunday, August 2, 2026
 
 ## Requested Critical Scenarios
 
@@ -41,13 +41,28 @@ The Chromium guest-order lifecycle passed against the local production frontend 
 
 The complete backend suite passed `242` tests and `2,907` assertions. Existing tests cover ordinary idempotent order retry, competing reservation conflict policy, and low-stock inventory behavior. These functional tests do not provide sustained-load latency or throughput measurements.
 
+On August 2, the focused command below passed `50` tests and `346` assertions:
+
+`php artisan test --compact --filter='ReservationApiTest|OrderInventoryDeductionTest|OrderWorkflowTest'`
+
+### Seeded Public Menu API Attempt
+
+The isolated `restaurantdb_test` database was rebuilt and seeded with the Alpha/Sigma tenant scenario. The Alpha `qr_menu` feature was enabled only in that test database, and a health request to `GET /api/menu/alpha/dishes` returned `200`.
+
+The following local-only ApacheBench attempts did not produce a usable summary:
+
+- `ab -n 500 -c 50 -H 'Accept: application/json' http://127.0.0.1:8000/api/menu/alpha/dishes`
+- `ab -n 100 -c 20 -s 60 -H 'Accept: application/json' http://127.0.0.1:8000/api/menu/alpha/dishes`
+
+The local PHP development server could not complete the seeded large-menu workload in a way that yielded final ApacheBench metrics. No throughput, latency, error-rate, or conclusion is reported from these attempts.
+
 ## Not Executed
 
 No valid transactional load test was executed for menu APIs, active table sessions, concurrent order submission, kitchen updates, queues, reservations, or inventory locking.
 
 Reasons:
 
-- no safe seeded staging backend was provided
+- no staging backend was provided
 - `k6` is not installed
 - `artillery` is not installed
 - the isolated test database was rebuilt but not seeded for multi-role load traffic
