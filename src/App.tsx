@@ -484,7 +484,7 @@ const App: React.FC = () => {
           <AppThemeProvider>
             <AppLocaleSync />
             <GuestMenuResourceProvider>
-              <BrowserRouter unstable_useTransitions={false}>
+              <BrowserRouter>
                 <AppRoutes />
                 <Suspense fallback={null}>
                   <ChatBot />
