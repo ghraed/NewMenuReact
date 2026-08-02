@@ -30,6 +30,7 @@ const GuestInvoicePage: React.FC = () => {
     ttlMs: 10_000,
   });
   const guestMenuResourceKey = guestMenuResource.key;
+  const ensureGuestMenu = guestMenuResource.ensure;
 
   useEffect(() => {
     if (!activeTableId || !draft.guestAccessToken) {
@@ -43,7 +44,7 @@ const GuestInvoicePage: React.FC = () => {
       setLoading(true);
 
       try {
-        const entry = await guestMenuResource.ensure();
+        const entry = await ensureGuestMenu();
         const data = entry.data;
 
         if (!data?.table || !data.table_session) {
@@ -122,7 +123,7 @@ const GuestInvoicePage: React.FC = () => {
     activeTableId,
     clearGuestAccess,
     draft.guestAccessToken,
-    guestMenuResource,
+    ensureGuestMenu,
     guestMenuResourceKey,
     restaurant?.name,
     setGuestContext,

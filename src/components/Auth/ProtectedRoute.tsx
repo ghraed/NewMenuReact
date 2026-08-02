@@ -28,7 +28,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
     return <Navigate to={getDefaultRouteForRole(user?.role)} replace />;
   }
 
-  if (!areFeaturesEnabled(user?.restaurant?.feature_flags, requiredFeatures, user?.email)) {
+  if (!areFeaturesEnabled(user?.restaurant?.feature_flags, requiredFeatures)) {
     return <NotFoundView />;
   }
 

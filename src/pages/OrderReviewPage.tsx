@@ -73,6 +73,7 @@ const OrderReviewPage: React.FC = () => {
     ttlMs: 10_000,
   });
   const guestMenuResourceKey = guestMenuResource.key;
+  const ensureGuestMenu = guestMenuResource.ensure;
   const restaurantSlug = submittedOrder?.restaurant.slug || restaurant?.slug;
   const restaurantName = submittedOrder?.restaurant.name || restaurant?.name || formatRestaurantLabel(restaurantSlug);
   const restaurantLogoUrl = guestMenuResource.data?.restaurant?.logo_url ?? restaurant?.logo_url ?? null;
@@ -110,7 +111,7 @@ const OrderReviewPage: React.FC = () => {
     setSessionLoading(true);
     setError(null);
 
-    void guestMenuResource.ensure()
+    void ensureGuestMenu()
       .then((entry) => {
         const response = entry.data;
         const hasActiveUnlockedSession = (
@@ -147,7 +148,7 @@ const OrderReviewPage: React.FC = () => {
       .finally(() => {
         setSessionLoading(false);
       });
-  }, [activeTableId, submittedOrder, guestMenuResource, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
+  }, [activeTableId, submittedOrder, ensureGuestMenu, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   useEffect(() => {
     if (!submitting && !submittedOrder) {

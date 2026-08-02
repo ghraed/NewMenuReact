@@ -193,6 +193,9 @@ const GuestDishListPage: React.FC = () => {
   const offlineLastUpdatedLabel = guestResource.isOfflineData && guestResource.lastLoadedAt
     ? new Date(guestResource.lastLoadedAt).toLocaleTimeString()
     : null;
+  const ensureGuestResource = guestResource.ensure;
+  const guestResourceEnabled = guestResource.enabled;
+  const guestResourceKey = guestResource.key;
 
   const upsertCardDishes = useCallback((incoming: Dish[], sourceRestaurant: RestaurantSummary) => {
     if (incoming.length === 0) {
@@ -322,24 +325,24 @@ const GuestDishListPage: React.FC = () => {
   }, [fetchDishPage, hasMorePages, loadingMore, nextOffset, upsertCardDishes]);
 
   useEffect(() => {
-    if (!guestResource.enabled || !guestResource.key) {
+    if (!guestResourceEnabled || !guestResourceKey) {
       setLoading(false);
       return;
     }
 
     // Only bootstrap once per resource key. Re-renders should not re-trigger menu loading.
-    if (resourceRequestKeyRef.current === guestResource.key) {
+    if (resourceRequestKeyRef.current === guestResourceKey) {
       return;
     }
 
-    resourceRequestKeyRef.current = guestResource.key;
+    resourceRequestKeyRef.current = guestResourceKey;
     setLoading(true);
     setError(null);
 
-    void guestResource.ensure()
+    void ensureGuestResource()
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  }, [guestResource, guestResource.enabled, guestResource.key]);
+  }, [ensureGuestResource, guestResourceEnabled, guestResourceKey]);
 
   useEffect(() => {
     if (!guestResource.data) {

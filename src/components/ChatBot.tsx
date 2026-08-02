@@ -641,6 +641,7 @@ const ChatBot: React.FC = () => {
     enabled: isOpen && isGuestMenuRoute,
     ttlMs: 10_000,
   });
+  const ensureGuestMenu = guestMenuResource.ensure;
   const chatCatalogRef = useRef<ChatRecommendationDish[]>([]);
   const chatDetailRequestsRef = useRef<Map<number, Promise<ChatRecommendationDish[]>>>(new Map());
   const chatDishes = useMemo<ChatDishLink[]>(
@@ -740,7 +741,7 @@ const ChatBot: React.FC = () => {
       try {
         const entry = guestMenuResource.data
           ? { data: guestMenuResource.data }
-          : await guestMenuResource.ensure();
+          : await ensureGuestMenu();
         const featureFlags = entry.data?.restaurant?.feature_flags;
         const fullDishes = entry.data?.dishes ?? [];
         const indexedDishes = entry.data?.dish_index ?? [];
@@ -778,8 +779,8 @@ const ChatBot: React.FC = () => {
       cancelled = true;
     };
   }, [
-    guestMenuResource,
     guestMenuResource.data,
+    ensureGuestMenu,
     isOpen,
     location.pathname,
     restaurant?.feature_flags,

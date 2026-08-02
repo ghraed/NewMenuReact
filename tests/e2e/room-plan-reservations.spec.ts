@@ -21,7 +21,15 @@ test.describe('Room plan editor + reservations', () => {
     await expect(page.getByText(planName)).toBeVisible();
 
     await page.getByRole('button', { name: /Add Item/i }).click();
-    await page.getByRole('button', { name: /Save Layout/i }).click();
+    await expect(page.getByRole('button', { name: /Table 1/i })).toBeVisible();
+    await Promise.all([
+      page.waitForResponse((response) => (
+        response.request().method() === 'PUT'
+        && /\/api\/room-plans\/\d+\/items\/bulk$/.test(response.url())
+        && response.ok()
+      )),
+      page.getByRole('button', { name: /Save Layout/i }).click(),
+    ]);
 
     await page.goto('/reservations');
     await expect(page.getByText('Book A Table')).toBeVisible();

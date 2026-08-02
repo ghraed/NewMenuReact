@@ -375,9 +375,37 @@ export const useGuestMenuResource = (
     throw new Error('useGuestMenuResource must be used within GuestMenuResourceProvider');
   }
 
-  const key = context.buildKey(query);
+  const { buildKey, ensure: ensureFromContext, read } = context;
+  const normalizedQuery = useMemo<GuestMenuQuery>(() => ({
+    tableId: query.tableId,
+    restaurantSlug: query.restaurantSlug,
+    guestAccessToken: query.guestAccessToken,
+    language: query.language,
+    includeDishes: query.includeDishes,
+    limit: query.limit,
+    offset: query.offset,
+    includeIndex: query.includeIndex,
+  }), [
+    query.guestAccessToken,
+    query.includeDishes,
+    query.includeIndex,
+    query.language,
+    query.limit,
+    query.offset,
+    query.restaurantSlug,
+    query.tableId,
+  ]);
+  const key = buildKey(normalizedQuery);
   const enabled = options?.enabled !== false && Boolean(key);
-  const snapshot = key ? context.read(key) : null;
+  const snapshot = key ? read(key) : null;
+  const refresh = useCallback(
+    () => ensureFromContext(normalizedQuery, { force: true, ttlMs: options?.ttlMs }),
+    [ensureFromContext, normalizedQuery, options?.ttlMs]
+  );
+  const ensure = useCallback(
+    () => ensureFromContext(normalizedQuery, { force: false, ttlMs: options?.ttlMs }),
+    [ensureFromContext, normalizedQuery, options?.ttlMs]
+  );
 
   const status = !enabled
     ? 'idle'
@@ -389,7 +417,7 @@ export const useGuestMenuResource = (
           ? 'success'
           : 'idle';
 
-  return {
+  return useMemo(() => ({
     key,
     enabled,
     status,
@@ -399,7 +427,7 @@ export const useGuestMenuResource = (
     lastLoadedAt: snapshot?.lastLoadedAt ?? null,
     isOfflineData: snapshot?.isOfflineData ?? false,
     sessionEligible: snapshot?.sessionEligible ?? null,
-    refresh: () => context.ensure(query, { force: true, ttlMs: options?.ttlMs }),
-    ensure: () => context.ensure(query, { force: false, ttlMs: options?.ttlMs }),
-  };
+    refresh,
+    ensure,
+  }), [enabled, ensure, key, refresh, snapshot, status]);
 };

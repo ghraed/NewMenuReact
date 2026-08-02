@@ -148,7 +148,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
           ];
 
   const visibleNavItems = navItems.filter((item) => (
-    areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures, user?.email)
+    areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures)
   ));
 
   const activeLanguage = (i18n.resolvedLanguage || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';

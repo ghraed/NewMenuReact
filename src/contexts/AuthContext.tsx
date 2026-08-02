@@ -4,7 +4,6 @@ import api from '../services/api';
 import { resetEcho } from '../services/realtime';
 import type { AuthUserSummary } from '../types';
 import { getDefaultRouteForRole } from '../utils/auth';
-import { withFullFeatureAccess } from '../utils/features';
 
 export type AuthUser = AuthUserSummary;
 
@@ -34,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = React.useCallback(async () => {
     const response = await api.get('/auth/me');
-    const nextUser = withFullFeatureAccess(response.data.user as AuthUser);
+    const nextUser = response.data.user as AuthUser;
     setUser(nextUser);
     return nextUser;
   }, []);
@@ -67,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (identifier: string, password: string) => {
     const response = await api.post('/auth/login', { email: identifier, password });
     const nextToken = response.data.token as string;
-    const nextUser = withFullFeatureAccess(response.data.user as AuthUser);
+    const nextUser = response.data.user as AuthUser;
 
     localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
     resetEcho();

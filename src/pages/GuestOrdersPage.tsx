@@ -100,6 +100,7 @@ const GuestOrdersPage: React.FC = () => {
     ttlMs: 10_000,
   });
   const guestMenuResourceKey = guestMenuResource.key;
+  const ensureGuestMenu = guestMenuResource.ensure;
   const restaurantName = restaurant?.name || t('guestOrders.title');
   const restaurantLogoUrl = guestMenuResource.data?.restaurant?.logo_url ?? restaurant?.logo_url ?? null;
   const restaurantShortDescription = (guestMenuResource.data?.restaurant?.profile?.short_description || '').trim();
@@ -153,7 +154,7 @@ const GuestOrdersPage: React.FC = () => {
       setError(null);
 
       try {
-        const entry = await guestMenuResource.ensure();
+        const entry = await ensureGuestMenu();
         const sessionResponse = entry.data;
         if (!sessionResponse?.table) {
           setOrders([]);
@@ -224,7 +225,7 @@ const GuestOrdersPage: React.FC = () => {
     };
 
     void load();
-  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, guestMenuResource, guestMenuResourceKey, setGuestContext, t, updateDraft]);
+  }, [activeTableId, clearGuestAccess, draft.guestAccessToken, ensureGuestMenu, guestMenuResourceKey, setGuestContext, t, updateDraft]);
 
   const editableItems = invoiceSplit?.editable_items ?? [];
 
