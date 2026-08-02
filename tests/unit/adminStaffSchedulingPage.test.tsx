@@ -129,14 +129,16 @@ describe('AdminStaffSchedulingPage', () => {
 
     fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '17:00' } });
     fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '09:00' } });
+    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'floor' } });
 
     const createButton = screen.getByRole('button', { name: 'Create Shift' });
     const form = createButton.closest('form');
     expect(form).not.toBeNull();
     fireEvent.submit(form as HTMLFormElement);
 
-    fireEvent.change(screen.getByLabelText('Position'), { target: { value: 'floor' } });
-
+    await waitFor(() => {
+      expect(screen.getByText('End time must be after start time, or mark this as an overnight shift.')).toBeVisible();
+    });
     expect(mockedScheduleService.createStaffShift).not.toHaveBeenCalled();
   });
 });
