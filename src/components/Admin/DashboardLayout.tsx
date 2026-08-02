@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -147,9 +147,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             { path: '/admin/ingredients/global', label: t('admin.globalIngredients'), icon: 'globe' },
           ];
 
-  const visibleNavItems = useMemo(() => navItems.filter((item) => (
+  const visibleNavItems = navItems.filter((item) => (
     areFeaturesEnabled(user?.restaurant?.feature_flags, item.requiredFeatures, user?.email)
-  )), [navItems, user?.email, user?.restaurant?.feature_flags]);
+  ));
 
   const activeLanguage = (i18n.resolvedLanguage || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 

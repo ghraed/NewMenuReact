@@ -889,7 +889,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
         hoverBorderColor: '#ffffff',
       };
     }),
-  }), [chartLabels, chartMetrics, selectedMetrics, convertFinanceAmount]);
+  }), [chartLabels, chartMetrics, selectedMetrics, convertFinanceAmount, metricLabels]);
 
   const chartOptions = useMemo<ChartOptions<'bar' | 'line'>>(() => ({
     responsive: true,

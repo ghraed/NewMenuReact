@@ -118,7 +118,7 @@ const AdminReservationsPage: React.FC = () => {
     };
 
     void loadCreatePlan();
-  }, [createRoomPlanId]);
+  }, [createRoomPlanId, t]);
 
   useEffect(() => {
     void refreshCreateAvailability();

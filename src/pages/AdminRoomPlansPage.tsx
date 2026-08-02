@@ -304,7 +304,7 @@ const AdminRoomPlansPage: React.FC = () => {
     setUploadedBorderPoints([]);
     setBorderPoints([]);
     setSnapWarning(t('roomPlansPage.noUploadedBorderPath'));
-  }, [selectedPlan]);
+  }, [selectedPlan, t]);
 
   useEffect(() => {
     if (!selectedPlan) return;
@@ -456,7 +456,7 @@ const AdminRoomPlansPage: React.FC = () => {
     } finally {
       if (borderInputRef.current) borderInputRef.current.value = '';
     }
-  }, [imageNaturalSize?.height, imageNaturalSize?.width, selectedPlan]);
+  }, [imageNaturalSize?.height, imageNaturalSize?.width, selectedPlan, t]);
 
   const handleClearBorder = useCallback(() => {
     if (borderOverlayRef.current) clearBorderOverlay(borderOverlayRef.current);
@@ -468,7 +468,7 @@ const AdminRoomPlansPage: React.FC = () => {
     setSnapWarning(t('roomPlansPage.noUploadedBorderPath'));
     setDetectedContours([]);
     setSelectedContourId(null);
-  }, [selectedPlan]);
+  }, [selectedPlan, t]);
 
   useEffect(() => {
     if (!borderOverlayRef.current || !selectedPlan) return;
@@ -533,7 +533,7 @@ const AdminRoomPlansPage: React.FC = () => {
     } catch {
       setError(t('roomPlansPage.failedDetectContours'));
     }
-  }, [edgeThreshold, selectedPlan?.height, selectedPlan?.width, selectedPlanBackgroundImageUrl, t]);
+  }, [edgeThreshold, selectedPlan, selectedPlanBackgroundImageUrl, t]);
 
   const exportSelectedContour = useCallback(() => {
     const selectedRaw = detectedContours.find((contour) => contour.id === selectedContourId)?.points;

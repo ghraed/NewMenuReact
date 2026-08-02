@@ -385,7 +385,7 @@ const AdminEventsPage: React.FC = () => {
         category,
         [...dishes].sort((a, b) => a.name.localeCompare(b.name)),
       ] as const);
-  }, [menuDraft, publishedDishes]);
+  }, [menuDraft, publishedDishes, t]);
 
   const addableDishOptions = useMemo(() => {
     const selectedDishIds = new Set(Object.keys(menuDraft).map((dishId) => Number(dishId)));

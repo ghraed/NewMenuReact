@@ -122,6 +122,7 @@ const GuestInvoicePage: React.FC = () => {
     activeTableId,
     clearGuestAccess,
     draft.guestAccessToken,
+    guestMenuResource,
     guestMenuResourceKey,
     restaurant?.name,
     setGuestContext,

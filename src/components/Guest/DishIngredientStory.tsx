@@ -73,7 +73,7 @@ const DishIngredientStory: React.FC<DishIngredientStoryProps> = ({
   const rowStart = previewBandHeight + 12;
   const stageHeight = useMemo(
     () => Math.max(620, rowStart + Math.max(ingredients.length - 1, 0) * rowGap + 120),
-    [ingredients.length]
+    [ingredients.length, rowStart]
   );
   const dishCenterTop = previewAnchorTop + 116;
   const centerLiftTop = previewAnchorTop + 88;

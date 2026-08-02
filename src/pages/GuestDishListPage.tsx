@@ -339,7 +339,7 @@ const GuestDishListPage: React.FC = () => {
     void guestResource.ensure()
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  }, [guestResource.enabled, guestResource.key]);
+  }, [guestResource, guestResource.enabled, guestResource.key]);
 
   useEffect(() => {
     if (!guestResource.data) {

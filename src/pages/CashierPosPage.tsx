@@ -208,7 +208,7 @@ const CashierPosPage: React.FC = () => {
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [compDraft, setCompDraft] = useState<CompensationDraft>(makeDefaultDraft());
-  const [reportRefreshKey, setReportRefreshKey] = useState(0);
+  const [, setReportRefreshKey] = useState(0);
 
   const actor = useMemo(() => ({
     id: user?.id,
@@ -301,10 +301,7 @@ const CashierPosPage: React.FC = () => {
   );
   const { receivedAmount, changeDue, remainingDue } = settlement;
 
-  const compensationReport = useMemo(
-    () => buildCompensationDashboardReport(readCompensationLedger()),
-    [reportRefreshKey]
-  );
+  const compensationReport = buildCompensationDashboardReport(readCompensationLedger());
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
     const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
@@ -585,7 +582,6 @@ const CashierPosPage: React.FC = () => {
     }
   }, [
     actor,
-    amountReceived,
     cartItems,
     clearOrder,
     discountType,

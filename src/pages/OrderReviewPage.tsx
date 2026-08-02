@@ -147,7 +147,7 @@ const OrderReviewPage: React.FC = () => {
       .finally(() => {
         setSessionLoading(false);
       });
-  }, [activeTableId, submittedOrder, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
+  }, [activeTableId, submittedOrder, guestMenuResource, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
   useEffect(() => {
     if (!submitting && !submittedOrder) {
