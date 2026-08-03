@@ -35,8 +35,12 @@ interface InvoicePreviewItem {
 }
 
 interface InvoicePreviewSummary {
+  subtotal?: string;
   discount_amount: string;
+  taxable_subtotal?: string;
   vat_rate: string;
+  vat_amount?: string;
+  total?: string;
 }
 
 const parseMoneyValue = (value: string | number | null | undefined): number => {
@@ -190,12 +194,13 @@ export const buildPrintableInvoiceSummaryFromPreview = (
   summary: InvoicePreviewSummary,
   t: (key: string, options?: Record<string, unknown>) => string
 ): PrintableInvoiceSummary => {
-  const subtotal = items.reduce((sum, item) => sum + parseMoneyValue(item.lineSubtotal), 0);
+  const fallbackSubtotal = items.reduce((sum, item) => sum + parseMoneyValue(item.lineSubtotal), 0);
+  const subtotal = parseMoneyValue(summary.subtotal) || fallbackSubtotal;
   const discountAmount = parseMoneyValue(summary.discount_amount);
   const vatRate = parseMoneyValue(summary.vat_rate);
-  const taxableSubtotal = Math.max(0, subtotal - discountAmount);
-  const vatAmount = taxableSubtotal * (vatRate / 100);
-  const total = taxableSubtotal + vatAmount;
+  const taxableSubtotal = parseMoneyValue(summary.taxable_subtotal) || Math.max(0, subtotal - discountAmount);
+  const vatAmount = parseMoneyValue(summary.vat_amount) || (taxableSubtotal * (vatRate / 100));
+  const total = parseMoneyValue(summary.total) || (taxableSubtotal + vatAmount);
 
   return {
     subtotal: formatMoney(subtotal),

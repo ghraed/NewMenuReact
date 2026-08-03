@@ -69,12 +69,12 @@ export const buildGuestInvoicePayload = (input: {
 
   const items = Array.from(grouped.values()).sort((left, right) => left.dishName.localeCompare(right.dishName));
 
-  const subtotal = items.reduce((sum, item) => sum + asNumber(item.lineSubtotal), 0);
+  const subtotal = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.subtotal), 0);
   const discountAmount = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.discount_amount), 0);
   const vatRate = input.orders.reduce((max, order) => Math.max(max, asNumber(order.invoice.vat_rate)), 0);
-  const taxableSubtotal = Math.max(subtotal - discountAmount, 0);
-  const vatAmount = taxableSubtotal * (vatRate / 100);
-  const total = taxableSubtotal + vatAmount;
+  const taxableSubtotal = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.taxable_subtotal), 0);
+  const vatAmount = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.vat_amount), 0);
+  const total = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.total), 0);
   const percentageDiscountOrder = input.orders.find((order) => order.invoice.discount_type === 'percentage');
 
   return {
