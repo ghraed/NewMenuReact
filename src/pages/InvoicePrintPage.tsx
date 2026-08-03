@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import InvoiceTemplate from '../components/Invoice/InvoiceTemplate';
@@ -46,11 +45,6 @@ const InvoicePrintPage: React.FC = () => {
             <p className="text-xs uppercase tracking-[0.24em] text-gold2/85">{t('invoice.printEyebrow')}</p>
             <h1 className="text-3xl font-semibold text-text">{t('invoice.noInvoice')}</h1>
             <p className="text-muted">{t('invoice.noInvoiceDescription')}</p>
-            <div className="pt-2">
-              <Link to="/admin/accounting" className="inline-flex">
-                <LiquidButton type="button" tone="primary">{t('invoice.backToAccounting')}</LiquidButton>
-              </Link>
-            </div>
           </GlassCard>
         </div>
       </main>
@@ -78,16 +72,10 @@ const InvoicePrintPage: React.FC = () => {
         `}
       </style>
 
-      <div className="invoice-print-toolbar mx-auto mb-6 flex max-w-6xl items-center justify-between gap-3">
-        <Link to="/admin/accounting" className="inline-flex">
-          <LiquidButton type="button" tone="tertiary">{t('invoice.backToAccounting')}</LiquidButton>
-        </Link>
+      <div className="invoice-print-toolbar mx-auto mb-6 flex max-w-6xl items-center justify-end gap-3">
         <div className="flex flex-wrap gap-3">
           <LiquidButton type="button" tone="secondary" onClick={() => window.print()}>
             {t('invoice.printAgain')}
-          </LiquidButton>
-          <LiquidButton type="button" tone="primary" onClick={() => window.close()}>
-            {t('common.close')}
           </LiquidButton>
         </div>
       </div>
