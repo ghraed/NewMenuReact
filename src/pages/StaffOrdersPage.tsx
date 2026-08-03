@@ -1150,7 +1150,7 @@ const StaffOrdersPage: React.FC = () => {
       return;
     }
 
-    if (!session.table?.id || !session.current_pin) {
+    if (!session.table_id || !session.current_pin) {
       setError(t('staffOrdersPage.missingSessionPin'));
       return;
     }
@@ -1159,7 +1159,7 @@ const StaffOrdersPage: React.FC = () => {
     setError(null);
 
     try {
-      const accessResponse = await verifyGuestTablePin(session.table.id, session.current_pin);
+      const accessResponse = await verifyGuestTablePin(session.table_id, session.current_pin);
       const response = await createGuestTableSessionOrder(session.id, {
         items: staffOrderItems.map((item) => ({
           dish_id: item.dish_id,
