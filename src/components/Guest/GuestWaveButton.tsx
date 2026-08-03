@@ -283,7 +283,7 @@ const GuestWaveButton: React.FC = () => {
                   </button>
                 ) : null}
 
-                {!hasCartShortcut ? (
+                {totalItems > 0 ? (
                   <button
                     type="button"
                     onClick={() => {
