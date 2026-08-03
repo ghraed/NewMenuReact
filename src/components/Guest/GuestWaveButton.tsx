@@ -169,6 +169,7 @@ const GuestWaveButton: React.FC = () => {
 
         savePrintableInvoice({
           sourceTableId: activeTableId,
+          invoiceNumber: response.invoice_number || undefined,
           restaurantName: response.invoice_preview.restaurant_name,
           tableName: response.invoice_preview.table_name,
           generatedAt: new Date(response.invoice_preview.generated_at).toLocaleString(),

@@ -1559,9 +1559,15 @@ const AccountingOrdersPage: React.FC = () => {
         .map((order) => order.notes?.trim())
         .filter((note): note is string => Boolean(note));
       const savedIncludedOrders = savedOrders.map((order) => order.order_number || t('accountingPage.orderNumberLabel', { id: order.id }));
+      const savedInvoiceNumbers = Array.from(new Set(
+        savedOrders
+          .map((order) => order.invoice_number?.trim())
+          .filter((invoiceNumber): invoiceNumber is string => Boolean(invoiceNumber))
+      ));
 
       savePrintableInvoice({
         sourceTableId: selectedTable,
+        invoiceNumber: savedInvoiceNumbers.length > 0 ? savedInvoiceNumbers.join(', ') : undefined,
         restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
         tableName: selectedTable,
         generatedAt: new Date().toLocaleString(),
@@ -1827,6 +1833,11 @@ const AccountingOrdersPage: React.FC = () => {
 
     savePrintableInvoice({
       sourceTableId: selectedTable,
+      invoiceNumber: Array.from(new Set(
+        selectedTableOrders
+          .map((order) => order.invoice_number?.trim())
+          .filter((invoiceNumber): invoiceNumber is string => Boolean(invoiceNumber))
+      )).join(', ') || undefined,
       restaurantName: user?.restaurant?.name || t('accountingPage.restaurantFallback'),
       tableName: selectedTable,
       generatedAt: new Date().toLocaleString(),

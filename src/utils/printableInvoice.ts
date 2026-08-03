@@ -42,6 +42,7 @@ export interface PrintableInvoiceSplit {
 
 export interface PrintableInvoicePayload {
   sourceTableId?: number | string;
+  invoiceNumber?: string;
   restaurantName: string;
   tableName: string;
   generatedAt: string;

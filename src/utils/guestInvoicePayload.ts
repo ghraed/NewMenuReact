@@ -9,6 +9,16 @@ const asNumber = (value: string | number | null | undefined): number => {
 
 const money = (value: number): string => `$${value.toFixed(2)}`;
 
+const buildInvoiceNumber = (orders: OrderRecord[]): string | undefined => {
+  const numbers = Array.from(new Set(
+    orders
+      .map((order) => order.invoice_number?.trim())
+      .filter((value): value is string => Boolean(value))
+  ));
+
+  return numbers.length > 0 ? numbers.join(', ') : undefined;
+};
+
 const buildGroupingKey = (item: OrderLineItem): string => [
   item.dish_id ?? item.dish_name,
   item.status || 'normal',
@@ -79,6 +89,7 @@ export const buildGuestInvoicePayload = (input: {
 
   return {
     sourceTableId: input.sourceTableId,
+    invoiceNumber: buildInvoiceNumber(input.orders),
     restaurantName: input.restaurantName,
     tableName: input.tableName,
     generatedAt: input.generatedAt,

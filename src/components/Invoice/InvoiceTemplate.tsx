@@ -65,6 +65,16 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
               {' • '}
               {invoice.generatedAt}
             </p>
+            {invoice.invoiceNumber ? (
+              <p
+                className={`mt-2 text-sm ${isGuest ? '' : 'text-[#b8b0a5] print:text-black/70'}`}
+                style={isGuest ? { color: 'var(--guest-muted)' } : undefined}
+              >
+                {t('invoice.invoiceNumber')}
+                {': '}
+                {invoice.invoiceNumber}
+              </p>
+            ) : null}
           </div>
 
           <div

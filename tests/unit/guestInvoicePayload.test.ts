@@ -6,7 +6,7 @@ const buildOrder = (): OrderRecord => ({
   id: 1,
   uuid: 'order-1',
   order_number: 'ORD-1',
-  invoice_number: null,
+  invoice_number: 'INV-30',
   status: 'pending_staff_confirmation',
   table_session_id: 10,
   table_reference: 'T1',
@@ -90,6 +90,7 @@ describe('guest invoice payload', () => {
     expect(payload.summary.subtotal).toBe('$30.00');
     expect(payload.summary.taxableSubtotal).toBe('$30.00');
     expect(payload.summary.total).toBe('$30.00');
+    expect(payload.invoiceNumber).toBe('INV-30');
     expect(payload.split?.breakdown).toHaveLength(2);
   });
 });
