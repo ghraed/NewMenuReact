@@ -84,6 +84,7 @@ interface TableSessionActionResponse {
   invoice_number?: string | null;
   invoice_status?: FinanceInvoiceStatus | null;
   invoice_preview?: {
+    invoice_number?: string | null;
     restaurant_name: string;
     table_name: string;
     generated_at: string;

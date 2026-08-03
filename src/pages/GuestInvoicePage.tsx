@@ -95,9 +95,14 @@ const GuestInvoicePage: React.FC = () => {
           t,
         });
 
+        const resolvedInvoice: PrintableInvoicePayload = {
+          ...nextInvoice,
+          invoiceNumber: nextInvoice.invoiceNumber || invoice?.invoiceNumber || cachedInvoice?.invoiceNumber,
+        };
+
         if (!cancelled) {
-          savePrintableInvoice(nextInvoice);
-          setInvoice(nextInvoice);
+          savePrintableInvoice(resolvedInvoice);
+          setInvoice(resolvedInvoice);
         }
       } catch (error: unknown) {
         const status = typeof error === 'object' && error !== null && 'response' in error
