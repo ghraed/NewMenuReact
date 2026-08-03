@@ -220,6 +220,7 @@ const StaffOrdersPage: React.FC = () => {
     () => new Set((user?.assigned_tables ?? []).map((table) => table.id)),
     [user?.assigned_tables]
   );
+  const canAccessKitchenReadyOrders = user?.role === 'admin' || user?.role === 'chef';
 
   const getOrderLabel = useCallback((order: OrderRecord): string => (
     order.order_number || t('staffOrdersPage.orderNumberLabel', { id: order.id })
@@ -376,14 +377,17 @@ const StaffOrdersPage: React.FC = () => {
 
       setOrders(nextOrders);
       setWaves(nextWaves);
-      try {
-        const nextReadyOrders = await fetchKitchenOrders('ready');
-        setReadyOrders(nextReadyOrders);
-      } catch (kitchenErr) {
-        console.warn('[Staff] Failed to load ready kitchen orders.', kitchenErr);
+      if (canAccessKitchenReadyOrders) {
+        try {
+          const nextReadyOrders = await fetchKitchenOrders('ready');
+          setReadyOrders(nextReadyOrders);
+        } catch (kitchenErr) {
+          console.warn('[Staff] Failed to load ready kitchen orders.', kitchenErr);
+          setReadyOrders([]);
+        }
+      } else {
         setReadyOrders([]);
       }
-
       try {
         const nextSessions = await fetchActiveTableSessions();
         setTableSessions(nextSessions);
@@ -408,6 +412,7 @@ const StaffOrdersPage: React.FC = () => {
     getOrderNotificationTitle,
     getOrderToastMessage,
     isOrderAssignedToCurrentStaff,
+    canAccessKitchenReadyOrders,
     showToast,
     t,
   ]);
