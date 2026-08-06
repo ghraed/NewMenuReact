@@ -24,7 +24,7 @@ export interface ChatRecommendationResolution {
 
 const DIRECT_DISH_INTENT_PATTERN = /(\?|(?:^|\b)(about|tell me about|what is|what's|how is|how's|do you have|have|with|without|contains?|come(?:s)? with|price|cost|spicy|good|popular|recommend|suggest|pair|pairing|go(?:es)? with|similar to|like|details?|info(?:rmation)?)(?:\b|$)|شو|ايش|ما هي|ماهو|قديش|هل|avec|sans|contient|prix|recommande|parle[- ]moi|qu'est-ce)/i;
 const RECOMMENDATION_INTENT_PATTERN = /(\brecommend\b|\bsuggest\b|\bbest\b|\bpopular\b|\btop\b|\bpairing\b|\bwhat should i order\b|\bwhat do you recommend\b|\bchef'?s pick\b|رشح|اقترح|شو بتنصح|شو أطلب|شو الاقوى|recommande|suggestion|qu'est-ce que tu recommandes|que recommandes-tu)/i;
-const EXPLICIT_RECOMMENDATION_PATTERN = /(\brecommend\b|\bsuggest\b|\bhonest pick\b|\bstart with\b|\bgo with\b|\bsafe choice\b|\bstrong pick\b|\bsolid place to start\b|\bbest pick\b|\bmy pick\b|\btry\b|ارشح|بنصح|اقترح|أنصح|recommande|je choisirais)/i;
+const EXPLICIT_RECOMMENDATION_PATTERN = /(\brecommend\b|\bsuggest\b|\bhonest pick\b|\bstart with\b|\bgo with\b|\bsafe choice\b|\bstrong pick\b|\bsolid place to start\b|\bbest pick\b|\bmy pick\b|\blovely choice\b|\btry\b|ارشح|بنصح|اقترح|أنصح|خيار جميل|recommande|je choisirais|tr[èe]s joli choix)/i;
 
 export const normalizeDishName = (value: string): string => value.trim().toLowerCase();
 export const normalizeCategoryText = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, ' ');

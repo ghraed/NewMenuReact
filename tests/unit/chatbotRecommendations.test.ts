@@ -152,6 +152,13 @@ describe('chatbot recommendations', () => {
 
     expect(
       responseExplicitlyRecommendsDishName(
+        'For a rich, delicious bite, BBQ Chicken Pizza is a lovely choice.',
+        'BBQ Chicken Pizza'
+      )
+    ).toBe(true);
+
+    expect(
+      responseExplicitlyRecommendsDishName(
         'BBQ Chicken Pizza comes with grilled chicken, red onions, and BBQ sauce.',
         'BBQ Chicken Pizza'
       )
