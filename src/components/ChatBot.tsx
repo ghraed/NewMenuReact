@@ -583,7 +583,6 @@ const ChatBot: React.FC = () => {
     if (isTableScoped) {
       return {
         table_id: fromPath.table_id,
-        restaurant_slug: resolvedSlug,
       };
     }
 
