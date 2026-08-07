@@ -314,7 +314,10 @@ const StaffOrdersPage: React.FC = () => {
         case 'service_worker_registration_failed':
           return t('staffOrdersPage.push.serviceWorkerRegistrationFailed');
         case 'subscription_create_failed':
-          return t('staffOrdersPage.push.subscriptionCreateFailed');
+          return [
+            t('staffOrdersPage.push.subscriptionCreateFailed'),
+            error.detail ? `Browser detail: ${error.detail}` : null,
+          ].filter(Boolean).join(' ');
         case 'subscription_sync_failed':
           return t('staffOrdersPage.push.subscriptionSyncFailed');
         default:

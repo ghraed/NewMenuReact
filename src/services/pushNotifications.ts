@@ -31,11 +31,13 @@ const SERVICE_WORKER_CACHE_PREFIXES = ['app-shell-', 'guest-api-'] as const;
 
 export class PushSetupError extends Error {
   code: PushSetupIssueCode;
+  detail?: string;
 
-  constructor(code: PushSetupIssueCode, message: string) {
+  constructor(code: PushSetupIssueCode, message: string, detail?: string) {
     super(message);
     this.code = code;
     this.name = 'PushSetupError';
+    this.detail = detail;
   }
 }
 
@@ -229,7 +231,16 @@ const waitForReadyPushRegistration = async (
 
 const decodeApplicationServerKey = (publicKey: string): Uint8Array<ArrayBuffer> => {
   try {
-    return toUint8Array(publicKey);
+    const applicationServerKey = toUint8Array(publicKey);
+
+    // A VAPID public key is an uncompressed P-256 public key: 65 bytes, prefixed
+    // with 0x04. Checking it here avoids turning a server configuration problem
+    // into an opaque PushManager.subscribe() browser error.
+    if (applicationServerKey.byteLength !== 65 || applicationServerKey[0] !== 0x04) {
+      throw new Error('Expected a 65-byte uncompressed P-256 public key.');
+    }
+
+    return applicationServerKey;
   } catch (error) {
     console.warn('[Push] Invalid VAPID public key from server.', error);
     throw new PushSetupError(
@@ -237,6 +248,17 @@ const decodeApplicationServerKey = (publicKey: string): Uint8Array<ArrayBuffer> 
       'The server provided an invalid web push public key.'
     );
   }
+};
+
+const describeSubscriptionCreationError = (error: unknown): string | undefined => {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  const name = error.name && error.name !== 'Error' ? `${error.name}: ` : '';
+  const message = error.message.replace(/\s+/g, ' ').trim();
+
+  return message ? `${name}${message}`.slice(0, 320) : name.slice(0, -2) || undefined;
 };
 
 const createPushSubscription = async (
@@ -394,7 +416,8 @@ export const enableStaffPushNotifications = async (): Promise<StaffPushState> =>
       console.warn('[Push] Push subscription creation failed.', error);
       throw new PushSetupError(
         'subscription_create_failed',
-        'The browser could not create a push subscription for this device.'
+        'The browser could not create a push subscription for this device.',
+        describeSubscriptionCreationError(error)
       );
     }
   }
