@@ -271,6 +271,20 @@ const createPushSubscription = async (
       applicationServerKey,
     });
   } catch (firstError) {
+    // Chromium's AbortError means its own push provider failed while creating a
+    // registration. Retrying immediately can create more provider registrations
+    // and may hit the device registration limit. Check whether it actually
+    // completed before surfacing the original failure instead.
+    if (firstError instanceof DOMException && firstError.name === 'AbortError') {
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        return subscription;
+      }
+
+      throw firstError;
+    }
+
     console.warn('[Push] First subscribe attempt failed. Retrying after SW update.', firstError);
 
     try {
