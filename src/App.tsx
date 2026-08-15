@@ -32,6 +32,8 @@ import AdminCurrencyPage from './pages/AdminCurrencyPage';
 import AdminFinanceDashboardPage from './pages/AdminFinanceDashboardPage';
 import AdminFinanceExpensesPage from './pages/AdminFinanceExpensesPage';
 import AdminFinanceInvoiceDetailsPage from './pages/AdminFinanceInvoiceDetailsPage';
+import AdminFinanceProfitLossPage from './pages/AdminFinanceProfitLossPage';
+import AdminFinanceProfitLossRecordsPage from './pages/AdminFinanceProfitLossRecordsPage';
 import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
 import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
 import AdminRoomPlansPage from './pages/AdminRoomPlansPage';
@@ -107,6 +109,9 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/staff/scheduling',
   '/admin/accounting',
   '/admin/finance',
+  '/admin/finance/profit-loss',
+  '/admin/finance/profit-loss/records/:record_type',
+  '/admin/finance/profit-loss/records/:record_type/:record_id',
   '/admin/finance/expenses',
   '/admin/finance/invoices/:invoice_id',
   '/admin/finance/payroll',
@@ -330,6 +335,9 @@ const AppRoutes: React.FC = () => {
           <Route element={<ProtectedRoute allowedRoles={['admin', 'accountant']} requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
             <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
             <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
+            <Route path="/admin/finance/profit-loss" element={lazyRoute(<AdminFinanceProfitLossPage />)} />
+            <Route path="/admin/finance/profit-loss/records/:record_type" element={lazyRoute(<AdminFinanceProfitLossRecordsPage />)} />
+            <Route path="/admin/finance/profit-loss/records/:record_type/:record_id" element={lazyRoute(<AdminFinanceProfitLossRecordsPage />)} />
             <Route path="/admin/finance/invoices/:invoice_id" element={lazyRoute(<AdminFinanceInvoiceDetailsPage />)} />
           </Route>
 

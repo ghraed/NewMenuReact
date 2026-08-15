@@ -1445,9 +1445,33 @@ const AdminFinanceDashboardPage: React.FC = () => {
           </GlassCard>
 
           <div className="grid gap-5 xl:grid-cols-2">
-            <GlassCard>
+            <GlassCard
+              role="link"
+              tabIndex={0}
+              aria-label={t('adminFinancePage.profitLossTitle')}
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (dateFrom) params.set('date_from', dateFrom);
+                if (dateTo) params.set('date_to', dateTo);
+                if (statusFilter) params.set('status', statusFilter);
+                if (range !== 'monthly') params.set('group', range);
+                if (currency !== baseCurrency) params.set('currency', currency);
+                const query = params.toString();
+                navigate(`/admin/finance/profit-loss${query ? `?${query}` : ''}`);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.currentTarget.click();
+                }
+              }}
+              className="group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
+            >
               <div className="mb-3">
-                <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.profitLossTitle')}</h3>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-text">{t('adminFinancePage.profitLossTitle')}</h3>
+                  <span aria-hidden="true" className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-gold2 transition group-hover:translate-x-0.5">→</span>
+                </div>
                 <p className="mt-1 text-sm text-muted">{t('adminFinancePage.profitLossDescription')}</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
