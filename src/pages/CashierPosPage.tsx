@@ -739,11 +739,10 @@ const CashierPosPage: React.FC = () => {
                       key={category}
                       type="button"
                       onClick={() => setSelectedCategory(category)}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        selectedCategory === category
-                          ? 'border-gold/60 bg-gold/20 text-gold2'
-                          : 'border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
-                      }`}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${selectedCategory === category
+                        ? 'border-gold/60 bg-gold/20 text-gold2'
+                        : 'border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
+                        }`}
                     >
                       {category}
                     </button>
@@ -751,7 +750,7 @@ const CashierPosPage: React.FC = () => {
                 </div>
               </GlassCard>
 
-              <div className="grid h-[calc(100vh-26rem)] auto-rows-[17rem] grid-cols-1 gap-3 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid h-[calc(100vh-26rem)] auto-rows-max grid-cols-1 gap-3 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2 xl:grid-cols-3">
                 {visibleDishes.length === 0 ? (
                   <GlassCard className="md:col-span-2 xl:col-span-3">
                     <div className="py-8 text-center">
@@ -766,12 +765,12 @@ const CashierPosPage: React.FC = () => {
                 ) : visibleDishes.map((dish) => (
                   <GlassCard key={dish.id} className="h-full">
                     <div className="flex h-full flex-col justify-between gap-3">
-                      <div>
-                        <p className="text-sm text-muted">{dish.category}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        {/* <p className="text-sm text-muted">{dish.category}</p> */}
                         <h3 className="mt-1 text-base font-semibold text-text">{dish.name}</h3>
+                        <span className="shrink-0 text-lg font-semibold text-gold2">{toMoney(dish.price)}</span>
                       </div>
                       <div className="space-y-2">
-                        <div className="text-lg font-semibold text-gold2">{toMoney(dish.price)}</div>
                         <div className="grid grid-cols-2 gap-2">
                           <LiquidButton onClick={() => addDish(dish)} className="px-3 py-1.5 text-xs">
                             {t('cashierPosPage.add')}
@@ -854,13 +853,12 @@ const CashierPosPage: React.FC = () => {
                       return (
                         <div
                           key={item.lineId}
-                          className={`rounded-2xl border px-3 py-2.5 ${
-                            isGreen
-                              ? 'border-emerald-400/35 bg-emerald-500/10'
-                              : isRed
-                                ? 'border-rose-400/35 bg-rose-500/10'
-                                : 'border-stroke bg-bg1/60'
-                          }`}
+                          className={`rounded-2xl border px-3 py-2.5 ${isGreen
+                            ? 'border-emerald-400/35 bg-emerald-500/10'
+                            : isRed
+                              ? 'border-rose-400/35 bg-rose-500/10'
+                              : 'border-stroke bg-bg1/60'
+                            }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
