@@ -12,7 +12,7 @@ import {
   type CompensationAuditLog,
   type CompensationLedgerEntry,
 } from '../services/complaintCompensationService';
-import { calculateCashSettlement, calculateInvoicePreview, parseFiniteNumber } from '../utils/financeMath';
+import { calculateInvoicePreview, parseFiniteNumber } from '../utils/financeMath';
 import type {
   ComplaintAccountingBucket,
   ComplaintCategory,
@@ -69,7 +69,6 @@ interface HeldPosOrder {
   discountValue: string;
   vatRate: string;
   paymentMethod: PosPaymentMethod;
-  amountReceived: string;
   items: PosCartItem[];
 }
 
@@ -203,7 +202,6 @@ const CashierPosPage: React.FC = () => {
   const [discountValue, setDiscountValue] = useState('0');
   const [vatRate, setVatRate] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<PosPaymentMethod>('cash');
-  const [amountReceived, setAmountReceived] = useState('');
   const [heldOrders, setHeldOrders] = useState<HeldPosOrder[]>([]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
@@ -295,12 +293,6 @@ const CashierPosPage: React.FC = () => {
 
   const { discountAmount, vatAmount, total } = invoicePreview;
 
-  const settlement = useMemo(
-    () => calculateCashSettlement(total, amountReceived, paymentMethod),
-    [total, amountReceived, paymentMethod]
-  );
-  const { receivedAmount, changeDue, remainingDue } = settlement;
-
   const compensationReport = buildCompensationDashboardReport(readCompensationLedger());
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
@@ -374,7 +366,6 @@ const CashierPosPage: React.FC = () => {
     setDiscountValue('0');
     setVatRate('0');
     setPaymentMethod('cash');
-    setAmountReceived('');
     setEditingLineId(null);
     setCompDraft(makeDefaultDraft());
     showToast('Current POS order cleared.', 'secondary');
@@ -395,14 +386,13 @@ const CashierPosPage: React.FC = () => {
       discountValue,
       vatRate,
       paymentMethod,
-      amountReceived,
       items: cartItems.map((item) => ({ ...item })),
     };
 
     setHeldOrders((current) => [heldOrder, ...current].slice(0, 25));
     clearOrder();
     showToast(`Order ${heldOrder.id} moved to hold list.`, 'secondary');
-  }, [amountReceived, cartItems, clearOrder, discountType, discountValue, orderNote, paymentMethod, showToast, tableReference, vatRate]);
+  }, [cartItems, clearOrder, discountType, discountValue, orderNote, paymentMethod, showToast, tableReference, vatRate]);
 
   const resumeHeldOrder = (heldOrder: HeldPosOrder): void => {
     setCartItems(heldOrder.items);
@@ -412,7 +402,6 @@ const CashierPosPage: React.FC = () => {
     setDiscountValue(heldOrder.discountValue);
     setVatRate(heldOrder.vatRate);
     setPaymentMethod(heldOrder.paymentMethod);
-    setAmountReceived(heldOrder.amountReceived);
     setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id));
     showToast(`Resumed ${heldOrder.id}.`, 'secondary');
   };
@@ -510,11 +499,6 @@ const CashierPosPage: React.FC = () => {
       return;
     }
 
-    if (paymentMethod === 'cash' && remainingDue > 0) {
-      showToast('Cash received is lower than total.', 'secondary');
-      return;
-    }
-
     const invalidCompensation = cartItems.find((item) => (
       item.issueStatus !== 'normal' && (!item.complaintReason || !item.approvedBy || !item.approvedAt)
     ));
@@ -553,7 +537,6 @@ const CashierPosPage: React.FC = () => {
         discount_type: discountType || undefined,
         discount_value: parseFiniteNumber(discountValue),
         payment_method: paymentMethod,
-        amount_received: paymentMethod === 'cash' ? receivedAmount : undefined,
       });
 
       const checkoutLedgerEntries = cartItems
@@ -588,8 +571,6 @@ const CashierPosPage: React.FC = () => {
     discountValue,
     orderNote,
     paymentMethod,
-    receivedAmount,
-    remainingDue,
     showToast,
     tableReference,
     vatRate,
@@ -1126,20 +1107,6 @@ const CashierPosPage: React.FC = () => {
                       </button>
                     ))}
                   </div>
-
-                  {paymentMethod === 'cash' ? (
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Amount Received</span>
-                      <input
-                        value={amountReceived}
-                        onChange={(event) => setAmountReceived(event.target.value)}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
-                      />
-                    </label>
-                  ) : null}
                 </div>
               </GlassCard>
 
@@ -1169,18 +1136,6 @@ const CashierPosPage: React.FC = () => {
                     <span>Total</span>
                     <span>{toMoney(total)}</span>
                   </div>
-                  {paymentMethod === 'cash' ? (
-                    <>
-                      <div className="flex items-center justify-between text-muted">
-                        <span>Remaining</span>
-                        <span>{toMoney(remainingDue)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-muted">
-                        <span>Change</span>
-                        <span>{toMoney(changeDue)}</span>
-                      </div>
-                    </>
-                  ) : null}
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
