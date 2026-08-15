@@ -751,7 +751,7 @@ const CashierPosPage: React.FC = () => {
                 </div>
               </GlassCard>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid h-[calc(100vh-26rem)] auto-rows-[17rem] grid-cols-1 gap-3 overflow-y-auto overscroll-contain pr-1 md:grid-cols-2 xl:grid-cols-3">
                 {visibleDishes.length === 0 ? (
                   <GlassCard className="md:col-span-2 xl:col-span-3">
                     <div className="py-8 text-center">
@@ -764,7 +764,7 @@ const CashierPosPage: React.FC = () => {
                     </div>
                   </GlassCard>
                 ) : visibleDishes.map((dish) => (
-                  <GlassCard key={dish.id}>
+                  <GlassCard key={dish.id} className="h-full">
                     <div className="flex h-full flex-col justify-between gap-3">
                       <div>
                         <p className="text-sm text-muted">{dish.category}</p>
@@ -845,7 +845,7 @@ const CashierPosPage: React.FC = () => {
                 {cartItems.length === 0 ? (
                   <p className="text-sm text-muted">{t('cashierPosPage.noItemsSelected')}</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="max-h-[calc(100vh-10rem)] space-y-2 overflow-y-auto overscroll-contain pr-1">
                     {cartItems.map((item) => {
                       const { originalLineTotal, finalLineTotal } = toLineMoney(item);
                       const isRed = item.issueStatus === 'cancelled' || item.issueStatus === 'problematic';
