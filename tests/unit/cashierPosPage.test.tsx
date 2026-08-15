@@ -113,4 +113,46 @@ describe('CashierPosPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.add' }));
     expect(mockedToast.showToast).not.toHaveBeenCalledWith(expect.stringContaining('Out Dish'), 'secondary');
   });
+
+  it('disables Hold and Checkout when the order is empty', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([]);
+
+    render(<CashierPosPage />);
+
+    expect(await screen.findByRole('button', { name: 'Hold (F4)' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' })).toBeDisabled();
+  });
+
+  it('does not show payment method controls', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([]);
+
+    render(<CashierPosPage />);
+
+    await screen.findByRole('button', { name: 'Checkout (Ctrl+Enter)' });
+    expect(screen.queryByRole('button', { name: 'cash' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'card' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'wallet' })).not.toBeInTheDocument();
+  });
+
+  it('confirms before holding an in-progress order to resume a held order', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([
+      { id: 10, name: 'Test Dish', price: 10, category: 'Food', is_orderable: true, is_out_of_stock: false },
+    ]);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<CashierPosPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'cashierPosPage.add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hold (F4)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.resume' }));
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Resuming this held order will move the current order to the hold list. Continue?',
+    );
+    expect(mockedToast.showToast).toHaveBeenCalledWith(
+      expect.stringContaining('Current order moved to hold. Resumed'),
+      'secondary',
+    );
+  });
 });

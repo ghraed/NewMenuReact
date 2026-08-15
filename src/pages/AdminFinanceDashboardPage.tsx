@@ -1695,6 +1695,12 @@ const AdminFinanceDashboardPage: React.FC = () => {
                       >
                         <td className="px-4 py-4">
                           <p className="font-semibold text-text">{invoice.invoice_number}</p>
+                          {invoice.has_complaint_adjustment || invoice.has_gift_adjustment ? (
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {invoice.has_complaint_adjustment ? <span className="rounded-full border border-spicy/45 bg-spicy/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-spicy">Complaint</span> : null}
+                              {invoice.has_gift_adjustment ? <span className="rounded-full border border-gold/45 bg-gold/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gold2">Gift</span> : null}
+                            </div>
+                          ) : null}
                           {invoice.notes ? (
                             <p className="mt-1 line-clamp-2 text-xs text-muted">{invoice.notes}</p>
                           ) : null}

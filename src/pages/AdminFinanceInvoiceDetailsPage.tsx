@@ -407,6 +407,21 @@ const AdminFinanceInvoiceDetailsPage: React.FC = () => {
                 ))}
               </div>
             </GlassCard>
+
+            {(invoice.complaint_adjustments?.length ?? 0) > 0 ? (
+              <GlassCard>
+                <h3 className="text-lg font-semibold text-text">Linked post-sale complaints</h3>
+                <div className="mt-3 space-y-2">
+                  {invoice.complaint_adjustments?.map((adjustment) => (
+                    <div key={adjustment.id} className="rounded-xl border border-spicy/35 bg-spicy/10 p-3 text-sm">
+                      <div className="flex justify-between gap-3 text-text"><span className="font-semibold">#{adjustment.id} · {adjustment.reason}</span><span className="text-spicy">Refund {formatPriceWithCurrency(Number(adjustment.refund_amount), currency)}</span></div>
+                      <p className="mt-1 text-muted">{adjustment.accounting_bucket}{adjustment.note ? ` · ${adjustment.note}` : ''}</p>
+                      {adjustment.gifts.length > 0 ? <p className="mt-1 text-muted">Gift: {adjustment.gifts.map((gift) => `${gift.dish_name} × ${gift.quantity}`).join(', ')}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            ) : null}
           </>
         ) : null}
       </div>

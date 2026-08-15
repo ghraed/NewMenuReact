@@ -580,6 +580,34 @@ export interface PosCheckoutResponse {
   };
 }
 
+export interface PosCompletedSale {
+  id: number;
+  order_number: string | null;
+  invoice_number: string | null;
+  total: string | number;
+  currency: string;
+  payment_method: PosPaymentMethod | null;
+  accounted_at: string | null;
+  items: Array<{ id: number; dish_name: string; quantity: number; line_total: string | number }>;
+}
+
+export interface PosComplaintAdjustment {
+  id: number;
+  status: 'draft' | 'pending_approval' | 'posted' | 'void';
+  original_order_id: number;
+  original_invoice_number: string | null;
+  complaint_reason: string;
+  complaint_category: string | null;
+  complaint_note: string | null;
+  accounting_bucket: string;
+  refund_amount: string | number;
+  refund_payment_method: PosPaymentMethod;
+  affected_items: Array<{ order_item_id: number; dish_name: string; quantity: number; line_total: string | number }>;
+  gifts: Array<{ dish_name: string; quantity: number; line_value: string | number }>;
+  created_at: string | null;
+  posted_at: string | null;
+}
+
 export interface OrderInvoiceSummary {
   subtotal: string;
   discount_type: DiscountType | null;
@@ -711,6 +739,8 @@ export interface FinanceInvoice {
   pdf_available?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
+  has_complaint_adjustment?: boolean;
+  has_gift_adjustment?: boolean;
   items: FinanceInvoiceItem[];
 }
 
@@ -718,6 +748,17 @@ export interface FinanceInvoiceDetails extends FinanceInvoice {
   table_reference?: string | null;
   waiter_name?: string | null;
   waiter?: OrderActorSummary | null;
+  complaint_adjustments?: Array<{
+    id: number;
+    status: string;
+    reason: string;
+    category?: string | null;
+    note?: string | null;
+    refund_amount: string | number;
+    accounting_bucket: string;
+    posted_at?: string | null;
+    gifts: Array<{ dish_name: string; quantity: string | number; line_value: string | number }>;
+  }>;
 }
 
 export interface FinanceRevenuePoint {

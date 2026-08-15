@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { fetchGuestTables, fetchPublishedDishes, quickPosCheckout } from '../services/orderService';
+import { createPosComplaintAdjustment, fetchGuestTables, fetchPublishedDishes, postPosComplaintAdjustment, quickPosCheckout, searchPosCompletedSales } from '../services/orderService';
 import {
   appendCompensationAuditLogs,
   appendCompensationLedgerEntries,
@@ -19,7 +19,8 @@ import type {
   ComplaintReasonCode,
   OrderItemCompensationType,
   OrderItemIssueStatus,
-  PosPaymentMethod,
+  PosCompletedSale,
+  PosComplaintAdjustment,
   PublishedDishSummary,
   UserRole,
 } from '../types';
@@ -68,7 +69,6 @@ interface HeldPosOrder {
   discountType: '' | 'fixed' | 'percentage';
   discountValue: string;
   vatRate: string;
-  paymentMethod: PosPaymentMethod;
   items: PosCartItem[];
 }
 
@@ -201,11 +201,22 @@ const CashierPosPage: React.FC = () => {
   const [discountType, setDiscountType] = useState<'' | 'fixed' | 'percentage'>('');
   const [discountValue, setDiscountValue] = useState('0');
   const [vatRate, setVatRate] = useState('0');
-  const [paymentMethod, setPaymentMethod] = useState<PosPaymentMethod>('cash');
   const [heldOrders, setHeldOrders] = useState<HeldPosOrder[]>([]);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [compDraft, setCompDraft] = useState<CompensationDraft>(makeDefaultDraft());
+  const [completedSaleQuery, setCompletedSaleQuery] = useState('');
+  const [completedSales, setCompletedSales] = useState<PosCompletedSale[]>([]);
+  const [selectedCompletedSale, setSelectedCompletedSale] = useState<PosCompletedSale | null>(null);
+  const [complaintItemIds, setComplaintItemIds] = useState<number[]>([]);
+  const [postSaleComplaintReason, setPostSaleComplaintReason] = useState('');
+  const [postSaleComplaintNote, setPostSaleComplaintNote] = useState('');
+  const [postSaleRefund, setPostSaleRefund] = useState('0');
+  const [giftDishId, setGiftDishId] = useState('');
+  const [giftQuantity, setGiftQuantity] = useState('1');
+  const [postSaleGifts, setPostSaleGifts] = useState<Array<{ dish_id: number; quantity: number; name: string }>>([]);
+  const [pendingAdjustment, setPendingAdjustment] = useState<PosComplaintAdjustment | null>(null);
+  const [postSaleBusy, setPostSaleBusy] = useState(false);
   const [, setReportRefreshKey] = useState(0);
 
   const actor = useMemo(() => ({
@@ -215,6 +226,7 @@ const CashierPosPage: React.FC = () => {
   }), [user?.id, user?.name, user?.role]);
 
   const canManageCompensation = AUTHORIZED_COMPENSATION_ROLES.includes(actor.role);
+  const canApprovePostSaleComplaint = ['admin', 'accountant'].includes(actor.role);
 
   const loadPosData = useCallback(async () => {
     setLoading(true);
@@ -348,6 +360,66 @@ const CashierPosPage: React.FC = () => {
     });
   };
 
+  const searchCompletedSales = async (): Promise<void> => {
+    if (completedSaleQuery.trim().length < 2) {
+      showToast('Enter at least two characters from the order or invoice number.', 'secondary');
+      return;
+    }
+    setPostSaleBusy(true);
+    try {
+      setCompletedSales(await searchPosCompletedSales(completedSaleQuery.trim()));
+    } catch {
+      showToast('Could not find completed POS sales.', 'secondary');
+    } finally {
+      setPostSaleBusy(false);
+    }
+  };
+
+  const selectCompletedSale = (sale: PosCompletedSale): void => {
+    setSelectedCompletedSale(sale);
+    setComplaintItemIds(sale.items.map((item) => item.id));
+    setPostSaleRefund('0');
+    setPostSaleGifts([]);
+    setPendingAdjustment(null);
+  };
+
+  const submitPostSaleComplaint = async (): Promise<void> => {
+    if (!selectedCompletedSale || !postSaleComplaintReason.trim() || complaintItemIds.length === 0) {
+      showToast('Select a completed sale, affected item(s), and a complaint reason.', 'secondary');
+      return;
+    }
+    setPostSaleBusy(true);
+    try {
+      const adjustment = await createPosComplaintAdjustment(selectedCompletedSale.id, {
+        complaint_reason: postSaleComplaintReason.trim(),
+        complaint_note: postSaleComplaintNote.trim() || undefined,
+        refund_amount: parseFiniteNumber(postSaleRefund),
+        affected_item_ids: complaintItemIds,
+        gifts: postSaleGifts.map(({ dish_id, quantity }) => ({ dish_id, quantity })),
+      });
+      setPendingAdjustment(adjustment);
+      showToast(canApprovePostSaleComplaint ? 'Complaint adjustment saved. Review and post it below.' : 'Complaint submitted for admin/accountant approval.', 'secondary');
+    } catch {
+      showToast('Could not save the complaint adjustment.', 'secondary');
+    } finally {
+      setPostSaleBusy(false);
+    }
+  };
+
+  const postSavedComplaintAdjustment = async (): Promise<void> => {
+    if (!pendingAdjustment) return;
+    setPostSaleBusy(true);
+    try {
+      const posted = await postPosComplaintAdjustment(pendingAdjustment.id);
+      setPendingAdjustment(posted);
+      showToast('Complaint adjustment posted. Refund and gift loss are now available to finance.', 'secondary');
+    } catch {
+      showToast('Could not post the complaint adjustment.', 'secondary');
+    } finally {
+      setPostSaleBusy(false);
+    }
+  };
+
   const setLineQuantity = (lineId: string, quantity: number): void => {
     setCartItems((current) => {
       if (quantity <= 0) {
@@ -365,7 +437,6 @@ const CashierPosPage: React.FC = () => {
     setDiscountType('');
     setDiscountValue('0');
     setVatRate('0');
-    setPaymentMethod('cash');
     setEditingLineId(null);
     setCompDraft(makeDefaultDraft());
     showToast('Current POS order cleared.', 'secondary');
@@ -385,25 +456,51 @@ const CashierPosPage: React.FC = () => {
       discountType,
       discountValue,
       vatRate,
-      paymentMethod,
       items: cartItems.map((item) => ({ ...item })),
     };
 
     setHeldOrders((current) => [heldOrder, ...current].slice(0, 25));
     clearOrder();
     showToast(`Order ${heldOrder.id} moved to hold list.`, 'secondary');
-  }, [cartItems, clearOrder, discountType, discountValue, orderNote, paymentMethod, showToast, tableReference, vatRate]);
+  }, [cartItems, clearOrder, discountType, discountValue, orderNote, showToast, tableReference, vatRate]);
 
   const resumeHeldOrder = (heldOrder: HeldPosOrder): void => {
+    if (cartItems.length > 0) {
+      const shouldReplaceOrder = window.confirm(
+        'Resuming this held order will move the current order to the hold list. Continue?',
+      );
+
+      if (!shouldReplaceOrder) {
+        return;
+      }
+
+      const currentOrder: HeldPosOrder = {
+        id: `HOLD-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        tableReference,
+        note: orderNote,
+        discountType,
+        discountValue,
+        vatRate,
+        items: cartItems.map((item) => ({ ...item })),
+      };
+
+      setHeldOrders((current) => [
+        currentOrder,
+        ...current.filter((item) => item.id !== heldOrder.id),
+      ].slice(0, 25));
+      showToast(`Current order moved to hold. Resumed ${heldOrder.id}.`, 'secondary');
+    } else {
+      setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id));
+      showToast(`Resumed ${heldOrder.id}.`, 'secondary');
+    }
+
     setCartItems(heldOrder.items);
     setTableReference(heldOrder.tableReference);
     setOrderNote(heldOrder.note);
     setDiscountType(heldOrder.discountType);
     setDiscountValue(heldOrder.discountValue);
     setVatRate(heldOrder.vatRate);
-    setPaymentMethod(heldOrder.paymentMethod);
-    setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id));
-    showToast(`Resumed ${heldOrder.id}.`, 'secondary');
   };
 
   const openCompensationEditor = (line: PosCartItem): void => {
@@ -536,7 +633,7 @@ const CashierPosPage: React.FC = () => {
         vat_rate: parseFiniteNumber(vatRate),
         discount_type: discountType || undefined,
         discount_value: parseFiniteNumber(discountValue),
-        payment_method: paymentMethod,
+        payment_method: 'cash',
       });
 
       const checkoutLedgerEntries = cartItems
@@ -570,7 +667,6 @@ const CashierPosPage: React.FC = () => {
     discountType,
     discountValue,
     orderNote,
-    paymentMethod,
     showToast,
     tableReference,
     vatRate,
@@ -716,13 +812,16 @@ const CashierPosPage: React.FC = () => {
                           <p className="text-xs text-muted">{heldOrder.tableReference} • {new Date(heldOrder.createdAt).toLocaleTimeString()}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <LiquidButton tone="tertiary" onClick={() => resumeHeldOrder(heldOrder)} className="px-3 py-1.5 text-xs">
+                          <LiquidButton
+                            onClick={() => resumeHeldOrder(heldOrder)}
+                            className="px-3 py-1.5 text-xs"
+                          >
                             {t('cashierPosPage.resume')}
                           </LiquidButton>
                           <LiquidButton
                             tone="secondary"
                             onClick={() => setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id))}
-                            className="px-3 py-1.5 text-xs"
+                            className="!border-spicy/45 !bg-spicy/20 !text-spicy px-3 py-1.5 text-xs enabled:hover:!border-spicy/65 enabled:hover:!bg-spicy/28"
                           >
                             {t('cashierPosPage.remove')}
                           </LiquidButton>
@@ -1091,22 +1190,6 @@ const CashierPosPage: React.FC = () => {
                     />
                   </label>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['cash', 'card', 'wallet'] as PosPaymentMethod[]).map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => setPaymentMethod(method)}
-                        className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase transition ${
-                          paymentMethod === method
-                            ? 'border-gold/60 bg-gold/20 text-gold2'
-                            : 'border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
-                        }`}
-                      >
-                        {method}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </GlassCard>
 
@@ -1116,7 +1199,7 @@ const CashierPosPage: React.FC = () => {
                     <span>Original Subtotal</span>
                     <span>{toMoney(originalSubtotal)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-rose-200">
+                  <div className="flex items-center justify-between font-medium text-spicy">
                     <span>Compensation (Complaints/Gifts)</span>
                     <span>- {toMoney(compensationCost)}</span>
                   </div>
@@ -1139,16 +1222,48 @@ const CashierPosPage: React.FC = () => {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <LiquidButton tone="tertiary" onClick={holdCurrentOrder} disabled={checkoutBusy}>
+                  <LiquidButton tone="tertiary" onClick={holdCurrentOrder} disabled={checkoutBusy || cartItems.length === 0}>
                     Hold (F4)
                   </LiquidButton>
-                  <LiquidButton onClick={() => void checkout()} disabled={checkoutBusy}>
+                  <LiquidButton onClick={() => void checkout()} disabled={checkoutBusy || cartItems.length === 0}>
                     {checkoutBusy ? 'Processing...' : 'Checkout (Ctrl+Enter)'}
                   </LiquidButton>
                 </div>
               </GlassCard>
             </div>
           </div>
+
+          <GlassCard>
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-text">Post-sale complaint / gift</h3>
+              <p className="text-sm text-muted">Find the settled POS sale, record the complaint and submit any refund or catalog gift for approval.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input value={completedSaleQuery} onChange={(event) => setCompletedSaleQuery(event.target.value)} placeholder="Invoice or order number" className="min-w-56 flex-1 rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+              <LiquidButton tone="tertiary" onClick={() => void searchCompletedSales()} disabled={postSaleBusy}>Find sale</LiquidButton>
+            </div>
+            {completedSales.length > 0 ? <div className="mt-3 space-y-2">{completedSales.map((sale) => (
+              <button key={sale.id} type="button" onClick={() => selectCompletedSale(sale)} className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm ${selectedCompletedSale?.id === sale.id ? 'border-gold/60 bg-gold/10' : 'border-stroke bg-bg1/50'}`}>
+                <span>{sale.invoice_number || sale.order_number} · {sale.items.length} item(s)</span><span>{toMoney(Number(sale.total))}</span>
+              </button>
+            ))}</div> : null}
+            {selectedCompletedSale ? <div className="mt-4 grid gap-3 rounded-2xl border border-stroke bg-bg1/50 p-4 lg:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-text">Affected items</p>
+                {selectedCompletedSale.items.map((item) => <label key={item.id} className="flex items-center justify-between gap-2 text-sm text-text"><span><input type="checkbox" checked={complaintItemIds.includes(item.id)} onChange={() => setComplaintItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="mr-2" />{item.dish_name} × {item.quantity}</span><span>{toMoney(Number(item.line_total))}</span></label>)}
+                <input value={postSaleComplaintReason} onChange={(event) => setPostSaleComplaintReason(event.target.value)} placeholder="Complaint reason" className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+                <textarea value={postSaleComplaintNote} onChange={(event) => setPostSaleComplaintNote(event.target.value)} placeholder="Notes and resolution details" rows={2} className="w-full rounded-xl border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted2">Cash refund<input value={postSaleRefund} onChange={(event) => setPostSaleRefund(event.target.value)} type="number" min="0" max={selectedCompletedSale.total} step="0.01" className="mt-1 w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" /></label>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-text">Catalog gift / replacement</p>
+                <div className="flex gap-2"><select value={giftDishId} onChange={(event) => setGiftDishId(event.target.value)} className="min-w-0 flex-1 rounded-full border border-stroke bg-bg1 px-3 py-2 text-sm text-text"><option value="">Select dish</option>{dishes.filter((dish) => dish.is_orderable !== false && !dish.is_out_of_stock).map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}</select><input value={giftQuantity} onChange={(event) => setGiftQuantity(event.target.value)} type="number" min="1" className="w-16 rounded-full border border-stroke bg-bg1 px-2 py-2 text-sm text-text" /><LiquidButton tone="tertiary" className="px-3" onClick={() => { const dish = dishes.find((row) => row.id === Number(giftDishId)); const quantity = Math.max(1, Math.floor(Number(giftQuantity) || 1)); if (dish) setPostSaleGifts((current) => [...current, { dish_id: dish.id, quantity, name: dish.name }]); }}>Add</LiquidButton></div>
+                {postSaleGifts.map((gift, index) => <div key={`${gift.dish_id}-${index}`} className="flex items-center justify-between rounded-xl border border-stroke px-3 py-2 text-sm text-text"><span>{gift.name} × {gift.quantity}</span><button type="button" onClick={() => setPostSaleGifts((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-spicy">Remove</button></div>)}
+                <LiquidButton onClick={() => void submitPostSaleComplaint()} disabled={postSaleBusy}>Submit complaint adjustment</LiquidButton>
+                {pendingAdjustment ? <div className="rounded-xl border border-gold/35 bg-gold/10 p-3 text-sm text-text"><p>Adjustment #{pendingAdjustment.id}: {pendingAdjustment.status}</p>{canApprovePostSaleComplaint && pendingAdjustment.status !== 'posted' ? <LiquidButton className="mt-2 px-3 py-1.5 text-xs" onClick={() => void postSavedComplaintAdjustment()} disabled={postSaleBusy}>Approve & post</LiquidButton> : null}</div> : null}
+              </div>
+            </div> : null}
+          </GlassCard>
 
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -1168,7 +1283,7 @@ const CashierPosPage: React.FC = () => {
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.13em] text-muted2">Complaint Loss</p>
-                <p className="mt-1 text-lg font-semibold text-rose-200">{toMoney(compensationReport.complaint_loss_total)}</p>
+                <p className="mt-1 text-lg font-semibold text-spicy">{toMoney(compensationReport.complaint_loss_total)}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.13em] text-muted2">Complimentary Value</p>

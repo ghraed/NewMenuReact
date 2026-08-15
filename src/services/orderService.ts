@@ -21,6 +21,8 @@ import type {
   OrderRecord,
   PosCheckoutRequest,
   PosCheckoutResponse,
+  PosCompletedSale,
+  PosComplaintAdjustment,
   PublishedDishSummary,
   RestaurantSummary,
   RestaurantTableSummary,
@@ -642,4 +644,22 @@ export const quickPosCheckout = async (payload: PosCheckoutRequest): Promise<Pos
   assertOnlineForStaffWrite();
   const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload);
   return response.data;
+};
+
+export const searchPosCompletedSales = async (query: string): Promise<PosCompletedSale[]> => {
+  const response = await api.get<{ sales: PosCompletedSale[] }>('/pos/completed-sales', { params: { query } });
+  return response.data.sales;
+};
+
+export const createPosComplaintAdjustment = async (orderId: number, payload: {
+  complaint_reason: string; complaint_category?: string; complaint_note?: string; accounting_bucket?: string;
+  refund_amount: number; affected_item_ids: number[]; gifts: Array<{ dish_id: number; quantity: number }>;
+}): Promise<PosComplaintAdjustment> => {
+  const response = await api.post<{ adjustment: PosComplaintAdjustment }>(`/pos/orders/${orderId}/complaint-adjustments`, payload);
+  return response.data.adjustment;
+};
+
+export const postPosComplaintAdjustment = async (adjustmentId: number): Promise<PosComplaintAdjustment> => {
+  const response = await api.post<{ adjustment: PosComplaintAdjustment }>(`/pos/complaint-adjustments/${adjustmentId}/post`);
+  return response.data.adjustment;
 };
