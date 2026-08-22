@@ -562,18 +562,19 @@ const ChatBot: React.FC = () => {
   const { i18n } = useTranslation();
   const { restaurant, draft } = useOrderCart();
   const isGuestMenuRoute = /^\/menu(?:\/|$)/i.test(location.pathname) || location.pathname === '/';
-  const isRozerAiRoute = /^\/contact-us(?:\/|$)/i.test(location.pathname);
-  const isHiddenRoute = /^\/admin\/login(?:\/|$)/i.test(location.pathname);
 
   const hasGuestSession = typeof draft.tableSessionId === 'number' && draft.tableSessionId > 0;
   const guestAccessExpiresAtMs = draft.guestAccessExpiresAt ? Date.parse(draft.guestAccessExpiresAt) : Number.NaN;
   const isGuestAccessExpired = Number.isFinite(guestAccessExpiresAtMs) && guestAccessExpiresAtMs <= Date.now();
   const hasValidGuestAccess = draft.guestAccessVerified && Boolean(draft.guestAccessToken) && !isGuestAccessExpired;
   const [isAiChatbotEnabled, setIsAiChatbotEnabled] = useState<boolean | null>(null);
-  const shouldRenderChat = !isHiddenRoute
-    && !isRozerAiRoute
-    && (!isGuestMenuRoute || (hasGuestSession && hasValidGuestAccess))
-    && (!isGuestMenuRoute || isAiChatbotEnabled === true);
+  // The restaurant assistant is a guest-menu feature. `/contact-us` has its
+  // own dedicated public AI contact assistant, so this widget must not leak
+  // into admin, staff, chef, accounting, or super-admin views.
+  const shouldRenderChat = isGuestMenuRoute
+    && hasGuestSession
+    && hasValidGuestAccess
+    && isAiChatbotEnabled === true;
 
   const chatContext = useMemo<ChatRestaurantContext>(() => {
     const fromPath = parsePathRestaurantContext(location.pathname);
