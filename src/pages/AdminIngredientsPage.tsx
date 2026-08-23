@@ -254,7 +254,7 @@ const AdminIngredientsPage: React.FC = () => {
           missing,
         };
       })
-      .filter((row) => row.missing > 0)
+      .filter((row) => row.ingredient.is_low_stock || row.missing > 0)
       .sort((a, b) => b.missing - a.missing)
   ), [ingredients]);
 
