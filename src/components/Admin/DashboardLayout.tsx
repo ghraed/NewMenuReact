@@ -102,7 +102,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     ]
     : user?.role === 'accountant'
       ? [
-        { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+        { path: '/admin/cashier', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
         { path: '/admin/finance', label: t('admin.finance'), icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
         { path: '/admin/finance/expenses', label: t('admin.expenses'), icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
         { path: '/admin/finance/payroll', label: t('admin.payroll'), icon: 'payroll', requiredFeatures: ['payroll_management'] },
@@ -128,7 +128,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
             { path: '/admin/room-plans', label: t('admin.roomPlans'), icon: 'map', requiredFeatures: ['room_plan_editor'] },
             { path: '/admin/reservations', label: t('admin.reservations'), icon: 'calendar', requiredFeatures: ['table_reservations'] },
             { path: '/admin/events', label: t('admin.eventPlanner'), icon: 'calendar', requiredFeatures: ['event_reservations'] },
-            { path: '/admin/accounting', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
+            { path: '/admin/cashier', label: t('admin.accounting'), icon: 'card', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
             { path: '/admin/finance', label: t('admin.finance'), icon: 'chart', requiredFeatures: ['finance_dashboard', 'dish_profitability'] },
             { path: '/admin/finance/expenses', label: t('admin.expenses'), icon: 'receipt', requiredFeatures: ['finance_dashboard', 'expense_management'] },
             { path: '/admin/finance/payroll', label: t('admin.payroll'), icon: 'payroll', requiredFeatures: ['payroll_management'] },

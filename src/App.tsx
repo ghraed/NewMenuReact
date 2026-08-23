@@ -107,6 +107,7 @@ const ROUTE_DEBUG_PATTERNS = [
   '/admin/inventory/ingredient-tracker',
   '/admin/staff',
   '/admin/staff/scheduling',
+  '/admin/cashier',
   '/admin/accounting',
   '/admin/finance',
   '/admin/finance/profit-loss',
@@ -333,7 +334,8 @@ const AppRoutes: React.FC = () => {
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'accountant']} requiredFeatures={['finance_dashboard', 'dish_profitability']} />}>
-            <Route path="/admin/accounting" element={lazyRoute(<AccountingOrdersPage />)} />
+            <Route path="/admin/cashier" element={lazyRoute(<AccountingOrdersPage />)} />
+            <Route path="/admin/accounting" element={<Navigate to="/admin/cashier" replace />} />
             <Route path="/admin/finance" element={lazyRoute(<AdminFinanceDashboardPage />)} />
             <Route path="/admin/finance/profit-loss" element={lazyRoute(<AdminFinanceProfitLossPage />)} />
             <Route path="/admin/finance/profit-loss/records/:record_type" element={lazyRoute(<AdminFinanceProfitLossRecordsPage />)} />
@@ -470,7 +472,7 @@ const AppRoutes: React.FC = () => {
           />
           <Route path="/staff" element={<Navigate to="/staff/orders" replace />} />
           <Route path="/chef" element={<Navigate to="/admin/dashboard" replace />} />
-          <Route path="/accounting" element={<Navigate to="/admin/accounting" replace />} />
+          <Route path="/accounting" element={<Navigate to="/admin/cashier" replace />} />
           <Route path="/finance" element={<Navigate to="/admin/finance" replace />} />
           <Route path="/dishes/create" element={<Navigate to="/admin/dishes/create" replace />} />
 
