@@ -610,11 +610,8 @@ const GuestDishListPage: React.FC = () => {
       .filter((dish) => {
       const categoryMatch = category === t('menuList.allCategories') || translateCategoryLabel(dish.category, dish.category_ar) === category;
       const normalizedSearch = search.toLowerCase();
-      const searchMatch =
-        dish.name.toLowerCase().includes(normalizedSearch) ||
-        (dish.name_ar || '').toLowerCase().includes(normalizedSearch) ||
-        dish.description.toLowerCase().includes(normalizedSearch) ||
-        (dish.description_ar || '').toLowerCase().includes(normalizedSearch);
+      const searchMatch = [dish.name, dish.name_ar, dish.description, dish.description_ar]
+        .some((value) => (value || '').toLowerCase().includes(normalizedSearch));
       const ingredientMatch = selectedIngredients.length === 0
         || (
           ingredientFilterMode === 'show'

@@ -118,7 +118,7 @@ export interface Dish {
   uuid: string;
   name: string;
   name_ar?: string | null;
-  description: string;
+  description: string | null;
   description_ar?: string | null;
   price: number;
   currency?: CurrencyCode | null;
@@ -167,7 +167,7 @@ export interface GuestDishIndexEntry {
   uuid: string;
   name: string;
   name_ar?: string | null;
-  description: string;
+  description: string | null;
   description_ar?: string | null;
   category: string;
   category_ar?: string | null;

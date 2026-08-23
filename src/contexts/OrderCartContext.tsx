@@ -106,7 +106,7 @@ const normalizeState = (value: unknown): OrderCartState => {
 const dishToCartItem = (dish: Dish, quantity: number): OrderCartItem => ({
   dishId: dish.id,
   name: dish.name,
-  description: dish.description,
+  description: dish.description || '',
   price: Number(dish.price),
   quantity,
   calories: dish.calories,

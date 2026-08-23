@@ -238,7 +238,12 @@ const indexEntry = (dish: Dish): GuestDishIndexEntry => ({
 
 const menuPayload = {
   restaurant: restaurantPayload,
-  dish_index: [indexEntry(featuredDish), indexEntry(burgerDish), indexEntry(baklavaDish)],
+  dish_index: [
+    indexEntry(featuredDish),
+    indexEntry(burgerDish),
+    // Production menus may legitimately return null when a dish has no description.
+    { ...indexEntry(baklavaDish), description: null },
+  ],
   dishes: [featuredDish, burgerDish, baklavaDish],
   dishes_page: [featuredDish, burgerDish, baklavaDish],
   dishes_meta: {
