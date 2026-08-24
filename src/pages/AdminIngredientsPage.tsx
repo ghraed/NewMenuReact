@@ -14,6 +14,13 @@ import {
 import PageSkeleton from '../components/Common/PageSkeleton';
 import api, { resolveAssetUrl } from '../services/api';
 import { fetchExpenseCategories, fetchVendors } from '../services/financeExpenseService';
+import {
+  createInventoryShareContact,
+  deleteInventoryShareContact,
+  fetchInventoryShareContacts,
+  updateInventoryShareContact,
+  type InventoryShareContact,
+} from '../services/inventoryShareContactService';
 import type {
   FinanceExpenseCategory,
   FinanceExpensePaymentMethod,
@@ -24,6 +31,7 @@ import type {
   IngredientStockUnit,
 } from '../types';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
+import { buildWhatsAppShareUrl } from '../utils/whatsapp';
 
 interface IngredientPayload {
   name: string;
@@ -166,6 +174,16 @@ const AdminIngredientsPage: React.FC = () => {
   const [expenseCategories, setExpenseCategories] = useState<FinanceExpenseCategory[]>([]);
   const [expenseVendors, setExpenseVendors] = useState<FinanceVendor[]>([]);
   const [expenseLinkLoading, setExpenseLinkLoading] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareContacts, setShareContacts] = useState<InventoryShareContact[]>([]);
+  const [shareContactsLoading, setShareContactsLoading] = useState(false);
+  const [selectedShareContactId, setSelectedShareContactId] = useState('');
+  const [sharePhone, setSharePhone] = useState('');
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [savingShareContact, setSavingShareContact] = useState(false);
+  const [editingShareContactId, setEditingShareContactId] = useState<number | null>(null);
+  const [deletingShareContact, setDeletingShareContact] = useState(false);
 
   const fetchIngredients = useCallback(async () => {
     setLoading(true);
@@ -676,6 +694,117 @@ const AdminIngredientsPage: React.FC = () => {
       reference: 'AUTO_REORDER_DRAFT',
       notes: t('inventoryIngredients.reorder.autoDraftNote'),
     });
+  };
+
+  const handleOpenShareModal = async () => {
+    setShareModalOpen(true);
+    setShareContactsLoading(true);
+
+    try {
+      setShareContacts(await fetchInventoryShareContacts());
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, t('inventoryIngredients.reorder.share.failedLoadContacts')), 'tertiary');
+    } finally {
+      setShareContactsLoading(false);
+    }
+  };
+
+  const handleSelectShareContact = (contactId: string) => {
+    handleCancelEditShareContact();
+    setSelectedShareContactId(contactId);
+    const contact = shareContacts.find((item) => String(item.id) === contactId);
+    if (contact) setSharePhone(contact.phone);
+  };
+
+  const handleCreateShareContact = async () => {
+    if (!newContactName.trim() || !newContactPhone.trim()) {
+      showToast(t('inventoryIngredients.reorder.share.contactFieldsRequired'), 'tertiary');
+      return;
+    }
+
+    setSavingShareContact(true);
+    try {
+      const payload = { name: newContactName.trim(), phone: newContactPhone.trim() };
+      const contact = editingShareContactId
+        ? await updateInventoryShareContact(editingShareContactId, payload)
+        : await createInventoryShareContact(payload);
+      setShareContacts((current) => (
+        editingShareContactId
+          ? current.map((item) => item.id === contact.id ? contact : item)
+          : [...current, contact]
+      ).sort((a, b) => a.name.localeCompare(b.name)));
+      setSelectedShareContactId(String(contact.id));
+      setSharePhone(contact.phone);
+      setNewContactName('');
+      setNewContactPhone('');
+      setEditingShareContactId(null);
+      showToast(
+        t(editingShareContactId
+          ? 'inventoryIngredients.reorder.share.contactUpdated'
+          : 'inventoryIngredients.reorder.share.contactCreated'),
+        'secondary'
+      );
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, t('inventoryIngredients.reorder.share.failedCreateContact')), 'tertiary');
+    } finally {
+      setSavingShareContact(false);
+    }
+  };
+
+  const handleStartEditShareContact = () => {
+    const contact = shareContacts.find((item) => String(item.id) === selectedShareContactId);
+    if (!contact) return;
+
+    setEditingShareContactId(contact.id);
+    setNewContactName(contact.name);
+    setNewContactPhone(contact.phone);
+  };
+
+  const handleCancelEditShareContact = () => {
+    setEditingShareContactId(null);
+    setNewContactName('');
+    setNewContactPhone('');
+  };
+
+  const handleDeleteShareContact = async () => {
+    const contact = shareContacts.find((item) => String(item.id) === selectedShareContactId);
+    if (!contact || !window.confirm(t('inventoryIngredients.reorder.share.confirmRemove', { name: contact.name }))) return;
+
+    setDeletingShareContact(true);
+    try {
+      await deleteInventoryShareContact(contact.id);
+      setShareContacts((current) => current.filter((item) => item.id !== contact.id));
+      setSelectedShareContactId('');
+      setSharePhone('');
+      if (editingShareContactId === contact.id) handleCancelEditShareContact();
+      showToast(t('inventoryIngredients.reorder.share.contactRemoved'), 'secondary');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, t('inventoryIngredients.reorder.share.failedRemoveContact')), 'tertiary');
+    } finally {
+      setDeletingShareContact(false);
+    }
+  };
+
+  const handleShareMissingItems = () => {
+    const message = [
+      t('inventoryIngredients.reorder.share.messageTitle'),
+      t('inventoryIngredients.reorder.share.messageIntro'),
+      '',
+      ...reorderRows.map(({ ingredient, missing }, index) => (
+        `${index + 1}. ${formatIngredientName(ingredient.name, ingredient.name_ar)} — ${t('inventoryIngredients.reorder.missingAmount', {
+          missing: missing.toFixed(3),
+          unit: ingredient.unit,
+        })}`
+      )),
+    ].join('\n');
+    const url = buildWhatsAppShareUrl(sharePhone, message);
+
+    if (!url) {
+      showToast(t('inventoryIngredients.reorder.share.invalidPhone'), 'tertiary');
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const canPortal = typeof document !== 'undefined';
@@ -1333,13 +1462,22 @@ const AdminIngredientsPage: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {reorderModalView === 'missing' ? (
-                  <LiquidButton
-                    tone="secondary"
-                    onClick={handleCreateRestockDraft}
-                    disabled={reorderRows.length === 0}
-                  >
-                    {t('inventoryIngredients.reorder.createDraft')}
-                  </LiquidButton>
+                  <>
+                    <LiquidButton
+                      tone="primary"
+                      onClick={() => void handleOpenShareModal()}
+                      disabled={reorderRows.length === 0}
+                    >
+                      {t('inventoryIngredients.reorder.share.open')}
+                    </LiquidButton>
+                    <LiquidButton
+                      tone="secondary"
+                      onClick={handleCreateRestockDraft}
+                      disabled={reorderRows.length === 0}
+                    >
+                      {t('inventoryIngredients.reorder.createDraft')}
+                    </LiquidButton>
+                  </>
                 ) : null}
                 <LiquidButton tone="tertiary" onClick={handleCloseReorderModal}>
                   {t('common.close')}
@@ -1391,6 +1529,128 @@ const AdminIngredientsPage: React.FC = () => {
                 </div>
               </div>
             ) : null}
+            </div>
+          </div>
+        </div>,
+        document.body
+      ) : null}
+
+      {shareModalOpen && canPortal ? createPortal(
+        <div className="fixed inset-0 z-[2147483647] overflow-y-auto bg-black/65 p-4">
+          <div className="mx-auto my-6 w-full max-w-xl rounded-[28px] border border-modalStroke bg-modalSurface p-5 shadow-lux2 sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-gold2/85">{t('inventoryIngredients.reorder.share.eyebrow')}</p>
+                <h3 className="mt-2 text-xl font-semibold text-text">{t('inventoryIngredients.reorder.share.title')}</h3>
+                <p className="mt-2 text-sm text-muted">{t('inventoryIngredients.reorder.share.description')}</p>
+              </div>
+              <LiquidButton tone="tertiary" onClick={() => setShareModalOpen(false)}>
+                {t('common.close')}
+              </LiquidButton>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              <div className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-muted2">
+                  {t('inventoryIngredients.reorder.share.savedContact')}
+                </span>
+                <GlassSearchSelect
+                  value={selectedShareContactId}
+                  options={shareContacts.map((contact) => ({
+                    value: String(contact.id),
+                    label: `${contact.name} • ${contact.phone}`,
+                  }))}
+                  onChange={handleSelectShareContact}
+                  placeholder={shareContactsLoading
+                    ? t('inventoryIngredients.reorder.share.loadingContacts')
+                    : t('inventoryIngredients.reorder.share.chooseContact')}
+                  searchPlaceholder={t('inventoryIngredients.reorder.share.searchContacts')}
+                  emptyText={t('inventoryIngredients.reorder.share.noContacts')}
+                  disabled={shareContactsLoading}
+                />
+                {selectedShareContactId ? (
+                  <div className="mt-2 flex flex-wrap justify-end gap-2">
+                    <LiquidButton tone="secondary" className="px-3 py-1.5 text-xs" onClick={handleStartEditShareContact}>
+                      {t('inventoryIngredients.reorder.share.editContact')}
+                    </LiquidButton>
+                    <LiquidButton
+                      tone="tertiary"
+                      className="px-3 py-1.5 text-xs text-spicy"
+                      onClick={() => void handleDeleteShareContact()}
+                      disabled={deletingShareContact}
+                    >
+                      {deletingShareContact
+                        ? t('inventoryIngredients.reorder.share.removingContact')
+                        : t('inventoryIngredients.reorder.share.removeContact')}
+                    </LiquidButton>
+                  </div>
+                ) : null}
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.12em] text-muted2">
+                  {t('inventoryIngredients.reorder.share.phone')}
+                </span>
+                <GlassInput
+                  type="tel"
+                  value={sharePhone}
+                  onChange={(event) => {
+                    setSharePhone(event.target.value);
+                    setSelectedShareContactId('');
+                  }}
+                  placeholder={t('inventoryIngredients.reorder.share.phonePlaceholder')}
+                />
+                <span className="mt-1.5 block text-xs text-muted2">{t('inventoryIngredients.reorder.share.phoneHint')}</span>
+              </label>
+
+              <div className="rounded-[20px] border border-modalStroke bg-modalRow p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-text">
+                      {t(editingShareContactId
+                        ? 'inventoryIngredients.reorder.share.editContactTitle'
+                        : 'inventoryIngredients.reorder.share.createContact')}
+                    </p>
+                    <p className="mt-1 text-xs text-muted2">
+                      {t(editingShareContactId
+                        ? 'inventoryIngredients.reorder.share.editContactHint'
+                        : 'inventoryIngredients.reorder.share.createContactHint')}
+                    </p>
+                  </div>
+                  {editingShareContactId ? (
+                    <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs" onClick={handleCancelEditShareContact}>
+                      {t('common.cancel')}
+                    </LiquidButton>
+                  ) : null}
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <GlassInput
+                    type="text"
+                    value={newContactName}
+                    onChange={(event) => setNewContactName(event.target.value)}
+                    placeholder={t('inventoryIngredients.reorder.share.contactNamePlaceholder')}
+                  />
+                  <GlassInput
+                    type="tel"
+                    value={newContactPhone}
+                    onChange={(event) => setNewContactPhone(event.target.value)}
+                    placeholder={t('inventoryIngredients.reorder.share.phonePlaceholder')}
+                  />
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <LiquidButton tone="secondary" onClick={() => void handleCreateShareContact()} disabled={savingShareContact}>
+                    {savingShareContact
+                      ? t('inventoryIngredients.reorder.share.savingContact')
+                      : t(editingShareContactId
+                        ? 'inventoryIngredients.reorder.share.updateContact'
+                        : 'inventoryIngredients.reorder.share.saveContact')}
+                  </LiquidButton>
+                </div>
+              </div>
+
+              <LiquidButton tone="primary" className="w-full justify-center" onClick={handleShareMissingItems} disabled={reorderRows.length === 0}>
+                {t('inventoryIngredients.reorder.share.send')}
+              </LiquidButton>
             </div>
           </div>
         </div>,
