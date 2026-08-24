@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import type { Dish } from '../types';
 import api from '../services/api';
-import { GlassCard, GlassPill, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
+import { GlassCard, GlassInput, GlassPill, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import DishAssetThumbnail from '../components/Common/DishAssetThumbnail';
 import { translateCategoryLabel } from '../i18n/dynamic';
+import { MENU_CATEGORIES } from '../i18n/categories';
+import { useAuth } from '../contexts/useAuth';
+import { fetchRestaurantProfile, updateRestaurantMenuCategories } from '../services/restaurantProfileService';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -44,6 +47,7 @@ const parseDishListPage = (payload: unknown): { items: Dish[]; currentPage: numb
 
 const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
+  const { user, refreshUser } = useAuth();
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,11 +56,21 @@ const AdminDashboard: React.FC = () => {
   const [itemTypeFilter, setItemTypeFilter] = useState<ItemTypeFilter>('all');
   const [openMenuDishId, setOpenMenuDishId] = useState<number | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  const categoryMenuRef = useRef<HTMLDivElement | null>(null);
+  const [menuCategories, setMenuCategories] = useState<string[]>(user?.restaurant?.menu_categories ?? []);
+  const [savedMenuCategories, setSavedMenuCategories] = useState<string[]>(user?.restaurant?.menu_categories ?? []);
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
+  const [categoryQuery, setCategoryQuery] = useState('');
+  const [savingCategories, setSavingCategories] = useState(false);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
         setOpenMenuDishId(null);
+      }
+      if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
+        setCategoryPickerOpen(false);
+        setCategoryQuery('');
       }
     };
 
@@ -72,6 +86,29 @@ const AdminDashboard: React.FC = () => {
     return () => {
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    setMenuCategories(user?.restaurant?.menu_categories ?? []);
+    setSavedMenuCategories(user?.restaurant?.menu_categories ?? []);
+  }, [user?.restaurant?.menu_categories]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchRestaurantProfile()
+      .then((response) => {
+        const categories = response.restaurant?.menu_categories;
+        if (!cancelled && Array.isArray(categories)) {
+          setMenuCategories(categories);
+          setSavedMenuCategories(categories);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -127,6 +164,42 @@ const AdminDashboard: React.FC = () => {
     }
     return (dish.item_type || 'prepared_dish') === itemTypeFilter;
   });
+
+  const filteredCategoryOptions = MENU_CATEGORIES.filter((category) => {
+    const query = categoryQuery.trim().toLowerCase();
+    return query === ''
+      || category.value.toLowerCase().includes(query)
+      || category.arabic.includes(query);
+  });
+
+  const toggleMenuCategory = (category: string) => {
+    setMenuCategories((current) => (
+      current.includes(category)
+        ? current.filter((value) => value !== category)
+        : [...current, category]
+    ));
+  };
+
+  const saveMenuCategories = async () => {
+    if (menuCategories.length === 0) {
+      showToast('Select at least one menu category.', 'tertiary');
+      return;
+    }
+
+    setSavingCategories(true);
+    try {
+      const response = await updateRestaurantMenuCategories(menuCategories);
+      const saved = response.restaurant?.menu_categories ?? menuCategories;
+      setMenuCategories(saved);
+      setSavedMenuCategories(saved);
+      showToast(response.message || 'Menu categories saved.', 'secondary');
+      await refreshUser();
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Failed to save menu categories.'), 'tertiary');
+    } finally {
+      setSavingCategories(false);
+    }
+  };
 
   const handlePublishToggle = async (dish: Dish) => {
     const action = dish.status === 'published' ? 'unpublish' : 'publish';
@@ -188,6 +261,70 @@ const AdminDashboard: React.FC = () => {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-text">{t('adminDashboard.yourMenuItems')}</h2>
       </div>
+
+      <GlassCard className={`mb-6 overflow-visible ${categoryPickerOpen ? 'z-[100]' : ''}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-text">Menu Categories</h3>
+            <p className="mt-1 text-sm text-muted">Choose the categories available for this restaurant. Save them separately from the rest of the dashboard.</p>
+          </div>
+          <span className="rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-medium text-gold2">{menuCategories.length} selected</span>
+        </div>
+
+        <div className="mt-4 flex min-h-11 flex-wrap gap-2 rounded-xl2 border border-stroke bg-bg1/45 p-2">
+          {menuCategories.length === 0 ? (
+            <span className="px-2 py-1 text-sm text-muted">No categories selected.</span>
+          ) : menuCategories.map((category) => {
+            const definition = MENU_CATEGORIES.find((entry) => entry.value === category);
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => toggleMenuCategory(category)}
+                className="inline-flex items-center gap-2 rounded-full border border-gold/35 bg-gold/10 px-3 py-1.5 text-xs font-medium text-text transition hover:border-spicy/45"
+              >
+                {category}{definition ? ` • ${definition.arabic}` : ''}<span className="text-muted2">×</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div ref={categoryMenuRef} className="relative mt-3">
+          <button
+            type="button"
+            onClick={() => setCategoryPickerOpen((current) => !current)}
+            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl2 border border-stroke bg-bg1/65 px-4 py-2.5 text-left text-sm text-text transition hover:border-gold/35"
+            aria-expanded={categoryPickerOpen}
+          >
+            <span>Search and select categories</span>
+            <span className="text-muted2">{categoryPickerOpen ? '▴' : '▾'}</span>
+          </button>
+
+          {categoryPickerOpen ? (
+            <div className="absolute z-[1200] mt-2 w-full overflow-hidden rounded-2xl border border-stroke bg-bg1 p-3 shadow-lux2">
+              <GlassInput value={categoryQuery} onChange={(event) => setCategoryQuery(event.target.value)} placeholder="Search categories..." leftSlot={<span>⌕</span>} autoFocus />
+              <div className="mt-2 max-h-64 space-y-1 overflow-y-auto pr-1">
+                {filteredCategoryOptions.map((category) => {
+                  const selected = menuCategories.includes(category.value);
+                  return (
+                    <button key={category.value} type="button" onClick={() => toggleMenuCategory(category.value)} className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${selected ? 'border-gold/35 bg-gold/12 text-text' : 'border-stroke bg-bg1/70 text-text hover:border-gold/25'}`}>
+                      <span>{category.value}<span className="text-muted2"> • {category.arabic}</span></span>
+                      <span className={selected ? 'text-gold2' : 'text-muted2'}>{selected ? '✓' : '+'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <LiquidButton tone="tertiary" onClick={() => setMenuCategories(savedMenuCategories)} disabled={savingCategories}>Reset</LiquidButton>
+          <LiquidButton tone="primary" onClick={() => void saveMenuCategories()} disabled={savingCategories || JSON.stringify(menuCategories) === JSON.stringify(savedMenuCategories)}>
+            {savingCategories ? 'Saving categories...' : 'Save categories'}
+          </LiquidButton>
+        </div>
+      </GlassCard>
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <GlassPill active={filter === 'all'} onClick={() => setFilter('all')}>{t('menuList.allCategories')}</GlassPill>

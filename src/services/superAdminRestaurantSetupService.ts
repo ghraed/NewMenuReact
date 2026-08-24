@@ -10,16 +10,10 @@ export interface SuperAdminSetupUserOption {
   has_restaurant: boolean;
 }
 
-export interface SuperAdminSetupCategoryOption {
-  value: string;
-  arabic: string;
-}
-
 export interface SuperAdminRestaurantSetupOptions {
   users: SuperAdminSetupUserOption[];
   restaurant_statuses: string[];
   currencies: string[];
-  menu_categories: SuperAdminSetupCategoryOption[];
 }
 
 export interface CreateSuperAdminRestaurantPayload {
@@ -35,7 +29,6 @@ export interface CreateSuperAdminRestaurantPayload {
   status: string;
   currency: string;
   custom_domain: string;
-  menu_categories: string[];
 }
 
 export interface SuperAdminRestaurantSetupSummary {
@@ -48,7 +41,6 @@ export interface SuperAdminRestaurantSetupSummary {
   custom_domain_status?: string | null;
   custom_domain_error?: string | null;
   ssl_issued_at?: string | null;
-  menu_categories?: string[];
   profile?: RestaurantProfile | null;
 }
 
@@ -58,7 +50,6 @@ export interface UpdateSuperAdminRestaurantPayload {
   status: string;
   currency: string;
   custom_domain: string;
-  menu_categories: string[];
   profile?: RestaurantProfile;
 }
 

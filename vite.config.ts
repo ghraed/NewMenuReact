@@ -39,6 +39,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: [
         '2d447bf9e7144f.lhr.lifelife',
         'localhost',
+        'rozer.localhost',
         'alpha.localhost',
         'sigma.localhost',
         'www.rozer.pro',

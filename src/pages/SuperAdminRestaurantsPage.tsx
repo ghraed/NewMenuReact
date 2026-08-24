@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSuperAdminAuth } from '../contexts/useSuperAdminAuth';
-import { MENU_CATEGORIES } from '../i18n/categories';
 import {
   fetchSuperAdminRestaurants,
   type SuperAdminRestaurantSummary,
@@ -17,7 +16,6 @@ import {
 import {
   GlassBoard,
   GlassCard,
-  GlassChip,
   GlassInput,
   GlassSelect,
   GlassToast,
@@ -33,7 +31,6 @@ type RestaurantEditForm = {
   status: string;
   currency: string;
   custom_domain: string;
-  menu_categories: string[];
   profile: RestaurantProfile;
 };
 
@@ -101,13 +98,8 @@ const buildFormFromRestaurant = (
   status: restaurant.status || options?.restaurant_statuses?.[0] || 'active',
   currency: restaurant.currency || options?.currencies?.[0] || 'USD',
   custom_domain: restaurant.custom_domain ?? '',
-  menu_categories: Array.isArray(restaurant.menu_categories) ? restaurant.menu_categories : [],
   profile: normalizeProfile(restaurant.profile),
 });
-
-const normalizeCategories = (values: string[]): string[] => (
-  Array.from(new Set(values.map((value) => value.trim()).filter((value) => value !== '')))
-);
 
 const formatDateTime = (value?: string | null): string => {
   if (!value) return 'Not issued';
@@ -155,7 +147,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
     status: 'active',
     currency: 'USD',
     custom_domain: '',
-    menu_categories: [],
     profile: {},
   });
 
@@ -186,7 +177,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       || form.status !== baseline.status
       || form.currency !== baseline.currency
       || form.custom_domain !== baseline.custom_domain
-      || normalizeCategories(form.menu_categories).join('|') !== normalizeCategories(baseline.menu_categories).join('|')
       || JSON.stringify(normalizeProfile(form.profile)) !== JSON.stringify(normalizeProfile(baseline.profile))
     );
   }, [form, options, selectedRestaurant]);
@@ -233,7 +223,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       status: options?.restaurant_statuses?.[0] ?? 'active',
       currency: options?.currencies?.[0] ?? 'USD',
       custom_domain: '',
-      menu_categories: [],
       profile: {},
     });
   }, [options, selectedRestaurant]);
@@ -243,15 +232,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       showToast(pageError, 'tertiary', 5000);
     }
   }, [pageError, showToast]);
-
-  const handleCategoryToggle = (value: string) => {
-    setForm((current) => ({
-      ...current,
-      menu_categories: current.menu_categories.includes(value)
-        ? current.menu_categories.filter((entry) => entry !== value)
-        : [...current.menu_categories, value],
-    }));
-  };
 
   const updateProfileField = (field: keyof RestaurantProfile, value: string) => {
     setForm((current) => ({
@@ -277,17 +257,11 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       status: form.status.trim(),
       currency: form.currency.trim(),
       custom_domain: form.custom_domain.trim(),
-      menu_categories: normalizeCategories(form.menu_categories),
       profile: normalizeProfile(form.profile),
     };
 
     if (!payload.name || !payload.slug || !payload.status || !payload.currency) {
       setPageError('Name, slug, status, and currency are required.');
-      return;
-    }
-
-    if (payload.menu_categories.length === 0) {
-      setPageError('Select at least one menu category.');
       return;
     }
 
@@ -383,8 +357,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
     value: option,
     label: option,
   }));
-
-  const categoryDefinitions = options?.menu_categories ?? MENU_CATEGORIES;
 
   return (
     <LiquidBackground>
@@ -593,32 +565,6 @@ const SuperAdminRestaurantsPage: React.FC = () => {
                           placeholder="A concise description shown to guests."
                         />
                       </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div>
-                        <h3 className="text-base font-semibold text-text">Menu Categories</h3>
-                        <p className="mt-1 text-xs text-muted">Keep this aligned with the restaurant’s allowed menu structure.</p>
-                      </div>
-                      <span className="text-xs text-muted">{form.menu_categories.length} selected</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {categoryDefinitions.map((category) => {
-                        const selected = form.menu_categories.includes(category.value);
-                        return (
-                          <GlassChip
-                            key={category.value}
-                            active={selected}
-                            onClick={() => handleCategoryToggle(category.value)}
-                          >
-                            {category.value}
-                            {category.arabic ? ` • ${category.arabic}` : ''}
-                          </GlassChip>
-                        );
-                      })}
                     </div>
                   </div>
 

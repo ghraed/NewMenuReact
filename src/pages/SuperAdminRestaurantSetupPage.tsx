@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MENU_CATEGORIES } from '../i18n/categories';
-import { translateCategoryLabel } from '../i18n/dynamic';
 import { useSuperAdminAuth } from '../contexts/useSuperAdminAuth';
 import {
   createSuperAdminRestaurant,
@@ -55,7 +53,6 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
   const [users, setUsers] = useState<SuperAdminSetupUserOption[]>([]);
   const [statusOptions, setStatusOptions] = useState<string[]>(['active', 'inactive']);
   const [currencyOptions, setCurrencyOptions] = useState<string[]>(['USD']);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [creatingRestaurant, setCreatingRestaurant] = useState(false);
   const [restaurantCreated, setRestaurantCreated] = useState(false);
   const [adminMode, setAdminMode] = useState<'new' | 'existing'>('new');
@@ -110,14 +107,6 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
     [restaurantForm.user_id, users]
   );
 
-  const toggleCategory = (value: string) => {
-    setSelectedCategories((current) => (
-      current.includes(value)
-        ? current.filter((entry) => entry !== value)
-        : [...current, value]
-    ));
-  };
-
   const handleCreateRestaurant = async (event: React.FormEvent) => {
     event.preventDefault();
     setPageError(null);
@@ -137,7 +126,6 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
       status: restaurantForm.status.trim(),
       currency: restaurantForm.currency.trim(),
       custom_domain: restaurantForm.custom_domain.trim().toLowerCase(),
-      menu_categories: selectedCategories,
     };
 
     if (!payload.name || !payload.slug || !payload.status || !payload.currency || !payload.custom_domain) {
@@ -155,11 +143,6 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
       && (!payload.admin_user?.name || !payload.admin_user.email || !payload.admin_user.password)
     ) {
       setPageError('Admin name, email, and password are required when creating a new restaurant admin.');
-      return;
-    }
-
-    if (payload.menu_categories.length === 0) {
-      setPageError('Select at least one menu category.');
       return;
     }
 
@@ -182,7 +165,6 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
         password: '',
         phone: '',
       });
-      setSelectedCategories([]);
       await loadOptions();
     } catch (error: unknown) {
       setPageError(getErrorMessage(error, 'Failed to create restaurant.'));
@@ -248,7 +230,7 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
           <GlassCard className="min-h-0 space-y-4 overflow-hidden p-4">
             <div>
               <h2 className="text-base font-semibold text-text">Create Restaurant</h2>
-              <p className="mt-1 text-xs text-muted">All fields are required, including admin details and at least one allowed category.</p>
+              <p className="mt-1 text-xs text-muted">All fields are required, including the restaurant owner’s admin details.</p>
             </div>
 
             {loading ? (
@@ -345,47 +327,9 @@ const SuperAdminRestaurantSetupPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="min-h-0">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-semibold text-text">Allowed Menu Categories</h3>
-                        <p className="text-xs text-muted">Selected: {selectedCategories.length}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <LiquidButton type="button" tone="tertiary" className="px-3 py-1.5 text-xs" onClick={() => setSelectedCategories(MENU_CATEGORIES.map((category) => category.value))}>
-                          All
-                        </LiquidButton>
-                        <LiquidButton type="button" tone="tertiary" className="px-3 py-1.5 text-xs" onClick={() => setSelectedCategories([])}>
-                          Clear
-                        </LiquidButton>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1 rounded-xl2 border border-stroke/80 bg-panel2/25 p-2 xl:grid-cols-6">
-                      {MENU_CATEGORIES.map((category) => {
-                        const checked = selectedCategories.includes(category.value);
-                        return (
-                          <label key={category.value} className="flex cursor-pointer items-center gap-2 rounded-lg border border-stroke/60 bg-bg1/45 px-2 py-1 text-[11px] leading-tight text-text">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => toggleCategory(category.value)}
-                              className="h-3.5 w-3.5 rounded border-stroke text-gold focus:ring-gold/50"
-                            />
-                            <span className="truncate">{translateCategoryLabel(category.value, category.arabic)}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="mt-auto">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-text">Allowed Menu Categories</h3>
-                      <p className="text-xs text-muted">Selected: {selectedCategories.length}</p>
-                    </div>
-                  </div>
                   <LiquidButton type="submit" className="w-full" disabled={creatingRestaurant}>
                     {creatingRestaurant ? 'Creating restaurant...' : 'Create Restaurant'}
                   </LiquidButton>

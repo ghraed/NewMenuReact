@@ -114,6 +114,13 @@ export const updateRestaurantProfile = async (payload: RestaurantProfilePayload)
   return response.data;
 };
 
+export const updateRestaurantMenuCategories = async (menuCategories: string[]): Promise<RestaurantProfileResponse> => {
+  const response = await api.patch<RestaurantProfileResponse>('/restaurant/profile/categories', {
+    menu_categories: menuCategories,
+  });
+  return response.data;
+};
+
 export const uploadRestaurantLogo = async (file: File): Promise<RestaurantProfileResponse> => {
   const formData = new FormData();
   formData.append('logo', file);
