@@ -1,4 +1,5 @@
 import superAdminApi from './superAdminApi';
+import type { RestaurantProfile } from '../types';
 
 export interface SuperAdminFeatureFlag {
   id: number;
@@ -22,6 +23,7 @@ export interface SuperAdminRestaurantSummary {
   custom_domain_error?: string | null;
   ssl_issued_at?: string | null;
   menu_categories?: string[];
+  profile?: RestaurantProfile | null;
 }
 
 export interface SuperAdminRestaurantWithFeatures extends SuperAdminRestaurantSummary {

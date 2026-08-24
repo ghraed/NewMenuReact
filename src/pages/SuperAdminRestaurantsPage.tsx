@@ -25,6 +25,7 @@ import {
   LiquidButton,
   useGlassToast,
 } from '../components/ui/liquid-glass';
+import type { RestaurantProfile } from '../types';
 
 type RestaurantEditForm = {
   name: string;
@@ -33,7 +34,35 @@ type RestaurantEditForm = {
   currency: string;
   custom_domain: string;
   menu_categories: string[];
+  profile: RestaurantProfile;
 };
+
+const profileFields: Array<{ key: keyof RestaurantProfile; label: string; type?: 'email' | 'url' }> = [
+  { key: 'legal_business_name', label: 'Legal business name' },
+  { key: 'cuisine_specialty', label: 'Cuisine specialty' },
+  { key: 'contact_email', label: 'Contact email', type: 'email' },
+  { key: 'website_url', label: 'Website', type: 'url' },
+  { key: 'primary_phone', label: 'Primary phone' },
+  { key: 'whatsapp_phone', label: 'WhatsApp phone' },
+  { key: 'service_hours', label: 'Service hours' },
+  { key: 'address_line_1', label: 'Address line 1' },
+  { key: 'address_line_2', label: 'Address line 2' },
+  { key: 'city', label: 'City' },
+  { key: 'state_province', label: 'State / province' },
+  { key: 'postal_code', label: 'Postal code' },
+  { key: 'country', label: 'Country' },
+  { key: 'tax_registration_number', label: 'Tax registration number' },
+  { key: 'vat_registration_number', label: 'VAT registration number' },
+];
+
+const normalizeProfile = (profile?: RestaurantProfile | null): RestaurantProfile => (
+  Object.fromEntries(
+    [...profileFields.map(({ key }) => key), 'short_description'].map((key) => [
+      key,
+      (profile?.[key as keyof RestaurantProfile] || '').trim() || null,
+    ])
+  ) as RestaurantProfile
+);
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -73,6 +102,7 @@ const buildFormFromRestaurant = (
   currency: restaurant.currency || options?.currencies?.[0] || 'USD',
   custom_domain: restaurant.custom_domain ?? '',
   menu_categories: Array.isArray(restaurant.menu_categories) ? restaurant.menu_categories : [],
+  profile: normalizeProfile(restaurant.profile),
 });
 
 const normalizeCategories = (values: string[]): string[] => (
@@ -126,6 +156,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
     currency: 'USD',
     custom_domain: '',
     menu_categories: [],
+    profile: {},
   });
 
   const selectedRestaurant = useMemo(
@@ -156,6 +187,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       || form.currency !== baseline.currency
       || form.custom_domain !== baseline.custom_domain
       || normalizeCategories(form.menu_categories).join('|') !== normalizeCategories(baseline.menu_categories).join('|')
+      || JSON.stringify(normalizeProfile(form.profile)) !== JSON.stringify(normalizeProfile(baseline.profile))
     );
   }, [form, options, selectedRestaurant]);
 
@@ -202,6 +234,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       currency: options?.currencies?.[0] ?? 'USD',
       custom_domain: '',
       menu_categories: [],
+      profile: {},
     });
   }, [options, selectedRestaurant]);
 
@@ -220,6 +253,16 @@ const SuperAdminRestaurantsPage: React.FC = () => {
     }));
   };
 
+  const updateProfileField = (field: keyof RestaurantProfile, value: string) => {
+    setForm((current) => ({
+      ...current,
+      profile: {
+        ...current.profile,
+        [field]: value,
+      },
+    }));
+  };
+
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -235,6 +278,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
       currency: form.currency.trim(),
       custom_domain: form.custom_domain.trim(),
       menu_categories: normalizeCategories(form.menu_categories),
+      profile: normalizeProfile(form.profile),
     };
 
     if (!payload.name || !payload.slug || !payload.status || !payload.currency) {
@@ -349,7 +393,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-gold2/85">Internal Super Admin Dashboard</p>
-              <h1 className="mt-2 text-2xl font-semibold text-text">Restaurant Management</h1>
+              <h1 className="mt-2 text-2xl font-semibold text-text">Restaurant Management & Profiles</h1>
               <p className="mt-1 text-sm text-muted">
                 Signed in as {user?.email}. Updating a custom domain uses the existing queued provisioning worker.
               </p>
@@ -381,7 +425,7 @@ const SuperAdminRestaurantsPage: React.FC = () => {
           <GlassCard className="p-0">
             <div className="border-b border-stroke px-4 py-4">
               <h2 className="text-lg font-semibold text-text">Restaurants</h2>
-              <p className="mt-1 text-xs text-muted">Pick a tenant to edit domain and restaurant fields.</p>
+              <p className="mt-1 text-xs text-muted">Pick a tenant to edit its profile, domain, and restaurant settings.</p>
               <div className="mt-3">
                 <GlassInput
                   value={restaurantSearch}
@@ -518,6 +562,37 @@ const SuperAdminRestaurantsPage: React.FC = () => {
                           {selectedRestaurant.custom_domain_error || 'No error recorded.'}
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl2 border border-stroke bg-panel2/25 p-4">
+                    <div className="mb-4">
+                      <h3 className="text-base font-semibold text-text">Restaurant Profile</h3>
+                      <p className="mt-1 text-xs text-muted">Contact, address, legal, and guest-facing details for this restaurant.</p>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {profileFields.map(({ key, label, type }) => (
+                        <label key={key} className="block">
+                          <span className="mb-1 block text-xs font-medium text-text">{label}</span>
+                          <GlassInput
+                            type={type}
+                            value={form.profile[key] ?? ''}
+                            onChange={(event) => updateProfileField(key, event.target.value)}
+                          />
+                        </label>
+                      ))}
+
+                      <label className="block md:col-span-2">
+                        <span className="mb-1 block text-xs font-medium text-text">Short description</span>
+                        <textarea
+                          value={form.profile.short_description ?? ''}
+                          onChange={(event) => updateProfileField('short_description', event.target.value)}
+                          rows={4}
+                          className="w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text"
+                          placeholder="A concise description shown to guests."
+                        />
+                      </label>
                     </div>
                   </div>
 

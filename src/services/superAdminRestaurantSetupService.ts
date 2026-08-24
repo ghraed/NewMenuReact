@@ -1,4 +1,5 @@
 import superAdminApi from './superAdminApi';
+import type { RestaurantProfile } from '../types';
 
 export interface SuperAdminSetupUserOption {
   id: number;
@@ -48,6 +49,7 @@ export interface SuperAdminRestaurantSetupSummary {
   custom_domain_error?: string | null;
   ssl_issued_at?: string | null;
   menu_categories?: string[];
+  profile?: RestaurantProfile | null;
 }
 
 export interface UpdateSuperAdminRestaurantPayload {
@@ -57,6 +59,7 @@ export interface UpdateSuperAdminRestaurantPayload {
   currency: string;
   custom_domain: string;
   menu_categories: string[];
+  profile?: RestaurantProfile;
 }
 
 export const fetchSuperAdminRestaurantSetupOptions = async (): Promise<SuperAdminRestaurantSetupOptions> => {
