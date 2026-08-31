@@ -694,15 +694,30 @@ const AdminFinanceDashboardPage: React.FC = () => {
         const periodKey = toPeriodKey(expense.expense_date, range);
         const bucket = ensurePeriod(periodKey);
         const expenseAmount = (expense.total_cents ?? 0) / 100;
-        if (isExpenseCogs(expense)) {
+        if (expense.payroll_period_id != null) {
+          bucket.payroll += expenseAmount;
+        } else if (isExpenseCogs(expense)) {
           bucket.cogs += expenseAmount;
         } else {
           bucket.operatingExpenses += expenseAmount;
         }
       }
 
+      const mirroredPayrollPeriodIds = new Set(
+        allExpenses
+          .filter((expense) => (
+            expense.payroll_period_id != null
+            && INCLUDED_EXPENSE_STATUSES.has(expense.status)
+            && isValidDateWithinRange(expense.expense_date, dateFrom, dateTo)
+          ))
+          .map((expense) => Number(expense.payroll_period_id))
+      );
+
       for (const period of payrollPeriods) {
         if (!INCLUDED_PAYROLL_STATUSES.has(period.status)) {
+          continue;
+        }
+        if (mirroredPayrollPeriodIds.has(period.id)) {
           continue;
         }
         const payrollDate = (period.paid_at || period.period_end || '').slice(0, 10);
