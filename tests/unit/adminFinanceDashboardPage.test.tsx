@@ -59,7 +59,7 @@ vi.mock('framer-motion', () => ({
 }));
 
 vi.mock('react-chartjs-2', () => ({
-  Chart: () => <div data-testid="finance-chart" />,
+  Chart: ({ data }: { data: unknown }) => <div data-testid="finance-chart" data-chart={JSON.stringify(data)} />,
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -179,8 +179,18 @@ const expensePages = {
         category: { id: 90, code: 'ops', name: 'Operations', is_active: true },
         linked_stock_movement: null,
       },
+      {
+        id: 15,
+        expense_date: '2026-05-02',
+        total_cents: 3000,
+        currency: 'USD',
+        status: 'paid',
+        payroll_period_id: 2,
+        category: { id: 93, code: 'payroll', name: 'Payroll', is_active: true },
+        linked_stock_movement: null,
+      },
     ],
-    meta: { current_page: 2, last_page: 2, per_page: 200, total: 4 },
+    meta: { current_page: 2, last_page: 2, per_page: 200, total: 5 },
   },
 } as const;
 
@@ -275,11 +285,16 @@ describe('AdminFinanceDashboardPage', () => {
       .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && expense.linked_stock_movement)
       .reduce((sum, expense) => sum + expense.total_cents / 100, 0);
     const expectedOperating = expenses
-      .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && !expense.linked_stock_movement)
+      .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && !expense.linked_stock_movement && expense.payroll_period_id == null)
       .reduce((sum, expense) => sum + expense.total_cents / 100, 0);
-    const expectedPayroll = payrollPeriods
-      .filter((period: { status: string }) => period.status === 'approved' || period.status === 'paid')
+    const mirroredPayrollPeriodIds = new Set(expenses.filter((expense) => expense.payroll_period_id != null).map((expense) => expense.payroll_period_id));
+    const expectedPayrollFromPeriods = payrollPeriods
+      .filter((period: { id: number; status: string }) => (period.status === 'approved' || period.status === 'paid') && !mirroredPayrollPeriodIds.has(period.id))
       .reduce((sum: number, period: { final_salary?: number; totals?: { net_pay?: number } }) => sum + Number(period.final_salary ?? period.totals?.net_pay ?? 0), 0);
+    const expectedPayrollFromMirroredExpenses = expenses
+      .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && expense.payroll_period_id != null)
+      .reduce((sum, expense) => sum + expense.total_cents / 100, 0);
+    const expectedPayroll = expectedPayrollFromPeriods + expectedPayrollFromMirroredExpenses;
     const expectedNetProfit = expectedRevenue - expectedCogs - expectedOperating - expectedPayroll;
     const expectedOperatingWithPayroll = expectedOperating + expectedPayroll;
 
@@ -291,6 +306,14 @@ describe('AdminFinanceDashboardPage', () => {
     expect(screen.getAllByText('$120.00').length).toBeGreaterThan(0);
     expect(screen.getByText('Page 1 of 1 • 4 total')).toBeInTheDocument();
     expect(screen.queryByText('$1,174.00')).not.toBeInTheDocument();
+
+    const chart = JSON.parse(screen.getByTestId('finance-chart').getAttribute('data-chart') || '{}') as {
+      datasets: Array<{ label: string; data: number[] }>;
+    };
+    expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.totalCosts')?.data)
+      .toEqual([expectedCogs + expectedOperating + expectedPayroll]);
+    expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.netProfit')?.data)
+      .toEqual([expectedNetProfit]);
   });
 
   it('passes active filters through to invoice and expense fetches without hidden defaults', async () => {
