@@ -717,7 +717,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
         if (!INCLUDED_PAYROLL_STATUSES.has(period.status)) {
           continue;
         }
-        if (mirroredPayrollPeriodIds.has(period.id)) {
+        // A linked mirror is the canonical paid-payroll representation even when
+        // its expense date falls outside the currently selected chart range.
+        // Period-id matching remains for legacy API payloads without the link.
+        if (period.mirrored_expense_id != null || mirroredPayrollPeriodIds.has(period.id)) {
           continue;
         }
         const payrollDate = (period.paid_at || period.period_end || '').slice(0, 10);

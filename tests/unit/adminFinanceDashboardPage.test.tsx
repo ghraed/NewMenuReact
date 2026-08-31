@@ -31,6 +31,13 @@ const mockedReportingService = vi.hoisted(() => ({
   fetchTaxSummary: vi.fn(),
 }));
 
+const mockedTranslate = vi.hoisted(() => vi.fn((key: string, options?: Record<string, unknown>) => {
+  if (key === 'adminFinancePage.pagination') {
+    return `Page ${options?.page} of ${options?.lastPage} • ${options?.total} total`;
+  }
+  return key;
+}));
+
 vi.mock('../../src/components/Admin/DashboardLayout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
@@ -109,12 +116,7 @@ vi.mock('../../src/services/financeReportingService', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: Record<string, unknown>) => {
-      if (key === 'adminFinancePage.pagination') {
-        return `Page ${options?.page} of ${options?.lastPage} • ${options?.total} total`;
-      }
-      return key;
-    },
+    t: mockedTranslate,
   }),
 }));
 
@@ -238,7 +240,7 @@ describe('AdminFinanceDashboardPage', () => {
     });
     mockedPayrollService.fetchPayrollPeriods.mockResolvedValue([
       { id: 1, status: 'approved', paid_at: '2026-05-04T09:00:00Z', period_end: '2026-05-04', final_salary: 70, totals: { net_pay: 70 } },
-      { id: 2, status: 'paid', paid_at: '2026-05-02T09:00:00Z', period_end: '2026-05-02', final_salary: 30, totals: { net_pay: 30 } },
+      { id: 2, status: 'paid', paid_at: '2026-05-02T09:00:00Z', period_end: '2026-05-02', final_salary: 30, mirrored_expense_id: 15, totals: { net_pay: 30 } },
       { id: 3, status: 'draft', paid_at: '2026-05-05T09:00:00Z', period_end: '2026-05-05', final_salary: 99, totals: { net_pay: 99 } },
     ]);
     mockedScheduleService.fetchStaffSchedules.mockResolvedValue([
@@ -289,7 +291,11 @@ describe('AdminFinanceDashboardPage', () => {
       .reduce((sum, expense) => sum + expense.total_cents / 100, 0);
     const mirroredPayrollPeriodIds = new Set(expenses.filter((expense) => expense.payroll_period_id != null).map((expense) => expense.payroll_period_id));
     const expectedPayrollFromPeriods = payrollPeriods
-      .filter((period: { id: number; status: string }) => (period.status === 'approved' || period.status === 'paid') && !mirroredPayrollPeriodIds.has(period.id))
+      .filter((period: { id: number; status: string; mirrored_expense_id?: number | null }) => (
+        (period.status === 'approved' || period.status === 'paid')
+        && period.mirrored_expense_id == null
+        && !mirroredPayrollPeriodIds.has(period.id)
+      ))
       .reduce((sum: number, period: { final_salary?: number; totals?: { net_pay?: number } }) => sum + Number(period.final_salary ?? period.totals?.net_pay ?? 0), 0);
     const expectedPayrollFromMirroredExpenses = expenses
       .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && expense.payroll_period_id != null)
@@ -339,6 +345,82 @@ describe('AdminFinanceDashboardPage', () => {
         date_to: '2026-05-31',
         page: 1,
       }));
+    });
+  });
+
+  it('attributes mirrored paid payroll by expense date without leaking it into the paid-at month', async () => {
+    mockedExpenseService.fetchExpenses.mockImplementation(async ({ date_from: dateFrom }) => ({
+      expenses: dateFrom === '2026-05-01'
+        ? [{
+            id: 201,
+            expense_date: '2026-05-31',
+            total_cents: 10000,
+            currency: 'USD',
+            status: 'paid',
+            payroll_period_id: 20,
+            category: { id: 93, code: 'payroll', name: 'Payroll', is_active: true },
+            linked_stock_movement: null,
+          }]
+        : [],
+      meta: { current_page: 1, last_page: 1, per_page: 200, total: dateFrom === '2026-05-01' ? 1 : 0 },
+    }));
+    mockedPayrollService.fetchPayrollPeriods.mockResolvedValue([{
+      id: 20,
+      status: 'paid',
+      period_end: '2026-05-31',
+      paid_at: '2026-06-05T09:00:00Z',
+      final_salary: 100,
+      mirrored_expense_id: 201,
+      totals: { net_pay: 100 },
+    }]);
+    mockedInvoiceService.fetchInvoiceRevenueTrends.mockImplementation(async ({ date_from: dateFrom }) => {
+      const month = dateFrom === '2026-06-01' ? '2026-06' : '2026-05';
+      return {
+        range: 'monthly',
+        date_from: `${month}-01`,
+        date_to: month === '2026-05' ? '2026-05-31' : '2026-06-30',
+        points: [{ bucket: month, label: month, gross_revenue: 200, refunds: 0, revenue: 200, invoice_count: 1 }],
+        totals: { revenue: 200, invoice_count: 1 },
+      };
+    });
+    mockedReportingService.fetchProfitAndLossSummary.mockImplementation(async ({ date_from: dateFrom }) => {
+      const isMay = dateFrom === '2026-05-01';
+      return {
+        date_from: isMay ? '2026-05-01' : '2026-06-01',
+        date_to: isMay ? '2026-05-31' : '2026-06-30',
+        group_by: 'monthly',
+        revenue: 200,
+        cogs: 0,
+        gross_profit: 200,
+        operating_expenses: isMay ? 100 : 0,
+        net_profit: isMay ? 100 : 200,
+      };
+    });
+
+    render(<AdminFinanceDashboardPage />);
+
+    const dateFrom = screen.getByLabelText('adminFinancePage.dateFrom');
+    const dateTo = screen.getByLabelText('adminFinancePage.dateTo');
+    fireEvent.change(dateFrom, { target: { value: '2026-05-01' } });
+    fireEvent.change(dateTo, { target: { value: '2026-05-31' } });
+
+    await waitFor(() => {
+      const chart = JSON.parse(screen.getByTestId('finance-chart').getAttribute('data-chart') || '{}') as {
+        datasets: Array<{ label: string; data: number[] }>;
+      };
+      expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.totalCosts')?.data).toEqual([100]);
+      expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.netProfit')?.data).toEqual([100]);
+    });
+
+    fireEvent.change(dateFrom, { target: { value: '2026-06-01' } });
+    fireEvent.change(dateTo, { target: { value: '2026-06-30' } });
+
+    await waitFor(() => {
+      const chart = JSON.parse(screen.getByTestId('finance-chart').getAttribute('data-chart') || '{}') as {
+        datasets: Array<{ label: string; data: number[] }>;
+      };
+      expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.totalCosts')?.data).toEqual([0]);
+      expect(chart.datasets.find((dataset) => dataset.label === 'adminFinancePage.metrics.netProfit')?.data).toEqual([200]);
     });
   });
 });
