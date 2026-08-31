@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:live": "flock /tmp/menu-release-hardening-db.lock bash scripts/run-live-e2e.sh"
   },
   "dependencies": {
     "@google/model-viewer": "^4.1.0",

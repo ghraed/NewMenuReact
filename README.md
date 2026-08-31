@@ -1,5 +1,28 @@
 # React + TypeScript + Vite
 
+## Isolated live release E2E
+
+`npm run test:e2e` preserves the existing mocked browser coverage. The live
+restaurant lifecycle is intentionally separate:
+
+```bash
+npm run test:e2e:live
+```
+
+The runner holds `/tmp/menu-release-hardening-db.lock`, requires the API
+worktree at `/tmp/menu-release-hardening/e2e-api`, uses only loopback URLs,
+loads Laravel with `APP_ENV=testing`, migrates `restaurantdb_test`, and creates
+data under a unique `QA_RUN_...` identifier. Its exit trap removes only the
+five fixture users for that identifier; deleting the fixture owners cascades
+their two disposable tenants and related records.
+
+The live spec uses separate guest-mobile, waiter, chef, accountant, and second-
+tenant browser contexts. It covers lifecycle and cancellation, role and tenant
+isolation, disabled feature responses, Arabic RTL and English LTR, guest-token
+revocation, frontend print rendering, backend PDF download, and final database
+verification. Failure artifacts are retained under `test-results/live` and
+`playwright-report-live`; successful runs remove temporary server logs.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
