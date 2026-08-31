@@ -23,6 +23,9 @@ import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRou
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import {
+  clearGuestOrderSubmissionAttempt,
+  loadGuestOrderSubmissionAttempt,
+  persistGuestOrderSubmissionAttempt,
   resolveGuestOrderSubmissionAttempt,
   type GuestOrderSubmissionAttempt,
 } from '../services/guestOrderSubmission';
@@ -179,12 +182,13 @@ const OrderReviewPage: React.FC = () => {
       })),
     };
     const attempt = resolveGuestOrderSubmissionAttempt(
-      submissionAttemptRef.current,
+      submissionAttemptRef.current ?? loadGuestOrderSubmissionAttempt(draft.tableSessionId),
       draft.tableSessionId,
       payload,
       createIdempotencyKey
     );
     submissionAttemptRef.current = attempt;
+    persistGuestOrderSubmissionAttempt(draft.tableSessionId, attempt);
 
     try {
       if (!navigator.onLine) {
@@ -194,7 +198,6 @@ const OrderReviewPage: React.FC = () => {
           payload,
           idempotencyKey: attempt.idempotencyKey,
         });
-        submissionAttemptRef.current = null;
         clearCart();
         setQueuedOffline(true);
         return;
@@ -209,6 +212,7 @@ const OrderReviewPage: React.FC = () => {
 
       setSubmittedOrder(response.order);
       submissionAttemptRef.current = null;
+      clearGuestOrderSubmissionAttempt(draft.tableSessionId);
       clearCart();
     } catch (err: unknown) {
       const status = typeof err === 'object' && err !== null && 'response' in err

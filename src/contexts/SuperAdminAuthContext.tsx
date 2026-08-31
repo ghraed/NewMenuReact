@@ -64,15 +64,10 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
   };
 
   const logout = async () => {
-    try {
-      await superAdminApi.post('/super-admin/auth/logout');
-    } catch {
-      // Ignore API errors and always clear local state.
-    } finally {
-      localStorage.removeItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
-      setToken(null);
-      setUser(null);
-    }
+    await superAdminApi.post('/super-admin/auth/logout');
+    localStorage.removeItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
+    setToken(null);
+    setUser(null);
   };
 
   const value = useMemo<SuperAdminAuthContextValue>(

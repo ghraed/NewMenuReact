@@ -90,4 +90,30 @@ describe('browser credential persistence', () => {
     expect(stored.draft.guestAccessVerified).toBe(false);
     expect(JSON.stringify(stored)).not.toContain('QA_RUN_SEC-readable-guest-token');
   });
+
+  it('does not claim logout while the HttpOnly credential may still be live', async () => {
+    api.get.mockRejectedValueOnce(new Error('not authenticated'));
+    api.post
+      .mockResolvedValueOnce({ data: { user: { id: 1, name: 'QA_RUN_SEC Admin', role: 'admin' } } })
+      .mockRejectedValueOnce(new Error('logout transport failed'));
+
+    const Probe = () => {
+      const context = useContext(AuthContext)!;
+      if (context.loading) return <span>loading</span>;
+      return (
+        <>
+          <span>{context.isAuthenticated ? 'authenticated' : 'logged-out'}</span>
+          <button onClick={() => void context.login('admin@example.test', 'password')}>login</button>
+          <button onClick={() => void context.logout().catch(() => undefined)}>logout</button>
+        </>
+      );
+    };
+
+    render(<AuthProvider><Probe /></AuthProvider>);
+    fireEvent.click(await screen.findByRole('button', { name: 'login' }));
+    await screen.findByText('authenticated');
+    fireEvent.click(screen.getByRole('button', { name: 'logout' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('authenticated')).toBeInTheDocument();
+  });
 });

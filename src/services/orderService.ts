@@ -146,7 +146,7 @@ interface VerifyGuestTablePinResponse {
   table: GuestTableMenuResponse['table'];
   table_session: TableSessionSummary;
   guest_access: {
-    token: string;
+    token?: string;
     verified: boolean;
     joined_at: string | null;
     last_seen_at: string | null;
@@ -557,30 +557,49 @@ export const resolvePendingWave = async (waveId: number): Promise<WaveResponse> 
   return response.data;
 };
 
-export const confirmPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+const idempotencyConfig = (idempotencyKey?: string) => idempotencyKey
+  ? { headers: { 'X-Idempotency-Key': idempotencyKey } }
+  : undefined;
+
+export const confirmPendingOrder = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`, undefined, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
 export const updatePendingOrder = async (
   orderId: number,
-  payload: UpdatePendingOrderRequest
+  payload: UpdatePendingOrderRequest,
+  idempotencyKey?: string
 ): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload);
+  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
-export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+export const cancelPendingOrder = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`, undefined, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
-export const markOrderServed = async (orderId: number): Promise<OrderResponse> => {
+export const markOrderServed = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`, undefined, idempotencyConfig(idempotencyKey));
+  return response.data;
+};
+
+export const updateAndConfirmPendingOrder = async (
+  orderId: number,
+  payload: UpdatePendingOrderRequest,
+  idempotencyKey?: string
+): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.post<OrderResponse>(
+    `/orders/${orderId}/update-and-confirm`,
+    payload,
+    idempotencyConfig(idempotencyKey)
+  );
   return response.data;
 };
 
