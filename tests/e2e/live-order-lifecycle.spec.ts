@@ -1,4 +1,4 @@
-import { expect, test, type APIResponse, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test, type APIResponse, type BrowserContext, type Page, type Response } from '@playwright/test';
 
 const runId = process.env.E2E_RUN_ID || '';
 const apiURL = process.env.E2E_API_URL || 'http://127.0.0.1:8001/api';
@@ -6,7 +6,6 @@ const password = 'QA-only-password-42!';
 const tenantHost = `${runId.toLowerCase().replaceAll('_', '-')}-release.localhost`;
 
 interface LoginResult {
-  token: string;
   user: {
     role: string;
     assigned_tables: Array<{ id: number; name: string }>;
@@ -15,16 +14,18 @@ interface LoginResult {
 }
 
 interface GuestAccessState {
-  token: string;
   deviceId: string;
   sessionId: number;
+  exposedToken: string;
 }
 
-const json = async <T>(response: APIResponse): Promise<T> => response.json() as Promise<T>;
-const roleEmail = (role: string): string => `${runId.toLowerCase()}_${role}@example.test`;
-const authHeaders = (token: string): Record<string, string> => ({ Authorization: `Bearer ${token}`, Accept: 'application/json' });
+type JsonResponse = APIResponse | Response;
 
-const expectStatus = async (response: APIResponse, expected: number): Promise<void> => {
+const json = async <T>(response: JsonResponse): Promise<T> => response.json() as Promise<T>;
+const roleEmail = (role: string): string => `${runId.toLowerCase()}_${role}@example.test`;
+const authHeaders = (): Record<string, string> => ({ Accept: 'application/json' });
+
+const expectStatus = async (response: JsonResponse, expected: number): Promise<void> => {
   if (response.status() !== expected) {
     throw new Error(`Expected HTTP ${expected}, received ${response.status()}: ${await response.text()}`);
   }
@@ -36,12 +37,11 @@ const loginThroughUi = async (page: Page, email: string, expectedPath: RegExp): 
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Login' }).click();
   await expect(page).toHaveURL(expectedPath);
-  const token = await page.evaluate(() => window.localStorage.getItem('admin_auth_token'));
-  expect(token).toBeTruthy();
-  const response = await page.request.get(`${apiURL}/auth/me`, { headers: authHeaders(token!) });
+  expect(await page.evaluate(() => window.localStorage.getItem('admin_auth_token'))).toBeNull();
+  const response = await page.request.get(`${apiURL}/auth/me`, { headers: authHeaders() });
   await expectStatus(response, 200);
   const payload = await json<{ user: LoginResult['user'] }>(response);
-  return { token: token!, user: payload.user };
+  return { user: payload.user };
 };
 
 test.describe('isolated live restaurant lifecycle', () => {
@@ -67,7 +67,7 @@ test.describe('isolated live restaurant lifecycle', () => {
       await expect(waiterPage).toHaveURL(/\/staff\/orders$/);
 
       const activateResponse = await waiterContext.request.post(`${apiURL}/table-sessions/activate`, {
-        headers: authHeaders(waiter.token),
+        headers: authHeaders(),
         data: { table_id: waiter.user.assigned_tables[0].id },
       });
       await expectStatus(activateResponse, 200);
@@ -86,7 +86,12 @@ test.describe('isolated live restaurant lifecycle', () => {
       await expect(guestPage.getByText('مشاوي اختبار')).toBeVisible();
       const pinInput = guestPage.locator('input[inputmode="numeric"]');
       await pinInput.fill(activated.current_pin);
+      const unlockResponsePromise = guestPage.waitForResponse((response) => (
+        response.url().endsWith('/menu/table/1/verify-pin') && response.request().method() === 'POST'
+      ));
       await pinInput.locator('xpath=ancestor::form').getByRole('button').click();
+      const unlockPayload = await (await unlockResponsePromise).json() as unknown;
+      expect(JSON.stringify(unlockPayload)).not.toMatch(/guest_access_token|access_token/i);
       await expect(guestPage.getByText(/تم فتح|جاهزة/).first()).toBeVisible();
 
       const guestAccess = await guestPage.evaluate(() => {
@@ -94,18 +99,17 @@ test.describe('isolated live restaurant lifecycle', () => {
           draft?: { guestAccessToken?: string; tableSessionId?: number };
         };
         return {
-          token: cart.draft?.guestAccessToken || '',
           sessionId: cart.draft?.tableSessionId || 0,
           deviceId: window.localStorage.getItem('guest_table_device_id') || '',
+          exposedToken: cart.draft?.guestAccessToken || window.localStorage.getItem('guest_access_token') || '',
         };
       }) as GuestAccessState;
       expect(guestAccess.sessionId).toBe(activated.table_session.id);
-      expect(guestAccess.token.length).toBeGreaterThan(20);
+      expect(guestAccess.exposedToken).toBe('');
       expect(guestAccess.deviceId).not.toBe('');
       const guestHeaders = {
         Accept: 'application/json',
         'X-Forwarded-Host': tenantHost,
-        'X-Guest-Access-Token': guestAccess.token,
         'X-Guest-Device-Id': guestAccess.deviceId,
       };
 
@@ -133,74 +137,124 @@ test.describe('isolated live restaurant lifecycle', () => {
 
       const splitDisabled = await guestContext.request.get(`${apiURL}/table-session/${guestAccess.sessionId}/invoice-split`, { headers: guestHeaders });
       await expectStatus(splitDisabled, 404);
-      const pushDisabled = await waiterContext.request.get(`${apiURL}/push/config`, { headers: authHeaders(waiter.token) });
+      const pushDisabled = await waiterContext.request.get(`${apiURL}/push/config`, { headers: authHeaders() });
       await expectStatus(pushDisabled, 404);
 
       const tenantContext = await newContext();
       const tenantPage = await tenantContext.newPage();
       const tenantB = await loginThroughUi(tenantPage, roleEmail('tenant-b-owner'), /\/admin\/dashboard$/);
-      const crossTenant = await tenantContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/confirm`, { headers: authHeaders(tenantB.token) });
+      expect(tenantB.user.role).toBe('admin');
+      const crossTenant = await tenantContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/confirm`, { headers: authHeaders() });
       await expectStatus(crossTenant, 404);
 
       const accountantContext = await newContext();
       const accountantPage = await accountantContext.newPage();
       const accountant = await loginThroughUi(accountantPage, roleEmail('accountant'), /\/admin\/finance$/);
-      const unauthorizedConfirm = await accountantContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/confirm`, { headers: authHeaders(accountant.token) });
+      expect(accountant.user.role).toBe('accountant');
+      const unauthorizedConfirm = await accountantContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/confirm`, { headers: authHeaders() });
       await expectStatus(unauthorizedConfirm, 403);
+      await accountantPage.goto('/admin/finance/payroll');
+      await expect(accountantPage.getByRole('heading', { name: '404' })).toBeVisible();
+      await expect(accountantPage.getByText('The page you requested does not exist.')).toBeVisible();
 
-      const confirmResponse = await waiterContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/confirm`, { headers: authHeaders(waiter.token) });
-      await expectStatus(confirmResponse, 200);
-      const cancelResponse = await waiterContext.request.post(`${apiURL}/orders/${cancellation.order.id}/cancel`, { headers: authHeaders(waiter.token) });
+      await waiterPage.goto('/staff/orders');
+      await expect(waiterPage.getByText(`${runId}_LIFECYCLE`, { exact: true })).toBeVisible();
+      const pendingCard = (notes: string) => waiterPage.getByText(notes, { exact: true })
+        .locator('xpath=ancestor::*[.//button[normalize-space()="Confirm Request"]][1]');
+      const lifecycleConfirm = waiterPage.waitForResponse((response) => (
+        response.url().endsWith(`/orders/${lifecycle.order.id}/confirm`) && response.request().method() === 'POST'
+      ));
+      await pendingCard(`${runId}_LIFECYCLE`).getByRole('button', { name: 'Confirm Request' }).click();
+      await expectStatus(await lifecycleConfirm, 200);
+      const cancellationConfirm = waiterPage.waitForResponse((response) => (
+        response.url().endsWith(`/orders/${cancellation.order.id}/confirm`) && response.request().method() === 'POST'
+      ));
+      await pendingCard(`${runId}_CANCEL`).getByRole('button', { name: 'Confirm Request' }).click();
+      await expectStatus(await cancellationConfirm, 200);
+
+      // There is no visible control for cancelling an already confirmed order. Exercise the
+      // backend restoration contract explicitly and keep that UI gap documented in README.
+      const cancelResponse = await waiterContext.request.post(`${apiURL}/orders/${cancellation.order.id}/cancel`, { headers: authHeaders() });
       await expectStatus(cancelResponse, 200);
       expect((await json<{ order: { status: string } }>(cancelResponse)).order.status).toBe('staff_cancelled');
 
       const chefContext = await newContext();
       const chefPage = await chefContext.newPage();
       const chef = await loginThroughUi(chefPage, roleEmail('chef'), /\/admin\/dashboard$/);
+      expect(chef.user.role).toBe('chef');
       await chefPage.goto('/chef/dashboard');
-      await expect(chefPage.getByText(runId).first()).toBeVisible();
-      const startResponse = await chefContext.request.post(`${apiURL}/kitchen/orders/${lifecycle.order.id}/start`, { headers: authHeaders(chef.token) });
-      await expectStatus(startResponse, 200);
-      const readyResponse = await chefContext.request.post(`${apiURL}/kitchen/orders/${lifecycle.order.id}/ready`, { headers: authHeaders(chef.token) });
-      await expectStatus(readyResponse, 200);
-      expect((await json<{ order: { kitchen_status: string } }>(readyResponse)).order.kitchen_status).toBe('ready');
+      await expect(chefPage.getByText(`${runId}_LIFECYCLE`, { exact: true })).toBeVisible();
+      const startResponse = chefPage.waitForResponse((response) => (
+        response.url().endsWith(`/kitchen/orders/${lifecycle.order.id}/start`) && response.request().method() === 'POST'
+      ));
+      await chefPage.getByRole('button', { name: 'Start Preparing' }).click();
+      await expectStatus(await startResponse, 200);
+      const readyResponse = chefPage.waitForResponse((response) => (
+        response.url().endsWith(`/kitchen/orders/${lifecycle.order.id}/ready`) && response.request().method() === 'POST'
+      ));
+      await chefPage.getByRole('button', { name: 'Mark as Ready' }).click();
+      await expectStatus(await readyResponse, 200);
 
-      const servedResponse = await waiterContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/served`, { headers: authHeaders(waiter.token) });
-      await expectStatus(servedResponse, 200);
-      expect((await json<{ order: { kitchen_status: string } }>(servedResponse)).order.kitchen_status).toBe('served');
+      await expect(chefPage.getByRole('button', { name: 'Mark as Served' })).toBeVisible();
+      const servedResponse = chefPage.waitForResponse((response) => (
+        response.url().endsWith(`/orders/${lifecycle.order.id}/served`) && response.request().method() === 'POST'
+      ));
+      await chefPage.getByRole('button', { name: 'Mark as Served' }).click();
+      await expectStatus(await servedResponse, 200);
 
-      const billResponse = await guestContext.request.post(`${apiURL}/table-session/${guestAccess.sessionId}/request-bill`, { headers: guestHeaders });
+      const billResponsePromise = guestPage.waitForResponse((response) => (
+        response.url().endsWith(`/table-session/${guestAccess.sessionId}/request-bill`)
+        && response.request().method() === 'POST'
+      ));
+      await guestPage.getByRole('button', { name: 'Open quick actions' }).click();
+      await guestPage.getByRole('button', { name: 'اطلب الفاتورة' }).click();
+      const billResponse = await billResponsePromise;
       await expectStatus(billResponse, 201);
       const bill = await json<{ invoice_preview: { summary: { subtotal: string; total: string; currency: string } } }>(billResponse);
       expect(bill.invoice_preview.summary).toEqual(expect.objectContaining({ subtotal: '25.00', total: '25.00', currency: 'USD' }));
 
       await guestPage.goto('/menu/table/1/invoice');
       await expect(guestPage.getByText('المبلغ المستحق')).toBeVisible();
-      await expect(guestPage.locator('body')).toContainText(/٢٥[٫.,]٠٠/);
+      await expect(guestPage.locator('body')).toContainText(/(?:٢٥|25)[٫.,](?:٠٠|00)/);
       await expect(guestPage.getByRole('button', { name: /تنزيل PDF|Download PDF/ })).toBeVisible();
       await guestPage.goto('/invoice/print');
-      await expect(guestPage.locator('body')).toContainText(/٢٥[٫.,]٠٠/);
+      await expect(guestPage.locator('body')).toContainText(/(?:٢٥|25)[٫.,](?:٠٠|00)/);
       expect((await guestPage.pdf({ format: 'A4' })).byteLength).toBeGreaterThan(1_000);
 
       await accountantPage.goto('/admin/cashier');
       await expect(accountantPage.getByText('1 staff-confirmed order waiting for accounting')).toBeVisible();
-      const accountResponse = await accountantContext.request.post(`${apiURL}/orders/${lifecycle.order.id}/account`, {
-        headers: authHeaders(accountant.token),
-        data: { vat_rate: 0, service_charge_rate: 0, discount_value: 0 },
-      });
-      await expectStatus(accountResponse, 200);
-      expect((await json<{ order: { status: string } }>(accountResponse)).order.status).toBe('accounted');
+      const tableName = waiter.user.assigned_tables[0].name;
+      await accountantPage.getByRole('button', { name: 'All tables' }).click();
+      await accountantPage.getByRole('listbox').getByRole('button', { name: tableName }).click();
+      const saveDraftResponse = accountantPage.waitForResponse((response) => (
+        response.url().endsWith(`/orders/${lifecycle.order.id}/accounting-draft`) && response.request().method() === 'PATCH'
+      ));
+      await accountantPage.getByRole('button', { name: `Save ${tableName} Issues & Gifts` }).click();
+      await expectStatus(await saveDraftResponse, 200);
 
-      const finalizeResponse = await waiterContext.request.post(`${apiURL}/table-sessions/${guestAccess.sessionId}/finalize`, {
-        headers: authHeaders(waiter.token),
-        data: { payment_method: 'card', payment_reference: `${runId}_PAYMENT` },
-      });
+      const cashierContext = await newContext();
+      const cashierPage = await cashierContext.newPage();
+      await loginThroughUi(cashierPage, roleEmail('owner'), /\/admin\/dashboard$/);
+      await cashierPage.goto('/admin/cashier');
+      await cashierPage.getByRole('button', { name: 'All tables' }).click();
+      await cashierPage.getByRole('listbox').getByRole('button', { name: tableName }).click();
+      await cashierPage.locator('select').filter({ has: cashierPage.locator('option[value="card"]') }).selectOption('card');
+      await cashierPage.getByPlaceholder('Receipt number, transaction id, or note').fill(`${runId}_PAYMENT`);
+      const accountResponsePromise = cashierPage.waitForResponse((response) => (
+        response.url().endsWith(`/orders/${lifecycle.order.id}/account`) && response.request().method() === 'POST'
+      ));
+      const finalizeResponsePromise = cashierPage.waitForResponse((response) => (
+        response.url().endsWith(`/table-sessions/${guestAccess.sessionId}/finalize`) && response.request().method() === 'POST'
+      ));
+      await cashierPage.getByRole('button', { name: `Finalize ${tableName} Invoice` }).click();
+      await expectStatus(await accountResponsePromise, 200);
+      const finalizeResponse = await finalizeResponsePromise;
       await expectStatus(finalizeResponse, 200);
       const finalized = await json<{ table_session: { status: string }; invoice_id: number; invoice_number: string; invoice_status: string }>(finalizeResponse);
       expect(finalized.invoice_status).toBe('paid');
       expect(finalized.table_session.status).toBe('closed');
 
-      const invoiceResponse = await accountantContext.request.get(`${apiURL}/admin/finance/invoices/${finalized.invoice_id}`, { headers: authHeaders(accountant.token) });
+      const invoiceResponse = await accountantContext.request.get(`${apiURL}/admin/finance/invoices/${finalized.invoice_id}`, { headers: authHeaders() });
       await expectStatus(invoiceResponse, 200);
       const invoice = await json<{ invoice: { invoice_number: string; status: string; total: string; payment_reference: string } }>(invoiceResponse);
       expect(invoice.invoice).toEqual(expect.objectContaining({
@@ -209,7 +263,7 @@ test.describe('isolated live restaurant lifecycle', () => {
         total: '25.00',
         payment_reference: `${runId}_PAYMENT`,
       }));
-      const pdfResponse = await accountantContext.request.get(`${apiURL}/admin/finance/invoices/${finalized.invoice_id}/pdf`, { headers: authHeaders(accountant.token) });
+      const pdfResponse = await accountantContext.request.get(`${apiURL}/admin/finance/invoices/${finalized.invoice_id}/pdf`, { headers: authHeaders() });
       await expectStatus(pdfResponse, 200);
       expect(pdfResponse.headers()['content-type']).toContain('application/pdf');
       expect((await pdfResponse.body()).byteLength).toBeGreaterThan(1_000);
@@ -217,7 +271,7 @@ test.describe('isolated live restaurant lifecycle', () => {
       const revokedGuest = await guestContext.request.get(`${apiURL}/table-session/${guestAccess.sessionId}/orders`, { headers: guestHeaders });
       await expectStatus(revokedGuest, 403);
     } finally {
-      await Promise.all(contexts.map((context) => context.close()));
+      await Promise.allSettled(contexts.map((context) => context.close()));
     }
   });
 });

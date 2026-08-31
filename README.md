@@ -10,18 +10,37 @@ npm run test:e2e:live
 ```
 
 The runner holds `/tmp/menu-release-hardening-db.lock`, requires the API
-worktree at `/tmp/menu-release-hardening/e2e-api`, uses only loopback URLs,
-loads Laravel with `APP_ENV=testing`, migrates `restaurantdb_test`, and creates
+worktree at `/tmp/menu-release-hardening/e2e-api`, accepts only explicit
+loopback browser/API URLs, and runs a read-only guard before migration. That
+guard requires `APP_ENV=testing`, `APP_URL` on loopback/`testing.local`/`.test`,
+and the exact database name `restaurantdb_test`. The runner refuses occupied
+ports, verifies both owned process IDs and server responses, then creates
 data under a unique `QA_RUN_...` identifier. Its exit trap removes only the
-five fixture users for that identifier; deleting the fixture owners cascades
-their two disposable tenants and related records.
+five fixture users and global feature rows created by that identifier; deleting
+the fixture owners cascades their two disposable tenants and related records.
+Cleanup, residue, owned-process, and port failures make the command fail.
 
 The live spec uses separate guest-mobile, waiter, chef, accountant, and second-
-tenant browser contexts. It covers lifecycle and cancellation, role and tenant
-isolation, disabled feature responses, Arabic RTL and English LTR, guest-token
-revocation, frontend print rendering, backend PDF download, and final database
-verification. Failure artifacts are retained under `test-results/live` and
-`playwright-report-live`; successful runs remove temporary server logs.
+tenant browser contexts. Waiter confirmation, chef start/ready/serve, accountant
+draft save, cashier accounting/finalization, and guest bill request use visible
+UI controls. It covers lifecycle and cancellation, recipe-backed stock deduction
+and restoration, role and tenant isolation, disabled feature API responses and a
+disabled direct browser URL, Arabic RTL and English LTR, guest-token revocation,
+frontend print rendering, backend PDF download, and exact final database
+verification. The product has no visible control to cancel an already confirmed
+order, so that one restoration action uses the authenticated backend endpoint and
+is reported as a UI NOT IMPLEMENTED gap rather than represented as UI coverage.
+
+Failure traces, screenshots, videos, logs, `test-results/live`, and
+`playwright-report-live` are retained for diagnosis. A successful run verifies
+zero fixture residue and released ports, then removes all generated artifacts and
+temporary server logs.
+
+Dedicated runner/service-worker behavior, WebSocket delivery, concurrent browser
+mutations, and queue-worker restart recovery remain NOT IMPLEMENTED/BLOCKED in
+this harness; the repository exposes no dedicated runner role or controlled queue
+restart fixture, and service workers are deliberately blocked for deterministic
+live coverage.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
