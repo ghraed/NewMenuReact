@@ -23,6 +23,7 @@ interface AuthContextValue {
 }
 
 const TOKEN_STORAGE_KEY = 'admin_auth_token';
+const HTTP_ONLY_AUTH_SESSION = 'http-only-cookie';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -40,17 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const bootstrap = async () => {
-      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
-
-      setToken(storedToken);
-
       try {
         await refreshUser();
+        setToken(HTTP_ONLY_AUTH_SESSION);
       } catch {
+        // Remove credentials written by older releases during the migration.
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setToken(null);
         setUser(null);
@@ -65,12 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (identifier: string, password: string) => {
     const response = await api.post('/auth/login', { email: identifier, password });
-    const nextToken = response.data.token as string;
     const nextUser = response.data.user as AuthUser;
 
-    localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
     resetEcho();
-    setToken(nextToken);
+    setToken(HTTP_ONLY_AUTH_SESSION);
     setUser(nextUser);
     return nextUser;
   };

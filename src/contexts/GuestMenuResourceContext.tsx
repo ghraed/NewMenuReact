@@ -73,7 +73,7 @@ const toErrorMessage = (error: unknown): string => {
 
 const buildQueryKey = (query: GuestMenuQuery): string | null => {
   const language = (query.language || '').trim() || 'default';
-  const token = query.guestAccessToken || 'no-token';
+  const token = query.guestAccessToken ? 'verified' : 'no-token';
   const includeDishes = query.includeDishes || 'all';
   const limit = typeof query.limit === 'number' ? query.limit : 'na';
   const offset = typeof query.offset === 'number' ? query.offset : 'na';
@@ -284,7 +284,6 @@ export const GuestMenuResourceProvider: React.FC<{ children: React.ReactNode }> 
           void putGuestMenuCache({
             key,
             tableId: query.tableId,
-            guestAccessToken: query.guestAccessToken,
             language: query.language || 'default',
             updatedAt: nextEntry.lastLoadedAt ?? Date.now(),
             payload: {

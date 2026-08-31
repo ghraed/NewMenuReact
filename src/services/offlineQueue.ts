@@ -7,6 +7,8 @@ import {
 } from './orderService';
 import {
   appendSyncEvent,
+  claimQueuedGuestOrder,
+  claimQueuedWaiterAction,
   deleteQueuedWaiterAction,
   deleteQueuedGuestOrder,
   enqueueWaiterAction,
@@ -22,6 +24,7 @@ import {
 import type { CreateGuestOrderRequest, UpdatePendingOrderRequest } from '../types';
 
 const OFFLINE_QUEUE_UPDATED_EVENT = 'offline-queue-updated';
+const SYNC_LEASE_DURATION_MS = 60_000;
 
 export interface QueueReplayResult {
   synced: number;
@@ -47,6 +50,8 @@ export const createIdempotencyKey = (): string => {
   return `offline-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const REPLAY_OWNER = createIdempotencyKey();
+
 export const queueGuestOrder = async (input: {
   sessionId: number;
   guestAccessToken: string;
@@ -55,7 +60,6 @@ export const queueGuestOrder = async (input: {
 }): Promise<number> => {
   const queueId = await enqueueGuestOrder({
     sessionId: input.sessionId,
-    guestAccessToken: input.guestAccessToken,
     payload: input.payload,
     createdAt: new Date().toISOString(),
     idempotencyKey: input.idempotencyKey || createIdempotencyKey(),
@@ -71,70 +75,72 @@ export const getPendingQueueCount = async (): Promise<number> => {
 };
 
 export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
-  const queued = await listQueuedGuestOrders();
-  const replayable = queued.filter(isReplayableGuestOrder);
+  return withReplayLock('menu-react:guest-order-replay', async () => {
+    const queued = await listQueuedGuestOrders();
+    const replayable = queued.filter(isReplayableGuestOrder);
+    const summary: QueueReplayResult = {
+      synced: 0,
+      failed: 0,
+      needsReview: 0,
+    };
 
-  const summary: QueueReplayResult = {
+    if (replayable.length === 0) return summary;
+
+    await appendSyncEvent({
+      type: 'sync_start',
+      createdAt: new Date().toISOString(),
+      message: `Sync started for ${replayable.length} queued guest orders`,
+    });
+
+    for (const candidate of replayable) {
+      if (!candidate.id) continue;
+      const item = await claimQueuedGuestOrder(
+        candidate.id,
+        REPLAY_OWNER,
+        new Date(),
+        SYNC_LEASE_DURATION_MS
+      );
+      if (!item) continue;
+
+      try {
+        await createGuestTableSessionOrder(item.sessionId, item.payload, undefined, item.idempotencyKey);
+        await deleteQueuedGuestOrder(item.id!);
+        summary.synced += 1;
+        await appendSyncEvent({
+          type: 'sync_success',
+          createdAt: new Date().toISOString(),
+          message: `Synced queued order for session ${item.sessionId}`,
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+        const status = typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { status?: number } }).response?.status
+          : undefined;
+        const needsReview = Boolean(status && [401, 403, 404, 409, 423].includes(status));
+
+        await updateQueuedGuestOrder(item.id!, {
+          status: needsReview ? 'needs_review' : 'failed',
+          lastError: errorMessage,
+          syncLeaseOwner: null,
+          syncLeaseExpiresAt: null,
+        });
+        if (needsReview) summary.needsReview += 1;
+        else summary.failed += 1;
+        await appendSyncEvent({
+          type: 'sync_failed',
+          createdAt: new Date().toISOString(),
+          message: `Failed syncing order for session ${item.sessionId}: ${errorMessage}`,
+        });
+      }
+    }
+
+    emitOfflineQueueUpdated();
+    return summary;
+  }, {
     synced: 0,
     failed: 0,
     needsReview: 0,
-  };
-
-  if (replayable.length === 0) {
-    return summary;
-  }
-
-  await appendSyncEvent({
-    type: 'sync_start',
-    createdAt: new Date().toISOString(),
-    message: `Sync started for ${replayable.length} queued guest orders`,
   });
-
-  for (const item of replayable) {
-    if (!item.id) {
-      continue;
-    }
-
-    await updateQueuedGuestOrder(item.id, { status: 'syncing', lastError: null });
-
-    try {
-      await createGuestTableSessionOrder(item.sessionId, item.payload, item.guestAccessToken, item.idempotencyKey);
-      await deleteQueuedGuestOrder(item.id);
-      summary.synced += 1;
-      await appendSyncEvent({
-        type: 'sync_success',
-        createdAt: new Date().toISOString(),
-        message: `Synced queued order for session ${item.sessionId}`,
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      const status = typeof error === 'object' && error !== null && 'response' in error
-        ? (error as { response?: { status?: number } }).response?.status
-        : undefined;
-
-      const needsReview = Boolean(status && [401, 403, 404, 409, 423].includes(status));
-
-      await updateQueuedGuestOrder(item.id, {
-        status: needsReview ? 'needs_review' : 'failed',
-        lastError: errorMessage,
-      });
-
-      if (needsReview) {
-        summary.needsReview += 1;
-      } else {
-        summary.failed += 1;
-      }
-
-      await appendSyncEvent({
-        type: 'sync_failed',
-        createdAt: new Date().toISOString(),
-        message: `Failed syncing order for session ${item.sessionId}: ${errorMessage}`,
-      });
-    }
-  }
-
-  emitOfflineQueueUpdated();
-  return summary;
 };
 
 export const getQueuedGuestOrders = async (): Promise<GuestOrderQueueRecord[]> => {
@@ -164,22 +170,28 @@ export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolea
     return { synced: false, error: 'Queued order is not replayable' };
   }
 
-  await updateQueuedGuestOrder(item.id, { status: 'syncing', lastError: null });
+  const claimed = await claimQueuedGuestOrder(item.id, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
+  if (!claimed) return { synced: false, error: 'Queued order is already being synced' };
   try {
-    await createGuestTableSessionOrder(item.sessionId, item.payload, item.guestAccessToken, item.idempotencyKey);
-    await deleteQueuedGuestOrder(item.id);
+    await createGuestTableSessionOrder(claimed.sessionId, claimed.payload, undefined, claimed.idempotencyKey);
+    await deleteQueuedGuestOrder(claimed.id!);
     emitOfflineQueueUpdated();
     return { synced: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-    await updateQueuedGuestOrder(item.id, { status: 'failed', lastError: errorMessage });
+    await updateQueuedGuestOrder(claimed.id!, {
+      status: 'failed',
+      lastError: errorMessage,
+      syncLeaseOwner: null,
+      syncLeaseExpiresAt: null,
+    });
     emitOfflineQueueUpdated();
     return { synced: false, error: errorMessage };
   }
 };
 
 const isReplayableGuestOrder = (item: GuestOrderQueueRecord): boolean => {
-  if (item.status !== 'pending' && item.status !== 'failed') {
+  if (!isQueuedRecordClaimable(item)) {
     return false;
   }
 
@@ -213,7 +225,7 @@ export const queueWaiterAction = async (input: {
 
 export const getPendingWaiterQueueCount = async (): Promise<number> => {
   const queued = await listQueuedWaiterActions();
-  return queued.filter((item) => item.status === 'pending' || item.status === 'failed').length;
+  return queued.filter(isQueuedRecordClaimable).length;
 };
 
 const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<void> => {
@@ -243,26 +255,39 @@ const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<
 };
 
 export const replayQueuedWaiterActions = async (): Promise<QueueReplayResult> => {
-  const queued = await listQueuedWaiterActions();
-  const replayable = queued.filter((item) => item.status === 'pending' || item.status === 'failed');
-  const summary: QueueReplayResult = { synced: 0, failed: 0, needsReview: 0 };
+  return withReplayLock('menu-react:waiter-action-replay', async () => {
+    const queued = await listQueuedWaiterActions();
+    const replayable = queued.filter(isQueuedRecordClaimable);
+    const summary: QueueReplayResult = { synced: 0, failed: 0, needsReview: 0 };
 
-  for (const item of replayable) {
-    if (!item.id) continue;
-    await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
-    try {
-      await replaySingleWaiterAction(item);
-      await deleteQueuedWaiterAction(item.id);
-      summary.synced += 1;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
-      summary.failed += 1;
+    for (const candidate of replayable) {
+      if (!candidate.id) continue;
+      const item = await claimQueuedWaiterAction(
+        candidate.id,
+        REPLAY_OWNER,
+        new Date(),
+        SYNC_LEASE_DURATION_MS
+      );
+      if (!item) continue;
+      try {
+        await replaySingleWaiterAction(item);
+        await deleteQueuedWaiterAction(item.id!);
+        summary.synced += 1;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+        await updateQueuedWaiterAction(item.id!, {
+          status: 'failed',
+          lastError: errorMessage,
+          syncLeaseOwner: null,
+          syncLeaseExpiresAt: null,
+        });
+        summary.failed += 1;
+      }
     }
-  }
 
-  emitOfflineQueueUpdated();
-  return summary;
+    emitOfflineQueueUpdated();
+    return summary;
+  }, { synced: 0, failed: 0, needsReview: 0 });
 };
 
 export const getQueuedWaiterActions = async (): Promise<WaiterActionQueueRecord[]> => {
@@ -281,16 +306,42 @@ export const syncQueuedWaiterAction = async (id: number): Promise<{ synced: bool
     return { synced: false, error: 'Queued waiter action not found' };
   }
 
-  await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
+  const claimed = await claimQueuedWaiterAction(item.id, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
+  if (!claimed) return { synced: false, error: 'Queued waiter action is already being synced' };
   try {
-    await replaySingleWaiterAction(item);
-    await deleteQueuedWaiterAction(item.id);
+    await replaySingleWaiterAction(claimed);
+    await deleteQueuedWaiterAction(claimed.id!);
     emitOfflineQueueUpdated();
     return { synced: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-    await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
+    await updateQueuedWaiterAction(claimed.id!, {
+      status: 'failed',
+      lastError: errorMessage,
+      syncLeaseOwner: null,
+      syncLeaseExpiresAt: null,
+    });
     emitOfflineQueueUpdated();
     return { synced: false, error: errorMessage };
   }
+};
+
+export const isQueuedRecordClaimable = (item: GuestOrderQueueRecord | WaiterActionQueueRecord): boolean => {
+  if (item.status === 'pending' || item.status === 'failed') return true;
+  if (item.status !== 'syncing') return false;
+
+  const leaseExpiresAt = item.syncLeaseExpiresAt ? Date.parse(item.syncLeaseExpiresAt) : Number.NaN;
+  if (Number.isFinite(leaseExpiresAt)) return leaseExpiresAt <= Date.now();
+
+  const createdAt = Date.parse(item.createdAt);
+  return Number.isFinite(createdAt) && createdAt <= Date.now() - SYNC_LEASE_DURATION_MS;
+};
+
+const withReplayLock = async <T>(name: string, action: () => Promise<T>, unavailable: T): Promise<T> => {
+  const lockManager = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  if (!lockManager) return action();
+
+  return lockManager.request(name, { mode: 'exclusive', ifAvailable: true }, async (lock) => (
+    lock ? action() : unavailable
+  ));
 };

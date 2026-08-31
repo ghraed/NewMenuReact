@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useMemo, useState } from 'react';
-import superAdminApi, { SUPER_ADMIN_TOKEN_STORAGE_KEY } from '../services/superAdminApi';
+import superAdminApi from '../services/superAdminApi';
 
 export interface SuperAdminAuthUser {
   id: number;
@@ -20,6 +20,8 @@ interface SuperAdminAuthContextValue {
 }
 
 export const SuperAdminAuthContext = createContext<SuperAdminAuthContextValue | undefined>(undefined);
+const SUPER_ADMIN_TOKEN_STORAGE_KEY = 'owner_auth_token';
+const HTTP_ONLY_AUTH_SESSION = 'http-only-cookie';
 
 export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SuperAdminAuthUser | null>(null);
@@ -35,16 +37,9 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
   useEffect(() => {
     const bootstrap = async () => {
-      const storedToken = localStorage.getItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
-      if (!storedToken) {
-        setLoading(false);
-        return;
-      }
-
-      setToken(storedToken);
-
       try {
         await refreshUser();
+        setToken(HTTP_ONLY_AUTH_SESSION);
       } catch {
         localStorage.removeItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
         setToken(null);
@@ -59,11 +54,10 @@ export const SuperAdminAuthProvider: React.FC<{ children: React.ReactNode }> = (
 
   const login = async (email: string, password: string) => {
     const response = await superAdminApi.post('/super-admin/auth/login', { email, password });
-    const nextToken = response.data.token as string;
     const nextUser = response.data.user as SuperAdminAuthUser;
 
-    localStorage.setItem(SUPER_ADMIN_TOKEN_STORAGE_KEY, nextToken);
-    setToken(nextToken);
+    localStorage.removeItem(SUPER_ADMIN_TOKEN_STORAGE_KEY);
+    setToken(HTTP_ONLY_AUTH_SESSION);
     setUser(nextUser);
 
     return nextUser;

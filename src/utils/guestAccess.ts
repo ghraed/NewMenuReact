@@ -1,4 +1,5 @@
 const GUEST_DEVICE_ID_KEY = 'guest_table_device_id';
+export const HTTP_ONLY_GUEST_CREDENTIAL = 'http-only-cookie';
 
 const generateDeviceId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -29,7 +30,7 @@ export const buildGuestAccessHeaders = (guestAccessToken?: string | null): Recor
     'X-Guest-Device-Id': getGuestDeviceId(),
   };
 
-  if (guestAccessToken) {
+  if (guestAccessToken && guestAccessToken !== HTTP_ONLY_GUEST_CREDENTIAL) {
     headers['X-Guest-Access-Token'] = guestAccessToken;
   }
 

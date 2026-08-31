@@ -42,6 +42,7 @@ export const getApiBase = (): string => {
 };
 
 const api = axios.create({
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -49,14 +50,9 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBase();
-  const token = localStorage.getItem('admin_auth_token');
   const language = getStoredLanguage();
 
   config.headers = config.headers || {};
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
 
   config.headers['Accept-Language'] = language;
   config.headers['X-Locale'] = language;
