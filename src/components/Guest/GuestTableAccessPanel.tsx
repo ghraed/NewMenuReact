@@ -5,6 +5,7 @@ import { verifyGuestTablePin } from '../../services/orderService';
 import { useOrderCart } from '../../contexts/useOrderCart';
 import { buildGuestInvoicePath, buildGuestMenuPath, buildGuestOrdersPath } from '../../utils/guestTableRoutes';
 import { loadPrintableInvoice } from '../../utils/printableInvoice';
+import { HTTP_ONLY_GUEST_CREDENTIAL } from '../../utils/guestAccess';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -66,7 +67,7 @@ const GuestTableAccessPanel: React.FC<GuestTableAccessPanelProps> = ({
         });
       } else {
         setGuestAccess({
-          token: response.guest_access.token,
+          token: response.guest_access.token || HTTP_ONLY_GUEST_CREDENTIAL,
           expiresAt: response.guest_access.expires_at,
         });
       }

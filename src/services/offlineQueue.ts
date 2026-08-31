@@ -4,6 +4,7 @@ import {
   createGuestTableSessionOrder,
   markOrderServed,
   updatePendingOrder,
+  updateAndConfirmPendingOrder,
 } from './orderService';
 import {
   appendSyncEvent,
@@ -20,8 +21,10 @@ import {
   type WaiterQueueActionType,
   updateQueuedWaiterAction,
   updateQueuedGuestOrder,
+  renewQueuedWaiterActionLease,
 } from './offlineStore';
 import type { CreateGuestOrderRequest, UpdatePendingOrderRequest } from '../types';
+import { clearGuestOrderSubmissionAttempt, loadGuestOrderSubmissionAttempt } from './guestOrderSubmission';
 
 const OFFLINE_QUEUE_UPDATED_EVENT = 'offline-queue-updated';
 const SYNC_LEASE_DURATION_MS = 60_000;
@@ -51,6 +54,24 @@ export const createIdempotencyKey = (): string => {
 };
 
 const REPLAY_OWNER = createIdempotencyKey();
+
+const clearConfirmedGuestAttempt = (sessionId: number, idempotencyKey: string): void => {
+  if (loadGuestOrderSubmissionAttempt(sessionId)?.idempotencyKey === idempotencyKey) {
+    clearGuestOrderSubmissionAttempt(sessionId);
+  }
+};
+
+const withWaiterLeaseHeartbeat = async <T>(item: WaiterActionQueueRecord, action: () => Promise<T>): Promise<T> => {
+  if (!item.id) return action();
+  const timer = window.setInterval(() => {
+    void renewQueuedWaiterActionLease(item.id!, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
+  }, Math.floor(SYNC_LEASE_DURATION_MS / 3));
+  try {
+    return await action();
+  } finally {
+    window.clearInterval(timer);
+  }
+};
 
 export const queueGuestOrder = async (input: {
   sessionId: number;
@@ -104,6 +125,7 @@ export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
 
       try {
         await createGuestTableSessionOrder(item.sessionId, item.payload, undefined, item.idempotencyKey);
+        clearConfirmedGuestAttempt(item.sessionId, item.idempotencyKey);
         await deleteQueuedGuestOrder(item.id!);
         summary.synced += 1;
         await appendSyncEvent({
@@ -174,6 +196,7 @@ export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolea
   if (!claimed) return { synced: false, error: 'Queued order is already being synced' };
   try {
     await createGuestTableSessionOrder(claimed.sessionId, claimed.payload, undefined, claimed.idempotencyKey);
+    clearConfirmedGuestAttempt(claimed.sessionId, claimed.idempotencyKey);
     await deleteQueuedGuestOrder(claimed.id!);
     emitOfflineQueueUpdated();
     return { synced: true };
@@ -214,6 +237,7 @@ export const queueWaiterAction = async (input: {
   const queueId = await enqueueWaiterAction({
     type: input.type,
     createdAt: new Date().toISOString(),
+    idempotencyKey: createIdempotencyKey(),
     payload: {
       orderId: input.orderId,
       updatePayload: input.updatePayload,
@@ -232,22 +256,21 @@ const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<
   const { orderId, updatePayload } = item.payload;
   switch (item.type) {
     case 'confirm_order':
-      await confirmPendingOrder(orderId);
+      await confirmPendingOrder(orderId, item.idempotencyKey);
       return;
     case 'cancel_order':
-      await cancelPendingOrder(orderId);
+      await cancelPendingOrder(orderId, item.idempotencyKey);
       return;
     case 'mark_served':
-      await markOrderServed(orderId);
+      await markOrderServed(orderId, item.idempotencyKey);
       return;
     case 'update_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload);
+      await updatePendingOrder(orderId, updatePayload, item.idempotencyKey);
       return;
     case 'update_and_confirm_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload);
-      await confirmPendingOrder(orderId);
+      await updateAndConfirmPendingOrder(orderId, updatePayload, item.idempotencyKey);
       return;
     default:
       throw new Error('Unsupported waiter queue action');
@@ -270,7 +293,7 @@ export const replayQueuedWaiterActions = async (): Promise<QueueReplayResult> =>
       );
       if (!item) continue;
       try {
-        await replaySingleWaiterAction(item);
+        await withWaiterLeaseHeartbeat(item, () => replaySingleWaiterAction(item));
         await deleteQueuedWaiterAction(item.id!);
         summary.synced += 1;
       } catch (error) {
@@ -309,7 +332,7 @@ export const syncQueuedWaiterAction = async (id: number): Promise<{ synced: bool
   const claimed = await claimQueuedWaiterAction(item.id, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
   if (!claimed) return { synced: false, error: 'Queued waiter action is already being synced' };
   try {
-    await replaySingleWaiterAction(claimed);
+    await withWaiterLeaseHeartbeat(claimed, () => replaySingleWaiterAction(claimed));
     await deleteQueuedWaiterAction(claimed.id!);
     emitOfflineQueueUpdated();
     return { synced: true };

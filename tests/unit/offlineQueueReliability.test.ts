@@ -6,6 +6,7 @@ const orderService = vi.hoisted(() => ({
   createGuestTableSessionOrder: vi.fn(),
   markOrderServed: vi.fn(),
   updatePendingOrder: vi.fn(),
+  updateAndConfirmPendingOrder: vi.fn(),
 }));
 
 const offlineStore = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const offlineStore = vi.hoisted(() => ({
   listQueuedGuestOrders: vi.fn(),
   updateQueuedWaiterAction: vi.fn(),
   updateQueuedGuestOrder: vi.fn(),
+  renewQueuedWaiterActionLease: vi.fn(),
 }));
 
 vi.mock('../../src/services/orderService', () => orderService);
@@ -29,6 +31,7 @@ import {
   isQueuedRecordClaimable,
   queueGuestOrder,
   replayQueuedWaiterActions,
+  queueWaiterAction,
 } from '../../src/services/offlineQueue';
 
 describe('offline queue recovery and multi-tab claiming', () => {
@@ -45,6 +48,7 @@ describe('offline queue recovery and multi-tab claiming', () => {
       createdAt: '2026-08-31T11:50:00.000Z',
       status: 'syncing' as const,
       lastError: null,
+      idempotencyKey: 'QA_RUN_REL-waiter-key',
       payload: { orderId: 99 },
     };
 
@@ -101,6 +105,30 @@ describe('offline queue recovery and multi-tab claiming', () => {
     expect(offlineStore.deleteQueuedWaiterAction).toHaveBeenCalledTimes(1);
   });
 
+  it('renews the database claim while a waiter request runs beyond the original lease', async () => {
+    vi.useFakeTimers();
+    const record = {
+      id: 8,
+      type: 'confirm_order' as const,
+      createdAt: '2026-08-31T11:59:00.000Z',
+      status: 'pending' as const,
+      lastError: null,
+      idempotencyKey: 'QA_RUN_REL-long-request-key',
+      payload: { orderId: 102 },
+    };
+    offlineStore.listQueuedWaiterActions.mockResolvedValue([record]);
+    offlineStore.claimQueuedWaiterAction.mockResolvedValue({ ...record, status: 'syncing' });
+    let finish!: () => void;
+    orderService.confirmPendingOrder.mockReturnValue(new Promise<void>((resolve) => { finish = resolve; }));
+
+    const replay = replayQueuedWaiterActions();
+    await vi.advanceTimersByTimeAsync(40_000);
+    expect(offlineStore.renewQueuedWaiterActionLease).toHaveBeenCalled();
+    finish();
+    await replay;
+    vi.useRealTimers();
+  });
+
   it('queues an offline guest order without persisting its bearer credential', async () => {
     offlineStore.enqueueGuestOrder.mockResolvedValue(12);
 
@@ -114,5 +142,39 @@ describe('offline queue recovery and multi-tab claiming', () => {
     expect(offlineStore.enqueueGuestOrder).toHaveBeenCalledWith(expect.not.objectContaining({
       guestAccessToken: expect.anything(),
     }));
+  });
+
+  it('persists one waiter idempotency key and uses the atomic update-confirm endpoint', async () => {
+    offlineStore.enqueueWaiterAction.mockResolvedValue(19);
+    await queueWaiterAction({
+      type: 'update_and_confirm_order',
+      orderId: 44,
+      updatePayload: { items: [{ dish_id: 8, quantity: 2 }] },
+    });
+    expect(offlineStore.enqueueWaiterAction).toHaveBeenCalledWith(expect.objectContaining({
+      idempotencyKey: expect.any(String),
+    }));
+
+    const record = {
+      id: 19,
+      type: 'update_and_confirm_order' as const,
+      createdAt: new Date().toISOString(),
+      status: 'pending' as const,
+      lastError: null,
+      idempotencyKey: 'QA_RUN_REL-atomic-key',
+      payload: { orderId: 44, updatePayload: { items: [{ dish_id: 8, quantity: 2 }] } },
+    };
+    offlineStore.listQueuedWaiterActions.mockResolvedValue([record]);
+    offlineStore.claimQueuedWaiterAction.mockResolvedValue({ ...record, status: 'syncing' });
+    orderService.updateAndConfirmPendingOrder.mockResolvedValue({});
+    await replayQueuedWaiterActions();
+
+    expect(orderService.updateAndConfirmPendingOrder).toHaveBeenCalledWith(
+      44,
+      record.payload.updatePayload,
+      'QA_RUN_REL-atomic-key'
+    );
+    expect(orderService.updatePendingOrder).not.toHaveBeenCalled();
+    expect(orderService.confirmPendingOrder).not.toHaveBeenCalled();
   });
 });

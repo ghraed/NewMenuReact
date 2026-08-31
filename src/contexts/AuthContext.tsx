@@ -70,16 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch {
-      // ignore API logout failures and clear local auth state
-    } finally {
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      resetEcho();
-      setToken(null);
-      setUser(null);
-    }
+    await api.post('/auth/logout');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    resetEcho();
+    setToken(null);
+    setUser(null);
   };
 
   const value = useMemo<AuthContextValue>(

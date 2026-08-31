@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { getApiOrigin } from './api';
+import api from './api';
 
 declare global {
   interface Window {
@@ -71,6 +72,16 @@ export const getEcho = (): Echo<'pusher'> | null => {
     enabledTransports: ['ws', 'wss'],
     disableStats: true,
     authEndpoint: `${apiOrigin}/api/broadcasting/auth`,
+    authorizer: (channel) => ({
+      authorize: (socketId, callback) => {
+        void api.post('/broadcasting/auth', {
+          socket_id: socketId,
+          channel_name: channel.name,
+        }, { withCredentials: true })
+          .then((response) => callback(null, response.data))
+          .catch((error) => callback(error instanceof Error ? error : new Error('Realtime authorization failed'), null));
+      },
+    }),
   });
 
   const pusherConnection = (echoInstance.connector as { pusher?: Pusher }).pusher?.connection;

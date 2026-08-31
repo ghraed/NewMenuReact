@@ -13,7 +13,7 @@ import type {
 } from '../types';
 
 const DB_NAME = 'menu-react-offline';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const MENU_CACHE_STORE = 'guest_menu_cache';
 const ORDER_QUEUE_STORE = 'guest_order_queue';
 const WAITER_QUEUE_STORE = 'waiter_action_queue';
@@ -62,6 +62,7 @@ export interface WaiterActionQueueRecord {
   createdAt: string;
   status: OfflineQueueItemStatus;
   lastError: string | null;
+  idempotencyKey: string;
   syncLeaseOwner?: string | null;
   syncLeaseExpiresAt?: string | null;
   payload: {
@@ -152,6 +153,21 @@ export const openOfflineDb = (): Promise<IDBDatabase> => {
 
             const record = cursor.value as GuestOrderQueueRecord & { guestAccessToken?: string };
             delete record.guestAccessToken;
+            cursor.update(record);
+            cursor.continue();
+          };
+        }
+      }
+
+      if (event.oldVersion < 3) {
+        const waiterStore = request.transaction?.objectStore(WAITER_QUEUE_STORE);
+        const cursorRequest = waiterStore?.openCursor();
+        if (cursorRequest) {
+          cursorRequest.onsuccess = () => {
+            const cursor = cursorRequest.result;
+            if (!cursor) return;
+            const record = cursor.value as WaiterActionQueueRecord;
+            record.idempotencyKey ||= `legacy-${record.id}-${Date.now()}`;
             cursor.update(record);
             cursor.continue();
           };
@@ -316,3 +332,18 @@ export const claimQueuedWaiterAction = (
 ): Promise<WaiterActionQueueRecord | null> => (
   claimQueuedRecord<WaiterActionQueueRecord>(WAITER_QUEUE_STORE, id, leaseOwner, now, leaseDurationMs)
 );
+
+export const renewQueuedWaiterActionLease = async (
+  id: number,
+  leaseOwner: string,
+  now: Date,
+  leaseDurationMs: number
+): Promise<boolean> => withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
+  const current = await idbRequest(store.get(id)) as WaiterActionQueueRecord | undefined;
+  if (!current || current.status !== 'syncing' || current.syncLeaseOwner !== leaseOwner) return false;
+  await idbRequest(store.put({
+    ...current,
+    syncLeaseExpiresAt: new Date(now.getTime() + leaseDurationMs).toISOString(),
+  }));
+  return true;
+});
