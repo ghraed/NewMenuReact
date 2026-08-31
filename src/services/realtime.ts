@@ -42,7 +42,6 @@ export const getEcho = (): Echo<'pusher'> | null => {
   }
 
   const apiOrigin = getApiOrigin();
-  const authToken = localStorage.getItem('admin_auth_token');
   const wsHost = import.meta.env.VITE_REVERB_HOST || import.meta.env.VITE_PUSHER_HOST || undefined;
   const wsPort = toNumber(import.meta.env.VITE_REVERB_PORT || import.meta.env.VITE_PUSHER_PORT, 443);
   const forceTls = ((import.meta.env.VITE_REVERB_SCHEME || import.meta.env.VITE_PUSHER_SCHEME) || 'https') === 'https';
@@ -58,7 +57,7 @@ export const getEcho = (): Echo<'pusher'> | null => {
     wsHost: wsHost || 'default',
     wsPort,
     forceTls,
-    hasAuthToken: Boolean(authToken),
+    usesHttpOnlyAuth: true,
   });
 
   echoInstance = new Echo({
@@ -72,11 +71,6 @@ export const getEcho = (): Echo<'pusher'> | null => {
     enabledTransports: ['ws', 'wss'],
     disableStats: true,
     authEndpoint: `${apiOrigin}/api/broadcasting/auth`,
-    auth: {
-      headers: authToken ? {
-        Authorization: `Bearer ${authToken}`,
-      } : {},
-    },
   });
 
   const pusherConnection = (echoInstance.connector as { pusher?: Pusher }).pusher?.connection;

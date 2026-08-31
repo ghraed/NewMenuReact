@@ -44,6 +44,7 @@ import {
   emitOfflineQueueUpdated,
   getPendingWaiterQueueCount,
   getQueuedWaiterActions,
+  isQueuedRecordClaimable,
   onOfflineQueueUpdated,
   removeQueuedWaiterAction,
   syncQueuedWaiterAction,
@@ -477,7 +478,7 @@ const StaffOrdersPage: React.FC = () => {
         let synced = 0;
         let failed = 0;
         for (const row of rows) {
-          if (!row.id || (row.status !== 'pending' && row.status !== 'failed')) {
+          if (!row.id || !isQueuedRecordClaimable(row)) {
             continue;
           }
           const approved = window.confirm(`Sync waiter action #${row.id} (${row.type}) for order #${row.payload.orderId}?`);
@@ -1359,7 +1360,7 @@ const StaffOrdersPage: React.FC = () => {
                       let synced = 0;
                       let failed = 0;
                       for (const row of rows) {
-                        if (!row.id || (row.status !== 'pending' && row.status !== 'failed')) {
+                        if (!row.id || !isQueuedRecordClaimable(row)) {
                           continue;
                         }
                         const approved = window.confirm(`Sync waiter action #${row.id} (${row.type}) for order #${row.payload.orderId}?`);

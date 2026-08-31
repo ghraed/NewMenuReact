@@ -8,6 +8,7 @@ import type {
   OrderCartRestaurant,
 } from '../types';
 import { resolveAssetUrl } from '../services/api';
+import { HTTP_ONLY_GUEST_CREDENTIAL } from '../utils/guestAccess';
 
 interface OrderCartState {
   restaurant: OrderCartRestaurant | null;
@@ -95,9 +96,9 @@ const normalizeState = (value: unknown): OrderCartState => {
       tableId: typeof candidate.draft?.tableId === 'number' ? candidate.draft.tableId : null,
       tableSessionId: typeof candidate.draft?.tableSessionId === 'number' ? candidate.draft.tableSessionId : null,
       tableReference: typeof candidate.draft?.tableReference === 'string' ? candidate.draft.tableReference : '',
-      guestAccessToken: typeof candidate.draft?.guestAccessToken === 'string' ? candidate.draft.guestAccessToken : null,
-      guestAccessVerified: candidate.draft?.guestAccessVerified === true,
-      guestAccessExpiresAt: typeof candidate.draft?.guestAccessExpiresAt === 'string' ? candidate.draft.guestAccessExpiresAt : null,
+      guestAccessToken: null,
+      guestAccessVerified: false,
+      guestAccessExpiresAt: null,
       notes: typeof candidate.draft?.notes === 'string' ? candidate.draft.notes : '',
     },
   };
@@ -128,7 +129,15 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   });
 
   useEffect(() => {
-    localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify({
+      ...state,
+      draft: {
+        ...state.draft,
+        guestAccessToken: null,
+        guestAccessVerified: false,
+        guestAccessExpiresAt: null,
+      },
+    }));
   }, [state]);
 
   const setGuestContext = useCallback((context: {
@@ -150,8 +159,8 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       const incomingVerifiedAccess = context.guestAccess?.verified === true;
       const incomingGuestAccessToken = (
-        typeof context.guestAccess?.token === 'string' && context.guestAccess.token.trim() !== ''
-          ? context.guestAccess.token
+        incomingVerifiedAccess
+          ? HTTP_ONLY_GUEST_CREDENTIAL
           : null
       );
 
@@ -199,7 +208,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...current,
       draft: {
         ...current.draft,
-        guestAccessToken: access.token,
+        guestAccessToken: HTTP_ONLY_GUEST_CREDENTIAL,
         guestAccessVerified: true,
         guestAccessExpiresAt: access.expiresAt,
       },

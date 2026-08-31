@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
@@ -22,6 +22,10 @@ import { formatRestaurantLabel } from '../utils/guestRestaurant';
 import { buildGuestMenuPath, buildGuestOrdersPath } from '../utils/guestTableRoutes';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import {
+  resolveGuestOrderSubmissionAttempt,
+  type GuestOrderSubmissionAttempt,
+} from '../services/guestOrderSubmission';
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -55,7 +59,7 @@ const OrderReviewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
   const [queuedOffline, setQueuedOffline] = useState(false);
-  const [submitIdempotencyKey, setSubmitIdempotencyKey] = useState<string | null>(null);
+  const submissionAttemptRef = useRef<GuestOrderSubmissionAttempt | null>(null);
   const { isOnline } = useNetworkStatus();
   const [queuedOrders, setQueuedOrders] = useState<Array<{
     id: number;
@@ -150,12 +154,6 @@ const OrderReviewPage: React.FC = () => {
       });
   }, [activeTableId, submittedOrder, ensureGuestMenu, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
-  useEffect(() => {
-    if (!submitting && !submittedOrder) {
-      setSubmitIdempotencyKey(null);
-    }
-  }, [items, draft.notes, draft.tableSessionId, submitting, submittedOrder]);
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -173,38 +171,44 @@ const OrderReviewPage: React.FC = () => {
     setError(null);
     setQueuedOffline(false);
 
+    const payload = {
+      notes: draft.notes.trim() || undefined,
+      items: items.map((item) => ({
+        dish_id: item.dishId,
+        quantity: item.quantity,
+      })),
+    };
+    const attempt = resolveGuestOrderSubmissionAttempt(
+      submissionAttemptRef.current,
+      draft.tableSessionId,
+      payload,
+      createIdempotencyKey
+    );
+    submissionAttemptRef.current = attempt;
+
     try {
       if (!navigator.onLine) {
         await queueGuestOrder({
           sessionId: draft.tableSessionId,
           guestAccessToken: draft.guestAccessToken,
-          payload: {
-            notes: draft.notes.trim() || undefined,
-            items: items.map((item) => ({
-              dish_id: item.dishId,
-              quantity: item.quantity,
-            })),
-          },
-          idempotencyKey: createIdempotencyKey(),
+          payload,
+          idempotencyKey: attempt.idempotencyKey,
         });
+        submissionAttemptRef.current = null;
         clearCart();
         setQueuedOffline(true);
         return;
       }
 
-      const nextIdempotencyKey = submitIdempotencyKey || createIdempotencyKey();
-      setSubmitIdempotencyKey(nextIdempotencyKey);
-
-      const response = await createGuestTableSessionOrder(draft.tableSessionId, {
-        notes: draft.notes.trim() || undefined,
-        items: items.map((item) => ({
-          dish_id: item.dishId,
-          quantity: item.quantity,
-        })),
-      }, draft.guestAccessToken, nextIdempotencyKey);
+      const response = await createGuestTableSessionOrder(
+        draft.tableSessionId,
+        payload,
+        draft.guestAccessToken,
+        attempt.idempotencyKey
+      );
 
       setSubmittedOrder(response.order);
-      setSubmitIdempotencyKey(null);
+      submissionAttemptRef.current = null;
       clearCart();
     } catch (err: unknown) {
       const status = typeof err === 'object' && err !== null && 'response' in err
