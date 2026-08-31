@@ -9,6 +9,7 @@ const mockedApi = vi.hoisted(() => ({
 const mockedInvoiceService = vi.hoisted(() => ({
   createInvoice: vi.fn(),
   fetchInvoices: vi.fn(),
+  fetchInvoiceRevenueTrends: vi.fn(),
   updateInvoice: vi.fn(),
 }));
 
@@ -26,6 +27,7 @@ const mockedScheduleService = vi.hoisted(() => ({
 }));
 
 const mockedReportingService = vi.hoisted(() => ({
+  fetchProfitAndLossSummary: vi.fn(),
   fetchTaxSummary: vi.fn(),
 }));
 
@@ -83,6 +85,7 @@ vi.mock('../../src/services/api', () => ({
 vi.mock('../../src/services/invoiceService', () => ({
   createInvoice: mockedInvoiceService.createInvoice,
   fetchInvoices: mockedInvoiceService.fetchInvoices,
+  fetchInvoiceRevenueTrends: mockedInvoiceService.fetchInvoiceRevenueTrends,
   updateInvoice: mockedInvoiceService.updateInvoice,
 }));
 
@@ -100,6 +103,7 @@ vi.mock('../../src/services/staffScheduleService', () => ({
 }));
 
 vi.mock('../../src/services/financeReportingService', () => ({
+  fetchProfitAndLossSummary: mockedReportingService.fetchProfitAndLossSummary,
   fetchTaxSummary: mockedReportingService.fetchTaxSummary,
 }));
 
@@ -125,8 +129,9 @@ const invoicePages = {
   2: {
     invoices: [
       { id: 1, invoice_date: '2026-05-02', created_at: '2026-05-02T10:00:00Z', status: 'issued', total: 120 },
+      { id: 4, invoice_date: '2026-05-02', created_at: '2026-05-02T11:00:00Z', status: 'draft', total: 999 },
     ],
-    meta: { current_page: 2, last_page: 2, per_page: 200, total: 3 },
+    meta: { current_page: 2, last_page: 2, per_page: 200, total: 4 },
   },
 } as const;
 
@@ -202,6 +207,13 @@ describe('AdminFinanceDashboardPage', () => {
       })),
     }));
     mockedExpenseService.fetchExpenses.mockImplementation(async ({ page = 1 }) => expensePages[page as 1 | 2]);
+    mockedInvoiceService.fetchInvoiceRevenueTrends.mockResolvedValue({
+      range: 'monthly',
+      date_from: '2026-05-01',
+      date_to: '2026-05-31',
+      points: [{ bucket: '2026-05', label: 'May 2026', gross_revenue: 200, refunds: 25, revenue: 175, invoice_count: 2 }],
+      totals: { revenue: 175, invoice_count: 2 },
+    });
     mockedPayrollService.fetchPayrollSummary.mockResolvedValue({
       date_from: '2026-05-01',
       date_to: '2026-05-31',
@@ -231,6 +243,16 @@ describe('AdminFinanceDashboardPage', () => {
       input_vat: 4,
       net_vat_payable: 14,
     });
+    mockedReportingService.fetchProfitAndLossSummary.mockResolvedValue({
+      date_from: '2026-05-01',
+      date_to: '2026-05-31',
+      group_by: 'monthly',
+      revenue: 175,
+      cogs: 15.5,
+      gross_profit: 159.5,
+      operating_expenses: 155,
+      net_profit: 4.5,
+    });
     mockedInvoiceService.createInvoice.mockResolvedValue({ id: 999 });
     mockedInvoiceService.updateInvoice.mockResolvedValue({ id: 999 });
   });
@@ -243,13 +265,12 @@ describe('AdminFinanceDashboardPage', () => {
       expect(mockedExpenseService.fetchExpenses).toHaveBeenCalled();
     });
 
-    const invoices = [...invoicePages[1].invoices, ...invoicePages[2].invoices];
     const expenses = [...expensePages[1].expenses, ...expensePages[2].expenses];
     const payrollPeriods = await mockedPayrollService.fetchPayrollPeriods.mock.results[0]?.value;
 
-    const expectedRevenue = invoices
-      .filter((invoice) => invoice.status === 'issued' || invoice.status === 'paid' || invoice.status === 'draft')
-      .reduce((sum, invoice) => sum + Number(invoice.total ?? 0), 0);
+    // Canonical backend revenue: issued + paid gross (200), less posted refunds (25).
+    // Draft (999), cancelled (50), draft refunds, and void refunds are excluded server-side.
+    const expectedRevenue = 175;
     const expectedCogs = expenses
       .filter((expense) => (expense.status === 'approved' || expense.status === 'paid') && expense.linked_stock_movement)
       .reduce((sum, expense) => sum + expense.total_cents / 100, 0);
@@ -268,7 +289,8 @@ describe('AdminFinanceDashboardPage', () => {
     expect(screen.getByText(`$${expectedNetProfit.toFixed(2)}`)).toBeInTheDocument();
     expect(screen.getByText('$14.00')).toBeInTheDocument();
     expect(screen.getAllByText('$120.00').length).toBeGreaterThan(0);
-    expect(screen.getByText('Page 1 of 1 • 3 total')).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 1 • 4 total')).toBeInTheDocument();
+    expect(screen.queryByText('$1,174.00')).not.toBeInTheDocument();
   });
 
   it('passes active filters through to invoice and expense fetches without hidden defaults', async () => {

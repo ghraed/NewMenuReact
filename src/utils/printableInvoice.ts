@@ -22,6 +22,8 @@ export interface PrintableInvoiceSummary {
   discountLabel: string;
   discountAmount: string;
   taxableSubtotal: string;
+  serviceChargeLabel?: string;
+  serviceChargeAmount?: string;
   vatLabel: string;
   vatAmount: string;
   total: string;
@@ -44,6 +46,7 @@ export interface PrintableInvoicePayload {
   sourceTableId?: number | string;
   invoiceNumber?: string;
   restaurantName: string;
+  currency?: string;
   tableName: string;
   generatedAt: string;
   generatedAtIso?: string;

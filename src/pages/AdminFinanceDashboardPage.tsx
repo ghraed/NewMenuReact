@@ -24,10 +24,11 @@ import api from '../services/api';
 import {
   createInvoice,
   fetchInvoices,
+  fetchInvoiceRevenueTrends,
   updateInvoice,
   type CreateInvoiceItemInput,
 } from '../services/invoiceService';
-import { fetchTaxSummary } from '../services/financeReportingService';
+import { fetchProfitAndLossSummary, fetchTaxSummary } from '../services/financeReportingService';
 import { fetchExpenses } from '../services/financeExpenseService';
 import { fetchPayrollPeriods, fetchPayrollSummary } from '../services/payrollService';
 import { fetchStaffSchedules } from '../services/staffScheduleService';
@@ -186,7 +187,6 @@ const sortFinanceInvoicesNewestFirst = (records: FinanceInvoice[]): FinanceInvoi
 type MetricKey = 'revenue' | 'totalCosts' | 'netProfit' | 'cogs' | 'operatingExpenses' | 'payroll';
 
 const DEFAULT_SELECTED_METRICS: MetricKey[] = ['revenue', 'totalCosts', 'netProfit'];
-const VALID_REVENUE_STATUSES: FinanceInvoiceStatus[] = ['draft', 'issued', 'paid'];
 const INCLUDED_EXPENSE_STATUSES = new Set(['approved', 'paid']);
 const INCLUDED_PAYROLL_STATUSES = new Set(['approved', 'paid']);
 
@@ -264,22 +264,6 @@ const isExpenseCogs = (expense: FinanceExpense): boolean => {
     || name.includes('ingredient')
     || name.includes('inventory')
     || name.includes('stock');
-};
-
-const normalizeInvoiceStatusValue = (status: unknown): FinanceInvoiceStatus | null => {
-  if (typeof status !== 'string') {
-    return null;
-  }
-  const normalized = status.trim().toLowerCase();
-  if (
-    normalized === 'draft'
-    || normalized === 'issued'
-    || normalized === 'paid'
-    || normalized === 'cancelled'
-  ) {
-    return normalized as FinanceInvoiceStatus;
-  }
-  return null;
 };
 
 const INVOICE_PAGE_SIZE = 200;
@@ -619,31 +603,6 @@ const AdminFinanceDashboardPage: React.FC = () => {
     }
 
     try {
-      const fetchAllInvoices = async (): Promise<FinanceInvoice[]> => {
-        const firstPage = await fetchInvoices({
-          date_from: dateFrom || undefined,
-          date_to: dateTo || undefined,
-          status: statusFilter || undefined,
-          per_page: INVOICE_PAGE_SIZE,
-          page: 1,
-        });
-        const allInvoices = [...firstPage.invoices];
-        const lastPage = Math.max(1, firstPage.meta?.last_page || 1);
-        if (lastPage > 1) {
-          const remainingPages = await Promise.all(
-            Array.from({ length: lastPage - 1 }, (_, index) => fetchInvoices({
-              date_from: dateFrom || undefined,
-              date_to: dateTo || undefined,
-              status: statusFilter || undefined,
-              per_page: INVOICE_PAGE_SIZE,
-              page: index + 2,
-            }))
-          );
-          remainingPages.forEach((pageResult) => allInvoices.push(...pageResult.invoices));
-        }
-        return allInvoices;
-      };
-
       const fetchAllExpenses = async (): Promise<FinanceExpense[]> => {
         const firstPage = await fetchExpenses({
           date_from: dateFrom || undefined,
@@ -667,14 +626,21 @@ const AdminFinanceDashboardPage: React.FC = () => {
         return allExpenses;
       };
 
-      const [allInvoices, allExpenses] = await Promise.all([fetchAllInvoices(), fetchAllExpenses()]);
+      const [allExpenses, revenueTrends] = await Promise.all([
+        fetchAllExpenses(),
+        fetchInvoiceRevenueTrends({
+          range,
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+        }),
+      ]);
       const filteredOperationalLossExpenses = allExpenses.filter((expense) => (
         INCLUDED_EXPENSE_STATUSES.has(expense.status)
         && isValidDateWithinRange(expense.expense_date, dateFrom, dateTo)
       ));
       setOperationalLossReport(buildOperationalLossDashboardReport(filteredOperationalLossExpenses));
 
-      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult] = await Promise.allSettled([
+      const [payrollSummaryResult, payrollPeriodsResult, shiftsResult, taxResult, pnlResult] = await Promise.allSettled([
         fetchPayrollSummary({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
@@ -688,6 +654,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
         fetchTaxSummary({
           date_from: dateFrom || undefined,
           date_to: dateTo || undefined,
+        }),
+        fetchProfitAndLossSummary({
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+          group_by: range,
         }),
       ]);
 
@@ -710,16 +681,10 @@ const AdminFinanceDashboardPage: React.FC = () => {
         return metricsByPeriod.get(periodKey)!;
       };
 
-      let invoiceCount = 0;
-      for (const invoice of allInvoices) {
-        const normalizedStatus = normalizeInvoiceStatusValue(invoice.status);
-        if (!normalizedStatus || !VALID_REVENUE_STATUSES.includes(normalizedStatus) || !invoice.invoice_date) {
-          continue;
-        }
-        const periodKey = toPeriodKey(invoice.invoice_date, range);
-        const bucket = ensurePeriod(periodKey);
-        bucket.revenue += Number(invoice.total ?? 0);
-        invoiceCount += 1;
+      const invoiceCount = Number(revenueTrends.totals.invoice_count ?? 0);
+      for (const point of revenueTrends.points) {
+        const bucket = ensurePeriod(point.bucket);
+        bucket.revenue += Number(point.revenue ?? 0);
       }
 
       for (const expense of allExpenses) {
@@ -786,7 +751,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setChartMetrics(nextMetrics);
       setTotalRevenue(nextRevenue);
       setTotalInvoicesInRange(invoiceCount);
-      setPnlSummary({
+      const reconstructedPnl = {
         date_from: dateFrom,
         date_to: dateTo,
         group_by: range,
@@ -795,7 +760,8 @@ const AdminFinanceDashboardPage: React.FC = () => {
         gross_profit: nextRevenue - nextCogs,
         operating_expenses: nextOperating + nextPayroll,
         net_profit: nextRevenue - (nextCogs + nextOperating + nextPayroll),
-      });
+      };
+      setPnlSummary(pnlResult.status === 'fulfilled' ? pnlResult.value : reconstructedPnl);
 
       if (payrollSummaryResult.status === 'fulfilled') {
         setPayrollTotals(payrollSummaryResult.value.totals);
@@ -827,7 +793,7 @@ const AdminFinanceDashboardPage: React.FC = () => {
       setOperationsLoading(false);
       setLoading(false);
     }
-  }, [dateFrom, dateTo, range, statusFilter, t]);
+  }, [dateFrom, dateTo, range, t]);
 
   useEffect(() => {
     void loadDashboardData();
@@ -1748,7 +1714,11 @@ const AdminFinanceDashboardPage: React.FC = () => {
                             disabled={statusSavingInvoiceId === invoice.id}
                             className="themed-native-select rounded-md border border-gold/35 bg-bg1/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-gold2 outline-none transition focus:border-gold disabled:opacity-60"
                           >
-                            {invoiceStatusOptions.map((option) => (
+                            {invoiceStatusOptions.filter((option) => {
+                              if (invoice.status === 'draft') return option.value === 'draft' || option.value === 'issued' || option.value === 'cancelled';
+                              if (invoice.status === 'issued') return option.value === 'issued' || option.value === 'paid' || option.value === 'cancelled';
+                              return option.value === invoice.status;
+                            }).map((option) => (
                               <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                           </select>
