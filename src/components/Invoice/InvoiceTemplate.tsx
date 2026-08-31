@@ -321,6 +321,17 @@ const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ invoice, variant = 'g
                     + {invoice.summary.vatAmount}
                   </span>
                 </div>
+                {invoice.summary.serviceChargeLabel && invoice.summary.serviceChargeAmount ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{invoice.summary.serviceChargeLabel}</span>
+                    <span
+                      className={`font-medium ${isGuest ? '' : 'text-[#f1ede4] print:text-black'}`}
+                      style={isGuest ? { color: 'var(--guest-text)' } : undefined}
+                    >
+                      + {invoice.summary.serviceChargeAmount}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               <div

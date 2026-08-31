@@ -614,6 +614,8 @@ export interface OrderInvoiceSummary {
   discount_value: string;
   discount_amount: string;
   taxable_subtotal: string;
+  service_charge_rate?: string;
+  service_charge_amount?: string;
   vat_rate: string;
   vat_amount: string;
   total: string;
@@ -764,6 +766,8 @@ export interface FinanceInvoiceDetails extends FinanceInvoice {
 export interface FinanceRevenuePoint {
   bucket: string;
   label: string;
+  gross_revenue?: number;
+  refunds?: number;
   revenue: number;
   invoice_count: number;
 }
