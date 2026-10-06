@@ -29,6 +29,14 @@ export interface QueueReplayResult {
   needsReview: number;
 }
 
+interface GuestOrderSyncResult {
+  synced: boolean;
+  error?: string;
+  needsReview?: boolean;
+}
+
+const guestOrderSyncs = new Map<number, Promise<GuestOrderSyncResult>>();
+
 export const emitOfflineQueueUpdated = (): void => {
   window.dispatchEvent(new CustomEvent(OFFLINE_QUEUE_UPDATED_EVENT));
 };
@@ -95,31 +103,16 @@ export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
       continue;
     }
 
-    await updateQueuedGuestOrder(item.id, { status: 'syncing', lastError: null });
-
-    try {
-      await createGuestTableSessionOrder(item.sessionId, item.payload, item.guestAccessToken, item.idempotencyKey);
-      await deleteQueuedGuestOrder(item.id);
+    const result = await syncQueuedGuestOrder(item.id);
+    if (result.synced) {
       summary.synced += 1;
       await appendSyncEvent({
         type: 'sync_success',
         createdAt: new Date().toISOString(),
         message: `Synced queued order for session ${item.sessionId}`,
       });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      const status = typeof error === 'object' && error !== null && 'response' in error
-        ? (error as { response?: { status?: number } }).response?.status
-        : undefined;
-
-      const needsReview = Boolean(status && [401, 403, 404, 409, 423].includes(status));
-
-      await updateQueuedGuestOrder(item.id, {
-        status: needsReview ? 'needs_review' : 'failed',
-        lastError: errorMessage,
-      });
-
-      if (needsReview) {
+    } else {
+      if (result.needsReview) {
         summary.needsReview += 1;
       } else {
         summary.failed += 1;
@@ -128,7 +121,7 @@ export const replayQueuedGuestOrders = async (): Promise<QueueReplayResult> => {
       await appendSyncEvent({
         type: 'sync_failed',
         createdAt: new Date().toISOString(),
-        message: `Failed syncing order for session ${item.sessionId}: ${errorMessage}`,
+        message: `Failed syncing order for session ${item.sessionId}: ${result.error}`,
       });
     }
   }
@@ -154,7 +147,29 @@ export const editQueuedGuestOrder = async (
   emitOfflineQueueUpdated();
 };
 
-export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolean; error?: string }> => {
+export const syncQueuedGuestOrder = (id: number): Promise<GuestOrderSyncResult> => {
+  const existing = guestOrderSyncs.get(id);
+  if (existing) {
+    return existing;
+  }
+
+  const sync = (async () => {
+    // A lock is released when its tab closes, so another tab can safely recover
+    // the persisted syncing record without overlapping a live attempt.
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+      return navigator.locks.request(`menu-react-guest-order-${id}`, () => syncGuestOrder(id));
+    }
+
+    return syncGuestOrder(id);
+  })().finally(() => {
+    guestOrderSyncs.delete(id);
+  });
+
+  guestOrderSyncs.set(id, sync);
+  return sync;
+};
+
+const syncGuestOrder = async (id: number): Promise<GuestOrderSyncResult> => {
   const queued = await listQueuedGuestOrders();
   const item = queued.find((row) => row.id === id);
   if (!item || !item.id) {
@@ -172,14 +187,20 @@ export const syncQueuedGuestOrder = async (id: number): Promise<{ synced: boolea
     return { synced: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-    await updateQueuedGuestOrder(item.id, { status: 'failed', lastError: errorMessage });
+    const status = typeof error === 'object' && error !== null && 'response' in error
+      ? (error as { response?: { status?: number } }).response?.status
+      : undefined;
+    const needsReview = Boolean(status && [401, 403, 404, 409, 423].includes(status));
+    await updateQueuedGuestOrder(item.id, { status: needsReview ? 'needs_review' : 'failed', lastError: errorMessage });
     emitOfflineQueueUpdated();
-    return { synced: false, error: errorMessage };
+    return { synced: false, error: errorMessage, ...(needsReview ? { needsReview: true } : {}) };
   }
 };
 
-const isReplayableGuestOrder = (item: GuestOrderQueueRecord): boolean => {
-  if (item.status !== 'pending' && item.status !== 'failed') {
+export const isReplayableGuestOrder = (item: GuestOrderQueueRecord): boolean => {
+  // Persisted syncing records can survive a reload after their request was
+  // interrupted. Replay keeps the original key to recover a server-side success.
+  if (item.status !== 'pending' && item.status !== 'failed' && item.status !== 'syncing') {
     return false;
   }
 

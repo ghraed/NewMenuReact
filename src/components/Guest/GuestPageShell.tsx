@@ -11,6 +11,7 @@ import { heartbeatGuestTableSession } from '../../services/orderService';
 import {
   getPendingQueueCount,
   getQueuedGuestOrders,
+  isReplayableGuestOrder,
   onOfflineQueueUpdated,
   syncQueuedGuestOrder,
 } from '../../services/offlineQueue';
@@ -51,9 +52,7 @@ const GuestPageShell: React.FC<GuestPageShellProps> = ({ children }) => {
       .then(async (queued) => {
         const replayable = queued.filter((item) =>
           Boolean(item.id)
-          && (item.status === 'pending' || item.status === 'failed')
-          && Array.isArray(item.payload?.items)
-          && item.payload.items.some((row) => Number(row.dish_id) > 0 && Number(row.quantity) > 0)
+          && isReplayableGuestOrder(item)
         );
 
         if (replayable.length === 0) {
