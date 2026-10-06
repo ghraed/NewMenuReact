@@ -45,8 +45,8 @@ const AdminUserProfilePage: React.FC = () => {
 
     const nextName = form.name.trim();
     const nextPhone = form.phone.trim();
-    const nextPassword = form.password.trim();
-    const nextPasswordConfirm = form.passwordConfirm.trim();
+    const nextPassword = form.password;
+    const nextPasswordConfirm = form.passwordConfirm;
 
     if (!nextName) {
       setError('Name is required.');
@@ -76,19 +76,7 @@ const AdminUserProfilePage: React.FC = () => {
 
     setSaving(true);
     try {
-      try {
-        await api.patch('/auth/me', payload);
-      } catch (firstError: unknown) {
-        const status = typeof firstError === 'object' && firstError !== null && 'response' in firstError
-          ? (firstError as { response?: { status?: number } }).response?.status
-          : null;
-
-        if (status === 404 || status === 405) {
-          await api.put('/auth/me', payload);
-        } else {
-          throw firstError;
-        }
-      }
+      await api.patch('/auth/me', payload);
 
       await refreshUser();
       setForm((current) => ({
