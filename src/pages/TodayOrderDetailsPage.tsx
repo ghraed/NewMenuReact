@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
-import { useAuth } from '../contexts/useAuth';
-import { fetchAccountingOrders, fetchPendingOrders } from '../services/orderService';
-import api from '../services/api';
+import { fetchOrderById } from '../services/orderService';
 import type { OrderRecord } from '../types';
 import { translateStatusLabel } from '../i18n/dynamic';
 
@@ -38,7 +36,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 
 const TodayOrderDetailsPage: React.FC = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
   const { order_id } = useParams<{ order_id: string }>();
   const [order, setOrder] = useState<OrderRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,50 +55,24 @@ const TodayOrderDetailsPage: React.FC = () => {
       setError(null);
 
       try {
-        const targetOrderId = Number.parseInt(order_id, 10);
-        if (!Number.isFinite(targetOrderId) || targetOrderId <= 0) {
+        const targetOrderId = Number(order_id);
+        if (!Number.isSafeInteger(targetOrderId) || targetOrderId <= 0) {
           throw new Error(t('todayOrderDetailsPage.invalidOrderId'));
         }
 
-        let nextOrder: OrderRecord | null = null;
-
-        try {
-          const today = new Date();
-          const year = today.getFullYear();
-          const month = String(today.getMonth() + 1).padStart(2, '0');
-          const day = String(today.getDate()).padStart(2, '0');
-          const todayIso = `${year}-${month}-${day}`;
-
-          const response = await api.get<{ orders?: OrderRecord[] }>('/orders/today', {
-            params: { date: todayIso },
-          });
-
-          const todayOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
-          nextOrder = todayOrders.find((entry) => entry.id === targetOrderId) || null;
-        } catch {
-          nextOrder = null;
-        }
-
-        if (!nextOrder) {
-          const pendingOrders = await fetchPendingOrders();
-          nextOrder = pendingOrders.find((entry) => entry.id === targetOrderId) || null;
-        }
-
-        if (!nextOrder && user?.role === 'admin') {
-          const accountingOrders = await fetchAccountingOrders();
-          nextOrder = accountingOrders.find((entry) => entry.id === targetOrderId) || null;
-        }
-
-        if (!nextOrder) {
-          throw new Error(t('todayOrderDetailsPage.orderNotFoundOrNotAccessible'));
-        }
+        const nextOrder = await fetchOrderById(targetOrderId);
 
         if (!cancelled) {
           setOrder(nextOrder);
         }
       } catch (err: unknown) {
         if (!cancelled) {
-          setError(getErrorMessage(err, t('todayOrderDetailsPage.failedLoad')));
+          const status = typeof err === 'object' && err !== null && 'response' in err
+            ? (err as { response?: { status?: number } }).response?.status
+            : undefined;
+          setError(status === 404
+            ? t('todayOrderDetailsPage.orderNotFoundOrNotAccessible')
+            : getErrorMessage(err, t('todayOrderDetailsPage.failedLoad')));
         }
       } finally {
         if (!cancelled) {
@@ -115,7 +86,7 @@ const TodayOrderDetailsPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [order_id, t, user?.role]);
+  }, [order_id, t]);
 
   const subtotal = useMemo(() => parseMoney(order?.invoice.subtotal), [order?.invoice.subtotal]);
   const total = useMemo(() => parseMoney(order?.invoice.total), [order?.invoice.total]);

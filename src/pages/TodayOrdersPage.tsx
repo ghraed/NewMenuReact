@@ -6,10 +6,10 @@ import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import PageSkeleton from '../components/Common/PageSkeleton';
 import { useAuth } from '../contexts/useAuth';
 import { fetchInvoices } from '../services/invoiceService';
-import { fetchAccountingOrders, fetchPendingOrders } from '../services/orderService';
 import api from '../services/api';
 import type { FinanceInvoiceStatus, OrderRecord } from '../types';
 import { translateStatusLabel } from '../i18n/dynamic';
+import { roleCanAccess } from '../utils/auth';
 
 interface TodayOrdersResponse {
   orders?: OrderRecord[];
@@ -58,23 +58,10 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-const isSameLocalDay = (value: string | null | undefined, targetIso: string): boolean => {
-  if (!value) return false;
-  const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return false;
-
-  const date = new Date(parsed);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}` === targetIso;
-};
-
 const TodayOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = roleCanAccess(user?.role, ['admin']);
   const today = todayIsoDate();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [dateFrom, setDateFrom] = useState<string>(today);
@@ -104,61 +91,13 @@ const TodayOrdersPage: React.FC = () => {
     }
 
     try {
-      let nextOrders: OrderRecord[] = [];
-
-      if (isAdmin) {
-        let loadedFromHistory = false;
-
-        try {
-          const response = await api.get<TodayOrdersResponse>('/orders/history', {
-            params: {
-              date_from: dateFrom || undefined,
-              date_to: dateTo || undefined,
-            },
-          });
-          nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
-          loadedFromHistory = true;
-        } catch {
-          loadedFromHistory = false;
-        }
-
-        if (!loadedFromHistory) {
-          try {
-            const response = await api.get<TodayOrdersResponse>('/orders/today', {
-              params: {
-                date: dateFrom === dateTo ? dateFrom : undefined,
-                date_from: dateFrom || undefined,
-                date_to: dateTo || undefined,
-              },
-            });
-            nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
-          } catch {
-            const [pendingOrders, accountingOrders] = await Promise.all([
-              fetchPendingOrders(),
-              fetchAccountingOrders(),
-            ]);
-            const deduped = new Map<number, OrderRecord>();
-            [...pendingOrders, ...accountingOrders].forEach((order) => deduped.set(order.id, order));
-            nextOrders = Array.from(deduped.values());
-          }
-        }
-      } else {
-        try {
-          const response = await api.get<TodayOrdersResponse>('/orders/today', {
-            params: { date: today },
-          });
-          nextOrders = Array.isArray(response.data?.orders) ? response.data.orders : [];
-        } catch {
-          const pendingOrders = await fetchPendingOrders();
-          nextOrders = pendingOrders.filter((order) => (
-            isSameLocalDay(order.created_at, today)
-            || isSameLocalDay(order.confirmed_at, today)
-            || isSameLocalDay(order.accounted_at, today)
-          ));
-        }
-      }
-
-      setOrders(nextOrders);
+      const response = await api.get<TodayOrdersResponse>(isAdmin ? '/orders/history' : '/orders/today', {
+        params: {
+          ...(isAdmin ? { date_from: dateFrom || undefined, date_to: dateTo || undefined } : { date: today }),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      });
+      setOrders(Array.isArray(response.data?.orders) ? response.data.orders : []);
 
       if (isAdmin) {
         try {
@@ -232,11 +171,11 @@ const TodayOrdersPage: React.FC = () => {
         return 'cancelled';
       }
 
-      if (isInvoicePaid(order)) {
+      if (order.status === 'accounted' || isInvoicePaid(order)) {
         return 'paid';
       }
 
-      if (order.status === 'staff_confirmed' || order.status === 'accounted') {
+      if (order.status === 'staff_confirmed') {
         return 'ordered';
       }
 
@@ -248,12 +187,14 @@ const TodayOrdersPage: React.FC = () => {
         const rightTime = Math.max(
           parseDateMillis(right.created_at),
           parseDateMillis(right.confirmed_at),
-          parseDateMillis(right.accounted_at)
+          parseDateMillis(right.accounted_at),
+          parseDateMillis(right.cancelled_at)
         );
         const leftTime = Math.max(
           parseDateMillis(left.created_at),
           parseDateMillis(left.confirmed_at),
-          parseDateMillis(left.accounted_at)
+          parseDateMillis(left.accounted_at),
+          parseDateMillis(left.cancelled_at)
         );
         return rightTime - leftTime;
       })
