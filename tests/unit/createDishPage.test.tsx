@@ -73,4 +73,13 @@ describe('CreateDishPage preview upload', () => {
     expect(mocks.post).toHaveBeenCalledTimes(1);
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
+
+  it('includes the selected serving temperature in packaged-drink creation', async () => {
+    fillForm();
+    fireEvent.change(document.querySelector('select[name="serving_temperature"]')!, { target: { value: 'cold' } });
+    submitForm();
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/admin/dashboard'));
+    const body = mocks.post.mock.calls[0][1] as FormData;
+    expect(body.get('serving_temperature')).toBe('cold');
+  });
 });

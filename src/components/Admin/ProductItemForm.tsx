@@ -272,6 +272,7 @@ const ProductItemForm: React.FC<ProductItemFormProps> = ({
             <div>
               <label className="mb-1 block text-sm font-medium text-text">{t('dishForm.servingTemperatureLabel')}</label>
               <GlassSelect
+                name="serving_temperature"
                 value={form.servingTemperature}
                 onChange={(event) => setForm((prev) => ({ ...prev, servingTemperature: event.target.value as '' | 'cold' | 'room' }))}
                 options={[

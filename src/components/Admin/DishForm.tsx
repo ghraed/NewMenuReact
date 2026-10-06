@@ -399,6 +399,11 @@ const DishForm: React.FC<DishFormProps> = ({
   const hasDishName = formData.name.trim().length > 0 || selectedDishDictionaryName.trim().length > 0;
   const hasDescription = formData.description.trim().length > 0;
   const hasDirectStockIngredient = formData.direct_stock_ingredient_id !== null;
+  const hasProductStock = hasDirectStockIngredient || (
+    formData.packaged_stock_quantity.trim() !== ''
+    && Number.isFinite(Number(formData.packaged_stock_quantity))
+    && Number(formData.packaged_stock_quantity) >= 0
+  );
   const validRecipeIngredientsForGeneration = formData.recipe_ingredients
     .map((recipeItem) => {
       if (recipeItem.ingredient_id === null) {
@@ -1488,7 +1493,7 @@ const DishForm: React.FC<DishFormProps> = ({
             || (isPreparedDish && !hasDescription)
             || !formData.price
             || !formData.category
-            || (!isPreparedDish && !hasDirectStockIngredient)
+            || (!isPreparedDish && !hasProductStock)
           }
         >
           {isSubmitting ? submittingLabel : submitLabel}
