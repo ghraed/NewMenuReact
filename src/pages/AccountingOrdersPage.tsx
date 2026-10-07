@@ -25,9 +25,10 @@ import { fetchInvoices } from '../services/invoiceService';
 import { createExpense, fetchExpenseCategories } from '../services/financeExpenseService';
 import { ensureEchoConnection, getEcho } from '../services/realtime';
 import { cx, focusRing, glassControl, glassControlHover } from '../theme/liquidGlass';
-import { savePrintableInvoice } from '../utils/printableInvoice';
+import { savePrintableInvoice as persistPrintableInvoice } from '../utils/printableInvoice';
 import { calculateInvoicePreview } from '../utils/financeMath';
-import { clearBillAdjustmentsForTable, readBillAdjustmentsForTable, upsertBillAdjustmentsForTable } from '../utils/billAdjustments';
+import { clearBillAdjustmentsForTable as persistClearBillAdjustments, readBillAdjustmentsForTable, upsertBillAdjustmentsForTable as persistBillAdjustments } from '../utils/billAdjustments';
+import { getVerifiedBrowserIdentity } from '../services/protectedBrowserStorage';
 import {
   ADJUSTMENT_ACTION_LABELS,
   COMPLAINT_CATEGORY_LABELS,
@@ -261,6 +262,16 @@ const sortAccountingOrders = (rows: OrderRecord[]): OrderRecord[] => (
 const AccountingOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const storageIdentity = getVerifiedBrowserIdentity();
+  const savePrintableInvoice = useCallback((payload: Parameters<typeof persistPrintableInvoice>[0]) => {
+    persistPrintableInvoice(payload, undefined, storageIdentity);
+  }, [storageIdentity]);
+  const clearBillAdjustmentsForTable = useCallback((tableName: string) => {
+    persistClearBillAdjustments(tableName, storageIdentity);
+  }, [storageIdentity]);
+  const upsertBillAdjustmentsForTable = useCallback((tableName: string, entries: Parameters<typeof persistBillAdjustments>[1]) => {
+    persistBillAdjustments(tableName, entries, storageIdentity);
+  }, [storageIdentity]);
   const { toast, showToast, dismiss } = useGlassToast(3600);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [tableDrafts, setTableDrafts] = useState<TableDraftState>({});
@@ -1441,7 +1452,7 @@ const AccountingOrdersPage: React.FC = () => {
     if (persistedAdjustments.length > 0) {
       upsertBillAdjustmentsForTable(tableName, persistedAdjustments);
     }
-  }, []);
+  }, [clearBillAdjustmentsForTable, upsertBillAdjustmentsForTable]);
 
   const clearLocalAdjustmentState = useCallback((tableName: string, nextOrders: OrderRecord[]) => {
     const selectedOrderIds = new Set(nextOrders.map((order) => order.id));

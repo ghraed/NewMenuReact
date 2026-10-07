@@ -1,0 +1,92 @@
+{
+  "audit_id": "U3",
+  "severity": "P0",
+  "role": "tenant B admin",
+  "deterministic": true,
+  "page": "/staff/pos",
+  "expected": "B compensation $0.00 and no A approval history",
+  "actual": "B compensation $10.00 from A after successful logout/login",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/__qa/environment",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/__qa/environment",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/dishes",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/dishes/published",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/menu/qa-run-20261007-task1-repro/tables",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/dishes/published",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/menu/qa-run-20261007-task1-repro/tables",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 401
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/dishes/published",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/menu/qa-run-20261007-task1-repro-d4a156030f-b/tables",
+      "status": 200
+    }
+  ],
+  "trace": "run-before/browser-results/tenant-browser-isolation-s-de094-oad-and-two-tenant-accounts-chromium/trace.zip"
+}

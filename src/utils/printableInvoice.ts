@@ -1,3 +1,4 @@
+import { getVerifiedBrowserIdentity, readProtectedJson, writeProtectedJson, type BrowserIdentity } from '../services/protectedBrowserStorage';
 export interface PrintableInvoiceItem {
   key: string;
   dishName: string;
@@ -56,19 +57,30 @@ export interface PrintableInvoicePayload {
 
 export const PRINTABLE_INVOICE_STORAGE_KEY = 'printable_invoice_payload';
 
-export const savePrintableInvoice = (payload: PrintableInvoicePayload): void => {
-  localStorage.setItem(PRINTABLE_INVOICE_STORAGE_KEY, JSON.stringify(payload));
+export interface GuestInvoiceIdentity { restaurantId: number; tableId: number; guestAccessToken: string }
+
+const guestInvoiceKey = (guest: GuestInvoiceIdentity): string | null => (
+  Number.isSafeInteger(guest.restaurantId) && guest.restaurantId > 0
+    && Number.isSafeInteger(guest.tableId) && guest.tableId > 0 && !!guest.guestAccessToken
+    ? `guest_invoice_v2:restaurant:${guest.restaurantId}:table:${guest.tableId}` : null
+);
+
+export const savePrintableInvoice = (payload: PrintableInvoicePayload, guest?: GuestInvoiceIdentity, expected: BrowserIdentity | null = getVerifiedBrowserIdentity()): void => {
+  if (!guest) {
+    writeProtectedJson(PRINTABLE_INVOICE_STORAGE_KEY, payload, 'account', expected);
+    return;
+  }
+  const key = guestInvoiceKey(guest);
+  if (key) localStorage.setItem(key, JSON.stringify({ guestAccessToken: guest.guestAccessToken, payload }));
 };
 
-export const loadPrintableInvoice = (): PrintableInvoicePayload | null => {
-  const rawPayload = localStorage.getItem(PRINTABLE_INVOICE_STORAGE_KEY);
-
-  if (!rawPayload) {
-    return null;
-  }
-
+export const loadPrintableInvoice = (guest?: GuestInvoiceIdentity): PrintableInvoicePayload | null => {
+  if (!guest) return readProtectedJson<PrintableInvoicePayload | null>(PRINTABLE_INVOICE_STORAGE_KEY, null, 'account');
+  const key = guestInvoiceKey(guest);
   try {
-    return JSON.parse(rawPayload) as PrintableInvoicePayload;
+    const raw = key ? localStorage.getItem(key) : null;
+    const cached = raw ? JSON.parse(raw) : null;
+    return cached?.guestAccessToken === guest.guestAccessToken ? cached.payload : null;
   } catch {
     return null;
   }

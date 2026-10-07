@@ -1,3 +1,4 @@
+import { getVerifiedBrowserIdentity, isCurrentBrowserIdentity, waiterActionBelongsToCurrentAccount } from './protectedBrowserStorage';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
@@ -238,25 +239,29 @@ export const getPendingWaiterQueueCount = async (): Promise<number> => {
 };
 
 const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<void> => {
+  if (!waiterActionBelongsToCurrentAccount(item.owner)) throw new Error('The queued action belongs to a different or unresolved account.');
+  const identity = getVerifiedBrowserIdentity();
+  const replayToken = localStorage.getItem('admin_auth_token')!;
   const { orderId, updatePayload } = item.payload;
   switch (item.type) {
     case 'confirm_order':
-      await confirmPendingOrder(orderId);
+      await confirmPendingOrder(orderId, replayToken);
       return;
     case 'cancel_order':
-      await cancelPendingOrder(orderId);
+      await cancelPendingOrder(orderId, replayToken);
       return;
     case 'mark_served':
-      await markOrderServed(orderId);
+      await markOrderServed(orderId, replayToken);
       return;
     case 'update_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload);
+      await updatePendingOrder(orderId, updatePayload, replayToken);
       return;
     case 'update_and_confirm_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload);
-      await confirmPendingOrder(orderId);
+      await updatePendingOrder(orderId, updatePayload, replayToken);
+      if (!isCurrentBrowserIdentity(identity)) throw new Error('The authenticated account changed during replay.');
+      await confirmPendingOrder(orderId, replayToken);
       return;
     default:
       throw new Error('Unsupported waiter queue action');

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AxiosError } from 'axios';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
+import { protectedStorageKey } from '../services/protectedBrowserStorage';
 import { GlassToast, useGlassToast } from '../components/ui/liquid-glass';
 import {
   createRoomPlan,
@@ -70,8 +71,8 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 
 const ROOM_PLAN_BORDER_POINTS_KEY_PREFIX = 'room-plan-border-points:';
 
-const getRoomPlanBorderPointsStorageKey = (roomPlanId: number): string => (
-  `${ROOM_PLAN_BORDER_POINTS_KEY_PREFIX}${roomPlanId}`
+const getRoomPlanBorderPointsStorageKey = (roomPlanId: number): string | null => (
+  protectedStorageKey(`${ROOM_PLAN_BORDER_POINTS_KEY_PREFIX}${roomPlanId}`)
 );
 
 const parsePersistedBorderPoints = (value: string): BorderGuidePoint[] | null => {
@@ -288,7 +289,7 @@ const AdminRoomPlansPage: React.FC = () => {
     }
 
     const storageKey = getRoomPlanBorderPointsStorageKey(selectedPlan.id);
-    const persistedValue = window.localStorage.getItem(storageKey);
+    const persistedValue = storageKey ? window.localStorage.getItem(storageKey) : null;
     const persistedPoints = persistedValue ? parsePersistedBorderPoints(persistedValue) : null;
 
     if (persistedPoints) {
@@ -310,6 +311,8 @@ const AdminRoomPlansPage: React.FC = () => {
     if (!selectedPlan) return;
 
     const storageKey = getRoomPlanBorderPointsStorageKey(selectedPlan.id);
+
+    if (!storageKey) return;
 
     if (uploadedBorderPoints.length < 3) {
       window.localStorage.removeItem(storageKey);
@@ -461,7 +464,8 @@ const AdminRoomPlansPage: React.FC = () => {
   const handleClearBorder = useCallback(() => {
     if (borderOverlayRef.current) clearBorderOverlay(borderOverlayRef.current);
     if (selectedPlan) {
-      window.localStorage.removeItem(getRoomPlanBorderPointsStorageKey(selectedPlan.id));
+      const storageKey = getRoomPlanBorderPointsStorageKey(selectedPlan.id);
+      if (storageKey) window.localStorage.removeItem(storageKey);
     }
     setUploadedBorderPoints([]);
     setBorderPoints([]);

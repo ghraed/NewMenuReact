@@ -211,7 +211,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
     setLogoutBusy(true);
     try {
       await logout();
-      window.location.replace('/admin/login');
     } finally {
       setLogoutBusy(false);
       setLogoutConfirmOpen(false);

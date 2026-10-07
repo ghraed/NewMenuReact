@@ -1,0 +1,221 @@
+
+> menu-react@0.0.0 test:unit
+> vitest run tests/unit/authTenantIsolation.test.tsx
+
+
+ RUN  v3.2.7 /media/raed/Data/from ubuntu/new_menu/Menu_React
+
+stderr | tests/unit/authTenantIsolation.test.tsx > actual auth provider and protected persistence > does not resurrect A when its delayed /me returns after logout and B login
+An update to AuthProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ❯ tests/unit/authTenantIsolation.test.tsx (4 tests | 4 failed) 1073ms
+   × actual auth provider and protected persistence > isolates ledger, printable invoice and in-memory held work across A -> logout -> B -> A 40ms
+     → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  0
+Received:
+  1
+   × actual auth provider and protected persistence > quarantines legacy financial history without assigning it to unresolved or first authenticated tenants 5ms
+     → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  0
+Received:
+  1
+   × actual auth provider and protected persistence > fails closed on failed login and a user with no restaurant identity 1013ms
+     → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  none
+Received:
+  1
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"user"[39m
+      [36m>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"ledger"[39m
+      [36m>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"held"[39m
+      [36m>[39m
+        [0mtrue[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"invoice"[39m
+      [36m>[39m
+        [0mQA_RUN_unit_A[0m
+      [36m</span>[39m
+      [36m<span>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<button>[39m
+        [0mLogin A[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mLogin B[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mLogout[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mRefresh[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mCreate A work[0m
+      [36m</button>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+   × actual auth provider and protected persistence > does not resurrect A when its delayed /me returns after logout and B login 14ms
+     → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  2
+Received:
+  1
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/authTenantIsolation.test.tsx > actual auth provider and protected persistence > isolates ledger, printable invoice and in-memory held work across A -> logout -> B -> A
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  0
+Received:
+  1
+ ❯ tests/unit/authTenantIsolation.test.tsx:63:42
+     61|     fireEvent.click(screen.getByText('Logout'));
+     62|     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextC…
+     63|     expect(screen.getByTestId('ledger')).toHaveTextContent('0');
+       |                                          ^
+     64|     expect(screen.getByTestId('held')).toHaveTextContent('false');
+     65|     fireEvent.click(screen.getByText('Login B'));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/unit/authTenantIsolation.test.tsx > actual auth provider and protected persistence > quarantines legacy financial history without assigning it to unresolved or first authenticated tenants
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  0
+Received:
+  1
+ ❯ tests/unit/authTenantIsolation.test.tsx:82:42
+     80|     render(<AuthProvider><FinancialView /></AuthProvider>);
+     81|     await screen.findByText('Login A');
+     82|     expect(screen.getByTestId('ledger')).toHaveTextContent('0');
+       |                                          ^
+     83|     expect(localStorage.getItem('protected_quarantine_v1:pos_compensat…
+     84|     fireEvent.click(screen.getByText('Login A'));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/unit/authTenantIsolation.test.tsx > actual auth provider and protected persistence > fails closed on failed login and a user with no restaurant identity
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  none
+Received:
+  1
+
+Ignored nodes: comments, script, style
+[36m<html>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"user"[39m
+      [36m>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"ledger"[39m
+      [36m>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"held"[39m
+      [36m>[39m
+        [0mtrue[0m
+      [36m</span>[39m
+      [36m<span[39m
+        [33mdata-testid[39m=[32m"invoice"[39m
+      [36m>[39m
+        [0mQA_RUN_unit_A[0m
+      [36m</span>[39m
+      [36m<span>[39m
+        [0m1[0m
+      [36m</span>[39m
+      [36m<button>[39m
+        [0mLogin A[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mLogin B[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mLogout[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mRefresh[0m
+      [36m</button>[39m
+      [36m<button>[39m
+        [0mCreate A work[0m
+      [36m</button>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ tests/unit/authTenantIsolation.test.tsx:98:60
+     96|     http.post.mockRejectedValueOnce(new Error('QA_RUN denied login'));
+     97|     fireEvent.click(screen.getByText('Login B'));
+     98|     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextC…
+       |                                                            ^
+     99|     expect(readCompensationLedger()).toEqual([]);
+    100|     http.post.mockResolvedValueOnce({ data: { token: 'QA_RUN_unit_unre…
+ ❯ runWithExpensiveErrorDiagnosticsDisabled node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/unit/authTenantIsolation.test.tsx > actual auth provider and protected persistence > does not resurrect A when its delayed /me returns after logout and B login
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  2
+Received:
+  1
+ ❯ tests/unit/authTenantIsolation.test.tsx:121:40
+    119|     resolveMe({ data: { user: user(1, 11) } });
+    120|     await new Promise((resolve) => setTimeout(resolve, 0));
+    121|     expect(screen.getByTestId('user')).toHaveTextContent('2');
+       |                                        ^
+    122|   });
+    123| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  12:33:29
+   Duration  1.90s (transform 213ms, setup 219ms, collect 107ms, tests 1.07s, environment 268ms, prepare 84ms)

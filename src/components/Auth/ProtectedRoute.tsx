@@ -5,6 +5,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import type { UserRole } from '../../types';
 import { getDefaultRouteForRole, roleCanAccess } from '../../utils/auth';
 import { areFeaturesEnabled } from '../../utils/features';
+import { AuthScopeBoundary } from '../../contexts/AuthContext';
 import NotFoundView from '../Common/NotFoundView';
 
 interface ProtectedRouteProps {
@@ -33,10 +34,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
   }
 
   if (children) {
-    return <>{children}</>;
+    return <AuthScopeBoundary>{children}</AuthScopeBoundary>;
   }
 
-  return <Outlet />;
+  return <AuthScopeBoundary><Outlet /></AuthScopeBoundary>;
 };
 
 export default ProtectedRoute;

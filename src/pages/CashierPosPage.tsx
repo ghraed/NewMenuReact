@@ -36,6 +36,7 @@ import {
   getDefaultComplaintBucket,
 } from '../utils/orderItemCompensation';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
+import { getVerifiedBrowserIdentity } from '../services/protectedBrowserStorage';
 
 interface PosCartItem {
   lineId: string;
@@ -181,6 +182,7 @@ const buildAuditLogFromEntry = (
 const CashierPosPage: React.FC = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const storageIdentity = getVerifiedBrowserIdentity();
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const storedGuestCurrency = readGuestCurrencySettings()?.currency;
@@ -580,8 +582,8 @@ const CashierPosPage: React.FC = () => {
 
     if (nextItem.issueStatus !== 'normal') {
       const entry = buildCompensationPayloadFromItem(nextItem, getCompensationAction(nextItem), 'pos', tableReference);
-      appendCompensationLedgerEntries([entry]);
-      appendCompensationAuditLogs([buildAuditLogFromEntry(entry, actor)]);
+      appendCompensationLedgerEntries([entry], storageIdentity);
+      appendCompensationAuditLogs([buildAuditLogFromEntry(entry, actor)], storageIdentity);
       setReportRefreshKey((current) => current + 1);
     }
 
@@ -641,8 +643,8 @@ const CashierPosPage: React.FC = () => {
         .map((item) => buildCompensationPayloadFromItem(item, 'checkout', 'pos', tableReference));
 
       if (checkoutLedgerEntries.length > 0) {
-        appendCompensationLedgerEntries(checkoutLedgerEntries);
-        appendCompensationAuditLogs(checkoutLedgerEntries.map((entry) => buildAuditLogFromEntry(entry, actor)));
+        appendCompensationLedgerEntries(checkoutLedgerEntries, storageIdentity);
+        appendCompensationAuditLogs(checkoutLedgerEntries.map((entry) => buildAuditLogFromEntry(entry, actor)), storageIdentity);
         setReportRefreshKey((current) => current + 1);
       }
 
@@ -662,6 +664,7 @@ const CashierPosPage: React.FC = () => {
     }
   }, [
     actor,
+    storageIdentity,
     cartItems,
     clearOrder,
     discountType,

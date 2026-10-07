@@ -1,0 +1,187 @@
+TASK 1 COMPLETION — BROWSER TENANT DATA ISOLATION (U3 / P0)
+7 October 2026
+
+Selected task / audit IDs:
+  TASK 1 ONLY / U3. Local application-mediated browser disclosure closed.
+  Financial settlement/calculation changes and canonical reporting remain later tasks.
+
+Branch and before/after commits for each changed repository:
+  Both: fix/task-1-browser-tenant-isolation
+  Menu_React before: a91b1d03679c2f283fb87d730a7fb73789cd2316
+  Frontend after: recorded in task-1-2026-10-07/run-ready/completion-commits.json and final reply.
+  Menu_API before/after: 99c5a2d853482eb11be1a79f9e917a7f44483995 (unchanged).
+  Verified Task 0 commits are present as ancestors in both repositories; started clean.
+  API main already contains its separately authorized Task 0 fast-forward merge.
+  Previous fixes, all six browser scenarios, API tests and financial assertions remain.
+  fix-progress.txt was missing in both projects; reconstructed from verified evidence.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Full API run: 20261007_task1_final; final frontend run: 20261007_task1_ready
+  Final frontend: http://127.0.0.1:57261
+  Final frontend QA API / APP_URL: http://127.0.0.1:37235; APP_ENV=testing
+  Final frontend MySQL: 127.0.0.1:41395
+  Final frontend DB: menu_test_QA_RUN_20261007_task1_ready_browser
+  API suite DB: menu_test_QA_RUN_20261007_task1_final_suite at 127.0.0.1:57035
+  API suite APP_URL: http://127.0.0.1:58333
+  Owned runtime: /tmp/menu-qa-qa9gke5u (removed after verified cleanup).
+  Task 0's unchanged runner verifies effective targets before migrations; fresh MySQL
+  data directory, synthetic QA_RUN records, isolated storage and disabled external
+  credentials. No restaurantdb, production Compose, live customer data or transport.
+  Browser fixture features match Task 0; core POS/finance enabled, AI/push/AR disabled.
+  URLs document completed evidence; these temporary servers are no longer running.
+
+Failing regression before the fix:
+  Severity: P0; affected role: restaurant B admin and restaurant A staff/report users.
+  Deterministic prior unscoped persistence; one real browser regression reproduced it.
+  Steps: A logs in; creates a $10 synthetic packaged item; opens /staff/pos; marks it
+  Complimentary and saves compensation; holds the draft; reloads; uses actual logout;
+  B attempts a wrong password then logs in successfully at the same origin; opens POS.
+  Expected: B has $0 compensation, no A approvers, catalog items or held drafts.
+  Actual: B's dashboard contains A's $10.00 compensation total and approval data.
+  Requests: dish POST /api/dishes 201; A/B POST /api/auth/login 200; A logout 200;
+  deliberately wrong B login 401; subsequent auth/me and catalog reads 200.
+  Failure: browser expectation received Total Compensation Cost$10.00 instead of $0.00;
+  no server failure needed for the disclosure. Trace/automatic viewport screenshot kept.
+  Before reproduction: frontend 127.0.0.1:36117, API 127.0.0.1:40301,
+  disposable DB menu_test_QA_RUN_20261007_task1_repro_browser at 127.0.0.1:49725.
+  Likely modules: complaintCompensationService, AuthContext, CashierPosPage; related
+  bill/print caches and staff IndexedDB queues were also unscoped and are now protected.
+  Four initial provider/storage regressions failed before implementation, including
+  delayed /me restoring an old account and absent-identity legacy exposure.
+
+Behavior after the fix:
+  Stable server-confirmed restaurant ID scopes compensation ledger/audit and table
+  bill adjustments. Print caches and queued staff work additionally bind user ID.
+  No protected reader or writer adopts an identity from localStorage, a slug, a legacy
+  approver name or the first account that logs in. Scope resolves only from verified
+  auth responses; token mismatch immediately closes readers, even before storage events.
+  Logout invalidates local scope immediately, including during API logout failure.
+  Versioned auth requests ignore stale login/me responses; late logout cannot clear B.
+  Cross-tab token changes invalidate scope and reverify the latest stored session.
+  Account changes remount protected descendants, clearing held POS drafts and protected
+  caches in memory. Unresolved auth withholds protected content; public guest/cart
+  providers remain available and retain in-memory work during staff identity changes.
+  Captured identity prevents delayed callbacks writing A data into B's caches. Staff
+  queue replay captures its token and checks account ownership between dependent calls.
+  Staff queue reads/updates/deletes reject another owner and unowned legacy records;
+  returning to the same legitimate account still exposes its own pending work.
+  Guest receipts use restaurant/table/access-credential context and explicit print URLs;
+  guest displays never fall back to a staff or legacy last-invoice cache.
+  Guest invoice state is tagged by table/access identity, preventing stale display.
+  No application localStorage.clear(), IndexedDB deletion or financial-history import.
+
+Legacy policy / compatibility:
+  pos_compensation_ledger_v1, pos_compensation_audit_v1, bill_item_adjustments_v1,
+  printable_invoice_payload and old room-plan outline keys have unknown ownership.
+  Copy exact bytes to protected_quarantine_v1:<old key>. Keep originals untouched,
+  because localStorage has no atomic compare/delete against an older tab's writer.
+  When a later value differs, retain another unique snapshot; never overwrite the old
+  copy. On quota/storage-copy failure, leave original bytes intact. All new readers
+  ignore both legacy keys and quarantine snapshots, with or without authentication.
+  No automatic reassignment or reporting import is safe. Recover only after independent
+  reconciliation against trusted restaurant/order/invoice evidence, outside this task.
+  Existing unowned staff queue rows remain physically in IndexedDB but are hidden and
+  not automatically replayed. Review ownership independently; never assign them to B.
+  Guest cart/menu/offline queues keep their existing independent capability context.
+
+Changed files and reason:
+  src/services/protectedBrowserStorage.ts — verified identity, scoped keys, safe legacy
+    quarantine snapshots, token mismatch guard, ownership and stale-callback checks.
+  src/contexts/AuthContext.tsx — immediate invalidation, request ordering, cross-tab
+    revalidation, protected-view boundary and account-bound subtree reset.
+  src/components/Auth/ProtectedRoute.tsx — applies that boundary to private views only.
+  src/components/Admin/DashboardLayout.tsx — uses the auth guard for logout navigation,
+    avoiding a delayed full-page reload that could erase new login form input.
+  src/services/complaintCompensationService.ts / src/pages/CashierPosPage.tsx — scoped
+    ledger/audit reads/writes with captured identities; aggregation/calculations unchanged.
+  src/utils/billAdjustments.ts / AccountingOrdersPage / GuestOrdersPage / GuestWaveButton —
+    explicit restaurant ownership while preserving existing item/discount/gift rules.
+  src/utils/printableInvoice.ts / GuestInvoicePage / InvoicePrintPage — account or guest
+    receipt ownership, no global receipt fallback, scoped cached-number fallback.
+  src/pages/AdminRoomPlansPage.tsx — restaurant-scoped local border-point cache.
+  src/services/offlineStore.ts / offlineQueue.ts / orderService.ts / api.ts — owner-bound
+    staff work, frozen replay credentials; explicit auth headers survive interception.
+  tests/unit/authTenantIsolation.test.tsx / protectedBrowserStorage.test.ts — 14 new
+    provider/storage regressions. Existing billAdjustments tests now establish a verified
+    tenant in setup; every previous business assertion is retained.
+  tests/e2e/tenant-browser-isolation.spec.ts / tests/setup/tenantFixtures.php — actual
+    auth, two restaurants, independent accounts, role denial and native IndexedDB proof.
+  .gitignore / eslint.config.js — generated Task 1 evidence excluded from source lint/git.
+  docs/testing/fix-progress.txt, this report and sanitized evidence — verified continuity.
+  No dependency locks, backend business source, deployed migrations, stock rules,
+  approval permissions, financial calculations or settled invoices were changed.
+
+Compatibility/deployment order:
+  Frontend deployment only; no new backend contract or migration. Ordinary callers of
+  staff APIs keep the same payloads; replay optionally supplies the same bearer header.
+  QA requires the previous Task 0 runner; API remains at 99c5a2d.
+  Deploy the updated frontend consistently on shared origins and retire old tabs/assets.
+  Older frontend builds still read legacy unscoped keys and retain the original U3 risk.
+  Historic local-only previews are not assigned to anyone; rebuild current previews from
+  trusted server data and retain ambiguous history for independent reconciliation.
+  Guest print links now carry non-secret restaurant/table identifiers; matching guest
+  context is required. Bare print URLs use only the current verified staff account.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS — final unchanged Task 0 runner exits 0; effective QA preflights, fresh migrations,
+    disabled transports and owned MySQL/API/frontend/storage cleanup verified.
+  PASS — php artisan test: 338 tests / 3,526 assertions; zero skips/errors/failures.
+  PASS — frontend unit suite: 33 files / 124 tests; all 110 previous tests preserved;
+    eight auth-provider and six protected-persistence cases added; zero skips/failures.
+  PASS — eight browser scenarios: six previous plus two new real-auth isolation scenarios.
+    Covers A -> B, failed login, reload, unresolved /me, second admin in A, accountant
+    POS denial, legacy quarantine, private staff queues and preserved guest work/preferences.
+  PASS — lint, TypeScript/frontend QA build, API asset build, Composer validation,
+    new PHP fixture syntax/style, whitespace checks and independent JUnit accounting.
+  The previous GuestInvoicePage hook warning disappeared when removing unsafe previous
+    invoice fallback as part of cache scoping. No lint suppression; invoice rules unchanged.
+  FAIL — same five API formatter files (377 checked).
+  FAIL — frontend npm audit: 13 entries (2 critical / 7 high / 4 moderate).
+  FAIL — API npm audit: 9 entries (2 critical / 6 high / 1 low).
+  FAIL — composer audit: 15 advisories. Audits refreshed, not patched or accepted away.
+  BLOCKED / UNEXECUTED — hosted CI execution, production/staging deployment and operations.
+    No branches pushed or remote settings changed; local results do not prove hosted CI.
+  SKIPPED — zero in final API, frontend and browser JUnit reports.
+  NOT IMPLEMENTED — Tasks 2-10; canonical fresh-browser compensation reports remain Task 4.
+
+Evidence locations:
+  docs/testing/task-1-2026-10-07/
+    reproduction-before.json — sanitized statuses and expected/actual disclosure
+    unit-before.txt — meaningful initial red provider/storage cases
+    tenant-B-before.png — automatic failed viewport screenshot; full DOM in before trace
+    tenant-B-after.png — successful full-page B dashboard ($0 / no A approvals)
+    checks-summary.json — final checks, exact test totals, skips and cleanup result
+    run-before/ — verified failing regression, sanitized trace and API/browser logs
+    run-focused/ — post-fix run; legacy/offline scenario passed, final step initially
+      assumed accountant POS access. Route/role/flags confirmed; no product defect.
+    run-final/ — complete API/full run (338 API / 123 unit / eight browser tests)
+    run-verified/ — refinement run (124 unit / seven browser PASS, profile FAIL).
+      Diagnosed logout navigation race; fixed in DashboardLayout without changing tests.
+    run-release/ — blocked at new memo lint failure; no browser cases executed.
+    run-ready/ — final frontend verification (124 unit / eight browser tests), logs,
+      JUnit and clean owned shutdown. Combined with unchanged API run-final/ evidence.
+  Generated run-* folders are retained locally and excluded from commits. CI's existing
+  artifact retention remains configured; no hosted run is claimed.
+
+Known baseline failures and remaining risks:
+  U1/U2/U4 financial defects, five formatting files, dependency advisories and large
+  frontend bundle remain. Browser privacy does not make provisional ledger events
+  authoritative financial facts or solve refund/settlement limits.
+  Ambiguous historical financial/staff data remains recoverable but unavailable in tenant
+  views until independently attributed. Ownership must not be guessed during rollback.
+  Existing guest lifecycle browser test still mocks its API; full operational lifecycle,
+  service-worker recovery, concurrent replay and multi-membership selection remain later
+  tasks. No market-launch approval or claim of complete system coverage.
+
+Rollback procedure:
+  Task 1 is a local frontend commit; API/data schemas and settled records need no rollback.
+  Reverting it restores the known U3 shared-browser disclosure. Keep a frontend build
+  containing isolation, or restrict shared-origin account switching before reverting.
+  Preserve new scoped stores and quarantine/original snapshots; do not clear storage,
+  relabel historical records, delete IndexedDB or rotate keys. No rollback performed.
+
+Ready for next task:
+  YES after review: Task 1's original disclosure and associated private-cache cases are
+  green in actual browser/auth/storage tests, guest offline tests pass, previous Task 0
+  fixes remain and no required local check failed. Hosted CI is still unexecuted and
+  known observational audit/style failures remain. Task 2 was not started.

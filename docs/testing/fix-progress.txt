@@ -1,0 +1,40 @@
+FIX PROGRESS — MENU_REACT / MENU_API
+Updated 7 October 2026.
+
+This file was absent when Task 1 began. Task 0 history below was reconstructed
+from the committed completion report, archived verification results and Git ancestry;
+no missing history was assumed. Only Tasks 0 and 1 are complete locally.
+
+TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
+  Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
+  Menu_API:   99c5a2d853482eb11be1a79f9e917a7f44483995
+  API commit was merged into local main by fast-forward after separate authorization.
+  Both commits are ancestors of the Task 1 workspace. Previous fixes/tests preserved.
+  Verified: 338 API tests / 3,526 assertions, 110 frontend unit tests, six browser
+  scenarios, both builds, lint, Composer validation, isolated cleanup; zero skips.
+  Report: docs/testing/task-0-2026-10-07.txt
+  Known failures: five API formatting files and npm/Composer dependency audits.
+  CI definitions exist; hosted execution and branch-protection settings unexecuted.
+
+TASK 1 / U3 — COMPLETE LOCAL BROWSER TENANT ISOLATION
+  Branch: fix/task-1-browser-tenant-isolation
+  Frontend base: a91b1d03679c2f283fb87d730a7fb73789cd2316
+  API unchanged at 99c5a2d853482eb11be1a79f9e917a7f44483995.
+  Final commit: see docs/testing/task-1-2026-10-07/run-ready/completion-commits.json.
+  Before: real A -> logout -> failed B login -> successful B login reproduced
+  B seeing A's $10.00 compensation total on the shared origin.
+  After: restaurant-scoped ledger/audit/bill caches; private account-scoped print
+  data and staff queue ownership; unresolved identities fail closed; auth response
+  races cannot restore an old account; account-bound in-memory state is invalidated only in protected views; public guest work stays mounted.
+  Legacy financial data is copied into quarantine snapshots and originals retained;
+  ownership is never guessed. Guest cart/queue, preferences and owned staff work survive.
+  Verified: 338 API tests / 3,526 assertions; 124 frontend unit tests; eight browser
+  scenarios; lint without warnings, both builds, Composer validation; zero skips.
+  Five API formatting failures and the three dependency audit failures remain.
+  Report: docs/testing/task-1-2026-10-07.txt
+  Evidence: docs/testing/task-1-2026-10-07/ (generated run-* folders retained locally).
+
+NEXT: TASK 2 — NOT STARTED; await review of Task 1 before its selected execution.
+Tasks 2-10 are NOT IMPLEMENTED by these changes. U1/U2/U4 financial fixes, release
+image/operations verification and remaining audit risks still block launch.
+No Task 1 push, merge, deployment, production access or settled-record rewrite.

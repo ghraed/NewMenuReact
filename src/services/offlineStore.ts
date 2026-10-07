@@ -11,6 +11,7 @@ import type {
   GuestDishesMeta,
   UpdatePendingOrderRequest,
 } from '../types';
+import { getVerifiedBrowserIdentity, waiterActionBelongsToCurrentAccount, type BrowserIdentity } from './protectedBrowserStorage';
 
 const DB_NAME = 'menu-react-offline';
 const DB_VERSION = 1;
@@ -57,6 +58,7 @@ export type WaiterQueueActionType =
   | 'update_and_confirm_order';
 
 export interface WaiterActionQueueRecord {
+  owner?: BrowserIdentity;
   id?: number;
   type: WaiterQueueActionType;
   createdAt: string;
@@ -203,8 +205,10 @@ export const appendSyncEvent = async (record: SyncEventRecord): Promise<void> =>
 };
 
 export const enqueueWaiterAction = async (record: Omit<WaiterActionQueueRecord, 'id' | 'status' | 'lastError'>): Promise<number> => {
+  const owner = getVerifiedBrowserIdentity();
+  if (!owner) throw new Error('Resolve the authenticated restaurant and user before queueing staff work.');
   return withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
-    const id = await idbRequest(store.add({ ...record, status: 'pending', lastError: null } as WaiterActionQueueRecord));
+    const id = await idbRequest(store.add({ ...record, owner, status: 'pending', lastError: null } as WaiterActionQueueRecord));
     return Number(id);
   });
 };
@@ -212,7 +216,9 @@ export const enqueueWaiterAction = async (record: Omit<WaiterActionQueueRecord, 
 export const listQueuedWaiterActions = async (): Promise<WaiterActionQueueRecord[]> => {
   return withStore(WAITER_QUEUE_STORE, 'readonly', async (store) => {
     const result = await idbRequest(store.getAll());
-    return (result as WaiterActionQueueRecord[]).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return (result as WaiterActionQueueRecord[])
+      .filter((item) => waiterActionBelongsToCurrentAccount(item.owner))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   });
 };
 
@@ -222,7 +228,7 @@ export const updateQueuedWaiterAction = async (
 ): Promise<void> => {
   await withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
     const current = await idbRequest(store.get(id)) as WaiterActionQueueRecord | undefined;
-    if (!current) {
+    if (!current || !waiterActionBelongsToCurrentAccount(current.owner)) {
       return;
     }
 
@@ -232,6 +238,8 @@ export const updateQueuedWaiterAction = async (
 
 export const deleteQueuedWaiterAction = async (id: number): Promise<void> => {
   await withStore(WAITER_QUEUE_STORE, 'readwrite', async (store) => {
+    const current = await idbRequest(store.get(id)) as WaiterActionQueueRecord | undefined;
+    if (!current || !waiterActionBelongsToCurrentAccount(current.owner)) return;
     await idbRequest(store.delete(id));
   });
 };

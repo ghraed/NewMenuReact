@@ -3,10 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { GlassCard, LiquidButton } from '../components/ui/liquid-glass';
 import InvoiceTemplate from '../components/Invoice/InvoiceTemplate';
 import { getPrintableInvoiceDownloadFilename, loadPrintableInvoice } from '../utils/printableInvoice';
+import { useOrderCart } from '../contexts/useOrderCart';
+import { useAuth } from '../contexts/useAuth';
 
 const InvoicePrintPage: React.FC = () => {
   const { t } = useTranslation();
-  const invoice = useMemo(() => loadPrintableInvoice(), []);
+  const { restaurant, draft } = useOrderCart();
+  const { user, loading } = useAuth();
+  const invoice = useMemo(() => {
+    const query = new URLSearchParams(window.location.search);
+    if (!query.has('guest_table_id')) return loading || !user?.id || !user.restaurant?.id ? null : loadPrintableInvoice();
+    const tableId = Number(query.get('guest_table_id'));
+    const restaurantId = Number(query.get('restaurant_id'));
+    if (restaurant?.id !== restaurantId || draft.tableId !== tableId || !draft.guestAccessVerified || !draft.guestAccessToken) return null;
+    return loadPrintableInvoice({ restaurantId, tableId, guestAccessToken: draft.guestAccessToken });
+  }, [restaurant?.id, draft.tableId, draft.guestAccessVerified, draft.guestAccessToken, loading, user]);
   const hasTriggeredPrintRef = useRef(false);
 
   useEffect(() => {

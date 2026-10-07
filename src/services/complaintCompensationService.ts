@@ -6,6 +6,7 @@ import type {
   OrderItemIssueStatus,
   UserRole,
 } from '../types';
+import { getVerifiedBrowserIdentity, isCurrentBrowserIdentity, readProtectedJson, writeProtectedJson, type BrowserIdentity } from './protectedBrowserStorage';
 
 export interface CompensationApprover {
   id?: number | null;
@@ -71,54 +72,32 @@ export interface CompensationDashboardReport {
 const LEDGER_STORAGE_KEY = 'pos_compensation_ledger_v1';
 const AUDIT_STORAGE_KEY = 'pos_compensation_audit_v1';
 
-const safeParse = <T>(value: string | null, fallback: T): T => {
-  if (!value) {
-    return fallback;
-  }
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeJson = (key: string, value: unknown): void => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(key, JSON.stringify(value));
-};
-
 export const readCompensationLedger = (): CompensationLedgerEntry[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  return safeParse<CompensationLedgerEntry[]>(window.localStorage.getItem(LEDGER_STORAGE_KEY), []);
+  const entries = readProtectedJson<CompensationLedgerEntry[]>(LEDGER_STORAGE_KEY, []);
+  return Array.isArray(entries) ? entries : [];
 };
 
 export const readCompensationAuditLogs = (): CompensationAuditLog[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  return safeParse<CompensationAuditLog[]>(window.localStorage.getItem(AUDIT_STORAGE_KEY), []);
+  const entries = readProtectedJson<CompensationAuditLog[]>(AUDIT_STORAGE_KEY, []);
+  return Array.isArray(entries) ? entries : [];
 };
 
-export const appendCompensationLedgerEntries = (entries: CompensationLedgerEntry[]): void => {
-  if (!entries.length) {
+export const appendCompensationLedgerEntries = (entries: CompensationLedgerEntry[], expected: BrowserIdentity | null = getVerifiedBrowserIdentity()): void => {
+  if (!entries.length || !isCurrentBrowserIdentity(expected)) {
     return;
   }
 
   const current = readCompensationLedger();
-  writeJson(LEDGER_STORAGE_KEY, [ ...entries, ...current ].slice(0, 2500));
+  writeProtectedJson(LEDGER_STORAGE_KEY, [ ...entries, ...current ].slice(0, 2500), 'restaurant', expected);
 };
 
-export const appendCompensationAuditLogs = (logs: CompensationAuditLog[]): void => {
-  if (!logs.length) {
+export const appendCompensationAuditLogs = (logs: CompensationAuditLog[], expected: BrowserIdentity | null = getVerifiedBrowserIdentity()): void => {
+  if (!logs.length || !isCurrentBrowserIdentity(expected)) {
     return;
   }
 
   const current = readCompensationAuditLogs();
-  writeJson(AUDIT_STORAGE_KEY, [ ...logs, ...current ].slice(0, 5000));
+  writeProtectedJson(AUDIT_STORAGE_KEY, [ ...logs, ...current ].slice(0, 5000), 'restaurant', expected);
 };
 
 const toDayBucket = (value: string): string => value.slice(0, 10);
@@ -265,4 +244,3 @@ export const buildCompensationDashboardReport = (
     complimentary_items: complimentaryItems,
   };
 };
-

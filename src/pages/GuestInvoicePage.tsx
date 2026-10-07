@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import GuestPageShell from '../components/Guest/GuestPageShell';
@@ -16,11 +16,12 @@ const GuestInvoicePage: React.FC = () => {
   const { t } = useTranslation();
   const { table_id } = useParams<{ table_id?: string }>();
   const { restaurant, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
-  const cachedInvoice = useMemo(() => loadPrintableInvoice(), []);
-  const [invoice, setInvoice] = useState<PrintableInvoicePayload | null>(cachedInvoice);
+  const [invoiceState, setInvoiceState] = useState<{ key: string; payload: PrintableInvoicePayload } | null>(null);
   const [loading, setLoading] = useState(Boolean(draft.tableSessionId && draft.guestAccessToken));
 
   const activeTableId = draft.tableId ?? (table_id ? Number(table_id) : null);
+  const invoiceIdentity = `${activeTableId ?? 'none'}:${draft.guestAccessToken ?? 'none'}`;
+  const invoice = invoiceState?.key === invoiceIdentity ? invoiceState.payload : null;
   const guestMenuResource = useGuestMenuResource({
     tableId: activeTableId,
     guestAccessToken: draft.guestAccessToken,
@@ -70,10 +71,15 @@ const GuestInvoicePage: React.FC = () => {
           guestAccess: data.guest_access ?? undefined,
         });
 
+        const guestIdentity = { restaurantId: data.restaurant.id, tableId: activeTableId, guestAccessToken: draft.guestAccessToken! };
+        const cachedInvoice = loadPrintableInvoice(guestIdentity);
+        if (!cancelled && cachedInvoice) setInvoiceState({ key: invoiceIdentity, payload: cachedInvoice });
+
         const orders = await fetchGuestTableSessionOrders(data.table_session.id, draft.guestAccessToken);
         const adjustments = readBillAdjustmentsForTableInvoice(
           data.table.name,
-          orders.map((order) => order.order_number || String(order.id))
+          orders.map((order) => order.order_number || String(order.id)),
+          data.restaurant.id
         );
         const adjustedOrders = applyBillAdjustmentsToOrders(orders, adjustments);
         const splitEnabled = data.restaurant.feature_flags?.invoice_splitting === true;
@@ -97,12 +103,12 @@ const GuestInvoicePage: React.FC = () => {
 
         const resolvedInvoice: PrintableInvoicePayload = {
           ...nextInvoice,
-          invoiceNumber: nextInvoice.invoiceNumber || invoice?.invoiceNumber || cachedInvoice?.invoiceNumber,
+          invoiceNumber: nextInvoice.invoiceNumber || cachedInvoice?.invoiceNumber,
         };
 
         if (!cancelled) {
-          savePrintableInvoice(resolvedInvoice);
-          setInvoice(resolvedInvoice);
+          savePrintableInvoice(resolvedInvoice, guestIdentity);
+          setInvoiceState({ key: invoiceIdentity, payload: resolvedInvoice });
         }
       } catch (error: unknown) {
         const status = typeof error === 'object' && error !== null && 'response' in error
@@ -110,6 +116,7 @@ const GuestInvoicePage: React.FC = () => {
           : undefined;
 
         if (status && [401, 403, 404, 409, 423].includes(status)) {
+          if (!cancelled) setInvoiceState(null);
           clearGuestAccess();
         }
       } finally {
@@ -126,6 +133,7 @@ const GuestInvoicePage: React.FC = () => {
     };
   }, [
     activeTableId,
+    invoiceIdentity,
     clearGuestAccess,
     draft.guestAccessToken,
     ensureGuestMenu,
@@ -141,7 +149,7 @@ const GuestInvoicePage: React.FC = () => {
       return;
     }
 
-    const printUrl = `${window.location.origin}/invoice/print`;
+    const printUrl = `${window.location.origin}/invoice/print?guest_table_id=${activeTableId}&restaurant_id=${restaurant?.id}`;
     const printWindow = window.open(printUrl, '_blank', 'noopener,noreferrer');
     if (!printWindow) {
       window.location.assign(printUrl);

@@ -557,30 +557,33 @@ export const resolvePendingWave = async (waveId: number): Promise<WaveResponse> 
   return response.data;
 };
 
-export const confirmPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+const staffReplayAuthorization = (token?: string) => token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+
+export const confirmPendingOrder = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`, undefined, staffReplayAuthorization(replayToken));
   return response.data;
 };
 
 export const updatePendingOrder = async (
   orderId: number,
-  payload: UpdatePendingOrderRequest
+  payload: UpdatePendingOrderRequest,
+  replayToken?: string
 ): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload);
+  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload, staffReplayAuthorization(replayToken));
   return response.data;
 };
 
-export const cancelPendingOrder = async (orderId: number): Promise<OrderResponse> => {
+export const cancelPendingOrder = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`, undefined, staffReplayAuthorization(replayToken));
   return response.data;
 };
 
-export const markOrderServed = async (orderId: number): Promise<OrderResponse> => {
+export const markOrderServed = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`);
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`, undefined, staffReplayAuthorization(replayToken));
   return response.data;
 };
 

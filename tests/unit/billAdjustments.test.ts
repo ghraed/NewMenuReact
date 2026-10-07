@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { readBillAdjustmentsForTable, readBillAdjustmentsForTableInvoice, upsertBillAdjustmentsForTable } from '../../src/utils/billAdjustments';
+import { setVerifiedBrowserIdentity } from '../../src/services/protectedBrowserStorage';
 
 describe('bill adjustments', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    localStorage.setItem('admin_auth_token', 'QA_RUN_bill_test_token');
+    setVerifiedBrowserIdentity({ id: 1, name: 'QA_RUN_bill_test_admin', email: null, role: 'admin', restaurant: { id: 11, name: 'QA_RUN_bill_test', slug: 'qa-run-bill-test' } }, 'QA_RUN_bill_test_token');
   });
 
   it('persists partial discount type and value fields', () => {

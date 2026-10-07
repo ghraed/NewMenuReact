@@ -8,6 +8,7 @@ import type {
   OrderItemCompensationType,
   OrderItemIssueStatus,
 } from '../types';
+import { getVerifiedBrowserIdentity, isCurrentBrowserIdentity, protectedStorageKey, type BrowserIdentity } from '../services/protectedBrowserStorage';
 
 export interface BillItemAdjustment {
   key: string;
@@ -38,36 +39,44 @@ const STORAGE_KEY = 'bill_item_adjustments_v1';
 
 type BillAdjustmentStore = Record<string, BillItemAdjustment[]>;
 
-const readStore = (): BillAdjustmentStore => {
+const readStore = (restaurantId?: number): BillAdjustmentStore => {
   if (typeof window === 'undefined') {
     return {};
   }
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const key = restaurantId !== undefined
+      ? (Number.isSafeInteger(restaurantId) && restaurantId > 0 ? `protected_v2:restaurant:${restaurantId}:${STORAGE_KEY}` : null)
+      : protectedStorageKey(STORAGE_KEY);
+    const raw = key ? window.localStorage.getItem(key) : null;
     if (!raw) return {};
-    return JSON.parse(raw) as BillAdjustmentStore;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as BillAdjustmentStore : {};
   } catch {
     return {};
   }
 };
 
-const writeStore = (store: BillAdjustmentStore): void => {
+const writeStore = (store: BillAdjustmentStore, expected: BrowserIdentity | null): void => {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  if (!isCurrentBrowserIdentity(expected)) return;
+  const key = protectedStorageKey(STORAGE_KEY);
+  if (key) window.localStorage.setItem(key, JSON.stringify(store));
 };
 
-export const readBillAdjustmentsForTable = (tableName: string): BillItemAdjustment[] => {
+export const readBillAdjustmentsForTable = (tableName: string, restaurantId?: number): BillItemAdjustment[] => {
   if (!tableName) return [];
-  return readStore()[tableName] || [];
+  const entries = readStore(restaurantId)[tableName];
+  return Array.isArray(entries) ? entries : [];
 };
 
 const normalizeOrderReference = (value: string): string => value.trim().toLowerCase();
 
 export const readBillAdjustmentsForTableInvoice = (
   tableName: string,
-  includedOrders: string[]
+  includedOrders: string[],
+  restaurantId?: number
 ): BillItemAdjustment[] => {
-  const adjustments = readBillAdjustmentsForTable(tableName);
+  const adjustments = readBillAdjustmentsForTable(tableName, restaurantId);
   if (includedOrders.length === 0) {
     return adjustments;
   }
@@ -102,8 +111,8 @@ export const readBillAdjustmentsForTableInvoice = (
   ];
 };
 
-export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments: BillItemAdjustment[]): void => {
-  if (!tableName || nextAdjustments.length === 0) return;
+export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments: BillItemAdjustment[], expected = getVerifiedBrowserIdentity()): void => {
+  if (!tableName || nextAdjustments.length === 0 || !isCurrentBrowserIdentity(expected)) return;
 
   const store = readStore();
   const existing = store[tableName] || [];
@@ -113,11 +122,11 @@ export const upsertBillAdjustmentsForTable = (tableName: string, nextAdjustments
   nextAdjustments.forEach((item) => map.set(item.key, item));
 
   store[tableName] = Array.from(map.values());
-  writeStore(store);
+  writeStore(store, expected);
 };
 
-export const clearBillAdjustmentsForTable = (tableName: string): void => {
-  if (!tableName) {
+export const clearBillAdjustmentsForTable = (tableName: string, expected = getVerifiedBrowserIdentity()): void => {
+  if (!tableName || !isCurrentBrowserIdentity(expected)) {
     return;
   }
   const store = readStore();
@@ -125,5 +134,5 @@ export const clearBillAdjustmentsForTable = (tableName: string): void => {
     return;
   }
   delete store[tableName];
-  writeStore(store);
+  writeStore(store, expected);
 };

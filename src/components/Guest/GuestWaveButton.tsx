@@ -30,7 +30,7 @@ const GuestWaveButton: React.FC = () => {
   const navigate = useNavigate();
   const params = useParams<{ table_id?: string }>();
   const { t } = useTranslation();
-  const { totalItems, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
+  const { totalItems, restaurant, draft, clearGuestAccess, setGuestContext, updateDraft } = useOrderCart();
   const { toast, showToast, dismiss } = useGlassToast(3200);
   const [activeAction, setActiveAction] = useState<'waiter' | 'bill' | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
@@ -159,10 +159,11 @@ const GuestWaveButton: React.FC = () => {
 
       const response = await requestGuestTableBill(sessionId, draft.guestAccessToken);
 
-      if (response.invoice_preview && activeTableId) {
+      if (response.invoice_preview && activeTableId && restaurant && typeof restaurant.id === 'number' && draft.guestAccessToken) {
         const adjustments = readBillAdjustmentsForTableInvoice(
           response.invoice_preview.table_name,
-          response.invoice_preview.included_orders
+          response.invoice_preview.included_orders,
+          restaurant.id
         );
         const printableItems = buildPrintableInvoiceItemsFromPreview(response.invoice_preview.items, adjustments);
         const printableSummary = buildPrintableInvoiceSummaryFromPreview(printableItems, response.invoice_preview.summary, t);
@@ -179,7 +180,7 @@ const GuestWaveButton: React.FC = () => {
           includedOrders: response.invoice_preview.included_orders,
           summary: printableSummary,
           split: buildPrintableInvoiceSplitFromPreview(response.invoice_preview.invoice_split),
-        });
+        }, { restaurantId: restaurant.id, tableId: activeTableId, guestAccessToken: draft.guestAccessToken });
 
         navigate(`/menu/table/${activeTableId}/invoice`);
       }

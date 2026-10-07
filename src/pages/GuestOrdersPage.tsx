@@ -194,7 +194,8 @@ const GuestOrdersPage: React.FC = () => {
         );
         const adjustments = readBillAdjustmentsForTableInvoice(
           sessionResponse.table.name,
-          nextOrders.map((order) => order.order_number || String(order.id))
+          nextOrders.map((order) => order.order_number || String(order.id)),
+          sessionResponse.restaurant.id
         );
         setOrders(applyBillAdjustmentsToOrders(nextOrders, adjustments));
 
