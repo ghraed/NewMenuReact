@@ -1,0 +1,30 @@
+{
+  "before_api": {
+    "missing_endpoint_failures": 5,
+    "previous_tests_passed": 383,
+    "skips": 0
+  },
+  "before_browser": {
+    "regression_failures": 1,
+    "actual_draft_loss": "20.00",
+    "expected_draft_loss": "0.00",
+    "frontend_commit": "ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba",
+    "details": "Committed frontend copied with unchanged application code; only the new regression and focused browser selection added. API already contains additive report endpoint."
+  },
+  "after_browser": {
+    "tests": 15,
+    "failures": 0,
+    "skips": 0,
+    "fresh_context_metrics": {
+      "waived_revenue": "10.00",
+      "refunded_revenue": "8.00",
+      "gift_catalog_value": "10.00"
+    }
+  },
+  "invalid_attempts": [
+    "Initial new browser fixture used response status property overwritten by dish status; this was not the product reproduction.",
+    "API fixture expectations were corrected to the existing accountant/feature/missing-tenant policy; issued timestamp uses forceFill on synthetic fixture.",
+    "Old component mock did not export new network/audit functions; existing assertions retained and service-boundary mock updated.",
+    "PHP tzdata does not install Asia/Calcutta, so normalization to Asia/Kolkata was added; the failed alias check is retained."
+  ]
+}

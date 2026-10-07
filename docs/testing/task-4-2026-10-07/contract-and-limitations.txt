@@ -1,0 +1,84 @@
+TASK 4 REPORT CONTRACT — 7 October 2026
+
+GET /api/pos/compensation-report
+Uses the existing authenticated POS reader boundary: admin/staff, table_ordering.
+The nominal route includes accountant, but the existing dedicated accountant API
+surface still denies POS URLs (403). This task does not expand that permission.
+Chef/stock-manager/owner roles remain denied; unauthenticated requests return 401.
+Disabled table_ordering returns the existing 404. Missing restaurant fails closed.
+Restaurant identity is resolved from the authenticated user, never request IDs.
+
+Optional date_from/date_to: YYYY-MM-DD, independently optional, inclusive local
+calendar days in timezone (default UTC). Invalid/reversed filters return 422.
+Timezone accepts PHP IANA identifiers including installed backward aliases.
+Asia/Calcutta is normalized to Asia/Kolkata for browser/PHP tzdata compatibility.
+Bounds are converted to a UTC half-open interval [local start, next local midnight).
+This preserves offset and DST day lengths. UI labels its browser timezone.
+Invoice event time is paid_at when available, otherwise created_at for issued
+invoices; adjustment event time is posted_at, never its draft creation time.
+This is an event-time report. Existing finance reports use invoice_date for their
+invoice periods; their date rules are unchanged. Backdated invoice periods can
+therefore differ from this report's payment/creation periods.
+
+Canonical sources and stable financial identities:
+  invoice:<invoice_id>:item:<invoice_item_id>
+    Invoice-item snapshot, on issued/paid invoices only (same recognition states
+    as current finance). Draft/cancelled invoices and mutable draft orders excluded.
+  adjustment:<adjustment_id>:refund
+    Exactly one persisted posted refund. Draft/pending/void adjustments excluded.
+  adjustment:<adjustment_id>:gift:<gift_id>
+    Exactly one persisted posted gift snapshot. Its zero-priced delivery order is
+    excluded from invoice effects, including if a delivery invoice is later created.
+A read transaction uses the disposable/current MySQL snapshot for sources/relations.
+No extra ledger, migration, settled-record update or local-history import is used.
+Repeated reads and checkout/post retries keep the same identities and amounts.
+
+Response: entries, totals_by_currency, timezone.
+Totals are decimal strings calculated with server Money integer-cents helpers:
+  waived_revenue: max(original invoice line snapshot - retained line total, 0).
+    Menu-price revenue waived by item cancellation/waiver/discount/complimentary
+    intent. Before order-level discounts, VAT and service; not inventory cost.
+  refunded_revenue: sum of actual posted refund amounts, including any paid taxes
+    included in that refund. Kept separate from pre-tax waived menu revenue.
+  gift_catalog_value: sum of posted gift line_value snapshots. Catalog value,
+    not inventory cost, a refund, or an additional pre-sale waiver.
+No combined 'cost' metric mixes these bases. Currencies remain separate, using
+invoice currency or original sale currency for legacy invoice-less adjustments;
+current catalog prices/exchange rates are never used to revalue these records.
+COGS/stock/wastage and existing P&L calculations are unchanged.
+Reason and staff rankings count finalized financial events, not complaint tickets
+or unique approval actions. Refund and gift effects have distinct identities.
+Legacy aggregate helper monetary fields remain for compatibility/tests; this UI
+uses the server's separate metric totals, not its mixed legacy monetary sum.
+
+Draft audit activity stays restaurant-scoped in the existing browser audit store,
+explicitly labeled draft/settled; old entries are labeled legacy audit. Draft edits,
+restoration to normal, held/removed carts and failed checkout never become report
+facts. These provisional browser audit notes are local, not a shared server audit
+history. Posted adjustment drafts continue to exist in the existing server records.
+Existing local financial entries/quarantine bytes are retained but not imported.
+A fresh authenticated browser reads the same canonical financial report.
+Late report responses cannot populate a replaced identity/session; unavailable
+reports show an unavailable state and dash values, never local/zero fallback facts.
+
+Compatibility/deployment:
+  1. Deploy the additive API reporting endpoint to the complete API fleet.
+  2. Deploy the frontend; existing checkout/capability/refund contracts are unchanged.
+New UI with an old/mixed API fleet shows report unavailable on 404; ordinary ordering
+and Task 3 compensation validation still work. Old UI against new API keeps its old
+provisional local dashboard until upgraded; the API alone does not fix that UI.
+Do not use the old dashboard as a financial source during transition/rollback.
+
+Remaining limits:
+Historical invoices lacking original compensation snapshots cannot recover waived
+values from browser history or current prices; no ownership/amount guessing occurs.
+All matching persisted records are used, without a truncating page limit; this
+report currently reads tenant history in memory. Large-history performance work is
+not part of Task 4. Date filters affect output; they do not yet reduce DB loading.
+No multi-restaurant policy change; currentRestaurant selection remains Task 9.
+Existing accountant POS restrictions and finance/report feature boundaries remain.
+Hosted CI, other browser engines, production and deployment are unexecuted.
+
+Rollback: revert only the paired Task 4 commits after review; retain Tasks 0–3.
+No schema/data rollback is needed. Prefer retaining the additive API if rolling
+back the frontend first. Old local reporting again has U4 and cannot be trusted.

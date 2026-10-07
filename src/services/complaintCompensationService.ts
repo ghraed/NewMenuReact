@@ -1,3 +1,4 @@
+import api from './api';
 import type {
   ComplaintAccountingBucket,
   ComplaintCategory,
@@ -17,6 +18,8 @@ export interface CompensationApprover {
 export interface CompensationLedgerEntry {
   id: string;
   created_at: string;
+  currency?: string;
+  financial_kind?: 'waived_revenue' | 'refunded_revenue' | 'gift_catalog_value';
   source: 'pos' | 'invoice';
   table_reference?: string;
   order_reference?: string;
@@ -41,6 +44,7 @@ export interface CompensationLedgerEntry {
 }
 
 export interface CompensationAuditLog {
+  phase?: 'draft' | 'settled';
   id: string;
   timestamp: string;
   actor_name: string;
@@ -103,7 +107,7 @@ export const appendCompensationAuditLogs = (logs: CompensationAuditLog[], expect
 const toDayBucket = (value: string): string => value.slice(0, 10);
 
 const toWeekBucket = (value: string): string => {
-  const date = new Date(value);
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) {
     return 'invalid-week';
   }
@@ -143,7 +147,10 @@ export const buildCompensationDashboardReport = (
   let problematicItemCount = 0;
   let complimentaryItemCount = 0;
 
+  const seen = new Set<string>();
   entries.forEach((entry) => {
+    if (entry.action !== 'checkout' || seen.has(entry.id)) return;
+    seen.add(entry.id);
     const lossAmount = Number.isFinite(entry.loss_amount) ? Math.max(entry.loss_amount, 0) : 0;
     totalCompensationCost += lossAmount;
 
@@ -243,4 +250,15 @@ export const buildCompensationDashboardReport = (
     monthly_losses: toLossSeries(monthlyLosses),
     complimentary_items: complimentaryItems,
   };
+};
+
+export interface AuthoritativeCompensationReport {
+  entries: CompensationLedgerEntry[];
+  totals_by_currency: Record<string, { waived_revenue: string; refunded_revenue: string; gift_catalog_value: string }>;
+  timezone: string;
+}
+
+export const fetchCompensationReport = async (filters: { date_from?: string; date_to?: string; timezone: string }): Promise<AuthoritativeCompensationReport> => {
+  const response = await api.get<AuthoritativeCompensationReport>('/pos/compensation-report', { params: filters });
+  return response.data;
 };

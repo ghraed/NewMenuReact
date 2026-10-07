@@ -6,9 +6,10 @@ import { useAuth } from '../contexts/useAuth';
 import { createPosComplaintAdjustment, fetchGuestTables, fetchPublishedDishes, fetchPosCapabilities, postPosComplaintAdjustment, quickPosCheckout, searchPosCompletedSales } from '../services/orderService';
 import {
   appendCompensationAuditLogs,
-  appendCompensationLedgerEntries,
   buildCompensationDashboardReport,
-  readCompensationLedger,
+  fetchCompensationReport,
+  readCompensationAuditLogs,
+  type AuthoritativeCompensationReport,
   type CompensationAuditLog,
   type CompensationLedgerEntry,
 } from '../services/complaintCompensationService';
@@ -36,7 +37,7 @@ import {
   getDefaultComplaintBucket,
 } from '../utils/orderItemCompensation';
 import { formatPriceWithCurrency, normalizeCurrency, readGuestCurrencySettings } from '../utils/currency';
-import { getVerifiedBrowserIdentity } from '../services/protectedBrowserStorage';
+import { getVerifiedBrowserIdentity, isCurrentBrowserIdentity } from '../services/protectedBrowserStorage';
 
 interface PosCartItem {
   lineId: string;
@@ -167,6 +168,7 @@ const buildAuditLogFromEntry = (
   entry: CompensationLedgerEntry,
   actor: { name: string; role: UserRole }
 ): CompensationAuditLog => ({
+  phase: entry.action === 'checkout' ? 'settled' : 'draft',
   id: `audit-${entry.id}`,
   timestamp: new Date().toISOString(),
   actor_name: actor.name,
@@ -222,7 +224,32 @@ const CashierPosPage: React.FC = () => {
   const [postSaleGifts, setPostSaleGifts] = useState<Array<{ dish_id: number; quantity: number; name: string }>>([]);
   const [pendingAdjustment, setPendingAdjustment] = useState<PosComplaintAdjustment | null>(null);
   const [postSaleBusy, setPostSaleBusy] = useState(false);
-  const [, setReportRefreshKey] = useState(0);
+  const [reportRefreshKey, setReportRefreshKey] = useState(0);
+  const [serverReport, setServerReport] = useState<AuthoritativeCompensationReport | null>(null);
+  const [reportError, setReportError] = useState(false);
+  const [reportDateFrom, setReportDateFrom] = useState('');
+  const [reportDateTo, setReportDateTo] = useState('');
+  const [reportCurrency, setReportCurrency] = useState<string>(currency);
+  const reportTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const restaurantId = storageIdentity?.restaurantId;
+  const reportUserId = storageIdentity?.userId;
+
+  useEffect(() => {
+    let cancelled = false;
+    const identity = getVerifiedBrowserIdentity();
+    setServerReport(null);
+    setReportError(false);
+    if (identity) {
+      void fetchCompensationReport({ date_from: reportDateFrom || undefined, date_to: reportDateTo || undefined, timezone: reportTimezone })
+        .then((report) => {
+          if (!cancelled && isCurrentBrowserIdentity(identity)) setServerReport(report);
+        })
+        .catch(() => {
+          if (!cancelled && isCurrentBrowserIdentity(identity)) setReportError(true);
+        });
+    }
+    return () => { cancelled = true; };
+  }, [restaurantId, reportUserId, reportRefreshKey, reportDateFrom, reportDateTo, reportTimezone]);
 
   const actor = useMemo(() => ({
     id: user?.id,
@@ -316,7 +343,12 @@ const CashierPosPage: React.FC = () => {
 
   const { discountAmount, vatAmount, total } = invoicePreview;
 
-  const compensationReport = buildCompensationDashboardReport(readCompensationLedger());
+  const compensationReport = buildCompensationDashboardReport(
+    serverReport?.entries.filter((entry) => entry.currency === reportCurrency) || []
+  );
+  const reportAmount = (metric: 'waived_revenue' | 'refunded_revenue' | 'gift_catalog_value'): string => (
+    serverReport ? formatPriceWithCurrency(Number(serverReport.totals_by_currency[reportCurrency]?.[metric] || 0), reportCurrency) : '—'
+  );
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
     if (complimentary && !canUseCompensation) {
@@ -427,6 +459,7 @@ const CashierPosPage: React.FC = () => {
     try {
       const posted = await postPosComplaintAdjustment(pendingAdjustment.id);
       setPendingAdjustment(posted);
+      setReportRefreshKey((current) => current + 1);
       showToast('Complaint adjustment posted. Refund and gift loss are now available to finance.', 'secondary');
     } catch {
       showToast('Could not post the complaint adjustment.', 'secondary');
@@ -594,12 +627,8 @@ const CashierPosPage: React.FC = () => {
 
     setCartItems((current) => current.map((line) => (line.lineId === nextItem.lineId ? nextItem : line)));
 
-    if (nextItem.issueStatus !== 'normal') {
-      const entry = buildCompensationPayloadFromItem(nextItem, getCompensationAction(nextItem), 'pos', tableReference);
-      appendCompensationLedgerEntries([entry], storageIdentity);
-      appendCompensationAuditLogs([buildAuditLogFromEntry(entry, actor)], storageIdentity);
-      setReportRefreshKey((current) => current + 1);
-    }
+    const entry = buildCompensationPayloadFromItem(nextItem, getCompensationAction(nextItem), 'pos', tableReference);
+    appendCompensationAuditLogs([buildAuditLogFromEntry(entry, actor)], storageIdentity);
 
     setEditingLineId(null);
     setCompDraft(makeDefaultDraft());
@@ -669,11 +698,10 @@ const CashierPosPage: React.FC = () => {
         .map((item) => buildCompensationPayloadFromItem(item, 'checkout', 'pos', tableReference));
 
       if (checkoutLedgerEntries.length > 0) {
-        appendCompensationLedgerEntries(checkoutLedgerEntries, storageIdentity);
         appendCompensationAuditLogs(checkoutLedgerEntries.map((entry) => buildAuditLogFromEntry(entry, actor)), storageIdentity);
-        setReportRefreshKey((current) => current + 1);
       }
 
+      setReportRefreshKey((current) => current + 1);
       clearOrder();
       showToast(`Checkout complete: ${reference}. Paid ${formatPriceWithCurrency(Number(settledTotal), settledCurrency)}.`, 'secondary', 4500);
     } catch (checkoutError: unknown) {
@@ -1304,28 +1332,39 @@ const CashierPosPage: React.FC = () => {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-lg font-semibold text-text">Complaint & Compensation Dashboard</h3>
-                <p className="text-sm text-muted">Audit trail and financial impact from cancelled/complimentary items.</p>
+                <p className="text-sm text-muted">Finalized server records. Waived menu revenue excludes VAT, service charges and order discounts; refunds use the posted amount. Gift value is catalog value, not inventory cost.</p>
               </div>
               <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs" onClick={() => setReportRefreshKey((current) => current + 1)}>
                 Refresh Report
               </LiquidButton>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="mb-3 flex flex-wrap gap-3">
+              <label>From<input aria-label="Report from" type="date" value={reportDateFrom} onChange={(event) => setReportDateFrom(event.target.value)} className="block bg-bg1 text-text" /></label>
+              <label>Through<input aria-label="Report through" type="date" value={reportDateTo} onChange={(event) => setReportDateTo(event.target.value)} className="block bg-bg1 text-text" /></label>
+              <label>Currency<select aria-label="Report currency" value={reportCurrency} onChange={(event) => setReportCurrency(event.target.value)} className="block bg-bg1 text-text">{Array.from(new Set([currency, ...Object.keys(serverReport?.totals_by_currency || {})])).map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
+              <p className="text-sm text-muted">Dates use {reportTimezone}.</p>
+            </div>
+            {!serverReport && <p aria-live="polite" className="mb-3 text-sm text-muted">{reportError ? 'Report unavailable. Check access or dates and use Refresh Report to retry.' : 'Loading finalized report…'}</p>}
+            <div className="grid gap-3 sm:grid-cols-3" aria-busy={!serverReport && !reportError}>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Total Compensation Cost</p>
-                <p className="mt-1 text-lg font-semibold text-text">{toMoney(compensationReport.total_compensation_cost)}</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Waived Revenue</p>
+                <p className="mt-1 text-lg font-semibold text-text">{reportAmount('waived_revenue')}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Complaint Loss</p>
-                <p className="mt-1 text-lg font-semibold text-spicy">{toMoney(compensationReport.complaint_loss_total)}</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Refunded Revenue</p>
+                <p className="mt-1 text-lg font-semibold text-spicy">{reportAmount('refunded_revenue')}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Complimentary Value</p>
-                <p className="mt-1 text-lg font-semibold text-emerald-200">{toMoney(compensationReport.complimentary_value_total)}</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Gift Catalog Value</p>
+                <p className="mt-1 text-lg font-semibold text-emerald-200">{reportAmount('gift_catalog_value')}</p>
               </div>
             </div>
 
+            <details className="mt-3 text-sm text-muted">
+              <summary>Local audit activity (drafts are excluded from financial totals)</summary>
+              {readCompensationAuditLogs().slice(0, 10).map((log) => <p key={log.id}>{log.phase || 'legacy audit'}: {log.message}</p>)}
+            </details>
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
                 <p className="text-xs uppercase tracking-[0.13em] text-muted2">Most Cancelled Dishes</p>

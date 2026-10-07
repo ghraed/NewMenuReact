@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CashierPosPage from '../../src/pages/CashierPosPage';
+import { setVerifiedBrowserIdentity } from '../../src/services/protectedBrowserStorage';
 
 const mockedOrderService = vi.hoisted(() => ({
   fetchGuestTables: vi.fn(),
@@ -8,6 +9,8 @@ const mockedOrderService = vi.hoisted(() => ({
   fetchPosCapabilities: vi.fn(),
   quickPosCheckout: vi.fn(),
 }));
+
+const mockedReport = vi.hoisted(() => ({ fetch: vi.fn() }));
 
 const mockedToast = vi.hoisted(() => ({
   showToast: vi.fn(),
@@ -34,6 +37,7 @@ vi.mock('../../src/contexts/useAuth', () => ({
       name: 'Admin User',
       role: 'admin',
       restaurant: {
+        id: 1,
         slug: 'alpha',
         currency: 'USD',
       },
@@ -48,19 +52,11 @@ vi.mock('../../src/services/orderService', () => ({
   quickPosCheckout: mockedOrderService.quickPosCheckout,
 }));
 
-vi.mock('../../src/services/complaintCompensationService', () => ({
+vi.mock('../../src/services/complaintCompensationService', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../src/services/complaintCompensationService')>(),
   appendCompensationAuditLogs: vi.fn(),
-  appendCompensationLedgerEntries: vi.fn(),
-  buildCompensationDashboardReport: vi.fn(() => ({
-    total_compensation_cost: 0,
-    complaint_loss_total: 0,
-    complimentary_value_total: 0,
-    most_cancelled_dishes: [],
-    most_common_reasons: [],
-    staff_approvals: [],
-    recent_events: [],
-  })),
-  readCompensationLedger: vi.fn(() => []),
+  fetchCompensationReport: mockedReport.fetch,
+  readCompensationAuditLogs: vi.fn(() => []),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -77,6 +73,9 @@ vi.mock('react-i18next', () => ({
 describe('CashierPosPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.setItem('admin_auth_token', 'QA_RUN_unit_report');
+    setVerifiedBrowserIdentity({ id: 1, name: 'Admin User', email: null, role: 'admin', restaurant: { id: 1, name: 'Alpha', slug: 'alpha' } }, 'QA_RUN_unit_report');
+    mockedReport.fetch.mockResolvedValue({ entries: [], totals_by_currency: {}, timezone: 'UTC' });
     mockedOrderService.fetchPosCapabilities.mockResolvedValue({ compensation_version: 1, can_compensate: true });
     mockedOrderService.fetchGuestTables.mockResolvedValue({
       restaurant: { id: 1, name: 'Alpha', slug: 'alpha' },
@@ -218,6 +217,44 @@ describe('CashierPosPage', () => {
     fireEvent.change(screen.getByRole('spinbutton', { name: 'cashierPosPage.partialDiscount' }), { target: { value: '50' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save Compensation' }));
     expect(screen.getByText('Total').parentElement).toHaveTextContent('$0.02');
+  });
+
+  it('uses server financial facts and never promotes local draft edits into report totals', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([dish]);
+    mockedReport.fetch.mockResolvedValue({ entries: [], totals_by_currency: { USD: { waived_revenue: '10.00', refunded_revenue: '8.00', gift_catalog_value: '12.00' } }, timezone: 'UTC' });
+    localStorage.setItem('pos_compensation_ledger_v1', JSON.stringify([{ loss_amount: 999 }]));
+    render(<CashierPosPage />);
+    await waitFor(() => expect(screen.getByText('Waived Revenue').parentElement).toHaveTextContent('$10.00'));
+    expect(screen.getByText('Refunded Revenue').parentElement).toHaveTextContent('$8.00');
+    expect(screen.getByText('Gift Catalog Value').parentElement).toHaveTextContent('$12.00');
+    await saveComplimentary();
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.editIssueCompensation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Compensation' }));
+    expect(mockedReport.fetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Waived Revenue').parentElement).toHaveTextContent('$10.00');
+  });
+
+  it('shows unavailable values on report failure and retries without falling back to browser events', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([]);
+    mockedReport.fetch.mockRejectedValueOnce(new Error('QA_RUN_unavailable'));
+    render(<CashierPosPage />);
+    expect(await screen.findByText(/Report unavailable/)).toBeInTheDocument();
+    expect(screen.getByText('Waived Revenue').parentElement).toHaveTextContent('—');
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Report' }));
+    await waitFor(() => expect(screen.getByText('Waived Revenue').parentElement).toHaveTextContent('$0.00'));
+    expect(mockedReport.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('discards a report response if another tab replaces the authenticated session token', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([]);
+    let release!: (value: unknown) => void;
+    mockedReport.fetch.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    render(<CashierPosPage />);
+    await waitFor(() => expect(mockedReport.fetch).toHaveBeenCalledTimes(1));
+    localStorage.setItem('admin_auth_token', 'QA_RUN_different_session');
+    release({ entries: [], totals_by_currency: { USD: { waived_revenue: '999.00' } }, timezone: 'UTC' });
+    await waitFor(() => expect(screen.getByText('Waived Revenue').parentElement).toHaveTextContent('—'));
+    expect(screen.queryByText('$999.00')).not.toBeInTheDocument();
   });
 
 });

@@ -32,7 +32,7 @@ test('same browser isolates compensation across logout, failed login, reload and
   const fixtures = JSON.parse(execFileSync('php', [resolve('tests/setup/tenantFixtures.php')], {
     cwd: process.cwd(), env: process.env, encoding: 'utf8',
   })) as { a: TenantFixture; b: TenantFixture; accountant: TenantFixture; adminA2: TenantFixture };
-  const cost = page.getByText('Total Compensation Cost', { exact: true }).locator('..');
+  const cost = page.getByText('Waived Revenue', { exact: true }).locator('..');
   const itemName = `QA_RUN_${process.env.QA_RUN_ID}_A_compensation`;
 
   await login(page, fixtures.a.email);
@@ -48,8 +48,16 @@ test('same browser isolates compensation across logout, failed login, reload and
   await page.getByRole('button', { name: 'Complimentary', exact: true }).click();
   await page.getByRole('button', { name: 'Edit Issue / Compensation', exact: true }).click();
   await page.getByRole('button', { name: 'Save Compensation', exact: true }).click();
+  await expect(cost).toContainText('$0.00');
+  const [settled] = await Promise.all([
+    page.waitForResponse((res) => new URL(res.url()).pathname === '/api/pos/checkout' && res.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Checkout (Ctrl+Enter)' }).click(),
+  ]);
+  expect(settled.status()).toBe(201);
   await expect(cost).toContainText('$10.00');
   await expect(page.getByText(fixtures.a.name, { exact: false }).last()).toBeVisible();
+  // Retain the original held-work isolation assertion with a separate draft.
+  await page.getByRole('button', { name: 'Complimentary', exact: true }).click();
   await page.getByRole('button', { name: 'Hold (F4)' }).click();
   await expect(page.getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
   await page.reload();
@@ -79,7 +87,7 @@ test('same browser isolates compensation across logout, failed login, reload and
   await login(page, fixtures.adminA2.email);
   await page.goto('/staff/pos');
   await expect(cost).toContainText('$10.00');
-  await expect(page.getByText(fixtures.a.name, { exact: false })).toBeVisible();
+  await expect(page.getByText(fixtures.a.name, { exact: false }).last()).toBeVisible();
   await logout(page);
   await login(page, fixtures.accountant.email, /\/admin\/finance$/);
   await page.goto('/staff/pos');
@@ -145,7 +153,7 @@ test('unresolved auth hides legacy caches, account queues remain private and gue
   releaseMe();
   await expect(page.getByText('Complaint & Compensation Dashboard', { exact: true })).toBeVisible();
   await page.unroute('**/api/auth/me');
-  await expect(page.getByText('Total Compensation Cost', { exact: true }).locator('..')).toContainText('$0.00');
+  await expect(page.getByText('Waived Revenue', { exact: true }).locator('..')).toContainText('$0.00');
   await page.goto('/invoice/print');
   await expect(page.getByText('QA_RUN_legacy_invoice', { exact: true })).toHaveCount(0);
   await page.goto('/staff/orders');

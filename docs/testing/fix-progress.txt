@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0, 1, 2 and 3 are complete locally.
+no missing history was assumed. Only Tasks 0, 1, 2, 3 and 4 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -87,9 +87,9 @@ TASK 3 / U1 — COMPLETE LOCAL SERVER-VALIDATED POS COMPENSATION
   Report: docs/testing/task-3-2026-10-07.txt
   Evidence: docs/testing/task-3-2026-10-07/ (generated run-* folders retained locally).
 
-NEXT: TASK 4 — NOT STARTED; await review and separate selected execution.
-Tasks 4-10 are NOT IMPLEMENTED by these changes. U4 reporting, release image/operations
-verification and remaining audit risks still block launch.
+NEXT: TASK 5 — NOT STARTED; await review and separate selected execution.
+Tasks 5-10 are NOT IMPLEMENTED by the completed changes. Inactive-policy, release
+image/operations verification and remaining audit risks still block launch.
 No Task 2 push, merge, deployment, production access or settled-record rewrite.
 No Task 3 push, merge, deployment, production access or settled-record rewrite.
 
@@ -113,3 +113,40 @@ TASK 3 — FRESH RECHECK AFTER TASKS 0-2 MAIN INTEGRATION (7 October 2026)
   No push, merge, deployment or history rewrite was performed in this recheck.
   Earlier no-push/no-merge entries describe their original task runs; Tasks 0-2
   were subsequently merged and pushed to main under separate user authorization.
+
+TASK 4 / U4 — COMPLETE LOCAL AUTHORITATIVE COMPENSATION REPORTING
+  Branch: fix/task-4-authoritative-compensation-reporting (both repositories).
+  Frontend base: ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba
+  API base: d6388a65eb35e59165534d5e173456cdbd311764
+  API final: 29944c8beb17ebd6d1b12d011eef219507c9f8ce
+  Frontend/final pair: task-4-2026-10-07/run-ready/completion-commits.json.
+  Both initial trees clean; completed Tasks 0–3 ancestry verified in both repositories.
+  Before: two edits of one $10 provisional item reported $20 without a sale;
+  canonical report endpoint absent (404). Valid failing browser screenshot/trace and
+  five API regressions retained; all prior 383 API tests passed before implementation.
+  After: issued/paid invoice snapshots and posted refund/gift snapshots form canonical
+  tenant-scoped financial events; stable IDs and gift-delivery exclusion prevent
+  duplicate aggregation. Draft/edit/normal/hold/remove/failed-checkout events stay
+  outside financial totals, with explicitly separate local audit activity.
+  Waived revenue, refunded revenue and gift catalog value are separate by snapshot
+  currency; COGS/stock/settlement unchanged. Fresh browser sees the same server facts.
+  Date filters cover local midnight/DST/single-sided ranges and browser timezone
+  compatibility; unavailable reports and late replaced-session responses fail closed.
+  Verified: 392 API tests / 4,086 assertions (nine added); 133 frontend unit tests
+  (five added); 15 browser scenarios (one new, earlier scenarios retained/extended),
+  zero automated skips. Frontend lint/TypeScript/build, API asset build, Composer
+  validation, migrations, new-file formatting and owned runtime cleanup passed.
+  FAIL: same four baseline PHP formatting files and all three dependency audits;
+  large frontend bundle warning remains. No dependency/security/later-task changes.
+  Initial socket restriction and corrected fixture/mock expectations are documented
+  separately; invalid attempts are not counted as passing product verification.
+  Compatibility: additive API fleet first, then frontend; old API gives unavailable
+  report, without blocking ordinary checkout. Existing accountant POS 403 retained.
+  No migration, ledger import, original settlement rewrite or role-policy expansion.
+  Report: docs/testing/task-4-2026-10-07.txt
+  Contract: task-4-2026-10-07/contract-and-limitations.txt.
+  Evidence: task-4-2026-10-07/ (sanitized run-* folders retained locally).
+  Hosted CI, deployment, production/other browsers and operations unexecuted.
+  Ready for separately selected Task 5; Tasks 5–10 are NOT IMPLEMENTED by this task.
+  No push, merge, deployment, production access or history rewrite performed.
+  Earlier Task 4-unselected notes describe the prior Task 3 recheck state.

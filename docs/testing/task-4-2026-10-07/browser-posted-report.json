@@ -1,0 +1,129 @@
+{
+  "sale": 201,
+  "draft": 201,
+  "before": {
+    "entries": [
+      {
+        "id": "invoice:1:item:1",
+        "created_at": "2026-10-07T16:09:48+00:00",
+        "currency": "USD",
+        "financial_kind": "waived_revenue",
+        "source": "invoice",
+        "action": "checkout",
+        "status": "compensated",
+        "compensation_type": "complimentary",
+        "quantity": 1,
+        "original_amount": 10,
+        "final_amount": 0,
+        "is_complimentary": true,
+        "order_reference": "INV-20261007-000001",
+        "dish_name": "QA_RUN_task4_final_browser_05_report",
+        "compensation_reason": "other",
+        "complaint_category": "service",
+        "accounting_bucket": "goodwill_expense",
+        "loss_amount": 10,
+        "approved_by": {
+          "name": "QA_RUN_task4_final_browser_05_5d09632d05_admin",
+          "role": "admin"
+        }
+      }
+    ],
+    "totals_by_currency": {
+      "USD": {
+        "waived_revenue": "10.00",
+        "refunded_revenue": "0.00",
+        "gift_catalog_value": "0.00"
+      }
+    },
+    "timezone": "UTC"
+  },
+  "posted": 200,
+  "retry": 200,
+  "after": {
+    "entries": [
+      {
+        "id": "invoice:1:item:1",
+        "created_at": "2026-10-07T16:09:48+00:00",
+        "currency": "USD",
+        "financial_kind": "waived_revenue",
+        "source": "invoice",
+        "action": "checkout",
+        "status": "compensated",
+        "compensation_type": "complimentary",
+        "quantity": 1,
+        "original_amount": 10,
+        "final_amount": 0,
+        "is_complimentary": true,
+        "order_reference": "INV-20261007-000001",
+        "dish_name": "QA_RUN_task4_final_browser_05_report",
+        "compensation_reason": "other",
+        "complaint_category": "service",
+        "accounting_bucket": "goodwill_expense",
+        "loss_amount": 10,
+        "approved_by": {
+          "name": "QA_RUN_task4_final_browser_05_5d09632d05_admin",
+          "role": "admin"
+        }
+      },
+      {
+        "id": "adjustment:1:refund",
+        "created_at": "2026-10-07T16:09:50+00:00",
+        "currency": "USD",
+        "financial_kind": "refunded_revenue",
+        "source": "invoice",
+        "action": "checkout",
+        "status": "compensated",
+        "compensation_type": "none",
+        "quantity": 0,
+        "original_amount": 0,
+        "final_amount": 0,
+        "is_complimentary": false,
+        "order_reference": "INV-20261007-000002",
+        "compensation_reason": "quality_issue",
+        "complaint_category": null,
+        "accounting_bucket": "customer_complaint_loss",
+        "approved_by": {
+          "id": 1,
+          "name": "QA_RUN_task4_final_browser_05_5d09632d05_admin",
+          "role": "admin"
+        },
+        "dish_name": "Sale refund",
+        "loss_amount": 8
+      },
+      {
+        "id": "adjustment:1:gift:1",
+        "created_at": "2026-10-07T16:09:50+00:00",
+        "currency": "USD",
+        "financial_kind": "gift_catalog_value",
+        "source": "invoice",
+        "action": "checkout",
+        "status": "compensated",
+        "compensation_type": "complimentary",
+        "quantity": 1,
+        "original_amount": 0,
+        "final_amount": 0,
+        "is_complimentary": true,
+        "order_reference": "INV-20261007-000002",
+        "compensation_reason": "quality_issue",
+        "complaint_category": null,
+        "accounting_bucket": "customer_complaint_loss",
+        "approved_by": {
+          "id": 1,
+          "name": "QA_RUN_task4_final_browser_05_5d09632d05_admin",
+          "role": "admin"
+        },
+        "dish_name": "QA_RUN_task4_final_browser_05_report",
+        "loss_amount": 10
+      }
+    ],
+    "totals_by_currency": {
+      "USD": {
+        "waived_revenue": "10.00",
+        "refunded_revenue": "8.00",
+        "gift_catalog_value": "10.00"
+      }
+    },
+    "timezone": "UTC"
+  },
+  "denied": 401
+}

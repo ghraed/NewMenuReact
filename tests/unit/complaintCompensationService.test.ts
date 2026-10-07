@@ -73,3 +73,20 @@ describe('complaint compensation reporting', () => {
   });
 });
 
+
+describe('financial event identity', () => {
+  it('excludes provisional edits and counts repeated finalized identities once', () => {
+    const entry = makeEntry({ id: 'invoice:1:item:1', loss_amount: 10 });
+    const draft = makeEntry({ action: 'marked_compensated', loss_amount: 10 });
+    const report = buildCompensationDashboardReport([draft, draft, entry, entry]);
+    expect(report.total_compensation_cost).toBe(10);
+    expect(report.staff_approvals).toEqual([]);
+  });
+});
+
+it('buckets offset timestamps by the report local date including local Monday', () => {
+  const report = buildCompensationDashboardReport([makeEntry({ created_at: '2026-10-05T00:00:00+03:00' })]);
+  expect(report.daily_losses).toEqual([{ bucket: '2026-10-05', amount: 2 }]);
+  expect(report.weekly_losses).toEqual([{ bucket: '2026-W41', amount: 2 }]);
+  expect(report.monthly_losses).toEqual([{ bucket: '2026-10', amount: 2 }]);
+});

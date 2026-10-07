@@ -56,6 +56,9 @@ for (const mode of ['complimentary', 'full_waiver', 'partial_discount', 'cancell
     expect(retry.id).toBe(body.order.id);
     expect(retry.total).toBe(expected);
     expect(Number(retry.stock)).toBe(mode === 'mixed' ? 8 : 9);
+    await expect(page.getByText('Waived Revenue', { exact: true }).locator('..')).toContainText(mode === 'partial_discount' ? '$2.50' : '$10.00');
+    await expect(page.getByText('Refunded Revenue', { exact: true }).locator('..')).toContainText('$0.00');
+    await expect(page.getByText('Gift Catalog Value', { exact: true }).locator('..')).toContainText('$0.00');
     await expect(page.getByText(/Checkout complete:/)).toBeVisible();
     await expect(page.getByRole('status')).toContainText(`Paid $${expected}`);
     await expect(page.getByRole('button', { name: 'Checkout (Ctrl+Enter)' })).toBeDisabled();
@@ -109,5 +112,6 @@ test('real compensation validation failure retains the POS cart and does not ann
   await expect(page.getByRole('button', { name: 'Checkout (Ctrl+Enter)' })).toBeEnabled();
   await expect(page.getByText(/Checkout complete:/)).toHaveCount(0);
   await expect(page.getByText(/Last checkout:/)).toHaveCount(0);
+  await expect(page.getByText('Waived Revenue', { exact: true }).locator('..')).toContainText('$0.00');
   await page.screenshot({ path: resolve(process.env.QA_EVIDENCE_DIR!, 'pos-rejected-cart-retained.png'), fullPage: true });
 });

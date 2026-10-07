@@ -1,0 +1,175 @@
+TASK 4 COMPLETION — AUTHORITATIVE COMPENSATION REPORTING / AUDIT U4 (P2)
+7 October 2026. Complete local implementation and verification; hosted CI unexecuted.
+
+Selected task / audit IDs:
+  TASK 4 ONLY / U4. Tasks 5–10 are not implemented by this change.
+
+Branch and before/after commits for each changed repository:
+  Both: fix/task-4-authoritative-compensation-reporting
+  Menu_React before: ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba
+  Menu_API before:   d6388a65eb35e59165534d5e173456cdbd311764
+  Menu_API after: 29944c8beb17ebd6d1b12d011eef219507c9f8ce
+  Menu_React after / final pair: task-4-2026-10-07/run-ready/completion-commits.json.
+  Both initial trees were clean. Completed Task 0–3 commits were verified as
+  ancestors in both repositories (ancestry-verification.json). No push, merge,
+  deployment or history rewrite. AuthContext/protected browser storage, backend
+  checkout and refund controllers remain unchanged; prior business fixes retained.
+  Existing test assertions preserved. Task 1's browser scenario now settles its
+  financial effect before checking $10 and holds a separate draft; every tenant,
+  logout/failed-login/reload/held-work/guest-offline assertion remains present.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Full API: task4_final_api_04
+    API http://127.0.0.1:33133; MySQL 127.0.0.1:55135.
+    menu_test_QA_RUN_task4_final_api_04_suite
+  Full frontend/browser: task4_final_browser_05
+    API http://127.0.0.1:43771; frontend http://127.0.0.1:60545.
+    MySQL 127.0.0.1:50727; menu_test_QA_RUN_task4_final_browser_05_browser.
+  APP_ENV=testing, newly owned MySQL instances and isolated storage. Runtime,
+  databases/storage and owned HTTP processes removed by the runner on completion.
+  Mail=array, broadcast=null, queue=sync; all known external payment/SMS/AI/push
+  credentials blanked; testing HTTP safety provider enabled. No default/production
+  Compose service, normal restaurantdb, production URL or customer data used.
+  Synthetic run/scenario fixtures; server feature configuration retained in evidence.
+  table_ordering enabled for supported report readers; disabled behavior tested.
+  Unit tests use transport mocks, not a DB. Browser finance actions use the real API.
+
+Failing regression before the fix:
+  Deterministic P2; affected restaurant admin/cashier/report readers.
+  1. Create a synthetic published $10 packaged item with stock 10.
+  2. Log in as its tenant admin; open /staff/pos; choose Complimentary.
+  3. Open Edit Issue / Compensation and Save Compensation twice.
+  4. Inspect Total Compensation Cost before any checkout.
+  Expected: finalized waived revenue $0; provisional edits distinguished as audit.
+  Actual: $20, from two edits of one $10 draft; no sale settled. The original
+  edit/check-out path similarly aggregated multiple audit events as financial facts.
+  Dish creation POST /api/dishes returned 201; no checkout was made before failure.
+  New GET /api/pos/compensation-report was absent (404); five meaningful API report
+  regressions failed while all prior 383 API tests passed (zero skips).
+  Browser reproduction ran against an archive of committed frontend ae5ddd4 with
+  unchanged application code, the new regression and focused browser test selection.
+  API already had its additive endpoint; the old UI still read local events and failed.
+  Screenshots, error context and sanitized trace retained in run-before-browser/;
+  before-repeated-drafts.png shows the $20 provisional total. No JS exception was
+  needed to reproduce the financial defect.
+  Early fixture/property collisions, expected-status mistakes, protected timestamp
+  fixture setup and outdated component mocks are retained as invalid attempts;
+  they are not product defects or passing evidence. Sandbox socket allocation was
+  initially blocked before testing and resolved using the authorized loopback runner.
+
+Behavior after the fix:
+  Reports read issued/paid invoice-item snapshots and posted adjustments through a
+  tenant-scoped authenticated endpoint. No parallel ledger or historical rewrite.
+  Stable IDs count each invoice item, posted refund and posted gift once; gift
+  delivery orders are excluded if they later acquire an invoice. Retries reuse facts.
+  Draft saves/edits, restoration to normal, holding/removing carts and failed checkout
+  contribute no financial facts. Local audit notes explicitly distinguish draft and
+  settled activity; legacy local financial/quarantine bytes remain, never imported.
+  Repeated edits show $0; successful $10 waiver shows $10 once. Fresh browser context
+  agrees. Real posting/reposting shows separate $10 waived, $8 refunded and $10 gift
+  catalog value; pending drafts are excluded and each source identity occurs once.
+  Existing stock/COGS/calculations remain unchanged. All prior compensation modes,
+  cumulative-refund safety/concurrency, invoice/PDF, ordering and isolation tests pass.
+  Reports preserve currency snapshots, separate incompatible metric bases and expose
+  inclusive local-day filters with UTC/DST boundaries and browser timezone labeling.
+  Browser timezone Asia/Calcutta normalizes to equivalent Asia/Kolkata for PHP tzdata.
+  Unavailable report values are dashes with retry feedback, not local/false-zero facts.
+  A replaced account/token cannot receive a late report response.
+
+Changed files and reason:
+  Menu_API:
+    app/Http/Controllers/CompensationReportController.php — read-only canonical
+      event report, server cents totals per metric/currency, date/timezone bounds.
+    routes/api.php — additive authenticated reporting route, existing POS boundary.
+    tests/Feature/CompensationReportTest.php — nine regressions for finalized versus
+      draft data, retries/failure, refund/gift reconciliation, snapshots, currencies,
+      role/tenant/auth/feature denial, local-day/DST/single-sided/alias date filters.
+  Menu_React:
+    src/pages/CashierPosPage.tsx — fetch canonical reports; separate metric cards,
+      dates/currency, loading/unavailable states; draft audit separated from facts.
+    src/services/complaintCompensationService.ts — report transport/types, audit
+      phases, finalized-event deduplication and local-date week buckets.
+    tests/unit/cashierPosPage.test.tsx — preserve eight existing tests/assertions,
+      update only the service-boundary mock, add three meaningful report regressions.
+    tests/unit/complaintCompensationService.test.ts — preserve existing aggregation
+      assertions, add provisional/duplicate exclusion and offset-week regression.
+    tests/e2e/compensation-report.spec.ts — real edit/restore/hold/remove/checkout,
+      repeated report reads, fresh context, refund/gift/post retry, auth/date checks.
+      Only the explicit 503 unavailable-state segment mocks a report response.
+    tests/e2e/pos-compensation-checkout.spec.ts — preserve all checkout/PDF/retry/
+      stock assertions; assert report effects for five modes and rejected checkout.
+    tests/e2e/tenant-browser-isolation.spec.ts — settle the financial fixture while
+      retaining separate held work and every earlier isolation assertion.
+    .gitignore — retain generated Task 4 evidence locally without shipping full runs.
+    docs/testing/task-4-2026-10-07* and fix-progress.txt — evidence/contract/completion.
+  No schema/migration, dependency/lock, permission, settlement, stock or COGS changes.
+
+Compatibility/deployment order:
+  Deploy additive API to the complete fleet first, then frontend. Existing checkout,
+  capability, adjustment and invoice contracts are unchanged. New UI with old API
+  shows report unavailable on 404 but ordering still works. Old UI with new API retains
+  its known provisional report until upgraded; do not treat that report as financial.
+  Accountant's established POS denial (403) remains; its existing finance access is
+  unchanged. Feature-disabled POS reporting uses the established 404 convention.
+  See task-4-2026-10-07/contract-and-limitations.txt for identities, metric bases,
+  dates, currency rules, permissions and historical-data limitations.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS — full API: 392 tests / 4,086 assertions; nine added tests; zero skips.
+  PASS — frontend: 133 unit tests across 33 files; five added tests; zero skips.
+  PASS — real/mocked browser suite: 15 scenarios, zero failures/skips; one new
+    real reporting scenario and all previous 14 scenarios retained and extended.
+  PASS — frontend ESLint, TypeScript/production build, API asset build, Composer
+    validate --no-check-publish, fresh disposable migrations and runtime cleanup.
+  PASS — new API files' targeted Pint check and both Git diff whitespace checks.
+  FAIL — four unchanged baseline PHP formatting files:
+    InvoiceController.php, PosComplaintAdjustment.php, PosComplaintAdjustmentGift.php,
+    2026_08_15_120000_create_pos_complaint_adjustments_tables.php.
+  FAIL — frontend npm audit, API npm audit, Composer audit; no dependency updates.
+    Frontend audit: 13 findings (4 moderate, 7 high, 2 critical).
+    API npm audit: 9 findings (1 low, 6 high, 2 critical).
+    Composer advisory packages: laravel/framework, league/commonmark,
+      league/flysystem, paragonie/sodium_compat. Full audit details retained.
+  BLOCKED — initial sandbox-only socket attempt, before tests; subsequent authorized
+    isolated reruns completed. No remaining required functional check is blocked.
+  SKIPPED — zero automated test skips. Coverage percentages were not collected.
+  NOT IMPLEMENTED/EXECUTED — Tasks 5–10; hosted CI/branch protections; production,
+    deployment, other browser engines, physical printer and full operational staging.
+  Passing builds are not substituted for runtime, tenant or authorization checks.
+
+Evidence locations:
+  docs/testing/task-4-2026-10-07/
+    ancestry-verification.json; regression-summary.json; before/after screenshots;
+    fresh-browser-report.json; browser-posted-report.json; *checks-summary.json.
+    run-before-api/: original 404 failures and prior 383 passing API tests.
+    run-before-browser/: valid $20/$0 reproduction, screenshot/trace/HTTP evidence.
+    run-final-api-04/: final full API gates, JUnit, effective environment/audits.
+    run-final-browser-05/: final frontend/browser gates, JUnit, screenshots/HTTP,
+      feature flags and effective environment.
+    Other run-* directories retain corrected setup attempts; not counted as passes.
+  Full generated run folders are ignored locally; concise sanitized evidence and
+  contract are committed. Final pair: run-ready/completion-commits.json.
+
+Known baseline failures and remaining risks:
+  Formatting/audits above and large frontend bundle warning remain for Task 7/10.
+  No launch approval: image/runtime/operations/inactive-policy gates remain open.
+  Waived revenue is pre-tax menu value; refunded revenue is the posted amount; gift
+  catalog value is not COGS. They are not summed as a generic compensation cost.
+  Report periods use payment/creation/posting timestamps; existing P&L invoice_date
+  periods remain unchanged. Backdated invoices may belong to different date windows.
+  Historical snapshots lacking original compensation amounts cannot be reconstructed
+  from old browser events/current prices. No guessed import or ownership assignment.
+  Draft browser audit notes remain local; canonical financial facts are shared.
+  Reason/staff rankings count finalized events, not unique approval actions/tickets.
+  Tenant history is read without a truncating limit; large-history performance remains
+  unmeasured. Current multi-restaurant selection is unchanged (Task 9).
+
+Rollback procedure:
+  Revert only the two Task 4 commits after review. Keep all Tasks 0–3 commits/tests.
+  No schema or business-data rollback. Prefer retaining the additive API during a
+  frontend rollback. Restoring the old local dashboard restores U4; it is unsuitable
+  as authoritative financial reporting. No rollback was performed during this task.
+
+Ready for next task:
+  Yes — Task 4 is complete locally; Task 5 requires separate selection. Baseline
+  release risks remain and this result is not approval to launch. No later task started.

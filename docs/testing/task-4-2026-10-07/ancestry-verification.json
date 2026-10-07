@@ -1,0 +1,21 @@
+{
+  ".": {
+    "base": "ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba",
+    "branch": "fix/task-4-authoritative-compensation-reporting",
+    "completed_task_ancestors": {
+      "a91b1d03679c2f283fb87d730a7fb73789cd2316": true,
+      "b51d18e94a709daca7de92d559b1c196826c0e10": true,
+      "a5bf769e5514eff337fb129c31c29362ae0c15cf": true,
+      "b90f3d3": true
+    }
+  },
+  "../Menu_API": {
+    "base": "d6388a65eb35e59165534d5e173456cdbd311764",
+    "branch": "fix/task-4-authoritative-compensation-reporting",
+    "completed_task_ancestors": {
+      "99c5a2d853482eb11be1a79f9e917a7f44483995": true,
+      "6484a65c2e5304e8058445c40702c1f04feb9790": true,
+      "d6388a65eb35e59165534d5e173456cdbd311764": true
+    }
+  }
+}
