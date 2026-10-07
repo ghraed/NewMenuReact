@@ -1,0 +1,38 @@
+{
+  "run-api-before-precise": {
+    "api-junit.xml": {
+      "executed": 20,
+      "failed": 19,
+      "skipped": 0
+    }
+  },
+  "run-browser-repro-final": {
+    "react-junit.xml": {
+      "executed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser-junit.xml": {
+      "executed": 1,
+      "failed": 1,
+      "skipped": 0
+    }
+  },
+  "run-focus-after3": {
+    "api-junit.xml": {
+      "executed": 27,
+      "failed": 0,
+      "skipped": 0
+    },
+    "react-junit.xml": {
+      "executed": 128,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser-junit.xml": {
+      "executed": 6,
+      "failed": 1,
+      "skipped": 0
+    }
+  }
+}

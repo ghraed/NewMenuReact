@@ -1,0 +1,11 @@
+{
+  "status": 422,
+  "response": {
+    "message": "Some selected dishes are currently out of stock: QA_RUN_task3_verified_20261007_rejection.",
+    "errors": {
+      "items": [
+        "Some selected dishes are currently out of stock: QA_RUN_task3_verified_20261007_rejection."
+      ]
+    }
+  }
+}

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
 import { GlassCard, GlassToast, LiquidButton, useGlassToast } from '../components/ui/liquid-glass';
 import { useAuth } from '../contexts/useAuth';
-import { createPosComplaintAdjustment, fetchGuestTables, fetchPublishedDishes, postPosComplaintAdjustment, quickPosCheckout, searchPosCompletedSales } from '../services/orderService';
+import { createPosComplaintAdjustment, fetchGuestTables, fetchPublishedDishes, fetchPosCapabilities, postPosComplaintAdjustment, quickPosCheckout, searchPosCompletedSales } from '../services/orderService';
 import {
   appendCompensationAuditLogs,
   appendCompensationLedgerEntries,
@@ -12,7 +12,7 @@ import {
   type CompensationAuditLog,
   type CompensationLedgerEntry,
 } from '../services/complaintCompensationService';
-import { calculateInvoicePreview, parseFiniteNumber } from '../utils/financeMath';
+import { calculateInvoicePreview, parseFiniteNumber, toCents, fromCents } from '../utils/financeMath';
 import type {
   ComplaintAccountingBucket,
   ComplaintCategory,
@@ -186,11 +186,14 @@ const CashierPosPage: React.FC = () => {
   const { toast, showToast, dismiss } = useGlassToast(4200);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const storedGuestCurrency = readGuestCurrencySettings()?.currency;
-  const currency = normalizeCurrency(storedGuestCurrency || user?.restaurant?.currency || 'USD');
+  const currency = normalizeCurrency(user?.restaurant?.currency || storedGuestCurrency || 'USD');
   const toMoney = useCallback((value: number): string => (
     formatPriceWithCurrency(Number.isFinite(value) ? value : 0, currency)
   ), [currency]);
 
+  const checkoutAttempt = useRef<{ signature: string; key: string } | null>(null);
+  const [compensationAvailable, setCompensationAvailable] = useState(false);
+  const [lastCheckout, setLastCheckout] = useState<{ reference: string; total: string; currency: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dishes, setDishes] = useState<PublishedDishSummary[]>([]);
@@ -228,14 +231,20 @@ const CashierPosPage: React.FC = () => {
   }), [user?.id, user?.name, user?.role]);
 
   const canManageCompensation = AUTHORIZED_COMPENSATION_ROLES.includes(actor.role);
+  const canUseCompensation = canManageCompensation && compensationAvailable;
   const canApprovePostSaleComplaint = ['admin', 'accountant'].includes(actor.role);
 
   const loadPosData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setCompensationAvailable(false);
 
     try {
-      const nextDishes = await fetchPublishedDishes();
+      const [nextDishes, capabilities] = await Promise.all([
+        fetchPublishedDishes(),
+        fetchPosCapabilities().catch(() => null),
+      ]);
+      setCompensationAvailable(capabilities?.compensation_version === 1 && capabilities.can_compensate === true);
       setDishes(nextDishes.filter((dish) => (
         dish.is_orderable !== false && dish.is_out_of_stock !== true
       )));
@@ -310,6 +319,10 @@ const CashierPosPage: React.FC = () => {
   const compensationReport = buildCompensationDashboardReport(readCompensationLedger());
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
+    if (complimentary && !canUseCompensation) {
+      showToast('Compensation is unavailable for this account or server.', 'secondary');
+      return;
+    }
     const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
     if (isOutOfStock) {
       showToast(
@@ -434,6 +447,7 @@ const CashierPosPage: React.FC = () => {
   };
 
   const clearOrder = useCallback(() => {
+    checkoutAttempt.current = null;
     setCartItems([]);
     setOrderNote('');
     setDiscountType('');
@@ -528,7 +542,7 @@ const CashierPosPage: React.FC = () => {
       return;
     }
 
-    if (!canManageCompensation) {
+    if (!canUseCompensation) {
       showToast('You are not authorized to cancel or compensate items.', 'secondary');
       return;
     }
@@ -540,14 +554,14 @@ const CashierPosPage: React.FC = () => {
 
     const isComplimentary = compDraft.compensationType === 'complimentary';
     const status = compDraft.status;
-    const partialDiscountPercent = clampPercent(parseFiniteNumber(compDraft.partialDiscountPercent || '0'));
+    const partialDiscountPercent = Math.round(clampPercent(parseFiniteNumber(compDraft.partialDiscountPercent || '0')) * 100) / 100;
 
     let nextFinalUnitPrice = target.originalUnitPrice;
     if (status !== 'normal') {
       if (isComplimentary || compDraft.compensationType === 'full_waiver' || status === 'cancelled') {
         nextFinalUnitPrice = 0;
       } else if (compDraft.compensationType === 'partial_discount') {
-        nextFinalUnitPrice = target.originalUnitPrice * (1 - (partialDiscountPercent / 100));
+        nextFinalUnitPrice = fromCents(Math.round(toCents(target.originalUnitPrice) * (10000 - Math.round(partialDiscountPercent * 100)) / 10000));
       }
     }
 
@@ -607,9 +621,15 @@ const CashierPosPage: React.FC = () => {
       return;
     }
 
+    const hasCompensation = cartItems.some((item) => item.issueStatus !== 'normal' || item.compensationType !== 'none' || item.isComplimentary);
+    if (hasCompensation && !canUseCompensation) {
+      showToast('Compensation is unavailable for this account or server. Review the order before checkout.', 'secondary');
+      return;
+    }
+    if (checkoutBusy) return;
     setCheckoutBusy(true);
     try {
-      const response = await quickPosCheckout({
+      const payload = {
         table_reference: tableReference.trim() || 'POS-WALK-IN',
         notes: orderNote || undefined,
         items: cartItems.map((item) => ({
@@ -620,12 +640,6 @@ const CashierPosPage: React.FC = () => {
           compensation_reason: item.complaintReason || null,
           complaint_category: item.complaintCategory || null,
           compensation_note: item.complaintNote || null,
-          approved_by_staff_id: item.approvedBy?.id ?? null,
-          approved_by_staff_name: item.approvedBy?.name ?? null,
-          approved_by_staff_role: item.approvedBy?.role ?? null,
-          approved_at: item.approvedAt,
-          original_unit_price: item.originalUnitPrice,
-          final_unit_price: item.finalUnitPrice,
           partial_discount_percentage: item.partialDiscountPercent,
           is_complimentary: item.isComplimentary,
           accounting_bucket: item.accountingBucket || null,
@@ -635,8 +649,20 @@ const CashierPosPage: React.FC = () => {
         vat_rate: parseFiniteNumber(vatRate),
         discount_type: discountType || undefined,
         discount_value: parseFiniteNumber(discountValue),
-        payment_method: 'cash',
-      });
+        payment_method: 'cash' as const,
+      };
+      const signature = JSON.stringify(payload);
+      if (checkoutAttempt.current?.signature !== signature) {
+        checkoutAttempt.current = { signature, key: crypto.randomUUID() };
+      }
+      const response = await quickPosCheckout(payload, checkoutAttempt.current.key);
+      if (hasCompensation && response.compensation_version !== 1) {
+        throw new Error('The server did not confirm compensation. Check the sale before retrying.');
+      }
+      const reference = response.order.invoice_number || response.order.order_number || 'POS';
+      const settledTotal = String(response.order.invoice.total);
+      const settledCurrency = normalizeCurrency(response.order.invoice.currency || currency);
+      setLastCheckout({ reference, total: settledTotal, currency: settledCurrency });
 
       const checkoutLedgerEntries = cartItems
         .filter((item) => item.issueStatus !== 'normal')
@@ -649,14 +675,14 @@ const CashierPosPage: React.FC = () => {
       }
 
       clearOrder();
-      showToast(`Checkout complete: ${response.order.invoice_number || response.order.order_number}.`, 'secondary', 4500);
+      showToast(`Checkout complete: ${reference}. Paid ${formatPriceWithCurrency(Number(settledTotal), settledCurrency)}.`, 'secondary', 4500);
     } catch (checkoutError: unknown) {
       const message = typeof checkoutError === 'object'
         && checkoutError !== null
         && 'response' in checkoutError
         && (checkoutError as { response?: { data?: { message?: string } } }).response?.data?.message
         ? (checkoutError as { response?: { data?: { message?: string } } }).response?.data?.message
-        : 'POS checkout failed.';
+        : checkoutError instanceof Error ? checkoutError.message : 'POS checkout failed.';
 
       showToast(message || 'POS checkout failed.', 'secondary', 4500);
     } finally {
@@ -666,6 +692,9 @@ const CashierPosPage: React.FC = () => {
     actor,
     storageIdentity,
     cartItems,
+    canUseCompensation,
+    checkoutBusy,
+    currency,
     clearOrder,
     discountType,
     discountValue,
@@ -713,9 +742,9 @@ const CashierPosPage: React.FC = () => {
         <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>
       ) : (
         <div className="space-y-4">
-          {!canManageCompensation ? (
+          {!canUseCompensation ? (
             <div className="rounded-xl2 border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-              {t('cashierPosPage.readOnlyCompensation')}
+              {compensationAvailable ? t('cashierPosPage.readOnlyCompensation') : 'Compensation is unavailable for this account or server. Ordinary checkout is available.'}
             </div>
           ) : null}
 
@@ -780,7 +809,7 @@ const CashierPosPage: React.FC = () => {
                           </LiquidButton>
                           <LiquidButton
                             tone="tertiary"
-                            disabled={!canManageCompensation}
+                            disabled={!canUseCompensation}
                             onClick={() => addDish(dish, true)}
                             className="px-3 py-1.5 text-xs"
                           >
@@ -928,7 +957,7 @@ const CashierPosPage: React.FC = () => {
                             </div>
                             <LiquidButton
                               tone="tertiary"
-                              disabled={!canManageCompensation}
+                              disabled={!canUseCompensation}
                               onClick={() => openCompensationEditor(item)}
                               className="px-3 py-1.5 text-xs"
                             >
@@ -1222,6 +1251,11 @@ const CashierPosPage: React.FC = () => {
                   </div>
                 </div>
 
+                {lastCheckout ? (
+                  <p role="status" className="mt-3 text-sm text-text">
+                    Last checkout: {lastCheckout.reference} · Paid {formatPriceWithCurrency(Number(lastCheckout.total), normalizeCurrency(lastCheckout.currency))}
+                  </p>
+                ) : null}
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <LiquidButton tone="tertiary" onClick={holdCurrentOrder} disabled={checkoutBusy || cartItems.length === 0}>
                     Hold (F4)

@@ -1,0 +1,73 @@
+TASK 3 POS COMPENSATION CONTRACT
+
+POST /api/pos/checkout retains ordinary item, VAT, service charge, order discount,
+payment method and tenant pricing behavior. Intent fields now validated:
+  status: normal / problematic / cancelled / compensated
+  compensation_type: none / full_waiver / partial_discount / complimentary
+  compensation_reason: nonempty string (required on adjusted lines; max 80)
+  partial_discount_percentage: 0..100 with at most two decimals (legacy UI form)
+  partial_discount_type + partial_discount_value: percentage or fixed per unit
+  complaint category, operational loss category, note, accounting bucket,
+  satisfaction rating and evidence URL: validated optional metadata.
+
+Original/final prices and claimed approval fields from older clients are ignored.
+Catalog price is authoritative; approver ID/name/role/time come from the current
+user. Unsupported modes, inconsistent normal/adjusted status, missing reasons,
+missing/out-of-range discounts and conflicting discount intent fail before settlement.
+Fixed item discounts cap at the catalog unit price. Retained unit price rounds
+half up in integer cents before quantity multiplication; the existing calculator
+then applies order discount, service charge and VAT. Existing currency/rate
+snapshots are retained; restaurant exchange rates currently support two decimals.
+
+Financial cancellation of a POS item is a zero payable item, consistent with
+existing accounted item adjustments. It still consumes stock/COGS once; it does
+not invoke whole-order cancellation or restock food. Removing an unsold cart line
+remains the way to omit it from checkout. Normal and adjusted lines of the same
+dish can coexist with separate metadata; inventory sums their consumption and
+rolls back the complete checkout on shortage.
+
+Permission matrix preserves existing middleware:
+  Admin: ordinary and compensated POS checkout.
+  Staff: ordinary POS checkout; compensation rejected (403).
+  Chef / stock_manager / accountant: existing dedicated-workflow middleware
+    rejects POS checkout (403). This task does not expand those roles.
+  table_ordering disabled: checkout/capability endpoint hidden (404).
+  Foreign/unpublished dish: rejected (422); no order/invoice/stock side effects.
+
+GET /api/pos/capabilities returns compensation_version=1 and current permission.
+Checkout returns compensation_version=1 plus the existing order.invoice/payment
+shape. New UI disables compensation when that capability is absent/unsupported
+or denied; ordinary checkout remains available. Held adjustments also fail closed
+on an incompatible server. UI submits intent, displays confirmed settled currency/
+total, retains rejected carts, and never announces success after validation failure.
+
+X-Idempotency-Key uses the existing restaurant/user scoped lock and 24-hour cache.
+The POS hash now includes the entire validated financial intent, payment/table/
+notes and metadata. Different intent with the same key returns 409. Successful
+replays return persisted totals and perform no new pricing, inventory or settlement,
+even when catalog prices change or the last stock is sold. Failed creations do not
+reserve the key. UI reuses a key for an unchanged attempt; browser reload/offline
+recovery and guarantees after cache expiry/loss remain Task 9. Production requires
+a shared persistent cache across API workers, as the established implementation does.
+The QA HTTP router now uses only its verified owned runtime's file cache; scenario
+cleanup flushes that cache. PHPUnit's safe default remains array cache.
+
+DEPLOYMENT / COMPATIBILITY
+1. Deploy the API and capability endpoint to every API instance first. Verify the
+   reviewed paired commit and a shared persistent cache. Avoid a mixed old/new API
+   fleet for compensation requests. Older POS clients already send intent and the
+   new server validates it; normal legacy payloads remain supported. Pending keys
+   created by the old hash may return 409 after rollout: inspect the existing sale,
+   rather than automatically issuing a new key and potentially duplicating it.
+2. Deploy the frontend after the API fleet is confirmed. On a uniformly old API,
+   new UI keeps compensation disabled and allows ordinary sales. Capability response
+   checking is not a substitute for a coordinated API rollout/rollback.
+3. No migration, historical invoice rewrite, dependency upgrade or report-ledger
+   conversion is required. Task 4's browser draft/event double counting remains.
+
+ROLLBACK
+Prefer reverting the frontend while retaining the validated API; the older client
+sends compatible intent. If the API must be reverted, first disable adjusted POS
+checkout and verify clients cannot submit compensation during the rollback. The
+old API recreates U1; it is not a safe compensated-sale fallback. Revert only the
+Task 3 commits after review. Preserve existing settled invoices and earlier fixes.

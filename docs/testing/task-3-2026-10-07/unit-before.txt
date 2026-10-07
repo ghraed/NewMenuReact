@@ -1,0 +1,113 @@
+
+> menu-react@0.0.0 test:unit
+> vitest run tests/unit/cashierPosPage.test.tsx
+
+
+ RUN  v3.2.7 /media/raed/Data/from ubuntu/new_menu/Menu_React
+
+ ❯ tests/unit/cashierPosPage.test.tsx (8 tests | 4 failed) 563ms
+   ✓ CashierPosPage > does not show out-of-stock dishes in POS catalog 109ms
+   ✓ CashierPosPage > disables Hold and Checkout when the order is empty 27ms
+   ✓ CashierPosPage > does not show payment method controls 23ms
+   ✓ CashierPosPage > confirms before holding an in-progress order to resume a held order 83ms
+   × CashierPosPage > sends compensation intent and displays the server confirmed payable total 97ms
+     → expected { dish_id: 10, quantity: 1, …(16) } to not have property "final_unit_price"
+   × CashierPosPage > fails closed on an old server while ordinary checkout remains available 23ms
+     → expect(element).toBeDisabled()
+
+Received element is not disabled:
+  <button
+  class="px-3 py-1.5 text-xs"
+  type="button"
+/>
+   × CashierPosPage > retains rejected compensation and reuses the attempt key on an unchanged retry 101ms
+     → expected undefined to deeply equal Any<String>
+   × CashierPosPage > rounds a half cent retained unit price before multiplying quantity 99ms
+     → expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  $0.02
+Received:
+  Total$0.01
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/cashierPosPage.test.tsx > CashierPosPage > sends compensation intent and displays the server confirmed payable total
+AssertionError: expected { dish_id: 10, quantity: 1, …(16) } to not have property "final_unit_price"
+
+- Expected: 
+undefined
+
++ Received: 
+0
+
+ ❯ tests/unit/cashierPosPage.test.tsx:178:34
+    176|     const [payload, key] = mockedOrderService.quickPosCheckout.mock.ca…
+    177|     expect(payload.items[0]).toMatchObject({ status: 'compensated', co…
+    178|     expect(payload.items[0]).not.toHaveProperty('final_unit_price');
+       |                                  ^
+    179|     expect(payload.items[0]).not.toHaveProperty('approved_by_staff_id'…
+    180|     expect(key).toEqual(expect.any(String));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  tests/unit/cashierPosPage.test.tsx > CashierPosPage > fails closed on an old server while ordinary checkout remains available
+Error: expect(element).toBeDisabled()
+
+Received element is not disabled:
+  <button
+  class="px-3 py-1.5 text-xs"
+  type="button"
+/>
+ ❯ tests/unit/cashierPosPage.test.tsx:190:27
+    188|     render(<CashierPosPage />);
+    189|     const complimentary = await screen.findByRole('button', { name: 'c…
+    190|     expect(complimentary).toBeDisabled();
+       |                           ^
+    191|     fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage…
+    192|     expect(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  tests/unit/cashierPosPage.test.tsx > CashierPosPage > retains rejected compensation and reuses the attempt key on an unchanged retry
+AssertionError: expected undefined to deeply equal Any<String>
+
+- Expected: 
+Any<String>
+
++ Received: 
+undefined
+
+ ❯ tests/unit/cashierPosPage.test.tsx:207:66
+    205|     fireEvent.click(screen.getByRole('button', { name: 'Checkout (Ctrl…
+    206|     await waitFor(() => expect(mockedOrderService.quickPosCheckout).to…
+    207|     expect(mockedOrderService.quickPosCheckout.mock.calls[0][1]).toEqu…
+       |                                                                  ^
+    208|     expect(mockedOrderService.quickPosCheckout.mock.calls[1][1]).toBe(…
+    209|     expect(mockedToast.showToast.mock.calls.some(([message]) => messag…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  tests/unit/cashierPosPage.test.tsx > CashierPosPage > rounds a half cent retained unit price before multiplying quantity
+Error: expect(element).toHaveTextContent()
+
+Expected element to have text content:
+  $0.02
+Received:
+  Total$0.01
+ ❯ tests/unit/cashierPosPage.test.tsx:220:53
+    218|     fireEvent.change(screen.getByRole('spinbutton', { name: 'cashierPo…
+    219|     fireEvent.click(screen.getByRole('button', { name: 'Save Compensat…
+    220|     expect(screen.getByText('Total').parentElement).toHaveTextContent(…
+       |                                                     ^
+    221|   });
+    222| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 passed (8)
+   Start at  15:41:26
+   Duration  1.46s (transform 250ms, setup 212ms, collect 178ms, tests 563ms, environment 242ms, prepare 49ms)
+

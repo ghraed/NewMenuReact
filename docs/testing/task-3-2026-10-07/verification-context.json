@@ -1,0 +1,302 @@
+{
+  "Menu_React": {
+    "branch": "fix/task-3-server-pos-compensation",
+    "before": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+    "previous_commits": {
+      "a91b1d03679c2f283fb87d730a7fb73789cd2316": true,
+      "b51d18e94a709daca7de92d559b1c196826c0e10": true,
+      "a5bf769e5514eff337fb129c31c29362ae0c15cf": true
+    }
+  },
+  "Menu_API": {
+    "branch": "fix/task-3-server-pos-compensation",
+    "before": "6484a65c2e5304e8058445c40702c1f04feb9790",
+    "previous_commits": {
+      "99c5a2d853482eb11be1a79f9e917a7f44483995": true,
+      "6484a65c2e5304e8058445c40702c1f04feb9790": true
+    },
+    "task_2_controller_unchanged": true,
+    "after": "d6388a65eb35e59165534d5e173456cdbd311764"
+  },
+  "before_regressions": {
+    "api": {
+      "executed": 20,
+      "failed": 19,
+      "passed": 1,
+      "skipped": 0
+    },
+    "ui": {
+      "executed": 8,
+      "failed": 4,
+      "passed": 4,
+      "skipped": 0
+    },
+    "browser": {
+      "executed": 1,
+      "failed": 1,
+      "passed": 0,
+      "skipped": 0
+    }
+  },
+  "environments": {
+    "run-api-before-precise": {
+      "run_id": "task3_before_precise_20261007",
+      "api": {
+        "branch": "fix/task-3-server-pos-compensation",
+        "commit": "6484a65c2e5304e8058445c40702c1f04feb9790",
+        "working_tree": "?? tests/Feature/PosCheckoutCompensationTest.php"
+      },
+      "react": null,
+      "api_url": "http://127.0.0.1:38315",
+      "frontend_url": null,
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 36715,
+      "runtime": "/tmp/menu-qa-x7aqwivt"
+    },
+    "run-browser-repro-final": {
+      "run_id": "task3_repro_final_20261007",
+      "api": {
+        "branch": "fix/task-3-server-pos-compensation",
+        "commit": "6484a65c2e5304e8058445c40702c1f04feb9790",
+        "working_tree": "?? tests/Feature/PosCheckoutCompensationTest.php"
+      },
+      "react": {
+        "branch": "fix/task-3-server-pos-compensation",
+        "commit": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+        "working_tree": "M .gitignore\n M tests/unit/cashierPosPage.test.tsx\n?? docs/testing/task-3-2026-10-07/\n?? tests/e2e/pos-compensation-checkout.spec.ts"
+      },
+      "api_url": "http://127.0.0.1:34809",
+      "frontend_url": "http://127.0.0.1:45081",
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 43489,
+      "runtime": "/tmp/menu-qa-5bf4s7rf"
+    },
+    "run-verified": {
+      "run_id": "task3_verified_20261007",
+      "api": {
+        "branch": "fix/task-3-server-pos-compensation",
+        "commit": "6484a65c2e5304e8058445c40702c1f04feb9790",
+        "working_tree": "M app/Http/Controllers/OrderController.php\n M routes/api.php\n M scripts/qa/README.md\n M scripts/qa/bootstrap.php\n M scripts/qa/environment.php\n M scripts/qa/fixtures.php\n?? tests/Feature/PosCheckoutCompensationTest.php"
+      },
+      "react": {
+        "branch": "fix/task-3-server-pos-compensation",
+        "commit": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+        "working_tree": "M .gitignore\n M src/pages/CashierPosPage.tsx\n M src/services/orderService.ts\n M src/types/index.ts\n M tests/unit/cashierPosPage.test.tsx\n?? docs/testing/task-3-2026-10-07/\n?? tests/e2e/pos-compensation-checkout.spec.ts"
+      },
+      "api_url": "http://127.0.0.1:36891",
+      "frontend_url": "http://127.0.0.1:35853",
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 45485,
+      "runtime": "/tmp/menu-qa-m8azokdr"
+    }
+  },
+  "final_checks": {
+    "checks": [
+      {
+        "check": "mysql-initialize",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "api-environment",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "api-migrations",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "api-full",
+        "status": "PASS",
+        "exit": 0,
+        "required": true,
+        "tests": 383,
+        "skipped": 0
+      },
+      {
+        "check": "api-build",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "composer-validate",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "api-pint",
+        "status": "FAIL",
+        "exit": 1,
+        "required": false
+      },
+      {
+        "check": "composer-audit",
+        "status": "FAIL",
+        "exit": 1,
+        "required": false
+      },
+      {
+        "check": "api-npm-audit",
+        "status": "FAIL",
+        "exit": 1,
+        "required": false
+      },
+      {
+        "check": "browser-environment",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "browser-migrations",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "react-lint",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "react-unit",
+        "status": "PASS",
+        "exit": 0,
+        "required": true,
+        "tests": 128,
+        "skipped": 0
+      },
+      {
+        "check": "react-build",
+        "status": "PASS",
+        "exit": 0,
+        "required": true
+      },
+      {
+        "check": "react-e2e",
+        "status": "PASS",
+        "exit": 0,
+        "required": true,
+        "tests": 14,
+        "skipped": 0
+      },
+      {
+        "check": "react-npm-audit",
+        "status": "FAIL",
+        "exit": 1,
+        "required": false
+      },
+      {
+        "check": "cleanup",
+        "status": "PASS",
+        "required": true
+      }
+    ],
+    "API": {
+      "tests": 383,
+      "assertions": 4011,
+      "new_regressions": 27
+    },
+    "frontend": {
+      "tests": 128,
+      "new_regressions": 4
+    },
+    "browser": {
+      "tests": 14,
+      "new_scenarios": 6
+    },
+    "automated_skips": 0,
+    "known_failures": [
+      "api-pint",
+      "composer-audit",
+      "api-npm-audit",
+      "react-npm-audit"
+    ],
+    "composer-audit": {
+      "packages": [
+        "laravel/framework",
+        "league/commonmark",
+        "league/flysystem",
+        "paragonie/sodium_compat"
+      ],
+      "vulnerabilities": null
+    },
+    "api-npm-audit": {
+      "packages": [],
+      "vulnerabilities": {
+        "info": 0,
+        "low": 1,
+        "moderate": 0,
+        "high": 6,
+        "critical": 2,
+        "total": 9
+      }
+    },
+    "react-npm-audit": {
+      "packages": [],
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 4,
+        "high": 7,
+        "critical": 2,
+        "total": 13
+      }
+    }
+  },
+  "effective_api": {
+    "run_id": "task3_verified_20261007",
+    "environment": "testing",
+    "url": "http://127.0.0.1:36891",
+    "database": "menu_test_QA_RUN_task3_verified_20261007_suite",
+    "host": "127.0.0.1",
+    "port": 45485,
+    "storage": "/tmp/menu-qa-m8azokdr/storage",
+    "cache": "file",
+    "mail": "array",
+    "broadcast": "null",
+    "queue": "sync"
+  },
+  "effective_browser": {
+    "run_id": "task3_verified_20261007",
+    "environment": "testing",
+    "url": "http://127.0.0.1:36891",
+    "database": "menu_test_QA_RUN_task3_verified_20261007_browser",
+    "host": "127.0.0.1",
+    "port": 45485,
+    "storage": "/tmp/menu-qa-m8azokdr/storage",
+    "cache": "file",
+    "mail": "array",
+    "broadcast": "null",
+    "queue": "sync"
+  },
+  "tested_files_sha256": {
+    "Menu_React": {
+      "src/pages/CashierPosPage.tsx": "c3928cbacdfc48e8cc3247788e1ec7dca31f2ceecbc118662fde99a0ade4d645",
+      "src/services/orderService.ts": "3eb1c9d760081bf075c4d5605a5c2ee3bfbd671033d6b17c8cdc67febb1e982b",
+      "src/types/index.ts": "f03e57b11aa40d3314f7d7bbbede92191106f379ca63d8552138bb63611aef75",
+      "tests/unit/cashierPosPage.test.tsx": "174d45203dca0b792f5626fc8bff326c5e9bd53480a8b55623bc671b4a75c7a7",
+      "tests/e2e/pos-compensation-checkout.spec.ts": "862b4e63b341b8a4de7194c7bdbacf0ae585ee5343134e0bbac36d18f6cd5bab"
+    },
+    "Menu_API": {
+      "app/Http/Controllers/OrderController.php": "eb6c263cfeda3069b8cd4bb0440bd65078d0f7823ccd895030eedbdd27a5a8a3",
+      "routes/api.php": "6d955a065dc5728fe0cd280a9a0ae750ac01f697f89732b0c6f0c481279adda6",
+      "scripts/qa/README.md": "49c66aefa138926f46de41d0763a6d63a208a856b48a2f401dbfb5d113991a88",
+      "scripts/qa/bootstrap.php": "58f38ae7b8fe1bd1b55e21750c8ee5c30f84d07b11c7ae768a2c84af93f0fb95",
+      "scripts/qa/environment.php": "ae40937bbd128d82919ac155587c808ddb323fcf76afcf4ae8bf98d08fd2734a",
+      "scripts/qa/fixtures.php": "62cfbcb91816aa851d6e03cfbad047a45664618ce0a022998a090bc34ea89802",
+      "tests/Feature/PosCheckoutCompensationTest.php": "6d64e09f553d460f21a6efc82b4a8a2e96826ef084aaff19dc9967c1e25ee0b7"
+    }
+  }
+}

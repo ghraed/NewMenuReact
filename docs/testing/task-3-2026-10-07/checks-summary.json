@@ -1,0 +1,162 @@
+{
+  "checks": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 383,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "composer-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "browser-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-lint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-unit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 128,
+      "skipped": 0
+    },
+    {
+      "check": "react-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-e2e",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 14,
+      "skipped": 0
+    },
+    {
+      "check": "react-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "API": {
+    "tests": 383,
+    "assertions": 4011,
+    "new_regressions": 27
+  },
+  "frontend": {
+    "tests": 128,
+    "new_regressions": 4
+  },
+  "browser": {
+    "tests": 14,
+    "new_scenarios": 6
+  },
+  "automated_skips": 0,
+  "known_failures": [
+    "api-pint",
+    "composer-audit",
+    "api-npm-audit",
+    "react-npm-audit"
+  ],
+  "composer-audit": {
+    "packages": [
+      "laravel/framework",
+      "league/commonmark",
+      "league/flysystem",
+      "paragonie/sodium_compat"
+    ],
+    "vulnerabilities": null
+  },
+  "api-npm-audit": {
+    "packages": [],
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 0,
+      "high": 6,
+      "critical": 2,
+      "total": 9
+    }
+  },
+  "react-npm-audit": {
+    "packages": [],
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 4,
+      "high": 7,
+      "critical": 2,
+      "total": 13
+    }
+  }
+}

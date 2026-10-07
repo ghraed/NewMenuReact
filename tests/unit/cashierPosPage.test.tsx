@@ -5,6 +5,7 @@ import CashierPosPage from '../../src/pages/CashierPosPage';
 const mockedOrderService = vi.hoisted(() => ({
   fetchGuestTables: vi.fn(),
   fetchPublishedDishes: vi.fn(),
+  fetchPosCapabilities: vi.fn(),
   quickPosCheckout: vi.fn(),
 }));
 
@@ -43,6 +44,7 @@ vi.mock('../../src/contexts/useAuth', () => ({
 vi.mock('../../src/services/orderService', () => ({
   fetchGuestTables: mockedOrderService.fetchGuestTables,
   fetchPublishedDishes: mockedOrderService.fetchPublishedDishes,
+  fetchPosCapabilities: mockedOrderService.fetchPosCapabilities,
   quickPosCheckout: mockedOrderService.quickPosCheckout,
 }));
 
@@ -75,6 +77,7 @@ vi.mock('react-i18next', () => ({
 describe('CashierPosPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedOrderService.fetchPosCapabilities.mockResolvedValue({ compensation_version: 1, can_compensate: true });
     mockedOrderService.fetchGuestTables.mockResolvedValue({
       restaurant: { id: 1, name: 'Alpha', slug: 'alpha' },
       tables: [],
@@ -155,4 +158,66 @@ describe('CashierPosPage', () => {
       'secondary',
     );
   });
+  const dish = { id: 10, name: 'QA_RUN_compensation', price: 10, category: 'Food', is_orderable: true, is_out_of_stock: false };
+
+  async function saveComplimentary() {
+    fireEvent.click(await screen.findByRole('button', { name: 'cashierPosPage.complimentary', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.editIssueCompensation' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Compensation' }));
+  }
+
+  it('sends compensation intent and displays the server confirmed payable total', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([dish]);
+    mockedOrderService.quickPosCheckout.mockResolvedValue({ compensation_version: 1, order: { invoice_number: 'QA_RUN_invoice', invoice: { total: '0.00', currency: 'USD' } }, payment: { total: '0.00' } });
+    render(<CashierPosPage />);
+    await saveComplimentary();
+    fireEvent.click(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' }));
+    await waitFor(() => expect(mockedOrderService.quickPosCheckout).toHaveBeenCalledTimes(1));
+    const [payload, key] = mockedOrderService.quickPosCheckout.mock.calls[0];
+    expect(payload.items[0]).toMatchObject({ status: 'compensated', compensation_type: 'complimentary' });
+    expect(payload.items[0]).not.toHaveProperty('final_unit_price');
+    expect(payload.items[0]).not.toHaveProperty('approved_by_staff_id');
+    expect(key).toEqual(expect.any(String));
+    expect(await screen.findByRole('status')).toHaveTextContent('QA_RUN_invoice · Paid $0.00');
+    expect(mockedToast.showToast).toHaveBeenCalledWith('Checkout complete: QA_RUN_invoice. Paid $0.00.', 'secondary', 4500);
+  });
+
+  it('fails closed on an old server while ordinary checkout remains available', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([dish]);
+    mockedOrderService.fetchPosCapabilities.mockRejectedValue({ response: { status: 404 } });
+    render(<CashierPosPage />);
+    const complimentary = await screen.findByRole('button', { name: 'cashierPosPage.complimentary', exact: true });
+    expect(complimentary).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.add' }));
+    expect(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'cashierPosPage.editIssueCompensation' })).toBeDisabled();
+  });
+
+  it('retains rejected compensation and reuses the attempt key on an unchanged retry', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([dish]);
+    mockedOrderService.quickPosCheckout.mockRejectedValue({ response: { status: 422, data: { message: 'Invalid compensation intent.' } } });
+    render(<CashierPosPage />);
+    await saveComplimentary();
+    fireEvent.click(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' }));
+    await waitFor(() => expect(mockedToast.showToast).toHaveBeenCalledWith('Invalid compensation intent.', 'secondary', 4500));
+    expect(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' })).toBeEnabled();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Checkout (Ctrl+Enter)' }));
+    await waitFor(() => expect(mockedOrderService.quickPosCheckout).toHaveBeenCalledTimes(2));
+    expect(mockedOrderService.quickPosCheckout.mock.calls[0][1]).toEqual(expect.any(String));
+    expect(mockedOrderService.quickPosCheckout.mock.calls[1][1]).toBe(mockedOrderService.quickPosCheckout.mock.calls[0][1]);
+    expect(mockedToast.showToast.mock.calls.some(([message]) => message.startsWith('Checkout complete:'))).toBe(false);
+  });
+
+  it('rounds a half cent retained unit price before multiplying quantity', async () => {
+    mockedOrderService.fetchPublishedDishes.mockResolvedValue([{ ...dish, price: 0.03 }]);
+    render(<CashierPosPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'cashierPosPage.complimentary', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'cashierPosPage.editIssueCompensation' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'cashierPosPage.compensationType' }), { target: { value: 'partial_discount' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'cashierPosPage.partialDiscount' }), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save Compensation' }));
+    expect(screen.getByText('Total').parentElement).toHaveTextContent('$0.02');
+  });
+
 });

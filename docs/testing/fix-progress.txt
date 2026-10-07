@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0, 1 and 2 are complete locally.
+no missing history was assumed. Only Tasks 0, 1, 2 and 3 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -58,7 +58,37 @@ TASK 2 / U2 — COMPLETE LOCAL CUMULATIVE REFUND SAFETY
   Report: docs/testing/task-2-2026-10-07.txt
   Evidence: docs/testing/task-2-2026-10-07/ (generated run-* folders retained locally).
 
-NEXT: TASK 3 — NOT STARTED; await review and separate selected execution.
-Tasks 3-10 are NOT IMPLEMENTED by these changes. U1/U4 financial fixes, release
-image/operations verification and remaining audit risks still block launch.
+TASK 3 / U1 — COMPLETE LOCAL SERVER-VALIDATED POS COMPENSATION
+  Branch: fix/task-3-server-pos-compensation (both repositories).
+  Frontend base: a5bf769e5514eff337fb129c31c29362ae0c15cf
+  API base: 6484a65c2e5304e8058445c40702c1f04feb9790
+  API final: d6388a65eb35e59165534d5e173456cdbd311764
+  Final paired commits: docs/testing/task-3-2026-10-07/run-ready/completion-commits.json.
+  Tasks 0-2 ancestry verified in both repositories; previous fixes/tests preserved.
+  Before: real UI complimentary total $0.00, HTTP 201 settled invoice/payment $10.00;
+  metadata ignored, unauthorized/invalid intent accepted and retry hash incomplete.
+  After: server catalog/cents pricing and validation; authenticated approval fields;
+  atomic item/order/invoice/stock persistence; exact waiver/partial/gift/cancel/mixed
+  totals. Capability-aware UI submits intent and displays confirmed paid amount.
+  Complete financial retry identity and persisted totals; real HTTP retries consume
+  stock once. Failed checkout retains the cart and does not announce success.
+  Existing cancellation/consumed-food semantics and role/feature restrictions kept;
+  accountant/chef/stock-manager POS restrictions not expanded. No historical rewrite.
+  Verified: 383 API tests / 4,011 assertions (27 new); 128 frontend unit tests;
+  14 real/mocked browser scenarios (6 new), including Task 1 isolation; warning-free
+  lint, both builds, Composer validation; zero automated skips. Five POS browser
+  cases verify HTTP 200 replay, invoice/PDF and unchanged stock; sixth covers 422.
+  Owned QA HTTP cache persists across requests; fixture and disposable runtime
+  cleanup passed. Hosted CI and physical paper printer remain unexecuted.
+  Remaining: four existing formatter files, all three dependency audit failures,
+  large frontend bundle warning and Task 4's draft/report event double counting.
+  Compatibility: deploy API to complete fleet first, then frontend; retain validated
+  API during frontend rollback. Details: contract-and-limitations.txt.
+  Report: docs/testing/task-3-2026-10-07.txt
+  Evidence: docs/testing/task-3-2026-10-07/ (generated run-* folders retained locally).
+
+NEXT: TASK 4 — NOT STARTED; await review and separate selected execution.
+Tasks 4-10 are NOT IMPLEMENTED by these changes. U4 reporting, release image/operations
+verification and remaining audit risks still block launch.
 No Task 2 push, merge, deployment, production access or settled-record rewrite.
+No Task 3 push, merge, deployment, production access or settled-record rewrite.

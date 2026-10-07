@@ -570,6 +570,7 @@ export interface PosCheckoutRequest {
 }
 
 export interface PosCheckoutResponse {
+  compensation_version?: number;
   message: string;
   order: OrderRecord;
   payment: {
@@ -609,6 +610,7 @@ export interface PosComplaintAdjustment {
 }
 
 export interface OrderInvoiceSummary {
+  currency?: string;
   subtotal: string;
   discount_type: DiscountType | null;
   discount_value: string;

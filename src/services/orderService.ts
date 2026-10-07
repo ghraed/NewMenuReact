@@ -643,9 +643,14 @@ export const saveAccountingOrderDraft = async (
   return response.data;
 };
 
-export const quickPosCheckout = async (payload: PosCheckoutRequest): Promise<PosCheckoutResponse> => {
+export const fetchPosCapabilities = async (): Promise<{ compensation_version: number; can_compensate: boolean }> => {
+  const response = await api.get<{ compensation_version: number; can_compensate: boolean }>('/pos/capabilities');
+  return response.data;
+};
+
+export const quickPosCheckout = async (payload: PosCheckoutRequest, idempotencyKey?: string): Promise<PosCheckoutResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload);
+  const response = await api.post<PosCheckoutResponse>('/pos/checkout', payload, idempotencyKey ? { headers: { 'X-Idempotency-Key': idempotencyKey } } : undefined);
   return response.data;
 };
 

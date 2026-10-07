@@ -1,0 +1,152 @@
+TASK 3 COMPLETION — SERVER-VALIDATED POS COMPENSATION / AUDIT U1 (P0)
+7 October 2026. Complete local implementation and verification; hosted CI unexecuted.
+
+Selected task / audit IDs:
+  TASK 3 ONLY / U1. No implementation of Tasks 4-10.
+
+Branch and before/after commits for each changed repository:
+  Both: fix/task-3-server-pos-compensation
+  Menu_React before: a5bf769e5514eff337fb129c31c29362ae0c15cf
+  Menu_API before:   6484a65c2e5304e8058445c40702c1f04feb9790
+  Menu_API after: d6388a65eb35e59165534d5e173456cdbd311764
+  Frontend after / final pair: task-3-2026-10-07/run-ready/completion-commits.json.
+  Both initial working trees were clean. Git ancestry verified all recorded Tasks
+  0-2 commits before editing. Task 2's adjustment controller is byte-for-byte
+  unchanged. Existing tests/assertions and prior audit artifacts are preserved.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Final run: task3_verified_20261007
+  API: http://127.0.0.1:36891
+  Frontend: http://127.0.0.1:35853.
+  APP_ENV=testing; MySQL 127.0.0.1:45485, new owned MySQL instance.
+  Suite:   menu_test_QA_RUN_task3_verified_20261007_suite
+  Browser: menu_test_QA_RUN_task3_verified_20261007_browser
+  Storage: owned /tmp/menu-qa-m8azokdr/storage; removed on runner cleanup.
+  Mail=array, broadcast=null, queue=sync; payment/SMS/AI/push/external credentials
+  disabled by the guarded runner and testing safety provider. Browser external
+  requests blocked; no production/default Compose environment was run.
+  QA HTTP cache=file under owned storage; PHPUnit default cache=array.
+  Synthetic QA_RUN_<run_id> fixtures, unique scenarios, fixture reset/cleanup.
+  Core commerce/finance/inventory flags enabled; disabled table_ordering rejects
+  checkout/capabilities with the established 404. Exact browser flags retained.
+
+Failing regression before the fix:
+  Affected role: tenant admin/cashier; deterministic P0 wrong settlement.
+  1. Enable table_ordering and ingredient_stock_deduction on the disposable tenant.
+  2. Create a published packaged item at $10, stock 10.
+  3. Log in as tenant admin; visit /staff/pos; select Complimentary.
+  4. Open Edit Issue / Compensation; Save Compensation; observe Total $0.00.
+  5. Checkout; inspect POST /api/pos/checkout and finance invoice.
+  Expected: approved item $0.00 in UI/order/payment/invoice/receipt, valid metadata.
+  Actual: HTTP 201; UI $0.00, order.invoice.total/payment.total $10.00;
+  item status normal and compensation metadata lost. No browser exception needed
+  to reproduce it. Screenshot, trace and sanitized response retained.
+  Corrected focused API regressions: 19 FAIL / 1 PASS / zero skips before the fix.
+  UI: 4 new regressions FAIL, 4 existing PASS. Original component restored only
+  for this disposable unit reproduction; fixed source restored and hash recorded.
+  Browser: one precise real complimentary checkout FAIL ($10 actual / $0 expected).
+  Early attempts contained test fixture/locator mistakes (response nesting, header,
+  feature flags and role expectations); they are retained but are not product bugs
+  or passing evidence. An initial sandbox socket restriction was resolved with the
+  authorized isolated runner; no production test was attempted.
+
+Behavior after the fix:
+  Server validates intent against catalog prices, calculates cents, checks the
+  authenticated role, derives approver/time and persists metadata atomically with
+  order, stock and paid finance invoice. Client prices/claimed approvals ignored.
+  Complimentary/full-waiver/cancelled lines yield zero; percentage/fixed item
+  discounts and mixed carts have exact totals with existing order-discount/VAT/
+  service-charge/currency rules. Same dish can have normal and adjusted lines.
+  Forbidden/invalid compensation cannot create orders, invoices or stock effects.
+  Existing financial cancellation/wastage semantics retained: consumed food stays
+  consumed. Entire checkout rolls back on shortage, including mixed packaged lines.
+  Retries use complete financial intent, return persisted settlement totals and
+  consume stock once, including catalog changes/last-stock exhaustion; changes to
+  intent or order discount with the same key return 409.
+  UI negotiates compensation_version=1, submits intent, shows server-confirmed
+  paid total/currency, retains failed carts and reuses unchanged-attempt keys.
+  All five browser checkout cases verify actual HTTP replay (200, same order,
+  same payment, unchanged stock), invoice/PDF and confirmed amount. A sixth real
+  browser case consumes last stock through another sale, then verifies the
+  compensation failure (422) retains the cart and does not announce success.
+
+Changed files and reason:
+  Menu_API:
+    app/Http/Controllers/OrderController.php — validated compensation, catalog/cents
+      calculation, atomic persistence, complete POS retry identity/persisted replay.
+    routes/api.php — capability endpoint with existing role/feature boundaries.
+    tests/Feature/PosCheckoutCompensationTest.php — 27 regressions: money, roles,
+      forged approvals/prices, metadata, retry, tenant/flag denial, stock and PDFs.
+    scripts/qa/bootstrap.php, environment.php, fixtures.php, README.md — owned
+      persistent HTTP cache/effective reporting/cleanup for real retry verification.
+  Menu_React:
+    src/pages/CashierPosPage.tsx — capability/intent, unit rounding, retry key,
+      failure retention, tenant currency precedence, confirmed payment display.
+    src/services/orderService.ts, src/types/index.ts — capability/response contract
+      and existing X-Idempotency-Key request header.
+    tests/unit/cashierPosPage.test.tsx — four new behavior regressions; old tests kept.
+    tests/e2e/pos-compensation-checkout.spec.ts — six real API-backed scenarios.
+    .gitignore, docs/testing/task-3-2026-10-07*, fix-progress.txt — evidence/report.
+  No migrations, settled-record rewrites, dependency/lockfile upgrades, permission
+  expansion, cache erasure of user work, unrelated redesign or refactoring.
+
+Compatibility/deployment order:
+  API to the complete fleet first, then frontend. Old clients' supported intent
+  works on new API; normal legacy payloads preserved. New frontend against a
+  uniformly old API disables compensation. Existing accountant/chef/stock-manager
+  POS restrictions remain. Avoid a mixed old/new API fleet for compensation.
+  Review old in-flight idempotency conflicts; never auto-create a new attempt after
+  an unknown settled result. Full contract: contract-and-limitations.txt.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS: effective environment, fresh migrations, 383 API tests / 4,011 assertions
+    (27 new), 128 frontend unit tests (4 new), 14 Chrome browser scenarios (6 new),
+    warning-free frontend lint, both production builds, Composer validation,
+    full selected checkout/PDF/report/stock checks, cleanup. Zero automated skips.
+  FAIL (known baseline): four API formatter files (InvoiceController.php,
+    PosComplaintAdjustment.php, PosComplaintAdjustmentGift.php and the existing
+    complaint-adjustments migration); Composer and both npm dependency audits.
+    No dependencies or existing failing formatting files modified.
+  BLOCKED: none of the selected local functional gates after verification.
+  SKIPPED/unexecuted: hosted CI/branch protection, physical paper printer;
+    other browser engines and deployed container/PDF runtime remain later tasks.
+  NOT IMPLEMENTED: Tasks 4-10, including canonical compensation reporting (U4).
+  Builds retain the established large frontend bundle warning; builds alone are
+    not evidence of runtime correctness. Detailed check/audit snapshot retained.
+
+Evidence locations:
+  docs/testing/task-3-2026-10-07/
+    before-pos-complimentary-response.json / before-...png — original financial bug.
+    unit-before.txt / ui-reproduction-context.json — real unit regression before fix.
+    regression-summary.json / verification-context.json — counts/ancestry/context.
+    contract-and-limitations.txt — pricing, permissions, compatibility and rollback.
+    run-api-before-precise/ — focused failing API JUnit/log and environment.
+    run-browser-repro-final/ — precise failing browser screenshot/trace/response.
+    run-verified/ — full JUnit/logs, actual responses, concurrency evidence,
+      mode screenshots, rejected cart screenshot, audits and cleanup.
+  Generated run-* folders retained locally and ignored in Git. Sanitized summaries
+  and selected before/after evidence retained as reviewable committed artifacts.
+
+Known baseline failures and remaining risks:
+  Existing four API formatter files; npm/Composer dependency audits; large frontend
+  entry warning. Hosted CI/branch protection and production-image PDF/operations
+  verification remain unexecuted by this local task. Task 4's draft/event financial
+  double-counting remains; no canonical reporting migration was attempted.
+  API supports fixed item discount intent; existing POS UI offers percentage only.
+  Browser coverage uses installed Google Chrome; physical paper printer not tested.
+  Existing 24-hour shared persistent-cache idempotency contract retained. Cache loss/
+  expiry, browser reload/offline recovery and broader concurrency remain Task 9.
+  Historical mispriced invoices and excess refunds are not retroactively changed.
+  These passing local checks are not market-launch approval.
+
+Rollback procedure:
+  Prefer frontend revert with validated API retained (old client sends compatible
+  intent). Before reverting API, disable compensation checkout and verify clients
+  cannot submit it; old API recreates U1. Revert only selected Task 3 commits after
+  review. Preserve settled data and all prior fixes/tests. No schema rollback.
+
+Ready for next task:
+  Yes: all selected local functional gates and isolated cleanup passed; previous
+  fixes remain green. Task 4 requires a separate selected execution. No automatic
+  advancement, push, merge, deployment or production access. Launch remains blocked
+  by the roadmap's unresolved reporting/security/release/operational requirements.
