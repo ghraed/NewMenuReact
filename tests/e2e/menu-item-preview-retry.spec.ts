@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../setup/qaBrowser';
 
 test('retrying a preview failure creates one complete menu item', async ({ page, context }) => {
-  const name = `QA_RUN_20261006_PreviewRetry_${Date.now()}`;
+  const name = `QA_RUN_${process.env.QA_RUN_ID}_PreviewRetry_${Date.now()}`;
   const image = await readFile(resolve(process.cwd(), 'public/pwa-192.png'));
   const requests: string[] = [];
   let attempts = 0;
@@ -28,9 +28,9 @@ test('retrying a preview failure creates one complete menu item', async ({ page,
 
   await page.goto('/admin/login');
   expect(new URL(page.url()).hostname).toMatch(/^(127\.0\.0\.1|localhost|.*\.localhost)$/);
-  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL || 'test@example.com');
-  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD || 'password');
-  await Promise.all([page.waitForURL('**/admin/dashboard'), page.getByRole('button', { name: /login/i }).click()]);
+  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL!);
+  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD!);
+  await Promise.all([expect(page).toHaveURL(/\/admin\/dashboard$/), page.getByRole('button', { name: /login/i }).click()]);
   await page.goto('/admin/dishes/create');
   await page.getByRole('button', { name: 'Select Packaged Drink' }).click();
   await page.locator('select[name="category"]').selectOption('Drinks');
@@ -44,7 +44,7 @@ test('retrying a preview failure creates one complete menu item', async ({ page,
   await expect(page.getByPlaceholder('Pepsi / Coca-Cola')).toHaveValue(name);
 
   await Promise.all([
-    page.waitForURL('**/admin/dashboard'),
+    expect(page).toHaveURL(/\/admin\/dashboard$/),
     page.getByRole('button', { name: 'Create Menu Item', exact: true }).click(),
   ]);
   expect(requests).toEqual(['/api/dishes', '/api/dishes']);

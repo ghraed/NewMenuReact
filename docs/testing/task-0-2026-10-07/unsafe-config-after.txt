@@ -1,0 +1,15 @@
+
+> menu-react@0.0.0 test:e2e
+> playwright test --list
+
+Error: PLAYWRIGHT_BASE_URL must be an explicit HTTP loopback origin with a port.
+    at validateQaBrowserEnvironment (file:///media/raed/Data/from%20ubuntu/new_menu/Menu_React/tests/setup/qaSafety.ts:10:13)
+    at file:///media/raed/Data/from%20ubuntu/new_menu/Menu_React/playwright.config.ts:4:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)
+    at requireOrImport (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/transform/transform.js:216:12)
+    at loadUserConfig (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/common/configLoader.js:107:46)
+    at loadConfig (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/common/configLoader.js:119:22)
+    at loadConfigFromFile (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/common/configLoader.js:331:10)
+    at runTests (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/testActions.js:51:18)
+    at i.<anonymous> (/media/raed/Data/from ubuntu/new_menu/Menu_React/node_modules/playwright/lib/program.js:56:7)

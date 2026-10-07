@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../setup/qaBrowser';
 
 test.describe('Guest order lifecycle', () => {
   test('guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state', async ({ page }) => {

@@ -73,3 +73,12 @@ export default defineConfig([
   },
 ])
 ```
+# Project QA
+
+From the sibling `Menu_API` directory, run the paired disposable baseline:
+
+```sh
+python3 scripts/qa/run.py --react-root ../Menu_React --run-id QA_20261007_example --evidence /tmp/menu-evidence-QA_20261007_example
+```
+
+Use a new run ID and evidence directory each time. See [QA setup](../Menu_API/scripts/qa/README.md) for prerequisites, safety checks, actual scripts, fixtures, CI and cleanup. Direct browser runs require an explicit verified QA runtime; shared default accounts are no longer used. The [Task 0 outcome](docs/testing/task-0-2026-10-07.txt) separates passing checks from unresolved release risks.

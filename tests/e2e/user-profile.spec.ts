@@ -1,9 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../setup/qaBrowser';
 
 test('profile changes persist after reload and the new password works', async ({ page }) => {
-  const email = process.env.PLAYWRIGHT_PROFILE_EMAIL || 'test@example.com';
-  const password = process.env.PLAYWRIGHT_PROFILE_PASSWORD || 'password';
-  const name = `QA_RUN_20261006_Profile_${Date.now()}`;
+  const email = process.env.PLAYWRIGHT_PROFILE_EMAIL!;
+  const password = process.env.PLAYWRIGHT_PROFILE_PASSWORD!;
+  const name = `QA_RUN_${process.env.QA_RUN_ID}_Profile_${Date.now()}`;
   const phone = '+15550001009';
   const newPassword = ` QA_RUN_password_${Date.now()} `;
 
@@ -12,7 +12,7 @@ test('profile changes persist after reload and the new password works', async ({
   await page.getByLabel('Email or phone').fill(email);
   await page.getByLabel('Password').fill(password);
   await Promise.all([
-    page.waitForURL('**/admin/dashboard'),
+    expect(page).toHaveURL(/\/admin\/dashboard$/),
     page.getByRole('button', { name: /login/i }).click(),
   ]);
 
@@ -51,7 +51,7 @@ test('profile changes persist after reload and the new password works', async ({
 
   await page.getByLabel('Password').fill(newPassword);
   await Promise.all([
-    page.waitForURL('**/admin/dashboard'),
+    expect(page).toHaveURL(/\/admin\/dashboard$/),
     page.getByRole('button', { name: /login/i }).click(),
   ]);
   await page.goto('/admin/user-profile');

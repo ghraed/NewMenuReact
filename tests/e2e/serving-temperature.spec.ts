@@ -1,15 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../setup/qaBrowser';
 
 test('packaged drink temperature survives creation, editing, clearing, and reload', async ({ page }) => {
-  const name = `QA_RUN_20261006_Temperature_${Date.now()}`;
+  const name = `QA_RUN_${process.env.QA_RUN_ID}_Temperature_${Date.now()}`;
   page.on('dialog', (dialog) => dialog.accept());
   await page.goto('/admin/login');
   expect(new URL(page.url()).hostname).toMatch(/^(127\.0\.0\.1|localhost|.*\.localhost)$/);
-  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL || 'test@example.com');
-  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD || 'password');
-  await Promise.all([page.waitForURL('**/admin/dashboard'), page.getByRole('button', { name: /login/i }).click()]);
+  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL!);
+  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD!);
+  await Promise.all([expect(page).toHaveURL(/\/admin\/dashboard$/), page.getByRole('button', { name: /login/i }).click()]);
   await page.goto('/admin/dishes/create');
   await page.getByRole('button', { name: 'Select Packaged Drink' }).click();
   await page.locator('select[name="category"]').selectOption('Drinks');
@@ -25,7 +25,7 @@ test('packaged drink temperature survives creation, editing, clearing, and reloa
   expect(created.status()).toBe(201);
   const dish = await created.json();
   expect(dish.serving_temperature).toBe('cold');
-  await page.waitForURL('**/admin/dashboard');
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
   const editUrl = `/admin/dishes/${dish.id}/edit`;
   await page.goto(editUrl);
   await expect(page.locator('select[name="serving_temperature"]')).toHaveValue('cold');
@@ -38,7 +38,7 @@ test('packaged drink temperature survives creation, editing, clearing, and reloa
     ]);
     expect(saved.status()).toBe(200);
     expect((await saved.json()).serving_temperature).toBe(value || null);
-    await page.waitForURL('**/admin/dashboard');
+    await expect(page).toHaveURL(/\/admin\/dashboard$/);
     await page.goto(editUrl);
     await expect(page.locator('select[name="serving_temperature"]')).toHaveValue(value);
     await page.reload();

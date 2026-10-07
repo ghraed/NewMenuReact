@@ -1,15 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../setup/qaBrowser';
 
 test.describe('Room plan editor + reservations', () => {
   test('admin creates plan, saves layout, and public reservation reflects availability', async ({ page }) => {
-    const planName = `E2E Main Plan ${Date.now()}`;
+    const planName = `QA_RUN_${process.env.QA_RUN_ID}_Plan_${Date.now()}`;
 
     await page.goto('/admin/login');
 
-    await page.getByLabel('Email or phone').fill('test@example.com');
-    await page.getByLabel('Password').fill('password');
+    await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL!);
+    await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD!);
     await Promise.all([
-      page.waitForURL('**/admin/dashboard'),
+      expect(page).toHaveURL(/\/admin\/dashboard$/),
       page.getByRole('button', { name: /login/i }).click(),
     ]);
 
@@ -35,7 +35,7 @@ test.describe('Room plan editor + reservations', () => {
     await expect(page.getByText('Book A Table')).toBeVisible();
     await page.getByRole('combobox').first().selectOption({ label: planName });
     await page.getByRole('button', { name: /free$/i }).click();
-    await page.getByPlaceholder('e.g. Maya Hassan').fill('E2E Guest');
+    await page.getByPlaceholder('e.g. Maya Hassan').fill(`QA_RUN_${process.env.QA_RUN_ID}_Guest`);
     await page.getByPlaceholder('e.g. +961 70 000 000').fill('+96170000000');
 
     await page.getByRole('button', { name: /Reserve Selected Table/i }).click();

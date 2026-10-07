@@ -1,5 +1,7 @@
 # Test Environment
 
+Current setup (7 October 2026): use the [disposable Task 0 runner](../../../Menu_API/scripts/qa/README.md) and [Task 0 outcome](task-0-2026-10-07.txt). The commands and limitations below describe the older July setup; do not use its shared schema/grant/reset instructions for the current roadmap baseline.
+
 Scope: backend test infrastructure for `Menu_API`, documented from the `Menu_React` workspace on July 24, 2026.
 
 ## What Was Configured

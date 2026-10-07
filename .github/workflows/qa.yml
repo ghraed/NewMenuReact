@@ -1,0 +1,104 @@
+name: Frontend QA
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      api_ref:
+        description: Reviewed companion API commit or branch
+        required: false
+        default: main
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VITE_API_URL: /api
+      VITE_REVERB_APP_KEY: ''
+      VITE_PUSHER_APP_KEY: ''
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit -- --reporter=default --reporter=junit --outputFile=qa-results/unit-junit.xml
+      - run: npm run build -- --mode qa
+      - name: Dependency audit (tracked failure, not a passing release gate)
+        id: audit
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm audit --json > qa-results/npm-audit.json
+      - name: Record audit outcome
+        if: always()
+        env:
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+        run: echo "Dependency audit outcome=${AUDIT_OUTCOME}; unresolved findings remain in Task 7." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: frontend-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: qa-results
+          retention-days: 14
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Menu_React
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: ghraed/NewMenuAPI
+          ref: ${{ inputs.api_ref || vars.MENU_QA_API_REF || 'main' }}
+          token: ${{ secrets.MENU_QA_READ_TOKEN || github.token }}
+          path: Menu_API
+          persist-credentials: false
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, mbstring, bcmath, gd, zip, pcntl
+          tools: composer:v2
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            Menu_React/package-lock.json
+            Menu_API/package-lock.json
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Install disposable QA prerequisites
+        env:
+          QA_CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-server poppler-utils fonts-noto-core
+          sudo ln -sf "$QA_CHROME_PATH" /usr/local/bin/google-chrome
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: Menu_API
+      - run: npm ci
+        working-directory: Menu_API
+      - run: npm ci
+        working-directory: Menu_React
+      - name: Run isolated API-backed browser regressions
+        working-directory: Menu_API
+        run: python3 scripts/qa/run.py --browser-only --react-root ../Menu_React --run-id "ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}" --evidence "$RUNNER_TEMP/menu-browser-evidence"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: browser-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/menu-browser-evidence
+          retention-days: 14

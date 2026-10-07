@@ -1,0 +1,159 @@
+TASK 0 COMPLETION — REPEATABLE QA BASELINE AND INITIAL AUTOMATED GATES
+7 October 2026
+
+Selected task / audit IDs:
+  TASK 0 ONLY; foundation for audit U9 and later fixes.
+  Outcome: local disposable baseline verified; CI workflow definitions added.
+  No Task 1-10 business fixes, dependency upgrades, push, merge or deployment.
+
+Branch and before/after commits for each changed repository:
+  Both: qa/task-0-repeatable-baseline
+  Menu_React before: 7da85a80f23f3e0ac09e5b21c8b845b6f37c9261
+  Menu_API before:   8ebb457ac976c7749a66d05de54906b5e8e4c1a4
+  Both started clean. Final local commit IDs are recorded in
+  docs/testing/task-0-2026-10-07/run-verified/completion-commits.json
+  and the final response. The verification snapshot records the original HEADs
+  plus the implementation working trees; source content was not changed afterward.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Verified full run: 20261007_task0_verified
+  Frontend: http://127.0.0.1:40929
+  QA API:   http://127.0.0.1:53447
+  APP_ENV=testing; MySQL=127.0.0.1:53471
+  Suite DB:   menu_test_QA_RUN_20261007_task0_verified_suite
+  Browser DB: menu_test_QA_RUN_20261007_task0_verified_browser
+  Runtime: /tmp/menu-qa-052nv3sd
+  Effective isolated storage, safe mail/queue/broadcast settings verified before
+  migrations. New MySQL data directory, schema-limited synthetic user and private
+  socket; no normal restaurantdb, production Compose or live application accessed.
+  All owned servers, schemas and storage were removed after verification.
+  These URLs are evidence of the completed run, not currently running servers.
+
+Failing regression before the fix:
+  PLAYWRIGHT_BASE_URL=https://production.invalid npm run test:e2e -- --list
+  exited 0 and collected six tests without rejecting the remote target.
+  This used a reserved .invalid address and list-only collection, with no browser
+  launched or production request. Browser fixtures relied on shared/default login
+  data, and one scenario hardcoded test@example.com. No CI definitions existed.
+
+Behavior after the fix:
+  The same prohibited-target collection exits nonzero before browser/fixture work.
+  Four unit cases cover valid targets, remote/credential-bearing/path URLs,
+  production/missing identity, normal or mismatched DBs and remote DB hosts.
+  API entrypoint checks also reject simulated production configuration and the
+  normal database before application/database bootstrap.
+  The documented runner initializes fresh owned infrastructure, verifies effective
+  Laravel configuration, builds the QA frontend and runs the actual project scripts.
+  Each browser test verifies the API behind both origins, receives an independent
+  synthetic account and fresh schema, then clears its schema/uploaded QA storage.
+  Failure screenshots/traces and JUnit are retained with credential/token redaction.
+  Chrome uses an available executable; optional video/FFmpeg is not required.
+  MySQL cleanup uses the owned private socket because host signal delivery is denied.
+
+Changed files and reason:
+  Menu_API:
+    scripts/qa/run.py — supervised isolated MySQL/API/frontend setup, actual checks,
+      evidence capture, JUnit skip accounting, redaction and owned cleanup.
+    scripts/qa/{bootstrap,environment,fixtures,router}.php — fail-closed effective
+      target checks, QA-only environment marker, guarded fixtures and local assets.
+    tests/bootstrap.php — honor isolated config/route cache paths rather than clearing
+      another application's cached files when overrides are supplied.
+    .github/workflows/qa.yml — migrations/full PHP suite/build/paired browser gates,
+      observational audit/style results, retained artifacts and companion ref control.
+    scripts/qa/README.md, README.md — prerequisites, setup, safety, actual scripts,
+      cleanup, CI access/ref requirements and rollback.
+  Menu_React:
+    tests/setup/qaSafety.ts, tests/unit/qaSafety.test.ts — target guard and regressions.
+    tests/setup/qaBrowser.ts — real target verification, per-scenario fixture lifecycle
+      and external-network guard with local fallback for optional Google Fonts CSS.
+    tests/e2e/*.spec.ts — remove shared/default credentials, use run-prefixed names
+      and assert final dashboard URL during existing overlapping login redirects.
+      Preserve business assertions; mocked guest lifecycle remains mocked.
+    playwright.config.ts — mandatory QA environment, available Chrome and evidence.
+    .github/workflows/qa.yml — lint/unit/build and isolated real-API browser gates.
+    eslint.config.js, .gitignore — exclude generated QA artifacts from source lint/git.
+    README.md, docs/testing/test-environment.md — current disposable setup links.
+    This completion report and sanitized target-guard evidence.
+  No application business modules, settled records, deployed migrations or lockfiles
+  were changed. Existing user work and market audit artifacts were preserved.
+
+Compatibility/deployment order:
+  No production deployment is required; application contracts and rules are unchanged.
+  Review/integrate the API runner with paired frontend test changes. CI companion refs:
+    frontend: api_ref input -> MENU_QA_API_REF variable -> API main
+    API: react_ref input -> MENU_QA_REACT_REF variable -> frontend main
+  Configure reviewed paired refs during initial rollout; old test tooling does not
+  satisfy the new QA contract. Private cross-repository checkout may need read-only
+  MENU_QA_READ_TOKEN; missing access blocks the gate. Application runtime receives no
+  GitHub token. Hosted workflows and branch protection were not changed remotely.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS — full isolated run completed with runner exit 0 and automatic cleanup PASS.
+  PASS — API fresh migration; 338 tests, 3,526 assertions, zero skips/errors/failures.
+  PASS — frontend unit suite: 31 files, 110 tests (106 existing + 4 guard cases),
+    zero skips/errors/failures.
+  PASS — all six existing browser scenarios; independent fresh fixtures; zero skips.
+    Five use the real QA API; the guest lifecycle retains its original API mocks.
+  PASS — frontend lint (known one GuestInvoicePage hook warning remains).
+  PASS — frontend production build in QA mode (known large-bundle warning remains).
+  PASS — API asset build; composer validate --no-check-publish.
+  PASS — new/changed QA PHP files pass focused Pint check; diff whitespace checks;
+    workflow YAML parses; JUnit totals and owned runtime removal independently checked.
+  FAIL — full API Pint: same five baseline files, out of 377 files checked.
+  FAIL — frontend npm audit: 13 entries (2 critical, 7 high, 4 moderate).
+  FAIL — API npm audit: 9 entries (2 critical, 6 high, 1 low).
+  FAIL — composer audit: 15 advisories across four packages.
+    Audits were refreshed; no dependency change or risk dismissal. Audits/style are
+    observational CI checks with explicit FAIL evidence, tracked for Task 7.
+  BLOCKED / NOT EXECUTED — remote GitHub Actions execution and branch-protection
+    enforcement: not pushed or triggered under this task. Local parsing is not a
+    hosted CI pass. Companion repository access/ref configuration must be reviewed.
+  SKIPPED — zero cases in completed API/frontend/browser JUnit reports.
+  NOT IMPLEMENTED — later Task 1-10 fixes and release gates; no new application
+    static-analysis/load/accessibility/offline-browser suites introduced by Task 0.
+
+Evidence locations:
+  Menu_React/docs/testing/task-0-2026-10-07/
+    unsafe-config-before.txt, unsafe-config-after.txt, api-target-guards.txt
+    run-verified/repository-environment.json and effective environment logs
+    run-verified/{api,react,browser}-junit.xml
+    run-verified/checks.json; build/lint/audit logs; browser HTML report
+  Generated run-* evidence is retained locally and excluded from source control;
+  equivalent CI evidence is configured for 14-day artifact retention on failures.
+
+Earlier attempts (not counted as final passes):
+  run-first: browser launch BLOCKED on absent optional Playwright FFmpeg; six launch
+    failures, no browser scenarios passed. Private-socket shutdown and manual owned
+    runtime removal completed after host signal cleanup denial.
+  run-final: six browser FAILs from optional font blocking / first-login-navigation
+    waits. Automatic owned cleanup PASS.
+  run-browser: two browser PASS / four FAIL. Diagnosed navigation synchronization and
+    a new fixture note that duplicated the dish label. Assertions were preserved;
+    note now has its own suffix. Automatic owned cleanup PASS.
+  run-verified: complete green functional baseline as listed above. Prior failures,
+    screenshots/traces and outcomes remain separate; no failed attempt is relabeled.
+
+Known baseline failures and remaining risks:
+  Dependency advisories, five formatting failures, hook and bundle warnings remain.
+  Audit U1-U7 business/deployment findings are not fixed by this infrastructure task.
+  LoginPage still issues overlapping redirects; tests assert the final destination.
+  Local fallback typography is used during isolated browser QA; Task 10 must assess
+    actual deployed typography/accessibility. Chrome-only browser coverage remains.
+  Production image/PDF packaging, workers/realtime, backups and complete real guest
+    lifecycle remain unverified release gates in later tasks. No launch approval.
+  Forced process termination/power loss can leave a disposable runtime; identify its
+    owner file and private socket before cleanup. The runner retains failed-cleanup
+    runtimes and returns a blocker instead of claiming cleanup passed.
+
+Rollback procedure:
+  Revert only the paired Task 0 local commits after review. No database rollback or
+  key rotation is needed. Stop any active QA run via its own supervisor/private socket;
+  remove only that owner's disposable runtime. If CI tooling is intentionally removed,
+  remove its required branch-protection checks first through a separately authorized
+  repository-settings change. Do not revert existing market audit/user work.
+
+Ready for next task:
+  YES for local Task 1 after user review of Task 0. Repeatable disposable execution and
+  original functional baseline are verified. Hosted CI activation/access configuration
+  is still unexecuted; later financial/isolation defects remain release blockers.
+  No later task was started.

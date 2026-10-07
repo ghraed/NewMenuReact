@@ -1,0 +1,2 @@
+production-environment: PASS (rejected before application/database bootstrap; exit=255)
+normal-database: PASS (rejected before application/database bootstrap; exit=255)

@@ -1,12 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../setup/qaBrowser';
 
 test('a settled POS sale appears in history and opens its details', async ({ page }) => {
-  const name = `QA_RUN_20261006_History_${Date.now()}`;
+  const name = `QA_RUN_${process.env.QA_RUN_ID}_History_${Date.now()}`;
   await page.goto('/admin/login');
   expect(new URL(page.url()).hostname).toMatch(/^(127\.0\.0\.1|localhost|.*\.localhost)$/);
-  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL || 'test@example.com');
-  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD || 'password');
-  await Promise.all([page.waitForURL('**/admin/dashboard'), page.getByRole('button', { name: /login/i }).click()]);
+  await page.getByLabel('Email or phone').fill(process.env.PLAYWRIGHT_PROFILE_EMAIL!);
+  await page.getByLabel('Password').fill(process.env.PLAYWRIGHT_PROFILE_PASSWORD!);
+  await Promise.all([expect(page).toHaveURL(/\/admin\/dashboard$/), page.getByRole('button', { name: /login/i }).click()]);
   const sale = await page.evaluate(async (dishName) => {
     const headers = { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('admin_auth_token')}` };
     const create = await fetch('/api/dishes', {
@@ -17,7 +17,7 @@ test('a settled POS sale appears in history and opens its details', async ({ pag
     const dish = await create.json();
     const checkout = await fetch('/api/pos/checkout', {
       method: 'POST', headers: { ...headers, 'X-Idempotency-Key': dishName },
-      body: JSON.stringify({ table_reference: 'T01', payment_method: 'cash', notes: 'QA_RUN_20261006_OrderHistory', items: [{ dish_id: dish.id, quantity: 1 }] }),
+      body: JSON.stringify({ table_reference: 'T01', payment_method: 'cash', notes: `${dishName}_notes`, items: [{ dish_id: dish.id, quantity: 1 }] }),
     });
     if (checkout.status !== 201) throw new Error(`QA POS checkout failed: ${checkout.status}`);
     const body = await checkout.json();

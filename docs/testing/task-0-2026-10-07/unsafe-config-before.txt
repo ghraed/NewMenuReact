@@ -1,0 +1,12 @@
+
+> menu-react@0.0.0 test:e2e
+> playwright test --list
+
+Listing tests:
+  [chromium] › guest-order-lifecycle.spec.ts:4:3 › Guest order lifecycle › guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state
+  [chromium] › menu-item-preview-retry.spec.ts:5:1 › retrying a preview failure creates one complete menu item
+  [chromium] › order-history.spec.ts:3:1 › a settled POS sale appears in history and opens its details
+  [chromium] › room-plan-reservations.spec.ts:4:3 › Room plan editor + reservations › admin creates plan, saves layout, and public reservation reflects availability
+  [chromium] › serving-temperature.spec.ts:5:1 › packaged drink temperature survives creation, editing, clearing, and reload
+  [chromium] › user-profile.spec.ts:3:1 › profile changes persist after reload and the new password works
+Total: 6 tests in 6 files
