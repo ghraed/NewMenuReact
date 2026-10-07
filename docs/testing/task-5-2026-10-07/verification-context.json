@@ -1,0 +1,46 @@
+{
+  "run_id": "task5_final_20261007_02",
+  "api": {
+    "branch": "fix/task-5-restaurant-active-policy",
+    "commit": "29944c8beb17ebd6d1b12d011eef219507c9f8ce",
+    "working_tree": "M app/Http/Controllers/OrderController.php\n M bootstrap/app.php\n M lang/ar/messages.php\n M lang/en/messages.php\n M routes/api.php\n?? app/Http/Middleware/EnsureRestaurantAcceptsNewCommerce.php\n?? app/Services/RestaurantCommercePolicy.php\n?? tests/Feature/RestaurantActivePolicyTest.php"
+  },
+  "react": {
+    "branch": "fix/task-5-restaurant-active-policy",
+    "commit": "29f37271e65a6b1a053619309d8a1ebff349a429",
+    "working_tree": "M .gitignore\n?? docs/testing/task-5-2026-10-07/\n?? tests/e2e/restaurant-active-policy.spec.ts\n?? tests/setup/restaurantPolicyFixtures.php"
+  },
+  "api_url": "http://127.0.0.1:59139",
+  "frontend_url": "http://127.0.0.1:58753",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 52595,
+  "runtime": "/tmp/menu-qa-7_xwzujv",
+  "effective_api_environment": {
+    "run_id": "task5_final_20261007_02",
+    "environment": "testing",
+    "url": "http://127.0.0.1:59139",
+    "database": "menu_test_QA_RUN_task5_final_20261007_02_suite",
+    "host": "127.0.0.1",
+    "port": 52595,
+    "storage": "/tmp/menu-qa-7_xwzujv/storage",
+    "cache": "file",
+    "mail": "array",
+    "broadcast": "null",
+    "queue": "sync"
+  },
+  "effective_browser_environment": {
+    "run_id": "task5_final_20261007_02",
+    "environment": "testing",
+    "url": "http://127.0.0.1:59139",
+    "database": "menu_test_QA_RUN_task5_final_20261007_02_browser",
+    "host": "127.0.0.1",
+    "port": 52595,
+    "storage": "/tmp/menu-qa-7_xwzujv/storage",
+    "cache": "file",
+    "mail": "array",
+    "broadcast": "null",
+    "queue": "sync"
+  },
+  "runtime_removed": true
+}

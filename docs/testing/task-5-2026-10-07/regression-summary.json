@@ -1,0 +1,40 @@
+{
+  "selection": "Task 5 / U5 only",
+  "severity": "P2",
+  "roles": [
+    "restaurant admin",
+    "staff",
+    "guest"
+  ],
+  "determinism": "deterministic",
+  "endpoint": "POST /api/pos/checkout",
+  "steps": [
+    "Create a synthetic QA_RUN tenant, enable table_ordering, create a published $10 packaged dish with stock 10, and log in while active.",
+    "Set restaurant status to inactive without deactivating its user.",
+    "Add the dish in the real POS browser and checkout with the already-issued token."
+  ],
+  "expected": "403 restaurant_inactive; no order/invoice/stock write; permitted menu/login/existing-work access survives.",
+  "before": {
+    "status": 201,
+    "code": null,
+    "message": "POS checkout completed successfully.",
+    "settled_invoice_total": "10.00"
+  },
+  "after": {
+    "status": 403,
+    "code": "restaurant_inactive",
+    "message": "This restaurant is inactive and cannot accept new orders, sales, reservations or table sessions."
+  },
+  "server_error": "No server exception; original request successfully created commerce.",
+  "browser_evidence": {
+    "before": "before-inactive-pos.png",
+    "after": "after-inactive-pos.png",
+    "original_failure_trace": "run-browser-before/browser-results/*/trace.zip"
+  },
+  "modules": [
+    "Menu_API/app/Services/RestaurantCommercePolicy.php",
+    "Menu_API/app/Http/Middleware/EnsureRestaurantAcceptsNewCommerce.php",
+    "Menu_API/routes/api.php",
+    "Menu_API/app/Http/Controllers/OrderController.php"
+  ]
+}

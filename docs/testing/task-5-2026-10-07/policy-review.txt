@@ -1,0 +1,72 @@
+TASK 5 / U5 — AGREED RESTAURANT LIFECYCLE POLICY
+Decision: 7 October 2026, explicitly selected by the user:
+"Allow existing work to finish: guest menu stays visible; staff can log in,
+read records, and finish existing orders/sessions/invoices; block new commerce."
+
+Active restaurant: all previous role, feature, tenant, user-activity and validation
+rules continue. Restaurant activity grants no additional permissions.
+
+Inactive restaurant access matrix:
+- New guest orders (host, slug, existing table-session routes): blocked, HTTP 403.
+- New POS sales, standalone manual invoices: blocked, HTTP 403.
+- New public/admin table reservations and new event reservations: blocked, HTTP 403.
+- New event order generation and table-session activation: blocked, HTTP 403.
+- Guest menu/catalog (slug, host, table): visible if qr_menu remains enabled.
+- Existing guest PIN authorization, heartbeat, order reads, waiter/bill requests,
+  invoice split access: previous authorization/session/feature rules remain.
+- New additions to an existing pending order: blocked. Retaining/reducing existing
+  quantities is allowed; replacing a dish with a different one is new commerce.
+- Staff login and existing tokens: permitted while the user remains active and
+  authorized. No token revocation is caused by restaurant deactivation.
+- Authorized admin/staff reads: retained, including finance records and PDFs.
+- Existing order confirmation, kitchen start/ready/served, cancellation,
+  accounting and session invoice finalization: allowed under existing rules.
+- Existing reservation/event updates and lifecycle completion: retained. They do
+  not authorize new order generation. Existing invoice/accounting/complaint writes
+  remain governed by their previous permissions and immutability/stock rules.
+- Existing catalog/settings/inventory/expense/payroll maintenance: retained;
+  deactivation is a new-commerce suspension, not a general write freeze.
+- Super-admin recovery (registered SaaS owner): remains available; only existing
+  authorized lifecycle mutation routes can reactivate a restaurant.
+- Reactivation: next new-commerce request observes active status; features and
+  permissions are not changed and no records are rewritten.
+- Another tenant: unaffected.
+
+Boundary and compatibility:
+The shared policy reads persisted status rather than trusting request fields or
+cached/token restaurant state. Guest route gates use slug/host or the bound session;
+staff gates use the authenticated membership. Existing role and feature middleware
+runs first, retaining 401/403 and disabled-feature 404 behavior. The chat legacy path
+matches its existing feature service's current-user/host tenant source.
+Only active status permits new commerce; existing database defaults remain active.
+This is not subscription enforcement, and inactive user rules stay independent.
+
+Requests already admitted before deactivation may finish. Deactivation does not
+cancel an in-flight transaction, undo stock, revoke guest tokens, or change settled
+financial records. No new schema/migration is required. Admission is not serialized
+with the super-admin status change; immediate cancellation of in-flight requests
+would require a different lifecycle policy and concurrency design.
+
+New-commerce endpoints (including retries) return 403 while inactive, even if an
+idempotency key refers to an earlier successful checkout. Existing sale/invoice read
+paths remain available; reactivation restores existing replay behavior. No retry
+state is deleted and no extra sale is created by rejection. Existing-session access
+and normal expiration/revocation still apply; deactivation does not prolong sessions.
+The activate endpoint is blocked for all calls while inactive; existing sessions
+are available through reads/reset-pin, not through reopening/activation.
+
+Frontend:
+Existing POS checkout handling already renders the API's localized error message
+and retains the cart on failure. The real browser regression verifies this behavior,
+inactive login/menu visibility, zero orders/invoices on rejection and reactivation.
+English and Arabic messages explain that the restaurant cannot accept new commerce.
+No UI redesign or unrelated frontend business-code changes are needed.
+
+Deployment: deploy the API change to the complete fleet; frontend application code
+has no new contract dependency. Old clients receive additive code/message plus 403
+on blocked new-commerce requests. Partial API rollout can still accept commerce on
+old nodes and cannot be considered enforcement complete. No deployment performed.
+Rollback: revert only Task 5 API policy/middleware/routes/messages/order-edit changes
+and its paired tests/documentation. No migration/data rollback. Rollback restores
+the original acceptance of new commerce for inactive tenants; do not call it safe
+suspension after rollback. Prior Tasks 0–4 remain intact.

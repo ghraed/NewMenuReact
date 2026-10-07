@@ -1,0 +1,133 @@
+TASK 5 / U5 — RESTAURANT INACTIVE/ACTIVE POLICY
+7 October 2026 — COMPLETE LOCALLY; known release risks remain
+
+Selected task / audit IDs:
+  Task 5 only; U5, P2, deterministic new-commerce acceptance while inactive.
+  User explicitly selected: allow existing work to finish; guest menu stays visible;
+  staff can log in/read/finish orders, sessions and invoices; block new commerce.
+  Full matrix and limits: task-5-2026-10-07/policy-review.txt.
+
+Branch and before/after commits:
+  Both: fix/task-5-restaurant-active-policy.
+  Menu_API before: 29944c8beb17ebd6d1b12d011eef219507c9f8ce.
+  Menu_API after:  9e870ef8696cef4c9eaea81b3c090b12e4a7c9df.
+  Menu_React before: 29f37271e65a6b1a053619309d8a1ebff349a429.
+  Menu_React after: see task-5-2026-10-07/run-ready/completion-commits.json.
+  Both starting trees clean on main; Tasks 0–4 commits verified as ancestors.
+  All 49 existing frontend and 68 existing API test files hash-identical to Task 4.
+  Dedicated branches preserve main; no push/merge/deploy/history rewrite.
+
+Environment:
+  Final run: task5_final_20261007_02.
+  API: http://127.0.0.1:59139; frontend: http://127.0.0.1:58753.
+  APP_ENV=testing; disposable MySQL at 127.0.0.1:52595.
+  DBs: menu_test_QA_RUN_task5_final_20261007_02_suite and
+       menu_test_QA_RUN_task5_final_20261007_02_browser.
+  Owner-only temporary runtime; isolated cache/storage; array mail, null broadcast,
+  synthetic QA_RUN records and blank external credentials. Never restaurantdb.
+  Production Compose defaults were inspected but never executed.
+  Reproduce from Menu_API with a NEW run ID and nonexisting evidence directory:
+    python3 scripts/qa/run.py --react-root ../Menu_React --run-id task5_recheck_NEW \
+      --evidence ../Menu_React/docs/testing/task-5-2026-10-07/run-recheck-NEW
+  The committed guard/README verifies effective settings before migrations.
+
+Failing regression before the fix:
+  Log in to a synthetic active tenant; create a $10 packaged dish/stock 10; deactivate
+  the restaurant while leaving its admin active; checkout using its existing token.
+  Original real browser POST /api/pos/checkout: 201, settled invoice $10.00.
+  Expected 403 and no financial/stock mutation. No server exception.
+  Guest session also accepted additional orders after deactivation (201).
+  Final before API regression: 13 failures / 2 passes, independently reproduced
+  in run-before-03. Real browser failure in run-browser-before includes screenshot,
+  sanitized response and trace. Invalid attempts are separately documented.
+
+Behavior after the fix:
+  Shared current persisted restaurant-status policy at new-commerce API boundaries:
+  POS, slug/host guest orders, bound table-session orders, legacy chat orders,
+  public/admin/event reservations, event order generation, standalone manual sale
+  invoices and table activation. Inactive requests reject with 403 and stable
+  code=restaurant_inactive, with English/Arabic messages.
+  Pending order edits cannot add dishes or increase quantities; retaining/reducing
+  existing work remains allowed. Browser rejection retains its $10 cart and stock 10,
+  creates zero orders/invoices; reactivation creates exactly one sale and stock 9.
+  Guest menu, login/old authorized staff tokens, existing guest authorization/bill
+  requests, kitchen transitions, accounting and invoice finalization remain allowed.
+  Exact existing-order test reaches a paid $10 invoice during suspension.
+  Disabled flags, denied roles, inactive users, tenant boundaries and registered
+  super-admin reactivation remain enforced. Another active tenant is unaffected.
+  No subscription policy, automatic cancellation or historical data rewrite added.
+
+Changed files and reason:
+  Menu_API/app/Services/RestaurantCommercePolicy.php: persisted status check and
+    pending-order quantity guard; shared localized rejection contract.
+  Menu_API/app/Http/Middleware/EnsureRestaurantAcceptsNewCommerce.php: resolves
+    destination tenant from staff membership, public slug/host or bound session.
+  Menu_API/bootstrap/app.php and routes/api.php: register/apply the creation gate
+    after existing authentication, role and feature restrictions.
+  Menu_API/app/Http/Controllers/OrderController.php: protect pending edits from
+    adding new commerce; existing pricing/accounting/stock rules unchanged.
+  Menu_API/lang/{en,ar}/messages.php: clear inactive-commerce messages.
+  Menu_API/tests/Feature/RestaurantActivePolicyTest.php: 20 added API scenarios.
+  Menu_React/tests/e2e/restaurant-active-policy.spec.ts: real UI/API rejection,
+    retained cart, guest menu, logout/inactive login, reactivation and stock evidence.
+  Menu_React/tests/setup/restaurantPolicyFixtures.php: guarded browser-database-only
+    fixture status mutation and counts; never exposed as an application endpoint.
+  Menu_React/.gitignore, docs/testing/fix-progress.txt and task report/evidence:
+    retain local runtime artifacts separately from concise committed evidence.
+  Existing frontend business code already displays the API's message; no UI redesign
+  or new frontend contract dependency was needed. Existing tests not edited.
+
+Compatibility/deployment order:
+  Deploy the API to the complete fleet to enforce suspension on every node. Existing
+  clients render the additive code/message and retain failed carts. No migration or
+  frontend application rollout is required. No deployment performed.
+  Requests admitted before status changes may finish. New-commerce retries are
+  rejected while inactive; read the earlier settlement through existing read routes.
+  Reactivation restores existing retry behavior; no idempotency state is deleted.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS baseline: 392 API tests / 4,086 assertions, 133 frontend unit tests, 15 browser
+    scenarios; lint, both builds, Composer validation, migrations, isolated cleanup.
+  PASS focused final: 20 policy API tests / 135 assertions, zero skips.
+  PASS final API: 412 tests / 4,221 assertions, zero failures/errors/skips;
+    asset build, Composer validation and fresh disposable migrations.
+  PASS final frontend: 133 unit tests across 33 files, 16 Chromium browser scenarios,
+    zero failures/errors/skips; warning-free lint, TypeScript/production build,
+    synthetic fixture reset and owned database/storage/server cleanup.
+  PASS new PHP file formatting, PHP fixture syntax and both Git diff checks.
+  Final audit counts match baseline; full formatter still lists the same four files.
+  FAIL baseline: same four API formatter files and all three dependency audits.
+    API npm: 9 findings; frontend npm: 13 findings at baseline. Composer affected
+    packages and dispositions remain documented in attempts-and-limitations.txt.
+  BLOCKED: initial sandbox sockets before tests; authorized isolated rerun resolved.
+  SKIPPED: none in completed automated suites.
+  NOT IMPLEMENTED: Tasks 6–10; no later roadmap work bundled here.
+  NOT EXECUTED: hosted CI, deployment/production, other browser engines, physical
+    printer, operational queue/scheduler/realtime and in-flight cancellation races.
+
+Evidence locations:
+  docs/testing/task-5-2026-10-07/previous-task-ancestry.json and
+    previous-tests-preserved.json: prior fixes/commits/tests preserved.
+  policy-review.txt: agreed matrix, compatibility and deactivation admission limits.
+  regression-summary.json, before/after-inactive-pos-response.json and
+    before/after-inactive-pos.png: sanitized U5 evidence.
+  run-baseline-02, run-before-03, run-browser-before, run-focused-after-03,
+    run-browser-after-02, run-final-02: environment logs, JUnit, screenshots/traces,
+    checks and cleanup evidence retained locally; never claim invalid attempts PASS.
+  attempts-and-limitations.txt: fixture corrections and unexecuted limitations.
+  checks-summary.json and run-ready/completion-commits.json: final results/commits.
+
+Known baseline failures and remaining risks:
+  Four existing formatting files, all three dependency audit failures and large entry
+  bundle warning remain separate Task 7/10 work. Inactive is a new-commerce policy,
+  not a universal administrative write freeze. Already admitted requests may finish;
+  no concurrent cancellation/rollback mechanism is introduced. Partial API rollout
+  cannot enforce the policy consistently. Tasks 6–10 still block market launch.
+
+Rollback:
+  Revert only the Task 5 API commit and paired frontend QA/docs commit after review.
+  No schema/data rollback. Previous Tasks 0–4 remain. API rollback restores the old
+  acceptance of new commerce while inactive, so suspension is no longer enforced.
+
+Ready for next task: yes, Task 5 is complete locally. Task 6 requires separate
+selection. This does not approve market launch, CI rollout or deployment.

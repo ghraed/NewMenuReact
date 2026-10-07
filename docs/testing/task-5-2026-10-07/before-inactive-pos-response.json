@@ -1,0 +1,6 @@
+{
+  "status": 201,
+  "code": null,
+  "message": "POS checkout completed successfully.",
+  "settled_invoice_total": "10.00"
+}

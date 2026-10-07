@@ -1,0 +1,47 @@
+Task 5 verification attempts (all retained, no failed attempt counted as PASS)
+
+- run-baseline: sandbox could not create local sockets before any test executed.
+  Runner folder creation happened first. The authorized loopback-only rerun used a
+  fresh folder (run-baseline-02); that baseline completed and cleaned its runtime.
+- run-before: original policy regression plus an invalid super-admin fixture lacking
+  its required saas_owners registration. Corrected only the fixture, without changing
+  authorization; run-before-02 then had 11 policy failures / 2 passes.
+- run-before-03: added manual invoice/event/order-edit boundaries; 13 policy failures
+  / 2 passes. Before browser independently reproduced HTTP 201 against inactive POS,
+  retaining a screenshot, sanitized response and failure trace.
+- run-focused-after: 14 policy tests passed; invoice finalization remained issued
+  because the new fixture omitted the payment_reference required by the existing
+  finalization service. Corrected the synthetic request, preserving the exact paid
+  status and $10 assertions. No finance source/rule changes.
+- run-focused-after-02: 15 tests / 102 assertions PASS, plus build/Composer validation.
+- run-browser-after: inactive rejection/message/cart/menu assertions succeeded; the
+  second login attempted an already-authenticated login page and timed out after
+  redirect. Corrected the test to use the real UI logout before login. No auth source
+  changes, no extra retries, no increased timeouts or reduced assertions.
+- run-browser-after-02: complete real API-backed browser scenario PASS, lint/unit/build
+  PASS. The final full scenario additionally checks stock remains 10 on rejection
+  and becomes 9 exactly once after reactivation.
+- run-final: all 392 prior API tests plus 16 new scenarios PASS; four new staff-role
+  assertions failed because the feature-test container retained Sanctum's cached
+  User object after the fixture changed that user through another model instance.
+  The unchanged EnsureActiveUser middleware checks request user activity. Real QA
+  HTTP requests bootstrap a fresh app; the new tests now Auth::forgetGuards() before
+  the next token request, forcing actual token/user reload. Existing tests and all
+  403 assertions remain. No business source changes resulted from this test issue.
+
+Baseline failures: four existing formatter files; Composer advisories in
+laravel/framework, league/commonmark, league/flysystem, paragonie/sodium_compat;
+API npm audit 9 findings and frontend npm audit 13 findings at this run's baseline.
+These are Task 7 work. No dependency/lockfile changes. Large frontend bundle warning.
+
+Unexecuted: hosted CI, other browser engines, deployment/production, physical printer,
+real queue/scheduler/realtime operations and cancellation of in-flight deactivation
+races. Only the selected Task 5 is implemented. No launch approval is implied.
+
+Final valid verification:
+- run-focused-after-03: 20 policy API tests / 135 assertions PASS.
+- run-final-02: 412 API tests / 4,221 assertions, 133 frontend unit tests and all
+  16 browser scenarios PASS with zero skips. Lint, TypeScript/build, API build,
+  Composer validation, fresh migrations and owned runtime cleanup PASS.
+- All previous test files preserved byte-for-byte; no failed attempt relabeled PASS.
+- Final audits retain the same baseline findings and four formatter files.

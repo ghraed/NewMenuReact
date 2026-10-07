@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0, 1, 2, 3 and 4 are complete locally.
+no missing history was assumed. Only Tasks 0, 1, 2, 3, 4 and 5 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -87,7 +87,7 @@ TASK 3 / U1 — COMPLETE LOCAL SERVER-VALIDATED POS COMPENSATION
   Report: docs/testing/task-3-2026-10-07.txt
   Evidence: docs/testing/task-3-2026-10-07/ (generated run-* folders retained locally).
 
-NEXT: TASK 5 — NOT STARTED; await review and separate selected execution.
+NEXT: TASK 6 — NOT STARTED; await review and separate selected execution.
 Tasks 5-10 are NOT IMPLEMENTED by the completed changes. Inactive-policy, release
 image/operations verification and remaining audit risks still block launch.
 No Task 2 push, merge, deployment, production access or settled-record rewrite.
@@ -150,3 +150,43 @@ TASK 4 / U4 — COMPLETE LOCAL AUTHORITATIVE COMPENSATION REPORTING
   Ready for separately selected Task 5; Tasks 5–10 are NOT IMPLEMENTED by this task.
   No push, merge, deployment, production access or history rewrite performed.
   Earlier Task 4-unselected notes describe the prior Task 3 recheck state.
+
+TASK 5 / U5 — COMPLETE LOCAL RESTAURANT INACTIVE/ACTIVE POLICY
+  Branch: fix/task-5-restaurant-active-policy (both repositories).
+  Frontend base: 29f37271e65a6b1a053619309d8a1ebff349a429.
+  API base: 29944c8beb17ebd6d1b12d011eef219507c9f8ce.
+  API final: 9e870ef8696cef4c9eaea81b3c090b12e4a7c9df.
+  Final paired commits: task-5-2026-10-07/run-ready/completion-commits.json.
+  Tasks 0–4 ancestry verified in both initially clean repositories; all 49 earlier
+  frontend and 68 earlier API test files hash-identical to Task 4.
+  User selected policy: allow existing work to finish; keep guest menu and permitted
+  staff login/reads/existing tokens; block new orders/sales/reservations/sessions.
+  Before: real inactive POS returned 201 and settled $10.00; guest session could
+  add orders. Final pre-fix API regression had 13 failures / 2 passes; valid real
+  browser screenshot/trace/response retained. Fixture mistakes listed separately.
+  After: current persisted tenant status checked centrally on new-commerce routes;
+  403 restaurant_inactive with English/Arabic message, zero orders/invoices/stock
+  effects on rejection. Pending edits retain/reduce existing quantities but cannot
+  add dishes/quantities. Menu, login, old tokens, kitchen, accounting and paid invoice
+  completion remain under existing role/feature/tenant/user-activity restrictions.
+  Super-admin recovery and another tenant unchanged; reactivation restores commerce.
+  Existing frontend displays API rejection and retains the cart; no business UI
+  redesign, permission expansion, schema/dependency change or record rewrite.
+  Final runner: task5_final_20261007_02; APP_ENV=testing, disposable MySQL,
+  loopback URLs, disabled external transports and isolated runtime verified.
+  PASS: 412 API tests / 4,221 assertions (20 added); 133 frontend unit tests;
+  16 browser scenarios (one added), zero automated skips/failures/errors; lint,
+  TypeScript/build, API asset build, Composer validation, new-file formatting,
+  migrations, fixture reset and owned runtime cleanup.
+  FAIL: same four baseline formatter files and all three dependency audits;
+  large frontend bundle warning remains. No later tasks/dependency changes.
+  Compatibility: API fleet-wide rollout enforces the policy; existing clients show
+  localized errors. Requests admitted before deactivation may finish; new-commerce
+  retries return 403 while inactive, with prior settlements still readable.
+  Report: docs/testing/task-5-2026-10-07.txt.
+  Matrix/limits: task-5-2026-10-07/policy-review.txt.
+  Evidence: task-5-2026-10-07/ (sanitized run-* folders retained locally).
+  Hosted CI, other browsers, deployment/production/operations unexecuted.
+  Ready for separately selected Task 6. Tasks 6–10 still NOT IMPLEMENTED here and
+  remaining release risks still block launch. Earlier Task 5-unimplemented notes
+  describe their prior task states. No push, merge, deployment or history rewrite.
