@@ -92,3 +92,24 @@ Tasks 4-10 are NOT IMPLEMENTED by these changes. U4 reporting, release image/ope
 verification and remaining audit risks still block launch.
 No Task 2 push, merge, deployment, production access or settled-record rewrite.
 No Task 3 push, merge, deployment, production access or settled-record rewrite.
+
+TASK 3 — FRESH RECHECK AFTER TASKS 0-2 MAIN INTEGRATION (7 October 2026)
+  The current request resumed existing Task 3 branches rather than creating a
+  duplicate implementation. Frontend b90f3d3 and API d6388a6 both contain all
+  completed Task 0-2 commits; local main remains at the reviewed Task 2 commits.
+  No application source changes or previous test changes were needed.
+  Fresh documented runner: task3_recheck_20261007_02; APP_ENV=testing, disposable
+  MySQL, loopback URLs, disabled external services and isolated storage verified.
+  PASS: 383 API tests / 4,011 assertions; 128 frontend unit tests; 14 browser
+  scenarios; zero failures/errors/skips. Lint, both builds, Composer validation,
+  fresh migrations and owned-runtime cleanup passed.
+  FAIL: same four baseline PHP formatting files and all three dependency audits.
+  BLOCKED: initial sandbox-only attempt could not allocate a socket, before any
+  test executed. The authorized local-socket rerun above completed successfully.
+  NOT EXECUTED: hosted CI, deployment and physical printer checks in this recheck.
+  Evidence: task-3-2026-10-07/run-recheck-02/ and recheck-summary.json.
+  All six Task 3 browser scenarios passed; prior isolation/refund suites retained.
+  Task 3 is complete locally. Task 4 remains unselected and was not started.
+  No push, merge, deployment or history rewrite was performed in this recheck.
+  Earlier no-push/no-merge entries describe their original task runs; Tasks 0-2
+  were subsequently merged and pushed to main under separate user authorization.

@@ -150,3 +150,30 @@ Ready for next task:
   fixes remain green. Task 4 requires a separate selected execution. No automatic
   advancement, push, merge, deployment or production access. Launch remains blocked
   by the roadmap's unresolved reporting/security/release/operational requirements.
+
+FRESH VERIFICATION — 7 October 2026, after Tasks 0-2 main integration
+  Resumed existing fix/task-3-server-pos-compensation branches: Menu_React b90f3d3,
+  Menu_API d6388a6. All recorded Task 0-2 commits are ancestors of both Task 3
+  branches. Source/lockfiles and previous isolation/refund regressions preserved.
+  Existing before-fix JUnit evidence independently checked: 19 of 20 focused API
+  cases fail on original behavior, and the precise complimentary browser case
+  fails. This recheck reused the implementation; no new source fix was needed.
+  Run: python3 scripts/qa/run.py --react-root ../Menu_React
+       --run-id task3_recheck_20261007_02
+       --evidence ../Menu_React/docs/testing/task-3-2026-10-07/run-recheck-02
+  Verified testing API http://127.0.0.1:54027; frontend http://127.0.0.1:52137;
+  MySQL 127.0.0.1:55353; databases menu_test_QA_RUN_task3_recheck_20261007_02_suite
+  and menu_test_QA_RUN_task3_recheck_20261007_02_browser. Safe transports and
+  isolated storage verified. Owned runtime removed successfully after the run.
+  PASS: 383 API tests / 4,011 assertions, 128 frontend unit tests, 14 Chrome browser
+  scenarios, zero failures/errors/skips; migrations, lint, both builds, Composer
+  validation, and cleanup. Five real compensation modes and real rejected checkout
+  verified; previous tenant isolation and refund concurrency regressions pass.
+  FAIL: same four baseline API formatting files and Composer/both npm audits.
+  BLOCKED: initial run-recheck-01 attempt lacked sandbox socket permission before
+  execution; approved local-socket run-recheck-02 completed, runner exit 0.
+  NOT EXECUTED: hosted CI, deployments, physical printer or other browser engines.
+  Fresh evidence: task-3-2026-10-07/run-recheck-02/; independent leaf-testcase counts
+  and complete check statuses: task-3-2026-10-07/recheck-summary.json.
+  No push/merge/deployment or Task 4-10 work performed in this recheck. Task 3 is
+  complete locally on its dedicated branches; main remains at Task 2.
