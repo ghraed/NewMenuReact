@@ -1,0 +1,44 @@
+TASK 7 — REVIEWED API DEVELOPMENT-TOOL OVERRIDE
+
+Scope: package.json overrides.concurrently.shell-quote = 1.11.0 only.
+No other dependency override introduced; no concurrently major change.
+
+Registry metadata: concurrently 9.2.3 pins shell-quote 1.8.4; installed 9.2.4 pins 1.9.0. Even latest
+concurrently 10.0.5 pins 1.9.0. Both remain vulnerable to the current comment-token
+line-terminator quoting advisory. A major upgrade would not resolve it. Pin the
+smallest patched minor release 1.11.0 instead, pending an upstream safe dependency.
+Node engine >=0.4 and CommonJS quote/parse exports remain compatible. Review source:
+concurrently/dist/src/command-parser/expand-arguments.js consumes quote(string[])
+for explicit command-argument placeholders. Composer dev uses the established CLI
+names, explicit prefix colors and --kill-others; it does not consume object comment
+tokens or untrusted dynamic commands. This limits current applicability but does
+not justify installing a package that accepts unsafe token shapes.
+
+Review sources:
+https://github.com/advisories/GHSA-pqg4-j6r4-53mv
+https://github.com/ljharb/shell-quote/blob/main/CHANGELOG.md
+
+1.9 repairs quadratic parsing; 1.10 adds opt-in field splitting (default unchanged);
+1.11 rejects comment-following line terminators, fixes escaping, adds ANSI-C parsing.
+Security behavior changes intentionally reject unsafe tokens. Ordinary string
+argument quoting remains required by the regression. No application/PHP money,
+authorization, migration or external-service behavior changes.
+
+Regression before: shell-quote quote([{comment: synthetic}, newline-token]) does
+not throw. No quoted command is executed. Two independent CLI regressions pass:
+quoted argument/name/color compatibility and --kill-others peer termination.
+After: all three must pass with installed patched dependency, including after npm ci.
+Original sandbox-only Node test attempt did not execute cases; valid unsandboxed
+reproduction logs show exactly one failure / two passes. No real services started.
+
+Removal policy: remove this override once a reviewed concurrently release pins a
+patched shell-quote and the same audits/tooling checks pass. No expiry-based silent
+risk acceptance. Rollback restores known critical tooling findings, unsuitable for
+release; PHP production runtime excludes this development-only dependency.
+
+Final-run harness correction: the placeholder compatibility check must declare
+--passthrough-arguments explicitly; otherwise the extra argument is treated as a
+third command under the credential-free runner. This was a new test setup error,
+not a product behavior or PHP failure. Kept every quote/name/color/cleanup assertion
+and added stdout to the failure evidence. Direct sanitized-environment rerun passes.
+run-final retains the failed attempt; run-final-02 is the complete final gate.

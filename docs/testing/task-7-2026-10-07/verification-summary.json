@@ -1,0 +1,178 @@
+{
+  "selected_task": 7,
+  "status": "COMPLETE LOCAL",
+  "final_run": "task7_final_20261007_02",
+  "junit": {
+    "api": {
+      "tests": 412,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "frontend": {
+      "tests": 133,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "browser": {
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "api_assertions": 4221,
+  "tooling_tests": {
+    "tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0
+  },
+  "checks": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 412,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-tooling",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-lint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-unit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 133,
+      "skipped": 0
+    },
+    {
+      "check": "react-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-e2e",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 16,
+      "skipped": 0
+    },
+    {
+      "check": "react-npm-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "locked_installs": {
+    "frontend_npm_ci": "PASS",
+    "api_npm_ci": "PASS",
+    "composer_install_no_scripts": "PASS"
+  },
+  "static_checks": {
+    "php_executable_tokens": "IDENTICAL",
+    "workflow_yaml": "PASS",
+    "qa_runner_syntax": "PASS"
+  },
+  "cleanup": "PASS",
+  "audit_remaining": {
+    "react_npm": 0,
+    "api_npm": 0,
+    "composer_advisories": 0,
+    "composer_abandoned": 0
+  },
+  "not_executed": [
+    "hosted CI",
+    "deployment/production",
+    "other browser engines",
+    "Docker image rebuild with updated locks",
+    "fleet rollback",
+    "physical printer",
+    "Task 8 operational/restore gates"
+  ],
+  "remaining_warnings": [
+    "existing frontend chunk size",
+    "deprecated transitive npm packages",
+    "Vitest jsdom startup suggestion"
+  ]
+}

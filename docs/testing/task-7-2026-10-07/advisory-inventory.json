@@ -1,0 +1,1947 @@
+[
+  {
+    "ecosystem": "react",
+    "package": "@humanfs/node",
+    "direct": false,
+    "severity": "moderate",
+    "nodes": [
+      {
+        "path": "node_modules/@humanfs/node",
+        "version": "0.16.8",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1158499,
+        "name": "@humanfs/node",
+        "dependency": "@humanfs/node",
+        "title": "humanfs: Recursive copy follows symlinked files and copies data from outside the source tree",
+        "url": "https://github.com/advisories/GHSA-p498-v437-472g",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-22"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<0.16.8"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development ESLint filesystem helper; path handling vulnerability applies to tooling filesystem operations, not the shipped UI. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "@vitest/mocker",
+    "direct": false,
+    "severity": "moderate",
+    "nodes": [
+      {
+        "path": "node_modules/@vitest/mocker",
+        "version": "3.2.7",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1193684,
+        "name": "@vitest/mocker",
+        "dependency": "@vitest/mocker",
+        "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+        "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-22"
+        ],
+        "cvss": {
+          "score": 5.9,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        },
+        "range": ">=2.1.0 <4.1.11"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development jsdom mocks; exploit targets browser redirect mock path. Upgrade with Vitest, not unreviewed override.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "axios",
+    "direct": true,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/axios",
+        "version": "1.20.0",
+        "development_only": false
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1240600,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype pollution gadget in fetch adapter can alter outbound requests",
+        "url": "https://github.com/advisories/GHSA-vh66-26gq-q6x8",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.7.0 <1.20.0"
+      },
+      {
+        "source": 1240601,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype-Pollution Gadget in the Default Instance Allows Inherited Object.prototype.method to Override HTTP Method",
+        "url": "https://github.com/advisories/GHSA-9fr6-4gfg-395g",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.20.0"
+      },
+      {
+        "source": 1240603,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: ReDoS in fromDataURI data: URL parser freezes the Node event loop (DoS)",
+        "url": "https://github.com/advisories/GHSA-c29m-xwm3-cm6r",
+        "severity": "high",
+        "cwe": [
+          "CWE-1333"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.16.1 <1.20.0"
+      },
+      {
+        "source": 1240604,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: ReDoS (O(N\u00b2)) in shouldBypassProxy host normalization, reachable via untrusted redirect Location",
+        "url": "https://github.com/advisories/GHSA-mghh-pgcx-3jjj",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-1333"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.0 <1.20.0"
+      },
+      {
+        "source": 1240605,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype Pollution Gadget in axios toFormData Options",
+        "url": "https://github.com/advisories/GHSA-x97p-jq2g-jp4f",
+        "severity": "high",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.1 <1.20.0"
+      },
+      {
+        "source": 1240607,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: HTTP/2 adapter bypasses configured DNS lookup and proxy controls",
+        "url": "https://github.com/advisories/GHSA-3pq3-5fj3-cg6v",
+        "severity": "high",
+        "cwe": [
+          "CWE-918"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.13.0 <1.20.0"
+      },
+      {
+        "source": 1240608,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Denial of Service via Unhandled 'error' Event in HTTP/2 ClientHttp2Session Initialization",
+        "url": "https://github.com/advisories/GHSA-542g-h47m-68v8",
+        "severity": "high",
+        "cwe": [
+          "CWE-400"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.13.0 <1.20.0"
+      },
+      {
+        "source": 1240626,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Header Injection via Inherited headers After Minimal Interceptor",
+        "url": "https://github.com/advisories/GHSA-j8rh-479h-cp32",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-74",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.20.0"
+      },
+      {
+        "source": 1240627,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Fetch Adapter Header Injection via Inherited FormData getHeaders",
+        "url": "https://github.com/advisories/GHSA-4hqw-qxg8-jxx2",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-74",
+          "CWE-693",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.12.0 <1.20.0"
+      },
+      {
+        "source": 1240628,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Node HTTP adapter prototype-pollution gadget allows request socket hijack via inherited createConnection",
+        "url": "https://github.com/advisories/GHSA-m8m8-qj5v-23w3",
+        "severity": "high",
+        "cwe": [
+          "CWE-441",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.2 <1.20.0"
+      },
+      {
+        "source": 1240629,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: CIDR-form NO_PROXY entries are ignored, causing proxy exclusion bypass for internal IP ranges",
+        "url": "https://github.com/advisories/GHSA-44g4-m2mj-wpvx",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-693"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.0 <1.20.0"
+      },
+      {
+        "source": 1240634,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: maxRedirects: 0 is not enforced by the fetch adapter, allowing redirect-based SSRF",
+        "url": "https://github.com/advisories/GHSA-r4gj-5m52-g5wh",
+        "severity": "high",
+        "cwe": [
+          "CWE-441",
+          "CWE-601"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.17.0 <1.20.0"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Frontend runtime browser HTTP client; Node adapter/proxy/data-URI advisories have narrower Node-only preconditions; prototype/Fetch/form serialization issues can affect browser requests. API copy is build-time frontend asset tooling. Patched instead of assuming no exposure.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "baseline-browser-mapping",
+    "direct": false,
+    "severity": "moderate",
+    "nodes": [
+      {
+        "path": "node_modules/baseline-browser-mapping",
+        "version": "2.11.27",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1193686,
+        "name": "baseline-browser-mapping",
+        "dependency": "baseline-browser-mapping",
+        "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+        "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-705"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=2.0.0 <2.11.0"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development browserslist/transform metadata; invalid mapping input can terminate the build process. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "brace-expansion",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion",
+        "version": "2.1.7",
+        "development_only": true
+      },
+      {
+        "path": "node_modules/brace-expansion",
+        "version": "1.1.21",
+        "development_only": false
+      },
+      {
+        "path": "node_modules/readdir-glob/node_modules/brace-expansion",
+        "version": "2.1.7",
+        "development_only": false
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1240100,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+        "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-400",
+          "CWE-407"
+        ],
+        "cvss": {
+          "score": 5.3,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        },
+        "range": "<1.1.21"
+      },
+      {
+        "source": 1240101,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+        "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-400",
+          "CWE-407"
+        ],
+        "cvss": {
+          "score": 5.3,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L"
+        },
+        "range": ">=2.0.0 <2.1.7"
+      },
+      {
+        "source": 1240104,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<1.1.20"
+      },
+      {
+        "source": 1240105,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=2.0.0 <2.1.6"
+      },
+      {
+        "source": 1240108,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<1.1.19"
+      },
+      {
+        "source": 1240109,
+        "name": "brace-expansion",
+        "dependency": "brace-expansion",
+        "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+        "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=2.0.0 <2.1.5"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Transitive runtime ExcelJS/archive glob and dev lint glob parsing; untrusted brace patterns required. All installed vulnerable 1.x/2.x copies patched within their major.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "browserslist",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/browserslist",
+        "version": "4.29.3",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1153171,
+        "name": "browserslist",
+        "dependency": "browserslist",
+        "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+        "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+        "severity": "high",
+        "cwe": [
+          "CWE-770"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<=4.28.6"
+      },
+      {
+        "source": 1153172,
+        "name": "browserslist",
+        "dependency": "browserslist",
+        "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+        "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+        "severity": "high",
+        "cwe": [
+          "CWE-248",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<=4.28.6"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development transform/browser targeting; adversarial queries or stats files can exhaust memory/crash tooling. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "dompurify",
+    "direct": false,
+    "severity": "moderate",
+    "nodes": [
+      {
+        "path": "node_modules/dompurify",
+        "version": "3.4.16",
+        "development_only": false
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1138538,
+        "name": "dompurify",
+        "dependency": "dompurify",
+        "title": "DOMPurify: IN_PLACE hook removal leaves a detached subtree executable, causing XSS",
+        "url": "https://github.com/advisories/GHSA-55q2-fjhq-7xh7",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-79"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<=3.4.12"
+      },
+      {
+        "source": 1241204,
+        "name": "dompurify",
+        "dependency": "dompurify",
+        "title": "DOMPurify: IN_PLACE returns a force-removed rawtext root whose text carries attacker markup \u2014 pure HTML reparse executes",
+        "url": "https://github.com/advisories/GHSA-6688-9rhm-gjv2",
+        "severity": "low",
+        "cwe": [
+          "CWE-79"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<=3.4.15"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Optional runtime dependency of jsPDF HTML rendering; XSS requires affected IN_PLACE/rawtext parsing path. PDF/export dependency retained and sanitizer patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "js-yaml",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/js-yaml",
+        "version": "4.3.2",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1193727,
+        "name": "js-yaml",
+        "dependency": "js-yaml",
+        "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+        "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-407"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=4.0.0 <4.3.2"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development ESLint YAML loader; crafted merge sources cause CPU exhaustion in lint config parsing. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "nanoid",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/nanoid",
+        "version": "3.3.20",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1139427,
+        "name": "nanoid",
+        "dependency": "nanoid",
+        "title": "nanoid: custom generators can loop indefinitely when size is zero",
+        "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+        "severity": "high",
+        "cwe": [
+          "CWE-835"
+        ],
+        "cvss": {
+          "score": 5.9,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<3.3.18"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development PostCSS IDs; custom-generator zero-size DoS path not application order/idempotency keys. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "socket.io-parser",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/socket.io-parser",
+        "version": "4.2.7",
+        "development_only": false
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1130713,
+        "name": "socket.io-parser",
+        "dependency": "socket.io-parser",
+        "title": "Socket.IO: Zero-attachment Memory Exhaustion",
+        "url": "https://github.com/advisories/GHSA-2m8v-j782-fhvr",
+        "severity": "high",
+        "cwe": [
+          "CWE-20",
+          "CWE-754"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=4.0.0 <4.2.7"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Runtime transitive dependency through laravel-echo/socket.io-client; malicious Socket.IO packet is the advisory input. Patch retained even though configured realtime transport is normally Pusher.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "source-map-js",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/source-map-js",
+        "version": "1.2.2",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1241209,
+        "name": "source-map-js",
+        "dependency": "source-map-js",
+        "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+        "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+        "severity": "high",
+        "cwe": [
+          "CWE-1284"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=1.0.0 <1.2.2"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development CSS/source-map generation; hostile indexed-map offsets can exhaust event loop. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "tinypool",
+    "direct": false,
+    "severity": "critical",
+    "nodes": [
+      {
+        "path": "node_modules/tinypool",
+        "version": "1.1.1",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1241260,
+        "name": "tinypool",
+        "dependency": "tinypool",
+        "title": "Tinypool: Prototype Pollution gadget in worker options leads to Remote Code Execution",
+        "url": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3",
+        "severity": "critical",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<=2.1.0"
+      },
+      {
+        "source": 1241261,
+        "name": "tinypool",
+        "dependency": "tinypool",
+        "title": "Tinypool: Prototype Pollution Gadget to RCE in run() options",
+        "url": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr",
+        "severity": "critical",
+        "cwe": [
+          "CWE-94",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<2.1.2"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development worker execution; prototype pollution primitive enables worker-option RCE. Remove via patched Vitest migration instead of ignoring critical tooling risk.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "react",
+    "package": "vitest",
+    "direct": true,
+    "severity": "critical",
+    "nodes": [
+      {
+        "path": "node_modules/vitest",
+        "version": "3.2.7",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1193683,
+        "name": "vitest",
+        "dependency": "vitest",
+        "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+        "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-22"
+        ],
+        "cvss": {
+          "score": 5.9,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        },
+        "range": ">=2.1.0 <4.1.11"
+      }
+    ],
+    "via_packages": [
+      "@vitest/mocker",
+      "tinypool"
+    ],
+    "disposition": "Separate reviewed Vitest 3-to-5 security migration; unchanged tests and JUnit required. See tooling-compatibility.txt.",
+    "applicability_review": "Development/CI unit runner, no production bundle; see tooling-compatibility.txt. Upgrade required to remove vulnerable runner dependencies.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "axios",
+    "direct": true,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/axios",
+        "version": "1.15.2",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1120547,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Regular Expression Denial of Service (ReDoS) via Cookie Name Injection",
+        "url": "https://github.com/advisories/GHSA-hfxv-24rg-xrqf",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-1333"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=1.0.0 <1.16.0"
+      },
+      {
+        "source": 1120643,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Allocation of Resources Without Limits or Throttling in Axios",
+        "url": "https://github.com/advisories/GHSA-777c-7fjr-54vf",
+        "severity": "high",
+        "cwe": [
+          "CWE-770"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=1.7.0 <1.16.0"
+      },
+      {
+        "source": 1120645,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Proxy-Authorization Credential Leak to Origin Server Across HTTP-to-HTTPS Redirect in Axios Node.js HTTP Adapter",
+        "url": "https://github.com/advisories/GHSA-p92q-9vqr-4j8v",
+        "severity": "high",
+        "cwe": [
+          "CWE-201"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.16.0"
+      },
+      {
+        "source": 1120647,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Proxy-Authorization header leaks to redirect target when proxy is re-evaluated to direct connection",
+        "url": "https://github.com/advisories/GHSA-j5f8-grm9-p9fc",
+        "severity": "high",
+        "cwe": [
+          "CWE-200"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        },
+        "range": ">=1.0.0 <1.16.0"
+      },
+      {
+        "source": 1120650,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "axios Vulnerable to Full Man-in-the-Middle via Prototype Pollution Gadget in `config.proxy`",
+        "url": "https://github.com/advisories/GHSA-35jp-ww65-95wh",
+        "severity": "high",
+        "cwe": [
+          "CWE-441",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 8.7,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:N"
+        },
+        "range": ">=1.0.0 <1.16.0"
+      },
+      {
+        "source": 1120652,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "axios has DoS & Header Injection via Prototype Pollution Read-Side Gadgets in axios merge functions",
+        "url": "https://github.com/advisories/GHSA-898c-q2cr-xwhg",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 4.8,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:L"
+        },
+        "range": ">=1.0.0 <1.16.0"
+      },
+      {
+        "source": 1120653,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios has a Patch Bypass: Proxy-Authorization Header Injection via Prototype Pollution \u2014 Incomplete Null-Prototype Fix",
+        "url": "https://github.com/advisories/GHSA-654m-c8p4-x5fp",
+        "severity": "low",
+        "cwe": [
+          "CWE-113",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 3.7,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N"
+        },
+        "range": "=1.15.2"
+      },
+      {
+        "source": 1123824,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "axios's shouldBypassProxy does not recognize IPv4-mapped IPv6 addresses, allowing NO_PROXY bypass (incomplete fix for CVE-2025-62718)",
+        "url": "https://github.com/advisories/GHSA-pjwm-pj3p-43mv",
+        "severity": "high",
+        "cwe": [
+          "CWE-289",
+          "CWE-918"
+        ],
+        "cvss": {
+          "score": 8.6,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N"
+        },
+        "range": ">=1.15.0 <1.16.0"
+      },
+      {
+        "source": 1138749,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype pollution auth subfields can inject Basic auth",
+        "url": "https://github.com/advisories/GHSA-xj6q-8x83-jv6g",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.2 <1.18.0"
+      },
+      {
+        "source": 1147949,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype pollution gadgets can alter axios request construction",
+        "url": "https://github.com/advisories/GHSA-mmx7-hfxf-jppx",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.18.0"
+      },
+      {
+        "source": 1147950,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Deep formToJSON Key Recursion Can Cause Denial of Service",
+        "url": "https://github.com/advisories/GHSA-pmv8-rq9r-6j72",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-400",
+          "CWE-770"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.18.0"
+      },
+      {
+        "source": 1153175,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: HTTP/2 streamed uploads bypass `maxBodyLength`",
+        "url": "https://github.com/advisories/GHSA-mwf2-3pr3-8698",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-400"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.13.0 <1.18.0"
+      },
+      {
+        "source": 1153178,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios Node HTTP adapter can use an inherited proxy after interceptor config cloning",
+        "url": "https://github.com/advisories/GHSA-gcfj-64vw-6mp9",
+        "severity": "high",
+        "cwe": [
+          "CWE-200",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.2 <1.18.0"
+      },
+      {
+        "source": 1153180,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Nested axios option objects can consume polluted prototype values",
+        "url": "https://github.com/advisories/GHSA-7q8q-rj6j-mhjq",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.18.0"
+      },
+      {
+        "source": 1153182,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Fetch adapter `ReadableStream` uploads bypass `maxBodyLength`",
+        "url": "https://github.com/advisories/GHSA-jqh4-m9w3-8hp9",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-770"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.7.0 <1.18.0"
+      },
+      {
+        "source": 1153184,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: NO_PROXY bypass for 0.0.0.0 local addresses in axios",
+        "url": "https://github.com/advisories/GHSA-f4gw-2p7v-4548",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-183",
+          "CWE-918"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.0 <1.18.0"
+      },
+      {
+        "source": 1153185,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Excessive recursion in formDataToJSON can cause denial of service",
+        "url": "https://github.com/advisories/GHSA-42h9-826w-cgv3",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-400",
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.18.0"
+      },
+      {
+        "source": 1193664,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios form serializer maxDepth bypass via {} metatoken",
+        "url": "https://github.com/advisories/GHSA-hcpx-6fm6-wx23",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-674"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.1 <1.18.0"
+      },
+      {
+        "source": 1240600,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype pollution gadget in fetch adapter can alter outbound requests",
+        "url": "https://github.com/advisories/GHSA-vh66-26gq-q6x8",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.7.0 <1.20.0"
+      },
+      {
+        "source": 1240601,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype-Pollution Gadget in the Default Instance Allows Inherited Object.prototype.method to Override HTTP Method",
+        "url": "https://github.com/advisories/GHSA-9fr6-4gfg-395g",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.20.0"
+      },
+      {
+        "source": 1240604,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: ReDoS (O(N\u00b2)) in shouldBypassProxy host normalization, reachable via untrusted redirect Location",
+        "url": "https://github.com/advisories/GHSA-mghh-pgcx-3jjj",
+        "severity": "high",
+        "cwe": [
+          "CWE-400",
+          "CWE-1333"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.0 <1.20.0"
+      },
+      {
+        "source": 1240605,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Prototype Pollution Gadget in axios toFormData Options",
+        "url": "https://github.com/advisories/GHSA-x97p-jq2g-jp4f",
+        "severity": "high",
+        "cwe": [
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.1 <1.20.0"
+      },
+      {
+        "source": 1240607,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: HTTP/2 adapter bypasses configured DNS lookup and proxy controls",
+        "url": "https://github.com/advisories/GHSA-3pq3-5fj3-cg6v",
+        "severity": "high",
+        "cwe": [
+          "CWE-918"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.13.0 <1.20.0"
+      },
+      {
+        "source": 1240608,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Denial of Service via Unhandled 'error' Event in HTTP/2 ClientHttp2Session Initialization",
+        "url": "https://github.com/advisories/GHSA-542g-h47m-68v8",
+        "severity": "high",
+        "cwe": [
+          "CWE-400"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.13.0 <1.20.0"
+      },
+      {
+        "source": 1240626,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Header Injection via Inherited headers After Minimal Interceptor",
+        "url": "https://github.com/advisories/GHSA-j8rh-479h-cp32",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-74",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.0.0 <1.20.0"
+      },
+      {
+        "source": 1240627,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Fetch Adapter Header Injection via Inherited FormData getHeaders",
+        "url": "https://github.com/advisories/GHSA-4hqw-qxg8-jxx2",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-74",
+          "CWE-693",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.12.0 <1.20.0"
+      },
+      {
+        "source": 1240628,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: Node HTTP adapter prototype-pollution gadget allows request socket hijack via inherited createConnection",
+        "url": "https://github.com/advisories/GHSA-m8m8-qj5v-23w3",
+        "severity": "high",
+        "cwe": [
+          "CWE-441",
+          "CWE-1321"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.2 <1.20.0"
+      },
+      {
+        "source": 1240629,
+        "name": "axios",
+        "dependency": "axios",
+        "title": "Axios: CIDR-form NO_PROXY entries are ignored, causing proxy exclusion bypass for internal IP ranges",
+        "url": "https://github.com/advisories/GHSA-44g4-m2mj-wpvx",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-693"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=1.15.0 <1.20.0"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Frontend runtime browser HTTP client; Node adapter/proxy/data-URI advisories have narrower Node-only preconditions; prototype/Fetch/form serialization issues can affect browser requests. API copy is build-time frontend asset tooling. Patched instead of assuming no exposure.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "concurrently",
+    "direct": true,
+    "severity": "critical",
+    "nodes": [
+      {
+        "path": "node_modules/concurrently",
+        "version": "9.2.1",
+        "development_only": true
+      }
+    ],
+    "advisories": [],
+    "via_packages": [
+      "shell-quote"
+    ],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "API development process orchestration; shell-quote injection can execute commands for crafted shell input. Patch group within major 9; not production PHP runtime.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "esbuild",
+    "direct": false,
+    "severity": "low",
+    "nodes": [
+      {
+        "path": "node_modules/esbuild",
+        "version": "0.27.7",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1120680,
+        "name": "esbuild",
+        "dependency": "esbuild",
+        "title": "esbuild allows arbitrary file read when running the development server on Windows",
+        "url": "https://github.com/advisories/GHSA-g7r4-m6w7-qqqr",
+        "severity": "low",
+        "cwe": [
+          "CWE-22"
+        ],
+        "cvss": {
+          "score": 2.5,
+          "vectorString": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:N/I:L/A:N"
+        },
+        "range": ">=0.27.3 <0.28.1"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "API build/dev server dependency; local build/dev-server preconditions, not served PHP application. Patched within current constraint.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "form-data",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/form-data",
+        "version": "4.0.5",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1120743,
+        "name": "form-data",
+        "dependency": "form-data",
+        "title": "form-data: CRLF injection in form-data via unescaped multipart field names and filenames",
+        "url": "https://github.com/advisories/GHSA-hmw2-7cc7-3qxx",
+        "severity": "high",
+        "cwe": [
+          "CWE-93"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+        },
+        "range": ">=4.0.0 <4.0.6"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Transitive API Axios Node multipart construction; boundary generation risk in Node HTTP adapter, not PHP. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "nanoid",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/nanoid",
+        "version": "3.3.11",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1138811,
+        "name": "nanoid",
+        "dependency": "nanoid",
+        "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+        "url": "https://github.com/advisories/GHSA-28wg-ghj8-5hjv",
+        "severity": "high",
+        "cwe": [
+          "CWE-835"
+        ],
+        "cvss": {
+          "score": 5.9,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<3.3.16"
+      },
+      {
+        "source": 1139427,
+        "name": "nanoid",
+        "dependency": "nanoid",
+        "title": "nanoid: custom generators can loop indefinitely when size is zero",
+        "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+        "severity": "high",
+        "cwe": [
+          "CWE-835"
+        ],
+        "cvss": {
+          "score": 5.9,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<3.3.18"
+      },
+      {
+        "source": 1153189,
+        "name": "nanoid",
+        "dependency": "nanoid",
+        "title": "nanoid: Integer Overflow or Wraparound",
+        "url": "https://github.com/advisories/GHSA-xwg4-73v4-xw9w",
+        "severity": "high",
+        "cwe": [
+          "CWE-190"
+        ],
+        "cvss": {
+          "score": 7.4,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N"
+        },
+        "range": "<3.3.12"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development PostCSS IDs; custom-generator zero-size DoS path not application order/idempotency keys. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "postcss",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/postcss",
+        "version": "8.5.12",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1130709,
+        "name": "postcss",
+        "dependency": "postcss",
+        "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q \u2014 attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+        "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-22",
+          "CWE-200"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": "<=8.5.22"
+      },
+      {
+        "source": 1139510,
+        "name": "postcss",
+        "dependency": "postcss",
+        "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+        "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849",
+        "severity": "high",
+        "cwe": [
+          "CWE-22"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        },
+        "range": "<=8.5.17"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "API stylesheet build dependency; crafted CSS processing impacts build. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "shell-quote",
+    "direct": false,
+    "severity": "critical",
+    "nodes": [
+      {
+        "path": "node_modules/shell-quote",
+        "version": "1.8.3",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1120422,
+        "name": "shell-quote",
+        "dependency": "shell-quote",
+        "title": "shell-quote quote() does not escape newlines in object .op values",
+        "url": "https://github.com/advisories/GHSA-w7jw-789q-3m8p",
+        "severity": "critical",
+        "cwe": [
+          "CWE-77",
+          "CWE-78"
+        ],
+        "cvss": {
+          "score": 8.1,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        },
+        "range": ">=1.1.0 <=1.8.3"
+      },
+      {
+        "source": 1123944,
+        "name": "shell-quote",
+        "dependency": "shell-quote",
+        "title": "shell-quote: Quadratic-complexity Denial of Service in `parse()` (CWE-407)",
+        "url": "https://github.com/advisories/GHSA-395f-4hp3-45gv",
+        "severity": "high",
+        "cwe": [
+          "CWE-407"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": "<=1.8.4"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Reviewed concurrently-scoped shell-quote 1.11.0 override; see shell-quote-override-review.txt and before/after/locked tooling regressions.",
+    "applicability_review": "Transitive API concurrently command parsing; command injection in developer tooling, patched within compatible range.",
+    "intermediate_advisories": [
+      {
+        "source": 1241332,
+        "name": "shell-quote",
+        "dependency": "shell-quote",
+        "title": "shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token",
+        "url": "https://github.com/advisories/GHSA-pqg4-j6r4-53mv",
+        "severity": "critical",
+        "cwe": [
+          "CWE-78"
+        ],
+        "cvss": {
+          "score": 8.1,
+          "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        },
+        "range": ">=1.8.4 <1.11.0"
+      }
+    ],
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "source-map-js",
+    "direct": false,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/source-map-js",
+        "version": "1.2.1",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1241209,
+        "name": "source-map-js",
+        "dependency": "source-map-js",
+        "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+        "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+        "severity": "high",
+        "cwe": [
+          "CWE-1284"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        "range": ">=1.0.0 <1.2.2"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "Development CSS/source-map generation; hostile indexed-map offsets can exhaust event loop. Patched.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "api-npm",
+    "package": "vite",
+    "direct": true,
+    "severity": "high",
+    "nodes": [
+      {
+        "path": "node_modules/vite",
+        "version": "7.3.2",
+        "development_only": true
+      }
+    ],
+    "advisories": [
+      {
+        "source": 1120785,
+        "name": "vite",
+        "dependency": "vite",
+        "title": "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+        "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+        "severity": "moderate",
+        "cwe": [
+          "CWE-73",
+          "CWE-522"
+        ],
+        "cvss": {
+          "score": 0,
+          "vectorString": null
+        },
+        "range": ">=7.0.0 <=7.3.4"
+      },
+      {
+        "source": 1123526,
+        "name": "vite",
+        "dependency": "vite",
+        "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+        "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+        "severity": "high",
+        "cwe": [
+          "CWE-22",
+          "CWE-200"
+        ],
+        "cvss": {
+          "score": 7.5,
+          "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        },
+        "range": ">=7.0.0 <=7.3.4"
+      }
+    ],
+    "via_packages": [],
+    "disposition": "Upgrade affected package within compatible constraints; Vitest security migration reviewed separately.",
+    "applicability_review": "API asset dev/build server; affected developer server/file handling can expose tooling. Retain Vite 7, upgrade compatible minor/patch.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "composer",
+    "package": "laravel/framework",
+    "direct": true,
+    "runtime": true,
+    "advisories": [
+      {
+        "advisoryId": "PKSA-d5tc-s1qs-h781",
+        "packageName": "laravel/framework",
+        "affectedVersions": ">=13.0.0,<13.30.0|<12.69.0",
+        "title": "Laravel: XSS in Debug Page Information",
+        "cve": "CVE-2026-102279",
+        "link": "https://github.com/advisories/GHSA-jh5r-qr3c-85q8",
+        "reportedAt": "2026-09-29T18:24:25+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-jh5r-qr3c-85q8"
+          }
+        ],
+        "severity": "low"
+      }
+    ],
+    "disposition": "Patch in existing major; full API and paired browser suite required.",
+    "applicability_review": "Direct PHP runtime. Debug information page XSS requires APP_DEBUG and crafted request; production should disable debugging but installed code patched anyway.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "composer",
+    "package": "league/commonmark",
+    "direct": false,
+    "runtime": true,
+    "advisories": [
+      {
+        "advisoryId": "PKSA-m2dq-1fhr-29b1",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.3.0,<=2.10.1",
+        "title": "league/commonmark: DisallowedRawHtml bypassed when a disallowed tag name ends the raw-HTML literal",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-97jj-33gv-5xf9",
+        "reportedAt": "2026-09-30T15:36:33+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-97jj-33gv-5xf9"
+          }
+        ],
+        "severity": "medium"
+      },
+      {
+        "advisoryId": "PKSA-m4t9-vsgq-8khn",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=2.0.0,<=2.10.1",
+        "title": "league/commonmark: Quadratic-time denial of service in the GitHub Flavored Markdown Table extension block-start scan",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-3q6v-r5mr-hxv8",
+        "reportedAt": "2026-09-30T15:36:13+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-3q6v-r5mr-hxv8"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-zyf5-hrxv-hrd7",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.5.0,<2.10.0",
+        "title": "league/commonmark: Denial of service via distinctly-named attributes in the Attributes extension",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-8rr7-cvq3-gmfh",
+        "reportedAt": "2026-09-01T20:28:40+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-8rr7-cvq3-gmfh"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-nv44-1b4d-6gjg",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.5.0,<2.9.1",
+        "title": "league/commonmark: Denial of service in the SmartPunct and Attributes extensions",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-jjv6-8j6v-6j52",
+        "reportedAt": "2026-09-01T20:21:45+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-jjv6-8j6v-6j52"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-kr3s-894t-g5w2",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=2.7.0,<2.9.1",
+        "title": "league/commonmark XSS: `on*` event-handler filter in `AttributesExtension` bypassed with a U+000C form feed",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-f8fg-pg57-v4j8",
+        "reportedAt": "2026-09-01T20:18:29+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-f8fg-pg57-v4j8"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-9q1p-3s19-bp1q",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=0.6.0,<2.9.1",
+        "title": "league/commonmark: Denial of service via crafted code fences, reference links, and emphasis delimiters",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-j8pm-gj4c-rq4x",
+        "reportedAt": "2026-09-01T20:17:59+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-j8pm-gj4c-rq4x"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-5mzr-szzf-z6cn",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=2.0.0,<2.9.0",
+        "title": "league/commonmark: Denial of service via deeply nested XML output",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-mj63-m3rc-8ppr",
+        "reportedAt": "2026-08-06T20:42:54+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-mj63-m3rc-8ppr"
+          }
+        ],
+        "severity": "medium"
+      },
+      {
+        "advisoryId": "PKSA-cqd6-fg4n-nxpf",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=2.0.0,<2.9.0",
+        "title": "league/commonmark: Denial of service via colliding heading slugs",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-mh25-x5hq-wrqp",
+        "reportedAt": "2026-08-06T20:41:45+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-mh25-x5hq-wrqp"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-1q6p-sqkj-8mmj",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.5.0,<2.9.0",
+        "title": "league/commonmark:  Denial of service via duplicate footnote definitions",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-jfm3-95jq-q3rf",
+        "reportedAt": "2026-08-06T20:40:53+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-jfm3-95jq-q3rf"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-mc58-w91n-f5gv",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.5.0,<2.9.0",
+        "title": "league/commonmark: Denial of service via adjacent inline attribute blocks",
+        "cve": null,
+        "link": "https://github.com/advisories/GHSA-g2gp-3wwq-f4ph",
+        "reportedAt": "2026-08-06T20:39:52+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-g2gp-3wwq-f4ph"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-t21r-vtr5-3mdz",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=0.6.0,<2.9.0",
+        "title": "league/commonmark: Quadratic-time denial of service when parsing crafted Markdown",
+        "cve": "CVE-2026-71488",
+        "link": "https://github.com/advisories/GHSA-2q4p-g7hv-5rgv",
+        "reportedAt": "2026-08-06T20:37:20+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-2q4p-g7hv-5rgv"
+          }
+        ],
+        "severity": "high"
+      },
+      {
+        "advisoryId": "PKSA-scnn-p8mm-jbft",
+        "packageName": "league/commonmark",
+        "affectedVersions": ">=1.5.0,<=2.8.3",
+        "title": "league/commonmark: AttributesExtension href/src unsafe-link filter bypass via embedded control bytes",
+        "cve": "CVE-2026-71478",
+        "link": "https://github.com/advisories/GHSA-29pj-957v-52mc",
+        "reportedAt": "2026-08-06T20:30:39+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-29pj-957v-52mc"
+          }
+        ],
+        "severity": "medium"
+      }
+    ],
+    "disposition": "Patch in existing major; full API and paired browser suite required.",
+    "applicability_review": "Transitive Laravel runtime Markdown/mail renderer. Untrusted Markdown can trigger XSS/DoS in listed parsers/extensions; all advisories patched rather than relying on currently selected extensions.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "composer",
+    "package": "league/flysystem",
+    "direct": false,
+    "runtime": true,
+    "advisories": [
+      {
+        "advisoryId": "PKSA-w9tt-7782-78jx",
+        "packageName": "league/flysystem",
+        "affectedVersions": "<=3.35.2",
+        "title": "Flysystem: WhitespacePathNormalizer's control-character (CorruptedPathDetected) check is bypassed by malformed UTF-8 in the path, affecting every adapter",
+        "cve": "CVE-2026-102601",
+        "link": "https://github.com/advisories/GHSA-cxf4-7mrp-vvpr",
+        "reportedAt": "2026-09-29T18:10:14+00:00",
+        "sources": [
+          {
+            "name": "GitHub",
+            "remoteId": "GHSA-cxf4-7mrp-vvpr"
+          }
+        ],
+        "severity": "low"
+      }
+    ],
+    "disposition": "Patch in existing major; full API and paired browser suite required.",
+    "applicability_review": "Transitive Laravel runtime storage paths; malformed UTF-8 can bypass control-character path validation. Patch storage dependency; no storage/authorization policy change.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  },
+  {
+    "ecosystem": "composer",
+    "package": "paragonie/sodium_compat",
+    "direct": false,
+    "runtime": true,
+    "advisories": [
+      {
+        "advisoryId": "PKSA-32g2-byr9-drtw",
+        "packageName": "paragonie/sodium_compat",
+        "affectedVersions": ">=2,<2.5.1|<1.24.1",
+        "title": "Incorrect Ed25519 public key validation",
+        "cve": null,
+        "link": "https://github.com/paragonie/sodium_compat/pull/206",
+        "reportedAt": "2026-08-18T00:00:00+00:00",
+        "sources": [
+          {
+            "name": "FriendsOfPHP/security-advisories",
+            "remoteId": "paragonie/sodium_compat/2026-08-18.yaml"
+          }
+        ],
+        "severity": null
+      }
+    ],
+    "disposition": "Patch in existing major; full API and paired browser suite required.",
+    "applicability_review": "Transitive runtime web-push crypto support; Ed25519 key validation relevant on fallback signing path. Patched without changing push settings.",
+    "final_current_graph_audit": "PASS: no remaining advisories",
+    "verification_run": "task7_final_20261007_02"
+  }
+]

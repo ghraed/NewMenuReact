@@ -1,0 +1,160 @@
+TASK 7 — DEPENDENCY SECURITY, FORMATTING AND HOOK WARNING
+7 October 2026. COMPLETE LOCALLY. Later operational/lifecycle gates still block launch.
+
+Selected task / audit IDs:
+  Task 7 only. U8 dependency security, S3 hook warning, S4 PHP formatting.
+  No Task 8-10 implementation, push, merge, deployment, production access or
+  history rewrite. The original test-and-report pass was already completed.
+
+Branch and before/after commits for each changed repository:
+  Both: fix/task-7-dependency-security-formatting, created from clean local main.
+  Menu_React before: 2800071ce33beff8e24714e7b9d89456712cc78d.
+  Runtime patch: b1e86a4; separate reviewed Vitest migration: 130b2a5;
+  required frontend audit gate: 1277658. Final pair: run-ready/completion-commits.json.
+  Menu_API before: 09cd8ccc7afd832bacb44a88af64881a1107a933.
+  Formatting-only: a161d1a; PHP security: d72967c; asset/tooling: 09f450d;
+  required audit/style/tooling gates: b7356c8; harness correction: 87ae4b1.
+  All recorded Tasks 0-6 commits are ancestors; ancestry.json records the checks.
+  Previous fixes retained. All 51 existing frontend test files and 70 API/release
+  test files are byte-identical to Task 6; no assertions, snapshots or skips changed.
+  Existing QA runner/README intentionally extended for Task 7 required gates.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Final runner: task7_final_20261007_02, APP_ENV=testing.
+  API http://127.0.0.1:60341; frontend http://127.0.0.1:41865.
+  MySQL 127.0.0.1:58053; new schemas:
+    menu_test_QA_RUN_task7_final_20261007_02_suite
+    menu_test_QA_RUN_task7_final_20261007_02_browser
+  Isolated storage/temp/runtime; synthetic QA_RUN fixtures; mail=array, queue=sync,
+  broadcast=null, owned file cache for real HTTP retry tests. Shell credentials
+  discarded, external credentials blanked, outbound Laravel HTTP blocked. Browser
+  guard permits only owned origins. Feature/role/tenant checks and fixture cleanup
+  remain intact. Existing MySQL instances/normal restaurantdb/Compose untouched.
+  Node 22.22.3, PHP 8.4; existing host Chrome, disposable MySQL and documented runner.
+
+Failing regression before the fix:
+  U8, P1 release risk / unproven exploitability; developer/operator roles and
+  potentially runtime users. Exact reproduction: npm audit --json in both roots,
+  composer audit --format=json in API. Exit 1: 13 frontend dependency entries,
+  nine API npm entries, 15 Composer advisories across four runtime PHP packages.
+  Expected reviewed patched locked dependencies; actual installed vulnerable graph.
+  Registry/Packagist endpoints, not an application HTTP failure. Advisory titles,
+  links, ranges, direct/transitive classification, dev/runtime exposure and
+  applicability/disposition are in advisory-inventory.json and before audit JSON.
+  Deterministic for that graph/advisory snapshot; advisory data changes over time.
+  No real exploitation or security-compromise claim; screenshot not applicable.
+  A later compatible concurrently patch exposed its pinned shell-quote vulnerability
+  to the newer comment-token advisory. Node regression before: one failure / two
+  passes; quote() failed to reject a line terminator after a comment. Unsafe strings
+  are only quoted, never executed. Likely modules: npm/Composer locks, concurrently
+  argument parser and shell-quote. After patch and locked install: all three pass.
+  S4, P3 developer maintenance: vendor/bin/pint --test exited 1 on four files.
+  The roadmap's fifth file, PosComplaintAdjustmentController.php, was corrected by
+  an earlier task. Exact named five-file formatting run left that controller intact.
+  S3, P3 warning: not reproducible now. Task 1 commit b51d18e already removed the
+  state-derived invoiceNumber dependency, read the tenant/token-scoped cached
+  invoice inside the effect and added invoiceIdentity. Existing stable menu-resource
+  ensure callback/10-second TTL are retained. Current lint has no warnings; no effect
+  behavior change or redundant new hook fix/test was made in Task 7.
+
+Behavior after the fix:
+  Installed full-development and runtime graphs have zero current npm advisories
+  in both repositories and zero Composer advisories/abandoned packages.
+  PHP: Laravel 12.64.0 -> 12.69.3, CommonMark 2.8.3 -> 2.10.3,
+  Flysystem 3.35.2 -> 3.36.0, sodium_compat 2.5.0 -> 2.5.2; only four updates.
+  Frontend: Axios 1.20.0, DOMPurify 3.4.16, Socket.IO parser 4.2.7 and compatible
+  glob/lint/build transitive patches. Separate Vitest 3 -> 5.0.3 security migration
+  retains Vite 7/jsdom 26, every assertion and snapshot, explicit clearMocks=false
+  for the previous mock lifecycle. Node >=22.12 required; existing Node 22 CI fits.
+  API asset tooling stays within existing majors, including Vite 7/concurrently 9.
+  Scoped reviewed override: concurrently -> shell-quote 1.11.0. Installed concurrently
+  9.2.4 and even current 10.0.5 pin vulnerable 1.9.0; major upgrade alone is not a
+  fix. Maintainer changelog, source call sites, engine/API compatibility and passing
+  quoting/argument/name/color/peer-cleanup regressions justify this narrow override.
+  Remove it when upstream pins a reviewed patched version and the same gates pass.
+  No blanket forced audit fix; no unreviewed override or application framework major.
+  Audits, formatter and tooling regression checks now fail required QA/CI gates.
+  Unreachable advisory services remain BLOCKED, not treated as clean audits.
+
+Changed files and reason:
+  React package.json/package-lock.json: targeted runtime/tooling patches.
+  React vitest.config.ts: preserve pre-v5 mock lifecycle; no assertion relaxation.
+  API composer.lock: four compatible runtime patches; composer.json unchanged.
+  API package.json/package-lock.json: asset patches, scoped reviewed override,
+  actual npm run test:tooling script. scripts/qa/dependency-security.test.cjs:
+  three meaningful security/compatibility regressions using synthetic Node commands.
+  Formatting-only API InvoiceController.php, PosComplaintAdjustment.php,
+  PosComplaintAdjustmentGift.php and the complaint-adjustment migration. Identical
+  non-whitespace PHP tokens verified in formatting-token-check.json; schema and
+  original settlements unchanged, no data migration or deployed schema rewrite.
+  Both .github/workflows/qa.yml; API scripts/qa/run.py and README.md: required gates.
+  React .gitignore: local generated run artifacts; testing progress/report/reviews
+  and sanitized inventory/verification summaries: reproducibility and disposition.
+
+Compatibility/deployment order:
+  No new application API contract, money/role/tenant/feature policy or UI behavior.
+  Existing Tasks 3/4 additive contract and deployment requirements remain preserved.
+  These dependency patches can be deployed in either repository order once the
+  earlier paired contracts are present. Install from locks, regenerate assets,
+  rebuild API release image with patched Composer dependencies, retain Task 6
+  runtime key/storage/config requirements. Node >=22.12 needed for frontend tests;
+  PHP remains the existing supported Laravel 12/runtime line. No runtime secrets
+  embedded or rotated. Hosting publication and deployment are not authorized here.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS, final run-final-02: 412 API tests / 4,221 assertions; 133 frontend
+  unit tests; 16 browser scenarios; three security/tooling regressions. Zero
+  failures/errors/skips. Both migration runs, lint without warnings, TypeScript and
+  frontend/API builds, Composer validation, Pint (388 files), all three audits
+  (zero advisories), browser fixtures and owned process/database/storage cleanup.
+  PASS: npm ci in both roots; locked composer install --no-scripts; PHP syntax and
+  executable-token comparison; QA runner syntax and both workflow YAML parsing.
+  FAIL, earlier attempts: before audits/formatter and valid one-failure security
+  regression; run-api-group correctly stopped at the remaining shell-quote audit.
+  run-final passed 412 PHP tests then stopped at the new CLI harness's missing
+  --passthrough-arguments flag. Corrected that setup error, kept every assertion,
+  added stdout evidence, verified clean environment, then repeated the full gate.
+  Neither failed attempt is counted as an entirely passing run or a business bug.
+  BLOCKED, initial sandbox-only attempts: Git metadata writes and registry DNS;
+  Node test worker attempt did not execute cases. Authorized escalated retries
+  succeeded. No remaining local Task 7 blockers after final verification.
+  SKIPPED: zero automated cases in final executed suites.
+  NOT IMPLEMENTED: Tasks 8-10. NOT EXECUTED: hosted CI/branch protection, deployment,
+  production, other browser engines, rebuilt Docker release image with these locks,
+  fleet rollback, physical printer and operational/backup/restore launch gates.
+
+Evidence locations:
+  docs/testing/task-7-2026-10-07/: ancestry, initial/final test-preservation proofs,
+  before/after audit JSON, advisory-inventory.json, dependency-changes.json,
+  formatting-token-check.json, tooling-compatibility.txt, shell-quote-override-review.txt,
+  verification-summary.json, final paired commits in run-ready/.
+  Sanitized logs/install evidence retained locally; generated run-api-group/,
+  run-final/ and successful run-final-02/ contain environments, logs, PHP/frontend/
+  browser JUnit, real concurrency statuses, browser report and fixture evidence.
+  No final browser failure requiring screenshot/trace; prior failure attempts retained.
+
+Known baseline failures and remaining risks:
+  Earlier dependency audit failures and four formatting failures resolved locally.
+  Hook warning was already resolved before Task 7. No advisory ignored/accepted
+  silently; applicability and each patch disposition are documented. Audit cleanliness
+  is a point-in-time result, not proof of absence of exploitable defects.
+  npm locked-install deprecations remain for ExcelJS/archive/jsdom-related inflight,
+  lodash.isequal, glob 7, rimraf 2, fstream and whatwg-encoding. Reviewed maintenance
+  risk: unsupported old transitives need future package maintenance; current complete
+  graph audits report no advisories. No unrelated framework/library major changes.
+  Existing ~2.39 MB frontend entry/chunk-size warning remains for Task 10.
+  Vitest's jsdom startup performance suggestion is observational; test isolation kept.
+  Hosted gates are defined/validated locally, not claimed run or configured remotely.
+  Existing Task 8 operational/lifecycle and recovery gates still block market launch.
+
+Rollback procedure:
+  Revert only Task 7 commits in reverse order after review; never reset/undo Tasks 0-6.
+  Restore paired locks/config/gates, reinstall locks and regenerate builds; rerun the
+  disposable suite. No key/data/schema rollback or historical invoice rewrite.
+  Restoring old dependencies reintroduces known security findings and is unsuitable
+  for a clean release. Deployed-image rollback was not rehearsed in this task.
+
+Ready for next task:
+  Yes, ready for separately selected Task 8: all local Task 7 required checks
+  pass with preserved financial/isolation tests. Task 8 was not started. This is
+  not market-launch approval; operations/lifecycle/restore gates remain unexecuted.

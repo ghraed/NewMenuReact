@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0, 1, 2, 3, 4, 5 and 6 are complete locally.
+no missing history was assumed. Only Tasks 0, 1, 2, 3, 4, 5, 6 and 7 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -236,3 +236,48 @@ TASK 6 / U6-U7 — COMPLETE LOCAL SAFE IMAGE / PDF RUNTIME
   Ready for separately selected Task 7; Tasks 7-10 and remaining audit/operational
   gates still block launch. Earlier Task 6-not-started notes describe prior states.
   No push, merge, deployment, production access or history rewrite performed.
+
+
+TASK 7 / U8-S3-S4 — COMPLETE LOCAL DEPENDENCY SECURITY / FORMATTING
+  Branch: fix/task-7-dependency-security-formatting (both repositories).
+  Frontend base: 2800071ce33beff8e24714e7b9d89456712cc78d.
+  API base: 09cd8ccc7afd832bacb44a88af64881a1107a933.
+  API final: 87ae4b12c1b3911056aaabd38d9a0e02beab9637.
+  Final paired commits: task-7-2026-10-07/run-ready/completion-commits.json.
+  Tasks 0-6 ancestors verified in both initially clean repositories. All 51 earlier
+  frontend and 70 API/release test files byte-identical; previous fixes retained.
+  Before: frontend/API npm audits fail (13/nine dependency entries), Composer audit
+  fails (15 advisories/four packages), Pint fails on four remaining original files.
+  Valid shell-quote regression: one failure/two passes. Hook warning already fixed
+  by Task 1; no new GuestInvoicePage effect change or suppression.
+  After: compatible runtime/build patches; separate reviewed Vitest 5.0.3 migration
+  retaining mock lifecycle and Vite 7; narrow reviewed concurrently -> shell-quote
+  1.11.0 override with three quoting/argument/cleanup regressions. No framework
+  major, blanket forced update or unreviewed override. All three audits clean.
+  Formatting-only commit a161d1a: identical executable PHP tokens, including named
+  migration; no schema/data/key/settlement change. Fifth file already formatted.
+  Audits/style/tooling now required local and CI gates; hosted CI unexecuted.
+  Final runner task7_final_20261007_02: APP_ENV=testing, disposable MySQL schemas,
+  loopback URLs, isolated storage and disabled external services verified.
+  PASS: 412 API tests / 4,221 assertions; 133 frontend unit tests; 16 browser
+  scenarios; three tooling regressions; zero failures/errors/skips. Locked installs,
+  lint, TypeScript/builds, Composer validation, Pint (388 files), audits, migrations,
+  fixture reset and owned runtime/database/storage cleanup all pass.
+  Earlier run-api-group correctly stopped at residual shell-quote audit; run-final
+  passed PHP then stopped on the new harness's missing explicit argument-forwarding
+  flag. Fixed harness without changing assertions; complete final rerun passed.
+  Initial sandbox restrictions and invalid worker attempt tracked separately, never
+  counted as passing tests. No remaining local Task 7 blocker.
+  Report: docs/testing/task-7-2026-10-07.txt. Evidence/reviews/summary:
+  task-7-2026-10-07/ (sanitized generated run-* folders retained locally).
+  Remaining: existing large frontend bundle/deprecation warnings; hosted CI, other
+  browsers, rebuilt release image with new locks, deployment, physical printer and
+  operational/backup/restore gates unexecuted. No claim of market-launch readiness.
+  Compatibility: no application contract/policy change; rebuild assets/API image,
+  preserve Task 6 runtime configuration; frontend test Node >=22.12. Override removal
+  requires upstream patched dependency and passing security/compatibility gates.
+  Rollback: revert only Task 7 commits, restore locks/builds, retain Tasks 0-6;
+  old locks reinstate known security findings. No data/key/schema rollback.
+  Ready for separately selected Task 8. Tasks 8-10 NOT IMPLEMENTED by this task.
+  No push, merge, deployment, production access or history rewrite performed.
+  Earlier Task 7-not-started and audit/style-failure entries describe prior states.

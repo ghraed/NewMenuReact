@@ -1,0 +1,18 @@
+[
+  {
+    "file": "app/Http/Controllers/InvoiceController.php",
+    "executable_tokens_identical": true
+  },
+  {
+    "file": "app/Models/PosComplaintAdjustment.php",
+    "executable_tokens_identical": true
+  },
+  {
+    "file": "app/Models/PosComplaintAdjustmentGift.php",
+    "executable_tokens_identical": true
+  },
+  {
+    "file": "database/migrations/2026_08_15_120000_create_pos_complaint_adjustments_tables.php",
+    "executable_tokens_identical": true
+  }
+]

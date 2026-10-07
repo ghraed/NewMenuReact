@@ -1,0 +1,34 @@
+TASK 7 — SEPARATE VITEST SECURITY MIGRATION REVIEW
+7 October 2026.
+
+The fresh registry audit flags Vitest 3.2.4 / @vitest/mocker and tinypool.
+No safe patch in the installed Vitest 3 line is suggested. Upgrade only the test
+runner to 5.0.3 (and required runner dependencies), retaining Vite 7, React 19,
+TypeScript 5.9 and jsdom 26. No overrides added; existing uuid override unchanged.
+
+Compatibility reviewed against registry metadata and maintainer documentation:
+https://vitest.dev/guide/migration/
+https://github.com/vitest-dev/vitest/releases/tag/v5.0.3
+https://github.com/advisories/GHSA-5gmw-xhrv-c9v3
+https://github.com/advisories/GHSA-82fw-gwwq-j7x9
+
+Node requirement ^22.12.0 || ^24.0.0 || >=26.0.0: local Node 22.22.3 meets it;
+existing CI Node 22 must resolve >=22.12. Vite ^7 is an accepted peer.
+The single root test configuration uses jsdom, setupFiles, include and globals;
+no custom poolOptions, workspace/projects, coverage/browser-mode integration,
+custom reporter or CLI full-name filter is present. Existing top-level mocks and
+hoisted setup remain. Vitest 5 clearMocks defaults true: explicitly retain false
+to preserve previous mock lifecycle without editing tests or weakening assertions.
+Default and JUnit reporters used by QA/CI must still run with all 133 cases and no
+skips. TypeScript/build and real Playwright suite provide independent verification.
+
+Exposure: Vitest/mocker and worker tooling run only in developer/CI processes;
+not included in application production JS. Arbitrary file read targets browser-mode
+mock redirects (not this jsdom setup); worker prototype pollution requires an
+additional pollution primitive. Those narrower preconditions do not justify keeping
+vulnerable tooling on CI. Upgrade instead of ignoring advisories or overriding internals.
+
+Acceptance: locked installation, unchanged full unit suite including snapshots,
+JUnit generation, lint/build, and isolated paired API/browser checks. Results are
+recorded in verification-summary.json. Rollback: restore previous runner/config/lock
+only; this reinstates known dev-tool risks and is unsuitable for a clean release.

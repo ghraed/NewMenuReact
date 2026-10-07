@@ -1,0 +1,86 @@
+[
+  {
+    "repository": "Menu_React",
+    "task": 1,
+    "commit": "b51d18e94a709daca7de92d559b1c196826c0e10",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 2,
+    "commit": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 3,
+    "commit": "b90f3d3a1f66bf7de9e5d752e4bb837be0ee5add",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 4,
+    "commit": "29f37271e65a6b1a053619309d8a1ebff349a429",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 5,
+    "commit": "e2ecb9cdc34be18f437eff6284f337b085e7366f",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 6,
+    "commit": "2800071ce33beff8e24714e7b9d89456712cc78d",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 1,
+    "commit": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 2,
+    "commit": "6484a65c2e5304e8058445c40702c1f04feb9790",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 3,
+    "commit": "d6388a65eb35e59165534d5e173456cdbd311764",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 4,
+    "commit": "29944c8beb17ebd6d1b12d011eef219507c9f8ce",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 5,
+    "commit": "9e870ef8696cef4c9eaea81b3c090b12e4a7c9df",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 6,
+    "commit": "09cd8ccc7afd832bacb44a88af64881a1107a933",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_React",
+    "task": 0,
+    "commit": "a91b1d03679c2f283fb87d730a7fb73789cd2316",
+    "ancestor": true
+  },
+  {
+    "repository": "Menu_API",
+    "task": 0,
+    "commit": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+    "ancestor": true
+  }
+]

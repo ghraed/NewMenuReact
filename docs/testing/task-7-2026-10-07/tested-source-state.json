@@ -1,0 +1,12 @@
+{
+  "Menu_React": {
+    "branch": "fix/task-7-dependency-security-formatting",
+    "commit": "12776583e418010d017348f1816faac57062fb3d",
+    "application_source_unchanged_after_final_run": true
+  },
+  "Menu_API": {
+    "branch": "fix/task-7-dependency-security-formatting",
+    "commit": "87ae4b12c1b3911056aaabd38d9a0e02beab9637",
+    "application_source_unchanged_after_final_run": true
+  }
+}
