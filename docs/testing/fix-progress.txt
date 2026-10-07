@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0, 1, 2, 3, 4 and 5 are complete locally.
+no missing history was assumed. Only Tasks 0, 1, 2, 3, 4, 5 and 6 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -87,7 +87,7 @@ TASK 3 / U1 — COMPLETE LOCAL SERVER-VALIDATED POS COMPENSATION
   Report: docs/testing/task-3-2026-10-07.txt
   Evidence: docs/testing/task-3-2026-10-07/ (generated run-* folders retained locally).
 
-NEXT: TASK 6 — NOT STARTED; await review and separate selected execution.
+NEXT: TASK 7 — NOT STARTED; await review and separate selected execution.
 Tasks 5-10 are NOT IMPLEMENTED by the completed changes. Inactive-policy, release
 image/operations verification and remaining audit risks still block launch.
 No Task 2 push, merge, deployment, production access or settled-record rewrite.
@@ -190,3 +190,49 @@ TASK 5 / U5 — COMPLETE LOCAL RESTAURANT INACTIVE/ACTIVE POLICY
   Ready for separately selected Task 6. Tasks 6–10 still NOT IMPLEMENTED here and
   remaining release risks still block launch. Earlier Task 5-unimplemented notes
   describe their prior task states. No push, merge, deployment or history rewrite.
+
+
+TASK 6 / U6-U7 — COMPLETE LOCAL SAFE IMAGE / PDF RUNTIME
+  Branch: fix/task-6-safe-release-image-pdf (both repositories).
+  Frontend base: e2ecb9cdc34be18f437eff6284f337b085e7366f; application unchanged.
+  API base: 9e870ef8696cef4c9eaea81b3c090b12e4a7c9df.
+  API secret/config commit: 70458b1.
+  API PDF/runtime final: 09cd8ccc7afd832bacb44a88af64881a1107a933.
+  Final paired commits: task-6-2026-10-07/run-ready/completion-commits.json.
+  Tasks 0-5 ancestry verified in both clean initial repositories; all 51 earlier
+  frontend and 69 API test/fixture/support files remain byte-identical.
+  Before: real Docker matcher exported synthetic env/config canaries; entrypoint
+  accepted a copied key without runtime APP_KEY; browser/font packaging assertion
+  failed. Original-container PDF 500 was predicted, not claimed executed.
+  After: env variants/Composer auth/cached config excluded; runtime APP_KEY required
+  without creation/rotation/config copying; existing Compose env_file, DB, storage,
+  worker/scheduler commands retained. Chromium/Noto installed in actual PHP image;
+  writable private/temp/XDG/profile paths with cleanup and runtime ownership.
+  PASS: three new regressions; 412 API tests / 4,221 assertions (two full runs);
+  133 frontend unit tests; 16 browser scenarios; zero automated skips/failures/errors
+  in the final suites. Lint/TypeScript/builds, Composer validation, changed-PHP-file
+  formatting, migrations and owned-host-runtime cleanup pass.
+  PASS: 16 final image checks; all-layer/env inspection, missing-key rejection,
+  fresh migration/config-cache/Apache boot and supplied-key preservation. Real HTTP
+  from inside the image returns invoice 201 and private six-page Arabic/English PDF
+  200 with independent EUR 184.00 total, supported exchange rate, embedded Noto
+  Arabic fonts and www-data private-file ownership. Foreign tenant 404, anonymous
+  401, identical cached reuse, source-hash agreement and full owned Docker cleanup.
+  Actual runtime: Debian 13.7, PHP 8.4.26, Chromium 154.0.8037.92, UID:GID 33:33;
+  APP_ENV=testing, container loopback, isolated qa-db:3306 and fresh synthetic schema.
+  Earlier failed attempts retained separately: internal-network host connectivity
+  harness failure, then omitted expense_management fixture flag (proper API 404).
+  Neither is counted passed or reported as a product defect; all required final
+  image assertions pass without relaxing authorization/feature/financial checks.
+  FAIL, baseline: same four formatter files and all three dependency audits;
+  large frontend bundle warning remains. No later-task dependency changes.
+  Report: docs/testing/task-6-2026-10-07.txt; summary/evidence: task-6-2026-10-07/.
+  Compatibility: supply existing APP_KEY/config at runtime to all existing services;
+  recreate per-service caches; preserve DB/storage/bridge volumes and commands.
+  Rollback: retained verified image digest with same runtime key/config/volumes;
+  no schema/key/data rollback. Previous deployed image and fleet rollback untested.
+  Hosted CI, registry publication, deployment/production and worker/scheduler
+  delivery unexecuted. Later operational verification belongs to Task 8.
+  Ready for separately selected Task 7; Tasks 7-10 and remaining audit/operational
+  gates still block launch. Earlier Task 6-not-started notes describe prior states.
+  No push, merge, deployment, production access or history rewrite performed.

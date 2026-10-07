@@ -1,0 +1,277 @@
+{
+  "selected_task": 6,
+  "audit_ids": [
+    "U6",
+    "U7"
+  ],
+  "api_commit": "09cd8ccc7afd832bacb44a88af64881a1107a933",
+  "image": "sha256:ba9a3c0f76af49b0d5ff56f6c09197fc53cc9acacbc57b9cb70c646c42322ae1",
+  "task_status": "COMPLETE_LOCAL",
+  "image_checks": [
+    {
+      "check": "all-image-layers-exclude-runtime-config",
+      "status": "PASS"
+    },
+    {
+      "check": "image-rejects-missing-runtime-key",
+      "status": "PASS"
+    },
+    {
+      "check": "fresh-entrypoint-migrations-and-apache-boot",
+      "status": "PASS",
+      "url": "http://127.0.0.1"
+    },
+    {
+      "check": "cached-config-runtime-key-and-www-data-storage",
+      "status": "PASS"
+    },
+    {
+      "check": "image-matches-final-application-source",
+      "status": "PASS"
+    },
+    {
+      "check": "/api/admin/finance/invoices",
+      "role": "tenant_a_admin",
+      "status": "PASS",
+      "http_status": 201
+    },
+    {
+      "check": "large-invoice-independent-total",
+      "status": "PASS",
+      "expected_cents": 18400
+    },
+    {
+      "check": "/api/admin/finance/invoices/1/pdf",
+      "role": "tenant_a_admin",
+      "status": "PASS",
+      "http_status": 200
+    },
+    {
+      "check": "private-arabic-english-multipage-pdf-and-total",
+      "status": "PASS",
+      "bytes": 250292,
+      "pages": 6,
+      "runtime_user": "www-data",
+      "storage": "private-local-disk"
+    },
+    {
+      "check": "/api/admin/finance/invoices/1/pdf",
+      "role": "tenant_b_admin",
+      "status": "PASS",
+      "http_status": 404
+    },
+    {
+      "check": "/api/admin/finance/invoices/1/pdf",
+      "role": "anonymous",
+      "status": "PASS",
+      "http_status": 401
+    },
+    {
+      "check": "foreign-tenant-and-anonymous-pdf-denial",
+      "status": "PASS"
+    },
+    {
+      "check": "/api/admin/finance/invoices/1/pdf",
+      "role": "tenant_a_admin",
+      "status": "PASS",
+      "http_status": 200
+    },
+    {
+      "check": "cached-private-pdf-reuse",
+      "status": "PASS"
+    },
+    {
+      "check": "browser-profile-cleanup",
+      "status": "PASS"
+    },
+    {
+      "check": "owned-runtime-cleanup",
+      "status": "PASS"
+    }
+  ],
+  "regressions": {
+    "tests": 3,
+    "status": "PASS"
+  },
+  "paired_qa": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 412,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "composer-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "browser-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-lint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-unit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 133,
+      "skipped": 0
+    },
+    {
+      "check": "react-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-e2e",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 16,
+      "skipped": 0
+    },
+    {
+      "check": "react-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "final_api_qa": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 412,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "composer-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "previous_test_files_unchanged": true,
+  "pdf_visual_review": "PASS_FIRST_AND_LAST_PAGE",
+  "earlier_image_attempts": {
+    "run-image-01": "FAIL_TEST_HARNESS_HOST_CONNECTIVITY",
+    "run-image-02": "FAIL_FIXTURE_MISSING_FEATURE_FLAG"
+  },
+  "hosted_ci": "NOT_EXECUTED",
+  "deployment": "NOT_EXECUTED",
+  "next_task": "Task 7, only after separate selection"
+}

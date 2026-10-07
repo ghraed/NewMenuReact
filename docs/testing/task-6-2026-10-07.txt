@@ -1,0 +1,145 @@
+TASK 6 / U6-U7 — SAFE RELEASE IMAGE AND PDF RUNTIME
+7 October 2026. COMPLETE LOCALLY. Known baseline audit/style failures still block release.
+
+Selected task: Task 6 only. No later task, deployment, push, merge or history rewrite.
+
+Repository state and preservation:
+  Both repositories started clean on main at the completed Task 5 commits.
+  Menu_React before: e2ecb9cdc34be18f437eff6284f337b085e7366f.
+  Menu_API before: 9e870ef8696cef4c9eaea81b3c090b12e4a7c9df.
+  Dedicated branch in both: fix/task-6-safe-release-image-pdf.
+  Every recorded Task 0-5 completion commit is an ancestor in its repository.
+  All 51 previous frontend test/fixture files and 69 API test/fixture/support files
+  remain byte-identical. Evidence: task-6-2026-10-07/previous-tasks-preserved.json.
+  First API commit: 70458b1 (runtime secrets/configuration).
+  Final API commit: 09cd8ccc7afd832bacb44a88af64881a1107a933.
+  Final paired commits: task-6-2026-10-07/run-ready/completion-commits.json.
+
+Failing regressions before the fix:
+  U6, P1 build/security risk, operator and all tenants. Copy the original
+  .dockerignore into an isolated synthetic context; place synthetic canaries in
+  root/nested env variants and bootstrap/cache/config.php; build a scratch COPY
+  probe with Docker's real matcher. Secret-bearing filenames are exported.
+  Run the relocated original entrypoint with synthetic .env.production and no
+  APP_KEY, all operational switches disabled: it succeeds by copying config.
+  Expected: those paths never reach COPY; startup stops before Artisan without
+  a runtime key and never copies/writes config or creates/rotates keys.
+  URL/status/screenshot: not applicable to these build/config regressions.
+  Actual canary filenames, not real values, are retained in regression-before.log.
+  U7, P2 deployment risk, admin/accountant PDF users. Original Dockerfile packaging
+  regression fails because neither Chromium nor Arabic fonts are installed.
+  An original-container HTTP 500 is NOT claimed: before-fix proof is the actual
+  missing package recipe, matching audit U7. Host Chrome is not release evidence.
+  Both findings are deterministic. Modules: .dockerignore, Dockerfile,
+  docker/entrypoint.sh and InvoicePdfService.php.
+
+Behavior and changed files:
+  Menu_API/.dockerignore excludes all root/nested .env variants, *.env files,
+  cached Laravel configuration, Composer auth files and local credential/tool dirs.
+  No env examples are needed inside the image, so none are whitelisted.
+  docker/entrypoint.sh requires runtime APP_KEY before DB/Artisan, does not write
+  .env or generate a key, retains migration/config/storage switches and arbitrary
+  worker/scheduler commands, and restores writable runtime storage/cache ownership
+  for Apache after root-run Artisan initialization.
+  Dockerfile installs Debian Chromium and Noto Arabic fonts in the actual PHP
+  8.4 Apache image and creates required private/public/framework storage paths.
+  InvoicePdfService.php keeps existing browser discovery, private storage and
+  accounting behavior; uses separate writable temporary profiles/XDG directories,
+  avoids small /dev/shm capacity and cleans profiles on success/browser failure.
+  Uses the supported no-PDF-header/footer flag; keeps the existing no-sandbox rule.
+  scripts/qa/release-tests/test_release_config.py retains all three regressions.
+  scripts/qa/release.py and release-fixtures.php add a guarded, disposable image
+  smoke runner with synthetic fixtures, real HTTP and no development dependencies.
+  scripts/qa/README.md documents build/runtime verification, config and rollback.
+  Menu_React changes are QA report/progress/evidence support and .gitignore only.
+  No source, schema, lockfile, calculation, permission, subscription or data rewrite
+  from previous financial/tenant/lifecycle fixes is changed.
+
+Environment:
+  Full paired run: task6_full_20261007_01, APP_ENV=testing, API loopback
+  http://127.0.0.1:48211, frontend http://127.0.0.1:59573, disposable MySQL 127.0.0.1:36141,
+  menu_test_QA_RUN_task6_full_20261007_01_suite and corresponding browser schema.
+  Isolated storage /tmp/menu-qa-9yl7pylg/storage, external credentials blank,
+  mail=array, queue=sync and broadcast=null. Its owned runtime was removed.
+  Final API recheck: task6_api_final_20261007, API http://127.0.0.1:49821,
+  MySQL 127.0.0.1:32895, menu_test_QA_RUN_task6_api_final_20261007_suite.
+  Image runtime: task6_image_20261007_03, APP_ENV=testing, container-loopback
+  http://127.0.0.1:80, qa-db:3306 on a new internal Docker network,
+  menu_test_QA_RUN_task6_image_20261007_03_release. Synthetic runtime key/passwords;
+  mail=array, queue=sync, broadcast=null, local storage /var/www/storage.
+  All configured external credentials blank; no host environment is forwarded.
+  Real HTTP client runs inside the image as www-data; no ports are exposed externally.
+  PHP 8.4.26 / Debian 13.7 (Trixie) / Chromium 154.0.8037.92 / UID:GID 33:33.
+  Both tenants enable finance_dashboard, vat_invoices and expense_management.
+  No production/default Compose files or normal DB/runtime credentials are used.
+
+Checks:
+  PASS: three configuration/packaging regressions after the fix.
+  PASS: full paired baseline, 412 API tests / 4,221 assertions; 133 frontend unit
+  tests; 16 browser scenarios, zero failures/errors/skips. Lint/TypeScript/frontend
+  build, API asset build, Composer validation, fresh migrations and cleanup passed.
+  PASS: final API recheck with final browser environment code, 412 tests /
+  4,221 assertions, zero skips; API asset build, Composer validation and cleanup.
+  PASS: formatting of the changed PDF service/new PHP fixture, PHP/shell/Python
+  syntax and preservation checks.
+  PASS: final release image build and all 16 final image checks. Every historical
+  image layer and image ENV excludes supplied runtime config/credentials; missing
+  APP_KEY fails before startup. Fresh entrypoint migrations/config cache/Apache boot
+  succeed. Runtime APP_KEY is preserved; critical application/entrypoint source hashes
+  match the reviewed workspace. No host-installed browser is used by the image.
+  Real POST /api/admin/finance/invoices returns 201; GET /api/admin/finance/invoices/1/pdf
+  returns 200/application/pdf. 142 items, six pages, 250,292 bytes; extracted English
+  and Arabic, embedded Noto Arabic fonts and visually reviewed first/last pages.
+  Independent cents: subtotal 16300 - discount 300 + service 800 + VAT 1600 = 18400.
+  VAT and service both use the discounted subtotal under the existing contract.
+  API/PDF total EUR 184.00 and exchange rate 1.2345 agree. Actual HTTP-produced file
+  is owned by www-data on private local storage; public disk contains no invoice PDF.
+  Foreign tenant 404 and anonymous 401; repeated authorized request returns identical
+  cached bytes. Temporary Chrome profiles and every owned Docker runtime/volume/network
+  are cleaned. A repeated image run uses no existing business data.
+  FAIL, baseline: same four PHP formatting files and all three dependency audits.
+  BLOCKED: none of the final required Task 6 gates.
+  SKIPPED: none in executed automated suites.
+  NOT IMPLEMENTED: unselected Tasks 7-10.
+  NOT EXECUTED: hosted CI, deployment, production, worker/scheduler delivery,
+  registry publication and fleet rollback rehearsal. Later roadmap tasks unselected.
+
+Compatibility/deployment order:
+  Existing production Compose env_file is retained. It passes existing APP_KEY,
+  DB and service settings at runtime; these files are excluded from build context.
+  Supply the same existing APP_KEY to app/worker/scheduler/realtime, then recreate
+  services to regenerate runtime config. Mounted .env alone does not replace the
+  explicit runtime APP_KEY requirement. Keep DB/storage/bridge volumes and commands.
+  This is an API image update; there is no frontend application rollout dependency.
+  Chromium and private/temp storage must remain writable/available in that image.
+
+Evidence:
+  task-6-2026-10-07/run-config/{regression-before,regression-after}.log;
+  run-full-01/ and run-api-final/ (environments, JUnit, baseline audit/style results,
+  browser report and sanitized traces, retained locally under ignored run folders);
+  image-build*.log; run-image-03/ (checks, effective config, fixture roles/flags,
+  critical source hashes, image digest, private PDF, extracted text, font metadata,
+  first/last page screenshots, private-file ownership and sanitized denial responses).
+  Verification summary: task-6-2026-10-07/verification-summary.json.
+  Earlier image attempts are retained separately, not counted as passing:
+  run-image-01 failed at host connectivity to an internal network after successful
+  migration/config-cache/Apache startup. The client was moved to container loopback.
+  run-image-02 reached real HTTP but fixture expense_management was disabled, giving
+  the expected feature-gate 404. Route/role/flags/environment were inspected before
+  any product-bug claim; the fixture was corrected without changing enforcement.
+  Both failed attempts cleaned their owned runtimes; neither is a release regression.
+  Final run-image-03 passes every required check, with no skipped checks.
+
+Remaining risks and rollback:
+  The original unsafe recipe is not an approved rollback image. No previous deployed
+  image/digest was supplied or inspected; operational rollback is not claimed tested.
+  Retain the locally verified image digest as a known working artifact,
+  and the approved previous secret-free image before any separately authorized release.
+  Verified local image: menu-api-qa-task6:final-20261007
+  sha256:ba9a3c0f76af49b0d5ff56f6c09197fc53cc9acacbc57b9cb70c646c42322ae1
+  Recreate services from that retained image with the same existing runtime APP_KEY,
+  DB config and storage/bridge volumes. No schema/data/key rollback is needed here.
+  Existing dependency/style and later operational release gates remain open.
+
+Ready for next separately selected task: YES, Task 6 local acceptance is complete.
+Task 7 is not started; Tasks 7-10 and outstanding release gates still block launch.
