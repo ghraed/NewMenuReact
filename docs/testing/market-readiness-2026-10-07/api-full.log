@@ -1,0 +1,458 @@
+
+   PASS  Tests\Unit\DomainNameTest
+  ✓ custom domain normalization removes protocol www path query and slash
+  ✓ invalid custom domains are rejected
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true
+
+   PASS  Tests\Unit\InvoiceSplitServiceTest
+  ✓ equal split breakdown totals always match original invoice total ex… 0.11s  
+  ✓ selected item split preserves total without losing or creating mone… 0.01s  
+  ✓ selected item split allocates discount service charge and vat exact… 0.01s  
+
+   PASS  Tests\Unit\OrderInvoiceCalculatorTest
+  ✓ calculator returns exact decimal totals with data set "fixed discou… 0.01s  
+  ✓ calculator returns exact decimal totals with data set "percentage d… 0.01s  
+  ✓ calculator caps percentage discount and never creates negative tota… 0.01s  
+  ✓ calculator includes service charge in exact cent totals              0.01s  
+
+   PASS  Tests\Feature\AdminEventReservationApiTest
+  ✓ event update rejects room plan from another restaurant              12.78s  
+
+   PASS  Tests\Feature\AssetFileControllerTest
+  ✓ remote assets are streamed from the api origin                       0.02s  
+  ✓ unsigned public asset urls are not directly readable by id           0.02s  
+  ✓ authenticated same tenant user can read unsigned asset url           0.02s  
+  ✓ authenticated other tenant user cannot read unsigned asset url       0.02s  
+
+   PASS  Tests\Feature\AssetReplacementSafetyTest
+  ✓ failed replacement preserves previous asset with data set "glb exce… 0.03s  
+  ✓ failed replacement preserves previous asset with data set "glb fals… 0.03s  
+  ✓ failed replacement preserves previous asset with data set "usdz exc… 0.04s  
+  ✓ failed replacement preserves previous asset with data set "usdz fal… 0.02s  
+  ✓ failed replacement preserves previous asset with data set "preview…  0.02s  
+  ✓ failed replacement preserves previous asset with data set "preview…  0.02s  
+  ✓ same filename replacement uses new path and cleans old file with da… 0.03s  
+  ✓ same filename replacement uses new path and cleans old file with da… 0.02s  
+  ✓ same filename replacement uses new path and cleans old file with da… 0.03s  
+  ✓ partial file write is cleaned without touching previous asset        0.02s  
+  ✓ long original filename fits storage path and is kept in metadata     0.02s  
+  ✓ long source filename does not break model copy                       0.03s  
+  ✓ database failure preserves old asset and cleans new upload           0.02s  
+  ✓ failure during old record deletion rolls back replacement            0.02s  
+  ✓ missing second source file preserves both target models              0.02s  
+  ✓ second model record failure rolls back both models and cleans copie… 0.03s  
+  ✓ successful copy replaces models without touching preview or source   0.03s  
+  ✓ glb only copy removes stale usdz after success                       0.03s  
+  ✓ replacement does not delete an old file still used by another asset  0.02s  
+  ✓ cleanup failure does not turn a successful replacement into an erro… 0.02s  
+  ✓ other tenant model cannot replace target                             0.02s  
+
+   PASS  Tests\Feature\AuthSecurityTest
+  ✓ valid login returns token and authenticated user payload             0.03s  
+  ✓ invalid login is rejected                                            0.02s  
+  ✓ inactive user cannot log in                                          0.02s  
+  ✓ inactive user token is revoked and cannot access protected routes    0.02s  
+  ✓ expired token cannot access protected routes                         0.02s  
+  ✓ logout revokes current token                                         0.03s  
+  ✓ revoked token cannot access protected routes                         0.02s  
+  ✓ malformed token is rejected                                          0.01s  
+  ✓ unauthenticated access is rejected                                   0.01s  
+  ✓ repeated failed login attempts are rate limited                      0.03s  
+
+   PASS  Tests\Feature\BroadcastChannelAuthorizationTest
+  ✓ staff wave channel auth requires same restaurant and table assignme… 0.03s  
+  ✓ kitchen channel auth is limited to admins and chefs in the current…  0.03s  
+  ✓ accounting channel auth matches finance http permissions             0.03s  
+
+   PASS  Tests\Feature\ChatMenuAvailabilityTest
+  ✓ category availability question lists all matching pizzas and gently… 0.03s  
+
+   PASS  Tests\Feature\CopyDishModelTest
+  ✓ authenticated admin can copy model assets from another dish          0.03s  
+  ✓ copy model requires a ready source dish                              0.02s  
+
+   PASS  Tests\Feature\CurrencySettingsControllerTest
+  ✓ restaurant member admin can update currency settings                 0.02s  
+
+   PASS  Tests\Feature\DishCreationSafetyTest
+  ✓ failed upload rolls back dish relationships and files with data set… 0.03s  
+  ✓ failed upload rolls back dish relationships and files with data set… 0.03s  
+  ✓ failed upload rolls back dish relationships and files with data set… 0.03s  
+  ✓ failed upload rolls back dish relationships and files with data set… 0.03s  
+  ✓ second asset record failure rolls back creation and cleans both fil… 0.03s  
+  ✓ asset url save failure rolls back creation and cleans uploaded file  0.03s  
+  ✓ response loading failure rolls back creation and files               0.03s  
+  ✓ success saves dish models and relationships with readable files      0.04s  
+  ✓ creation without models keeps existing supported behavior            0.03s  
+  ✓ invalid file is rejected before creating any records or files        0.03s  
+  ✓ retry after failed second upload creates one complete dish           0.04s  
+  ✓ failed preview upload rolls back models dish and relationships with… 0.05s  
+  ✓ failed preview upload rolls back models dish and relationships with… 0.04s  
+  ✓ preview asset record failure rolls back entire creation              0.03s  
+  ✓ preview and models are created together and preview is readable      0.04s  
+  ✓ invalid preview is rejected before creation                          0.02s  
+  ✓ oversized preview is rejected before creation                        0.02s  
+
+   PASS  Tests\Feature\DishManagementApiTest
+  ✓ admin can create update and delete multilingual dishes with relatio… 0.05s  
+  ✓ dish management rejects negative prices disabled categories and cro… 0.03s  
+  ✓ admin can edit and remove recipe ingredients with decimal quantitie… 0.04s  
+  ✓ recipe validation rejects duplicate missing and deleted ingredient…  0.02s  
+
+   PASS  Tests\Feature\EventPlanningAlertsTest
+  ✓ scheduler sends only due confirmed event reminders once              0.02s  
+  ✓ immediate update broadcast payload is sanitized and logs each targe… 0.02s  
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ the application returns a successful response                        0.02s  
+
+   PASS  Tests\Feature\Finance\FinanceDashboardMetricsApiTest
+  ✓ admin can get dashboard metrics with previous period deltas          0.04s  
+  ✓ dashboard metrics can include draft expenses when requested          0.04s  
+  ✓ non admin user cannot access dashboard metrics endpoint              0.02s  
+
+   PASS  Tests\Feature\Finance\FinanceExpenseManagementApiTest
+  ✓ admin can manage expense categories with tenant scoping              0.04s  
+  ✓ admin can manage vendors with tenant scoping                         0.03s  
+  ✓ admin can create filter and update expenses with status rules        0.05s  
+  ✓ non admin user cannot access finance expense endpoints               0.02s  
+
+   PASS  Tests\Feature\Finance\FinanceParityTest
+  ✓ backend finance math matches locked fixtures with data set "walkin-… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "fixed-d… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "fixed-d… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "percent… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "percent… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "zero-va… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "invalid… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "high-va… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "three-d… 0.01s  
+  ✓ backend finance math matches locked fixtures with data set "negativ… 0.01s  
+
+   PASS  Tests\Feature\Finance\FinancePayrollApiTest
+  ✓ admin can create payroll periods and overlaps are rejected           0.04s  
+  ✓ admin can upsert entries transition status and read summary totals   0.05s  
+  ✓ payroll mirror backfill command creates and updates gross expense r… 0.03s  
+  ✓ payroll entries reject invalid users negative net and cross tenant…  0.03s  
+  ✓ non admin user cannot access payroll endpoints                       0.02s  
+  ✓ admin can delete draft payroll record but not paid record            0.02s  
+  ✓ query monthly mode creates and reuses period container               0.02s  
+  ✓ query range mode splits by existing periods and creates gap periods  0.02s  
+  ✓ query monthly mode can split into weekly periods                     0.03s  
+  ✓ query range mode can split into custom day blocks and reuse existin… 0.02s  
+  ✓ adjustment period can be created for paid regular period and includ… 0.03s  
+  ✓ adjustment period validation rules are enforced                      0.03s  
+
+   PASS  Tests\Feature\Finance\FinanceProfitLossApiTest
+  ✓ admin can get profit and loss summary for date range                 0.04s  
+  ✓ profit and loss can include draft expenses when requested            0.03s  
+  ✓ profit and loss includes paid payroll mirror expense                 0.03s  
+  ✓ non admin user cannot access profit and loss endpoint                0.02s  
+
+   PASS  Tests\Feature\Finance\FinanceTaxReportApiTest
+  ✓ admin can get tax report totals and monthly breakdown                0.04s  
+  ✓ tax report can include draft expense tax when requested              0.03s  
+  ✓ non admin user cannot access tax report                              0.02s  
+
+   PASS  Tests\Feature\Finance\InvoiceManagementApiTest
+  ✓ admin can create manual invoice with exact decimal rounding and seq… 0.05s  
+  ✓ manual invoice update recalculates totals and paid timestamp from s… 0.04s  
+  ✓ manual invoice store persists service charge currency exchange rate… 0.04s  
+  ✓ manual invoice store rejects empty items and invalid ids             0.03s  
+  ✓ manual invoice routes are tenant isolated and require authenticatio… 0.09s  
+
+   PASS  Tests\Feature\Finance\InvoicePdfDownloadTest
+  ✓ manual invoice pdf download generates standard pdf with mixed langu… 0.56s  
+  ✓ repeated invoice pdf download reuses cached private file             0.52s  
+  ✓ split invoice pdf download includes split summary and restaurant sc… 0.61s  
+  ✓ invoice pdf download requires auth and is tenant isolated and rejec… 0.10s  
+  ✓ invoice pdf download returns server error when generation fails      0.04s  
+
+   PASS  Tests\Feature\Finance\SessionInvoiceFinalizationTest
+  ✓ finalize creates paid invoice from accounted order with exact tax d… 0.10s  
+  ✓ finalize rolls up multiple accounted orders excludes unpaid orders…  0.15s  
+  ✓ finalize returns no payable invoice and preserves the existing draf… 0.08s  
+  ✓ finalize preserves cancelled items with zero line totals             0.10s  
+  ✓ finalize persists service charge currency exchange rate and wallet…  0.09s  
+  ✓ editing unsettled order preserves the finalized paid invoice         0.12s  
+  ✓ repeated finalization does not merge later settlements or remove pa… 0.13s  
+  ✓ unpaid order that owned the shared number gets a distinct draft      0.11s  
+  ✓ legacy closed session reuses paid invoice without rewriting it       0.12s  
+  ✓ legacy unsettled order sharing paid invoice cannot rewrite it        0.13s  
+
+   PASS  Tests\Feature\Finance\StaffSchedulingApiTest
+  ✓ admin can create list and update staff shifts with tenant scoping    0.04s  
+  ✓ non admin user cannot access staff scheduling endpoints              0.02s  
+
+   PASS  Tests\Feature\GlobalIngredientControllerTest
+  ✓ authenticated admin can list global ingredients                      0.01s  
+  ✓ staff user cannot list global ingredients                            0.01s  
+
+   PASS  Tests\Feature\GuestTableVisibilityTest
+  ✓ guest tables endpoint hides inactive tables                          0.02s  
+
+   PASS  Tests\Feature\IngredientImageAssetTest
+  ✓ authenticated admin can upload multiple ingredient images without r… 0.03s  
+  ✓ authenticated admin can update existing ingredient image labels      0.02s  
+  ✓ authenticated admin can create dish ingredient from saved library i… 0.02s  
+
+   PASS  Tests\Feature\IngredientLibraryControllerTest
+  ✓ authenticated admin can bulk upload ingredient library images        0.03s  
+  ✓ authenticated admin can delete all ingredient library images         0.02s  
+
+   PASS  Tests\Feature\InventoryConcurrencyTest
+  ✓ order confirmation rolls back when a competing transaction holds t… 18.94s  
+
+   PASS  Tests\Feature\InventoryContractsTest
+  ✓ pos checkout rejects dish when recipe has inactive ingredient       12.11s  
+  ✓ stock history api includes movement unit field                       0.03s  
+  ✓ stock history api includes aggregated dish names for order consumpt… 0.03s  
+  ✓ stock history api includes single dish name for order consumption    0.03s  
+
+   PASS  Tests\Feature\InventoryIngredientApiTest
+  ✓ admin can create update restock adjust and review stock history wit… 0.05s  
+  ✓ inventory api rejects invalid units negative values and unsafe unit… 0.04s  
+  ✓ inventory api accepts extremely large quantities and enforces tenan… 0.04s  
+  ✓ inventory api supports quantity unit conversion for restock and adj… 0.03s  
+  ✓ inventory api can delete ingredient without losing stock history sn… 0.03s  
+
+   PASS  Tests\Feature\InventoryIngredientImportTest
+  ✓ admin can import multiple global ingredients                         0.02s  
+  ✓ import skips already linked global ingredients                       0.02s  
+  ✓ import links existing name match when global link is missing         0.02s  
+  ✓ staff cannot import global ingredients                               0.01s  
+  ✓ import only affects current restaurant                               0.03s  
+
+   PASS  Tests\Feature\InventoryShareContactApiTest
+  ✓ contacts are created listed and scoped to the current restaurant     0.04s  
+  ✓ contact requires a valid whatsapp phone number                       0.02s  
+
+   PASS  Tests\Feature\InvoiceSplitApiTest
+  ✓ guest can split selected items with mixed quantities and more peopl… 0.09s  
+  ✓ split validation rejects zero people and duplicate assignments and…  0.11s  
+  ✓ split endpoints are tenant isolated and require authorization        0.10s  
+
+   PASS  Tests\Feature\KitchenWorkflowTest
+  ✓ kitchen active queue is scoped sorted and filterable for the curren… 0.06s  
+  ✓ chef can progress orders through ready and staff can mark them serv… 0.05s  
+  ✓ invalid kitchen transitions and cross tenant access are rejected     0.06s  
+
+   PASS  Tests\Feature\MenuItemApiTest
+  ✓ admin can create prepared dish menu item                             0.03s  
+  ✓ packaged drink cannot accept recipe ingredients                      0.02s  
+  ✓ admin can activate predefined drink and update price and availabili… 0.02s  
+
+   PASS  Tests\Feature\NotificationDeliveryServicesTest
+  ✓ web push event notifications target only same restaurant supported…  0.03s  
+  ✓ mobile push event notifications target only same restaurant support… 0.26s  
+
+   PASS  Tests\Feature\OrderHistoryApiTest
+  ✓ admin history includes every status and excludes other tenants       0.05s  
+  ✓ settled order details include items and totals even on an old date   0.03s  
+  ✓ today defaults to current day and keeps settled orders               0.02s  
+  ✓ date range includes confirmation payment and cancellation activity   0.02s  
+  ✓ date filters respect local timezone midnight boundaries              0.03s  
+  ✓ history supports an open ended date range                            0.03s  
+  ✓ staff history and details follow table assignments and event access  0.04s  
+  ✓ disabled staff order feature denies history and details              0.02s  
+  ✓ staff without assigned tables only sees shared event orders          0.03s  
+  ✓ invalid history filters return validation errors with data set #0    0.02s  
+  ✓ invalid history filters return validation errors with data set #1    0.02s  
+  ✓ invalid history filters return validation errors with data set #2    0.02s  
+  ✓ other roles cannot use staff history routes with data set #0         0.02s  
+  ✓ other roles cannot use staff history routes with data set #1         0.02s  
+  ✓ other roles cannot use staff history routes with data set #2         0.02s  
+  ✓ unauthenticated user cannot read history                             0.03s  
+
+   PASS  Tests\Feature\OrderInventoryDeductionTest
+  ✓ confirming order deducts inventory and creates usage snapshots and…  0.06s  
+  ✓ confirmation returns low stock warning when deduction crosses thres… 0.06s  
+  ✓ pending order does not deduct until confirmation and duplicate conf… 0.06s  
+  ✓ confirm fails safely when stock is insufficient and rolls back stat… 0.05s  
+  ✓ rejected pending order does not deduct or restore inventory          0.04s  
+  ✓ inventory deduction service is idempotent for same confirmed order   0.05s  
+  ✓ duplicate job retry and event replay invocations do not deduct twic… 0.05s  
+  ✓ pos checkout failure rolls back order creation and stock deduction   0.03s  
+  ✓ duplicate pos checkout network request with same idempotency key do… 0.05s  
+  ✓ cancelling a confirmed order restores inventory from usage snapshot… 0.05s  
+  ✓ cancel confirmed order without prior deduction does not restore sto… 0.03s  
+  ✓ inventory restore service is idempotent for same cancelled order     0.06s  
+  ✓ cancelling same order twice does not restore stock twice             0.06s  
+  ✓ usage snapshot uses recipe values at confirmation time               0.05s  
+  ✓ recipe changes after confirmation do not alter existing usage histo… 0.05s  
+  ✓ shared ingredient across two orders allows first confirmation and r… 0.05s  
+  ✓ confirmation aggregates stock history correctly for multiple dishes… 0.04s  
+  ✓ packaged item uses direct stock deduction and restores on cancel     0.06s  
+
+   PASS  Tests\Feature\OrderWorkflowTest
+  ✓ restaurant creation adds ten default tables and guest can order aft… 0.07s  
+  ✓ guest cannot create orders without verified table access             0.04s  
+  ✓ guest order uses server side pricing and preserves multilingual not… 0.06s  
+  ✓ same guest order idempotency key replays the original order without… 0.06s  
+  ✓ different guest order idempotency keys create distinct orders        0.06s  
+  ✓ staff can list pending confirmation orders for their restaurant      0.06s  
+  ✓ staff can confirm pending orders without accounting fields           0.05s  
+  ✓ staff can complete pos checkout in one step                          0.05s  
+  ✓ pos checkout always settles cash to the invoice total                0.04s  
+  ✓ guest can update shared invoice split when feature enabled           0.08s  
+  ✓ invoice split equal mode distributes remainder to earliest shares    0.09s  
+  ✓ invoice split by person order matches selected item totals           0.13s  
+  ✓ invoice split endpoints are blocked when feature disabled            0.05s  
+  ✓ staff can update pending orders by editing quantities removing item… 0.04s  
+  ✓ staff can cancel pending orders                                      0.04s  
+  ✓ staff cannot confirm orders for unassigned tables                    0.04s  
+  ✓ staff can list published dishes for the waiter editor                0.05s  
+  ✓ staff cannot update orders for unassigned tables                     0.04s  
+  ✓ only pending orders can be edited                                    0.05s  
+  ✓ legacy pending orders with null dish ids cannot be edited            0.04s  
+  ✓ admin can still manage dishes and process accounting                 0.06s  
+  ✓ staff cannot use admin dish management or accounting endpoints       0.03s  
+
+   PASS  Tests\Feature\PreviewImageAssetUploadTest
+  ✓ authenticated admin can upload and replace a preview image           0.03s  
+  ✓ authenticated restaurant member admin can upload a preview image     0.02s  
+
+   PASS  Tests\Feature\PublicMenuApiTest
+  ✓ public slug menu returns only published dishes with arabic localiza… 0.03s  
+  ✓ public menu marks unavailable published dishes as out of stock       0.02s  
+  ✓ public menu supports empty and large paginated catalogs              0.06s  
+  ✓ public menu slug and table routes handle invalid slug and inactive…  0.02s  
+  ✓ public dish detail route supports direct slug access                 0.02s  
+
+   PASS  Tests\Feature\ReservationApiTest
+  ✓ admin can update and transition reservation statuses                 0.04s  
+  ✓ public reservation flow returns availability and blocks overlap      0.04s  
+  ✓ competing same slot requests follow conflict policy and prevent dou… 0.03s  
+  ✓ cross midnight and no show non blocking logic                        0.04s  
+  ✓ boundary times allow back to back reservations without overlap       0.04s  
+  ✓ feature disabled restaurant cannot access public reservation routes  0.02s  
+  ✓ validation rejects invalid dates and times                           0.02s  
+  ✓ cross tenant admin reservation access is rejected                    0.03s  
+  ✓ only table items can be reserved                                     0.02s  
+
+   PASS  Tests\Feature\RestaurantConfigurationApiTest
+  ✓ admin can update restaurant profile fields and preserve menu catego… 0.03s  
+  ✓ admin can update its menu categories independently from the restaur… 0.02s  
+  ✓ admin can update currency settings with secondary currency and exch… 0.02s  
+  ✓ currency settings reject same secondary currency and non positive r… 0.02s  
+  ✓ logo upload accepts valid images and rejects invalid files           0.02s  
+  ✓ profile and currency routes require restaurant context               0.02s  
+  ✓ restaurant configuration updates are isolated per tenant             0.02s  
+
+   PASS  Tests\Feature\RoomPlanEditorApiTest
+  ✓ room plan layout persists updates and reopens with saved items       0.04s  
+  ✓ admin can manage room plan editor and table sync                     0.11s  
+  ✓ room plan item bounds are validated                                  0.02s  
+  ✓ duplicate table labels are auto renamed within the same restaurant   0.03s  
+  ✓ negative coordinates and invalid dimensions are rejected             0.02s  
+  ✓ cross tenant room plan access is rejected                            0.03s  
+
+   PASS  Tests\Feature\ServingTemperatureTest
+  ✓ temperature is saved on create and returned by reads with data set…  0.03s  
+  ✓ temperature is saved on create and returned by reads with data set…  0.03s  
+  ✓ temperature can be updated and cleared                               0.03s  
+  ✓ omitting temperature during update preserves it                      0.02s  
+  ✓ unset temperature remains null for legacy callers                    0.02s  
+  ✓ empty temperature clears existing value                              0.03s  
+  ✓ invalid temperature is rejected without partial create or update wi… 0.03s  
+  ✓ invalid temperature is rejected without partial create or update wi… 0.03s  
+  ✓ invalid temperature is rejected without partial create or update wi… 0.02s  
+  ✓ invalid temperature is rejected without partial create or update wi… 0.03s  
+  ✓ predefined packaged drink activation persists temperature            0.02s  
+  ✓ other tenant cannot change the temperature                           0.03s  
+
+   PASS  Tests\Feature\SharedProductFlowTest
+  ✓ guest menu only returns published dishes with a glb model            0.03s  
+  ✓ authenticated admin can create a dish without uploading model files  0.03s  
+  ✓ guest dish details include restaurant suggested dishes               0.03s  
+  ✓ guest dish details include related dishes                            0.03s  
+
+   PASS  Tests\Feature\StaffManagementTest
+  ✓ admin can create a staff member with email                           0.02s  
+  ✓ admin can create a staff member with phone and login with it         0.03s  
+  ✓ non admin users cannot create staff members                          0.02s  
+  ✓ admin can list staff members and update their table assignments      0.03s  
+  ✓ admin can deactivate staff and revoke their tokens                   0.02s  
+
+   PASS  Tests\Feature\SuperAdminCustomDomainProvisioningTest
+  ✓ super admin restaurant creation normalizes custom domain and dispat… 0.03s  
+  ✓ super admin restaurant creation rejects invalid custom domain        0.01s  
+  ✓ super admin restaurant creation rejects duplicate custom domain      0.02s  
+  ✓ super admin restaurant creation rejects duplicate slug               0.02s  
+  ✓ super admin restaurant creation deduplicates menu categories while…  0.02s  
+  ✓ super admin restaurant update requeues when custom domain changes    0.02s  
+  ✓ provisioning job success marks domain active                         0.02s  
+  ✓ provisioning job failure stores error output                         0.02s  
+
+   PASS  Tests\Feature\SuperAdminFeatureFlagApiTest
+  ✓ super admin can list feature catalog and restaurant feature sources  0.02s  
+  ✓ super admin feature updates create audit logs and next admin reques… 0.04s  
+
+   PASS  Tests\Feature\TableSessionSecurityTest
+  ✓ valid table page loads in view only mode without auto session activ… 0.04s  
+  ✓ correct pin unlocks guest access and protected ordering              0.05s  
+  ✓ wrong pin attempts increment and lock after five attempts            0.07s  
+  ✓ lockout blocks until timeout and then allows correct pin             0.08s  
+  ✓ inactive tables are hidden from guest access and staff activation    0.04s  
+  ✓ protected endpoint without authorization fails                       0.04s  
+  ✓ guest access token is bound to the original device fingerprint       0.05s  
+  ✓ guest access token cannot be reused for another restaurant or anoth… 0.09s  
+  ✓ finalize revokes guest access and blocks future actions              0.06s  
+  ✓ call waiter dispatches realtime table wave event                     0.05s  
+  ✓ request bill dispatches realtime table wave event with bill type     0.06s  
+  ✓ request bill uses active verified guest count for shared invoice sp… 0.08s  
+  ✓ request bill falls back to single guest split when other accesses a… 0.07s  
+  ✓ staff can activate a table and receive the live pin                  0.03s  
+  ✓ reset pin invalidates old pin and old guest access                   0.09s  
+  ✓ verified guest can view orders for the active table session          0.06s  
+  ✓ old session pin cannot unlock a new session for the same table       0.06s  
+  ✓ revisiting same table reuses the same active session until it is cl… 0.05s  
+
+   PASS  Tests\Feature\TenantDomainRoutingTest
+  ✓ host based guest menu resolves to domain restaurant                  0.04s  
+  ✓ unknown host returns not found for host based guest routes           0.02s  
+  ✓ slug routes remain backward compatible even when host is unknown     0.02s  
+  ✓ table context and guest orders are isolated per host tenant          0.07s  
+  ✓ host based guest menu resolves to restaurant custom domain column    0.03s  
+  ✓ host based guest menu resolves www variant of restaurant custom dom… 0.03s  
+
+   PASS  Tests\Feature\TenantRestaurantResolverCustomDomainTest
+  ✓ resolver matches restaurant by custom domain column                  0.02s  
+  ✓ resolver matches www host to base custom domain                      0.02s  
+  ✓ resolver uses configured guest slug for testing local host           0.02s  
+
+   PASS  Tests\Feature\TestEnvironmentSmokeTest
+  ✓ testing environment is locked down                                   0.01s  
+  ✓ core factories can build isolated tenant data                        0.04s  
+
+   PASS  Tests\Feature\UserProfileUpdateTest
+  ✓ user can save and read their own profile with data set #0            0.02s  
+  ✓ user can save and read their own profile with data set #1            0.02s  
+  ✓ user can save and read their own profile with data set #2            0.02s  
+  ✓ user can save and read their own profile with data set #3            0.02s  
+  ✓ user can save and read their own profile with data set #4            0.03s  
+  ✓ phone can be kept or cleared                                         0.02s  
+  ✓ duplicate phone rejects the entire profile update                    0.02s  
+  ✓ invalid profile does not change user with data set "empty name"      0.02s  
+  ✓ invalid profile does not change user with data set "long name"       0.02s  
+  ✓ invalid profile does not change user with data set "long phone"      0.02s  
+  ✓ invalid profile does not change user with data set "short password"  0.02s  
+  ✓ invalid profile does not change user with data set "long password"   0.02s  
+  ✓ invalid profile does not change user with data set "mismatched pass… 0.02s  
+  ✓ password is hashed without trimming and can be used to log in        0.03s  
+  ✓ update cannot target another user or change privileged fields        0.03s  
+  ✓ unauthenticated user cannot update profile                           0.01s  
+  ✓ inactive user cannot update profile                                  0.02s  
+
+   PASS  Tests\Feature\WaveWorkflowTest
+  ✓ guest can send a wave for a valid table and duplicate pending waves… 0.06s  
+  ✓ staff can only see and resolve waves for assigned tables             0.05s  
+  ✓ staff cannot resolve waves for unassigned tables                     0.03s  
+  ✓ expired guest sessions cannot create new waiter calls                0.05s  
+  ✓ resolving the same wave twice returns a validation error after the…  0.04s  
+
+  Tests:    338 passed (3526 assertions)
+  Duration: 57.60s
+

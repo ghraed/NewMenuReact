@@ -1,0 +1,361 @@
+FIX ROADMAP FOR MENU_REACT AND MENU_API
+Based on the market readiness audit of 7 October 2026.
+
+Purpose: fix verified defects in small, independently reviewable changes, with
+regression tests and explicit release gates. No process can guarantee zero regressions;
+this roadmap makes unintended changes easier to detect and reverse.
+
+Project roots:
+  /media/raed/Data/from ubuntu/new_menu/Menu_React
+  /media/raed/Data/from ubuntu/new_menu/Menu_API
+Audit:
+  Menu_React/docs/testing/market-readiness-2026-10-07.txt
+Evidence:
+  Menu_React/docs/testing/market-readiness-2026-10-07/
+
+The initial test-and-report QA pass is complete. This roadmap does not itself perform
+source fixes. The execution prompt below explicitly authorizes a selected task.
+
+WORKING RULES FOR EVERY TASK
+
+1. Read applicable AGENTS.md files, the relevant audit finding, current implementation,
+   manifests/scripts, existing tests and environment configuration before editing.
+2. Verify branch/commit/working-tree state separately in both repositories. Preserve
+   user edits and audit artifacts. Work on a dedicated branch for the selected task.
+   Do not merge, push, deploy, or rewrite history unless separately authorized.
+3. Verify effective app URL, APP_ENV, DB host/port/name and disabled service credentials.
+   Use only an isolated disposable MySQL test database and synthetic QA_RUN_<run_id>
+   records. Never use the normal restaurantdb or any production environment.
+   The audit's temporary QA servers were stopped; do not assume they are running.
+4. One task per change. Avoid unrelated refactoring, UI redesign, mass formatting,
+   dependency upgrades or changes to established permissions/calculation rules.
+   A cross-project contract fix may need paired changes in both repositories; describe
+   deployment order and compatibility instead of treating either half as complete.
+5. Reproduce the defect with a meaningful failing regression first. Fix the underlying
+   behavior. Keep existing tests; do not remove assertions, relax totals, mock away
+   application logic, or skip failures to make the suite pass.
+6. Preserve ordinary ordering, kitchen transitions, invoices, stock, currencies,
+   role/tenant enforcement, feature flags, reservations and supported legacy payloads.
+   Money calculations and authorization remain server-controlled.
+7. Use the existing scripts. Run focused tests during implementation, then relevant
+   full suites/builds before closing the task. Report known baseline failures separately
+   from new regressions. No required failed/blocked check can be described as passed.
+8. Add append-only migrations only if needed; never edit previously deployed migrations
+   or rewrite existing settled invoices. Rehearse data changes on disposable fixtures.
+9. Summarize changed files, reproduction before/after, tests, compatibility, remaining
+   risks and rollback. Pause dependent work if a new unrelated regression appears.
+   Diagnose it without expanding the selected task or reverting someone else's work.
+10. Keep secrets and complete tokens out of reports. Retain sanitized browser failure
+    screenshots/traces and API request/status evidence.
+
+BASELINE TO RECHECK — THESE ARE AUDIT RESULTS, NOT A PROMISE ABOUT FUTURE COMMITS
+
+Menu_React:
+  npm run test:unit          106 tests passed across 30 files
+  npm run lint              passed with one GuestInvoicePage dependency warning
+  npm run build             passed with large-entry-bundle warning
+  npm run test:e2e           six scenarios passed on installed Google Chrome
+Menu_API:
+  php artisan test           338 tests passed, 3,526 assertions, zero skips
+  npm run build             passed
+  composer validate --no-check-publish   passed
+Known failing checks:
+  vendor/bin/pint --test     five files with formatting issues
+  npm audit / composer audit   known dependency findings in both projects
+
+Inspect current scripts before using these commands. Backend testing must receive
+verified test environment/database settings; browser tests need a dedicated QA API,
+fixtures and frontend. Do not run the browser suite against its defaults blindly.
+Coverage percentages were not collected. Passing builds do not prove runtime flows.
+
+ORDER AND ACCEPTANCE CRITERIA
+
+TASK 0 — REPEATABLE QA BASELINE AND INITIAL AUTOMATED GATES
+Priority: foundation. Business behavior must remain unchanged.
+Projects: both. Dependency: none.
+
+Create/document a repeatable disposable test setup from actual project scripts.
+Start a dedicated test MySQL database; disable mail/payment/SMS/AI/push transport;
+isolate storage. Build/serve the frontend against only that QA API. Replace unsafe
+browser fixture assumptions with explicit QA-run setup and cleanup, preserving
+scenario assertions. Browser launch/config must use an available supported browser.
+Use named evidence directories for logs, JUnit and screenshots/traces.
+
+Add minimal CI gates matching the repository's actual CI provider: frontend lint,
+build/unit tests; API migration/full suite and asset build. Make existing audit/style
+failures visible and tracked without pretending they pass. Add browser gates once
+the isolated environment is reproducible; do not weaken tests for CI convenience.
+Keep tooling modernization for Task 7.
+
+Done when: another run can reproduce the baseline from documented setup, tests cannot
+accidentally reach production, and previously passing checks still pass. If the
+environment cannot be verified, stop affected execution and report the concrete blocker.
+
+TASK 1 — BROWSER TENANT DATA ISOLATION (AUDIT U3)
+Priority: P0. Project: Menu_React. Dependency: Task 0.
+Likely modules: complaintCompensationService.ts, AuthContext.tsx, CashierPosPage.tsx;
+inspect related held-order/cache persistence before deciding the exact scope.
+
+Regression: tenant A creates compensation, logs out, tenant B logs in at the same
+origin. B must not see A's totals, staff names, held drafts or protected cached data.
+Cover reload, two accounts, failed login and absent/unresolved restaurant identity.
+
+Scope protected persistence by stable restaurant ID and, where appropriate, user ID.
+Clear/invalidate account-bound in-memory state on logout and tenant change. Readers
+must fail closed until tenant identity is resolved. Do not use localStorage.clear()
+or indexedDB deletion to solve this: preserve language/theme and valid offline work.
+Legacy unscoped financial entries cannot safely be assigned to the first logged-in
+tenant. Define a conservative migration/quarantine policy; never guess ownership or
+silently destroy business history. Do not expose quarantined records to other tenants.
+
+Done when: the original A -> B reproduction fails to disclose A's data, with actual
+auth/provider/storage behavior in browser tests. Existing guest offline tests pass.
+This task closes browser scope; canonical cross-browser reporting is Task 4.
+
+TASK 2 — CUMULATIVE REFUND SAFETY (AUDIT U2)
+Priority: P0. Project: Menu_API. Dependency: Task 0.
+Likely modules: PosComplaintAdjustmentController.php and related adjustment models,
+InvoiceController.php reporting, existing settlement/transaction helpers.
+
+Regression: one $10 sale, post an $8 refund, then try another $8 refund. The second
+posting must reject without changing ledger, stock or reports. A remaining $2 refund
+may succeed. Verify reporting against independent expected cents arithmetic.
+
+Calculate refundable balance in integer cents from trusted settled data. Check it
+again at posting, even if a draft was valid when created. Serialize approvals on the
+original sale/settlement using a transaction and consistent lock order; locking only
+the individual adjustment cannot prevent two different adjustments racing.
+Inspect order-to-invoice grouping before deciding the settlement boundary.
+Preserve idempotent posting and define retry behavior for creation. Derive approval
+identity from the authenticated authorized user. Do not modify the original invoice
+or clamp report totals to hide excess refunds.
+
+Tests: cumulative cap; true concurrent approvals through separate MySQL connections;
+stale drafts; same-adjustment repost; post/void races; foreign tenant/item IDs;
+staff cannot approve; rollback on gift stock failure; gift deduction exactly once.
+A refund for already served food must not automatically restock consumed ingredients.
+Preserve documented stock/wastage rules and posted-record immutability.
+
+Done when: total posted refunds cannot exceed the original refundable amount,
+including concurrent requests, and finance/stock/access-control suites remain green.
+
+TASK 3 — SERVER-VALIDATED POS COMPENSATION (AUDIT U1)
+Priority: P0. Projects: both. Dependencies: Task 0; complete Task 1/2 first for a
+clearer baseline and review history.
+Likely modules: OrderController.php::quickCheckout, existing accounting compensation
+logic/calculators, orderService/types and CashierPosPage.tsx.
+
+Regressions: approved complimentary $10 item yields $0 payable invoice; full waiver,
+partial discount, cancelled lines and mixed normal/adjusted cart have exact totals.
+Include VAT/service charge/order discount/currency interactions already supported.
+
+Inventory the existing compensation contract and reuse proven server rules where
+appropriate. Accept validated compensation intent; do not trust arbitrary client
+prices, totals or claimed approval identity. Enforce server role permissions and derive
+approver/audit fields server-side. Persist required item metadata atomically with
+checkout and invoice creation. Unsupported/unauthorized compensation must fail clearly
+before settlement. Normal payloads without compensation must retain existing behavior.
+
+The UI must display the same payable amount the server confirms, and must not announce
+success when adjustment validation failed. Record an explicit compatible deployment
+sequence for old/new clients and servers; use capability-aware UI if needed.
+Do not solve the mismatch by charging the full price while labeling the item free,
+or by letting the browser dictate a final payable amount.
+
+Tests: API allowed/denied roles and forged approvals; exact cents totals; persisted
+metadata; invoice/PDF consistency; once-only stock effects; retry idempotency;
+one real browser checkout for each materially different compensation mode.
+Preserve established cancellation/wastage/inventory semantics.
+
+Done when: UI, settled order, finance invoice and printed/PDF receipt agree; original
+$0 UI / $10 invoice reproduction is closed; ordinary POS/order/kitchen tests pass.
+
+TASK 4 — AUTHORITATIVE COMPENSATION REPORTING (AUDIT U4)
+Priority: urgent P2. Projects: both if server reporting is missing.
+Dependencies: Tasks 1 and 3; include Task 2's posted-refund behavior.
+
+Regressions: editing a $10 compensation then checking out counts $10 once, not $20;
+editing back to normal, removing/holding a draft and failing checkout do not create a
+settled loss. Draft events remain distinguishable in the audit trail.
+
+Separate audit events from finalized financial facts. Reports must use tenant-scoped
+persisted orders/adjustments as their canonical source, available in a fresh browser.
+Inspect available endpoints before adding one; avoid a parallel financial ledger
+when the existing invoice/adjustment data already provides the source of truth.
+Define one stable financial-event identity; prevent duplicate aggregation and reconcile
+pre-sale discounts/gifts with post-sale refunds/gifts without counting an event twice.
+Document whether each metric is waived revenue, refunded revenue or inventory cost;
+preserve established COGS rules rather than summing unlike values.
+
+Tests: edit/save/checkout; repeated edits/retries; failed checkout; paid versus draft;
+two browser contexts; tenant/role denial; date filters and timezone boundaries;
+independent expected report totals. Do not retroactively import unscoped local events
+as settled financial facts.
+
+Done when: reports survive a fresh browser, agree with server records, remain isolated,
+and count each finalized financial effect once. Task 1's isolation regression stays green.
+
+TASK 5 — RESTAURANT INACTIVE/ACTIVE POLICY (AUDIT U5)
+Priority: urgent P2. Project: Menu_API, with corresponding UI handling if needed.
+Dependency: Task 0; perform after financial fixes.
+
+First document the intended lifecycle/access matrix from current product requirements:
+new sales/orders/reservations, guest menu, staff login/existing tokens, administrative
+read-only access, in-progress sessions, reactivation and super-admin control.
+Recommended minimum: inactive restaurants cannot accept new commerce; authorized
+super-admin recovery remains possible. Resolve genuine business-policy ambiguity
+before changing live-session/financial access. Do not invent subscription enforcement
+or assume that inactive user and inactive restaurant mean the same thing.
+
+Enforce the agreed tenant policy centrally at appropriate API boundaries, including
+slug/host/table paths. Provide a clear frontend inactive-state message. Keep role and
+feature checks; active status must not bypass either of them.
+
+Tests: active/inactive with flags on/off, old tokens, guest/staff/admin paths,
+super-admin recovery, reactivation, another tenant unaffected, in-progress behavior.
+Done when: the documented policy is enforced consistently and normal active tenants
+retain existing behavior. Report remaining ambiguity rather than declaring a fix complete.
+
+TASK 6 — SAFE RELEASE IMAGE AND PDF RUNTIME (AUDIT U6/U7)
+Priority: before any deployment. Project: Menu_API. Dependency: Task 0.
+Implement as two small changes: secret/config handling, then PDF/browser packaging.
+
+Exclude secret-bearing .env variants from build context/image layers, keeping only
+explicit non-secret examples if needed. Remove reliance on copying production secrets
+inside the image. Supply config at runtime through the established deployment mechanism.
+Preserve APP_KEY, storage paths, database access and worker/scheduler configuration;
+never rotate keys or substitute live credentials as part of this task.
+
+Install/configure the headless browser runtime used by InvoicePdfService, with needed
+fonts for Arabic and an appropriate writable browser/temp environment. Verify the
+actual chosen PHP image and runtime user rather than relying on host-installed Chrome.
+
+Tests: inspect disposable image layers/context without printing secret values; boot
+with synthetic runtime config; config cache; fresh migration; private PDF endpoint,
+mixed Arabic/English, large invoice, correct totals and foreign-tenant PDF denial.
+Never boot docker-compose.yml/prod defaults against production for these checks.
+Done when: fresh image boot and PDF generation pass using disposable infrastructure,
+with no secrets embedded in the image. Document rollback to a known working image.
+
+TASK 7 — DEPENDENCY SECURITY, FORMATTING AND HOOK WARNING
+Priority: before release; separate from business fixes. Projects: both.
+Dependencies: financial/isolation regressions and repeatable tests are in place.
+
+Refresh the actual npm/Composer audits; advisory data changes over time. Inventory
+direct/transitive and runtime/development exposure. Upgrade the smallest compatible
+package group, preserve lockfiles and run dependent suites before the next group.
+Avoid blanket npm audit fix --force, unrelated framework major upgrades and unreviewed
+overrides. Major tooling upgrades require their own change and compatibility review.
+Record any remaining advisory's applicability and disposition; do not ignore it silently.
+
+Format only the five failing API files in a separate formatting change. Resolve the
+GuestInvoicePage effect warning after checking request/caching behavior, with a relevant
+behavior regression if the effect changes. Do not suppress lint to conceal a defect.
+Done when: audits have no unreviewed applicable release risks, locked installs/builds
+work, formatter/lint pass, and security changes introduce no business regressions.
+
+TASK 8 — REAL ORDERING LIFECYCLE AND OPERATIONAL STAGING
+Priority: release gate. Projects: both. Dependencies: Tasks 1-7.
+
+Add a real API-backed browser scenario: guest PIN -> order -> staff confirmation ->
+chef preparation/ready -> served -> authorized invoice finalization -> correct receipt
+and finance report. Use different users and at least two tenants. Exercise denied roles
+and disabled features. Keep the existing mocked guest scenario as a fast UI regression;
+add the real workflow rather than replacing network assertions with mocks.
+
+On disposable staging, verify queue worker, scheduler and realtime transport. Cover
+reconnection, duplicate event delivery and polling/fallback where supported. Validate
+custom-domain routing only with owned test domains/isolated host configuration.
+Run and document synthetic backup restore, migration and rollback rehearsals.
+Make stable launch workflows required CI gates with retained failure evidence.
+
+Done when: the real complete workflow and isolation checks pass, essential operational
+services are verified, and recovery procedures work on disposable infrastructure.
+
+TASK 9 — CONCURRENCY, OFFLINE AND MULTI-MEMBERSHIP COVERAGE
+Priority: normal improvements; ordering/data-integrity failures discovered here block release.
+Projects: both. Dependencies: core fixes, isolated multi-worker testing.
+
+Add genuinely simultaneous reservation/last-stock/order/finalization tests using
+separate workers/connections and independent fixtures. Verify single outcomes and
+rollback, not only HTTP status. Distinguish sequential conflict tests from concurrency.
+
+Add a dedicated service-worker-enabled browser project: offline menu, interrupted
+submit, lost acknowledgement, reload, reconnect, multiple tabs, expired/closed guest
+session and application upgrade. Exactly one server order must result from replay;
+invalid sessions require review. Verify tenant/token-sensitive cache behavior.
+
+Determine supported staff multi-restaurant behavior. If supported, select an explicit
+authorized tenant and test membership/host/ID boundaries. If unsupported, reject
+ambiguous membership intentionally; do not arbitrarily pick the first restaurant.
+Done when: scenarios are deterministic and isolated, and no stock/booking/order/cache
+corruption or unauthorized access appears under contention/recovery.
+
+TASK 10 — PERFORMANCE, ACCESSIBILITY, ARABIC AND DOCUMENTATION
+Priority: normal/small improvements after blockers. Project: mostly Menu_React.
+Dependencies: stable business behavior and browser regressions.
+
+Measure guest entry/catalog and important admin flows on throttled phones/network
+before optimizing. Lazy-load appropriate eager admin/export/chart dependencies;
+preserve deep links and verify chunk loading after deployment/reload. Establish
+measured performance budgets rather than raising the bundle-warning limit.
+
+Move remaining POS complaint/report strings into translations, verify Arabic/RTL,
+remove keyboard focus from decorative login elements, and check meaningful contrast,
+form errors, modals, room-plan interaction alternatives and print behavior. Include
+light/dark, mobile Chrome, Firefox and WebKit where supported by the test environment.
+
+Document setup, feature/role combinations, test data, release/runtime dependencies,
+restore/rollback and monitoring. Define the sales/subscription operating model before
+adding optional billing functionality; it is not an unsolicited requirement for these fixes.
+Done when: measured improvements and accessible/localized behavior are verified
+without changing established ordering/financial outcomes.
+
+TASK COMPLETION TEMPLATE
+
+Selected task / audit IDs:
+Branch and before/after commits for each changed repository:
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+Failing regression before the fix:
+Behavior after the fix:
+Changed files and reason:
+Compatibility/deployment order:
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+Evidence locations:
+Known baseline failures and remaining risks:
+Rollback procedure:
+Ready for next task: yes/no, with the concrete reason:
+
+COPY-READY EXECUTION PROMPT
+
+Read the AGENTS.md instructions in Menu_React and Menu_API, then read:
+/media/raed/Data/from ubuntu/new_menu/Menu_React/docs/testing/market-readiness-2026-10-07.txt
+/media/raed/Data/from ubuntu/new_menu/Menu_React/docs/testing/fix-roadmap-2026-10-07.txt
+
+Execute TASK [NUMBER] ONLY from the roadmap. The initial test-and-report QA pass is
+complete. I authorize the source, regression-test and supporting configuration changes
+needed for this selected task in these two projects. Do not implement later tasks.
+
+Verify both repositories' current state and the effective test environment first.
+Use only a disposable MySQL test database, synthetic QA_RUN_<run_id> records and
+disabled external credentials. Stop affected testing if it appears to target production.
+Preserve all existing user work and audit artifacts. Make a dedicated task branch.
+
+Reproduce the selected issue with a failing regression, apply the smallest sound fix,
+and prove the regression now passes. Preserve server-controlled money/authorization,
+ordinary orders, kitchen/invoice/stock behavior, roles, feature flags and supported API
+contracts. Do not weaken tests, clear all browser storage, rewrite settled records,
+change existing migrations or bundle unrelated refactors/dependency upgrades.
+
+Run focused checks while implementing, then the relevant existing full suites/builds.
+Compare failures with the baseline; report PASS, FAIL, BLOCKED, SKIPPED and NOT
+IMPLEMENTED accurately. Keep browser/API evidence for user-visible financial or
+isolation fixes. Do not push, merge, deploy, or access production.
+
+Finish with the roadmap's completion template: files changed, before/after behavior,
+verification, compatibility, outstanding risks and rollback. Continue routine authorized
+work without repeated confirmation; ask only if a real unresolved business-policy
+decision or action outside this scope is required.
+
+START WITH TASK 0. After reviewing its outcome, execute subsequent task numbers in
+order with this prompt. A passing test count alone is not approval for market launch.

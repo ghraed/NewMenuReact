@@ -1,0 +1,19 @@
+
+> menu-react@0.0.0 test:e2e
+> playwright test --config=/tmp/menu-market-qa-20261007/playwright.config.ts
+
+
+Running 6 tests using 1 worker
+
+(node:717141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:717141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/guest-order-lifecycle.spec.ts:4:3 › Guest order lifecycle › guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state (2.7s)
+  ✓  2 [chromium] › tests/e2e/menu-item-preview-retry.spec.ts:5:1 › retrying a preview failure creates one complete menu item (4.2s)
+  ✓  3 [chromium] › tests/e2e/order-history.spec.ts:3:1 › a settled POS sale appears in history and opens its details (1.6s)
+  ✓  4 [chromium] › tests/e2e/room-plan-reservations.spec.ts:4:3 › Room plan editor + reservations › admin creates plan, saves layout, and public reservation reflects availability (2.2s)
+  ✓  5 [chromium] › tests/e2e/serving-temperature.spec.ts:5:1 › packaged drink temperature survives creation, editing, clearing, and reload (2.9s)
+  ✓  6 [chromium] › tests/e2e/user-profile.spec.ts:3:1 › profile changes persist after reload and the new password works (3.4s)
+
+  6 passed (17.8s)

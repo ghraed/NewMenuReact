@@ -1,0 +1,10 @@
+
+> menu-react@0.0.0 lint
+> eslint .
+
+
+/media/raed/Data/from ubuntu/new_menu/Menu_React/src/pages/GuestInvoicePage.tsx
+  127:6  warning  React Hook useEffect has missing dependencies: 'cachedInvoice?.invoiceNumber' and 'invoice?.invoiceNumber'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 1 problem (0 errors, 1 warning)
+

@@ -1,0 +1,119 @@
+{
+  "savedCost": "TOTAL COMPENSATION COST\n\n$10.00",
+  "displayedSaleTotal": "Total\n$0.00",
+  "savedLedger": [
+    {
+      "action": "marked_complimentary",
+      "loss_amount": 10,
+      "dish_name": "QA_RUN_20261007_refund_dish",
+      "actor": "QA_RUN_20261007_a_admin"
+    }
+  ],
+  "checkoutStatus": 201,
+  "chargedInvoiceTotal": "10.00",
+  "checkoutCost": "TOTAL COMPENSATION COST\n\n$20.00",
+  "afterLedger": [
+    {
+      "action": "checkout",
+      "loss_amount": 10,
+      "dish_name": "QA_RUN_20261007_refund_dish",
+      "actor": "QA_RUN_20261007_a_admin"
+    },
+    {
+      "action": "marked_complimentary",
+      "loss_amount": 10,
+      "dish_name": "QA_RUN_20261007_refund_dish",
+      "actor": "QA_RUN_20261007_a_admin"
+    }
+  ],
+  "tenantBCost": "TOTAL COMPENSATION COST\n\n$20.00",
+  "tenantBShowsTenantAApprover": true,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:15173/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/restaurant/profile",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/dishes?include_deleted=1&page=1&per_page=200",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/dishes/published",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/menu/qa-run-20261007-a/tables",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:15173/api/pos/checkout",
+      "status": 201
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:15173/api/auth/logout",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:15173/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/restaurant/profile",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/dishes?include_deleted=1&page=1&per_page=200",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/dishes/published",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:15173/api/menu/qa-run-20261007-b/tables",
+      "status": 200
+    }
+  ],
+  "errors": [],
+  "mobile": {
+    "viewport": 390,
+    "documentWidth": 390,
+    "bodyWidth": 390
+  }
+}

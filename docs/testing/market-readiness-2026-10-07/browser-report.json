@@ -1,0 +1,341 @@
+{
+  "config": {
+    "configFile": "/tmp/menu-market-qa-20261007/playwright.config.ts",
+    "rootDir": "/media/raed/Data/from ubuntu/new_menu/Menu_React/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/menu-market-qa-20261007/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/media/raed/Data/from ubuntu/new_menu/Menu_React/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/tmp/menu-market-qa-20261007/browser-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "guest-order-lifecycle.spec.ts",
+      "file": "guest-order-lifecycle.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Guest order lifecycle",
+          "file": "guest-order-lifecycle.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2708,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T07:07:40.292Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ffda2aee253437ffac09-5485a6fbeef0e1149989",
+              "file": "guest-order-lifecycle.spec.ts",
+              "line": 4,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "menu-item-preview-retry.spec.ts",
+      "file": "menu-item-preview-retry.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "retrying a preview failure creates one complete menu item",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4192,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T07:07:43.158Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7ef6d9e018a133e334bf-810e132cb45ceb7744c2",
+          "file": "menu-item-preview-retry.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "order-history.spec.ts",
+      "file": "order-history.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a settled POS sale appears in history and opens its details",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1562,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T07:07:47.367Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "76c933a852689375a2ca-f8bf5c4121ea10f1f968",
+          "file": "order-history.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "room-plan-reservations.spec.ts",
+      "file": "room-plan-reservations.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Room plan editor + reservations",
+          "file": "room-plan-reservations.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "admin creates plan, saves layout, and public reservation reflects availability",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2222,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T07:07:48.945Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "7a61194d6b2721e4dd2b-944d7eccbed8a188053e",
+              "file": "room-plan-reservations.spec.ts",
+              "line": 4,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "serving-temperature.spec.ts",
+      "file": "serving-temperature.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "packaged drink temperature survives creation, editing, clearing, and reload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2941,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T07:07:51.182Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5166337761f4aa6cea5c-b5cd2b0f94752135b7c4",
+          "file": "serving-temperature.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "user-profile.spec.ts",
+      "file": "user-profile.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "profile changes persist after reload and the new password works",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3419,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-07T07:07:54.140Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "301bfd817b698f66bee1-126c5a78d46600e2c3dd",
+          "file": "user-profile.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-07T07:07:39.828Z",
+    "duration": 17820.311,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

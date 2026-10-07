@@ -1,0 +1,360 @@
+MARKET READINESS REVIEW — 7 OCTOBER 2026
+Projects: Menu_React and Menu_API
+Decision: Neither project is ready for an unrestricted commercial launch.
+Menu_React readiness: 6.0/10. Menu_API readiness: 6.5/10.
+These are engineering judgments of readiness, not measured coverage percentages,
+legal certifications, or a review of a live deployment. The scores reflect substantial
+working functionality and passing regression suites, reduced by reproduced financial
+and browser tenant-isolation defects and incomplete deployment assurance.
+
+SCOPE AND SAFETY
+
+First pass: inspection, existing tests, targeted reproductions, and this report only.
+No application source, existing tests, dependency versions, or environment files changed.
+The repositories started clean on main:
+  Menu_React: 2074b6df0277885d9aaafcf73a1aa401e2c9dadb
+  Menu_API:   8ebb457ac976c7749a66d05de54906b5e8e4c1a4
+
+Inspected both manifests and lock files, framework/template READMEs, testing docs,
+test directories, API factories/seeders, Docker files/entrypoint, route/middleware
+configuration, and relevant services/pages. No checked-in CI workflow was found in
+either repository. Historical audit documents were treated as leads, not current results.
+
+The API's normal local configuration uses restaurantdb; that database was not used.
+The documented MySQL test connection on port 3306 was unavailable. Created a separate
+MySQL 8.0 instance with its own data directory under /tmp/menu-market-qa-20261007,
+bound to 127.0.0.1:33307. Verified Laravel's effective environment, database, host,
+port and URL before running the suite. Used only these new disposable schemas:
+  restaurantdb_test_QA_RUN_20261007
+  restaurantdb_test_QA_RUN_20261007_browser
+
+API suite: APP_ENV=testing, APP_URL=http://testing.local.
+Browser: http://127.0.0.1:15173, API http://127.0.0.1:18007, APP_ENV=testing.
+Mail=array, queue=sync, broadcasting=null; test filesystem roots and disabled
+external-service credentials. Unit/feature TestCase blocks stray outbound HTTP.
+Browser builds used /api and disabled realtime client keys. No production Compose
+stack, production URL, live customer records, payment credentials or SMS service used.
+
+Browser fixture: admin role; core ordering, waiter/bill, inventory, finance, room-plan,
+reservation, event, scheduling, analytics, multilingual and invoice-splitting flags
+enabled. AR/3D, animated ingredients, AI chatbot/recommendations, push and custom
+domain flags disabled. Exact flags are saved in browser-environment.json.
+Additional A/B/inactive restaurants and reproduction records used QA_RUN_20261007
+names. Existing suites retain their own fixture conventions, including shared
+test@example.com in one browser scenario; all ran only in the disposable database.
+The six browser tests ran with one worker. No agents or production datasets were used.
+
+CURRENT CHECK RESULTS
+
+PASS — npm run test:unit: 30 files, 106 tests, no skipped tests reported.
+PASS WITH WARNING — npm run lint: zero errors; one hook dependency warning.
+PASS WITH WARNING — npm run build: TypeScript compilation and Vite production build;
+  entry chunk 2,387.17 kB / 655.18 kB gzip, exceeding configured 1,200 kB warning limit.
+PASS — php artisan test: 338 tests, 3,526 assertions, zero errors/failures/skips.
+  Includes 10 unit tests (1,028 assertions) and 328 feature tests (2,498 assertions).
+PASS — API npm run build.
+PASS — composer validate --no-check-publish.
+PASS — npm run test:e2e: all six existing scenarios on installed Google Chrome.
+  Original Playwright bundled browser was missing. A temporary config selected
+  /usr/bin/google-chrome and retained failure evidence without editing repo tests.
+  The initial six launch errors were environment blocks, not application failures;
+  all scenarios subsequently executed successfully. The guest lifecycle mocks its API.
+PASS — sampled POS page at 390px viewport: document/body width also 390px; no
+  horizontal overflow in that sampled state. This does not cover every page/device.
+
+FAIL — vendor/bin/pint --test: five files with formatting issues out of 373 checked.
+FAIL — frontend npm audit: 13 affected dependency entries: 2 critical, 7 high,
+  4 moderate. Critical entries are Vitest/Tinypool development tooling.
+  Runtime dependency tree includes flagged Axios, DOMPurify, brace-expansion,
+  socket.io-parser; actual application exploitability was not established.
+FAIL — API composer audit: 15 advisories across four installed PHP packages:
+  laravel/framework, league/commonmark, league/flysystem, paragonie/sodium_compat.
+  Severity distribution: 9 high, 3 medium, 2 low, 1 with no supplied severity.
+FAIL — API npm audit: nine flagged build/development dependency entries:
+  2 critical, 6 high, 1 low. All API JS dependencies are declared as devDependencies.
+FAIL — targeted synthetic reproductions: financial checkout mismatch, cumulative
+  refund limit, browser tenant cache exposure, double-counted compensation,
+  inactive-restaurant enforcement, hidden keyboard focus and partial Arabic labels.
+
+BLOCKED / NOT EXECUTED — live/production testing intentionally excluded by QA rules.
+  No verified production-like staging deployment was supplied. Exact Docker image
+  runtime, TLS/domain provisioning, real queue/scheduler/realtime transport delivery,
+  backup restoration, deployment rollback and capacity were not tested end to end.
+SKIPPED — zero skips in the completed API JUnit report; none in the browser report.
+  Unexecuted checks above are not counted as passed or skipped suite tests.
+NOT IMPLEMENTED IN THESE REPOSITORIES — no checked-in CI pipeline, load-test suite,
+  accessibility automation, browser matrix beyond Chromium, or PHPStan/Psalm config
+  found. Coverage percentages were not collected or inferred from test counts.
+
+WHAT EACH PROJECT DOES WELL
+
+Menu_React:
+  Broad product surface across guest menus, PIN/table ordering, POS, staff/kitchen,
+  invoices, inventory, finance, payroll, events, room plans and reservations.
+  English/Arabic support, RTL handling, guest themes, route/error boundaries,
+  feature/role-aware navigation, lazy loading for several guest pages, reusable UI.
+  Offline replay has tests for interrupted requests, retained idempotency keys,
+  browser locks and expired-session review. Financial utilities have parity/regression
+  checks. Browser scenarios validate profile/password persistence, image retry,
+  order history, serving temperature and reservations against a real isolated API.
+
+Menu_API:
+  Broad Laravel business-domain implementation and a substantial passing feature suite.
+  Tests exercise server pricing, login/token revocation/expiry, PIN protection,
+  host/slug tenant routing, broadcast authorization, feature on/off behavior,
+  order/kitchen transitions, inventory restoration, financial rounding/splitting,
+  invoice PDF access isolation, payroll, reservations and asset rollback/retry.
+  Transaction/locking protections, inventory audit records, guest/POS idempotency
+  mechanisms and test safety controls provide a strong base. Fresh MySQL migrations
+  completed successfully. Local invoice PDF tests ran rather than being skipped.
+
+URGENT — FIX OR CLOSE BEFORE COMMERCIAL LAUNCH
+
+U1. P0 — POS compensation shown in the UI is ignored during checkout.
+  Projects/roles: both; admin/cashier and customers receiving complimentary items.
+  Reproduce:
+    1. Enable table_ordering; log in as a tenant admin with a published $10 packaged
+       item and sufficient stock.
+    2. Open /staff/pos; choose Complimentary for that item.
+    3. Open Edit Issue / Compensation, then Save Compensation.
+    4. Observe displayed Total $0.00; press Checkout (Ctrl+Enter).
+    5. Inspect POST /api/pos/checkout response/order invoice.
+  Expected: supported approved compensation persists and payable invoice total is
+    $0.00; an unsupported adjustment must be rejected clearly before settlement.
+  Actual: HTTP 201, invoice total "10.00" while the UI had shown $0.00.
+    Core sale is recorded at the full catalog price. No live payment was made.
+  Errors: no browser page error; the request incorrectly succeeds.
+  Determinism: reproduced in the successful final browser run; repeated checkout
+    probing also confirmed the behavior. Root cause is deterministic field omission.
+  Likely modules: Menu_React/src/pages/CashierPosPage.tsx (checkout payload),
+    Menu_API/app/Http/Controllers/OrderController.php:1452 (quickCheckout validates
+    only base item fields and calls prepareOrderItems/server pricing).
+  Evidence: compensation-checkout-evidence.json, browser-reproductions.json,
+    compensation-double-count.png (completed sale and dashboard state).
+  Tests to add: approved complimentary, full waiver, partial discount and cancelled
+    line checkout; server-side approver authorization; receipt/UI/finance/stock parity.
+
+U2. P0 — multiple refunds can exceed the original sale value.
+  Project/roles: Menu_API; admin/accountant, cashier and finance users.
+  Reproduce:
+    1. Complete one $10 POS sale and take its order/item IDs.
+    2. POST /api/pos/orders/{order}/complaint-adjustments with a valid affected
+       item, QA complaint reason and refund_amount=8; POST the returned adjustment
+       to /api/pos/complaint-adjustments/{adjustment}/post.
+    3. Repeat with a new adjustment for the same sale and refund_amount=8.
+    4. GET /api/admin/finance/profit-loss?date_from=2026-10-07&date_to=2026-10-07.
+  Expected: aggregate posted refunds never exceed refundable balance; second
+    posting is rejected without financial/stock side effects.
+  Actual: both creates return 201 and both postings 200. For the isolated tenant,
+    complaint_refunds=16 and revenue/net_profit=-6 on the original $10 sale.
+  Errors: none; requests succeed incorrectly. No live payout was made.
+  Determinism: reproduced for two independent synthetic tenants.
+  Likely modules: PosComplaintAdjustmentController.php:40/83,
+    InvoiceController.php:353/763. Only each individual refund is capped.
+  Evidence: api-reproductions.txt; synthetic order 3 / adjustment IDs 3 and 4.
+  Tests to add: cumulative refunds, concurrent approvals, stale draft revalidation,
+    request retries, posting idempotency, post/void races, and tenant/role denial.
+
+U3. P0 — compensation data survives tenant logout/login on a shared browser origin.
+  Project/roles: Menu_React; restaurant A/B admins and staff named in reports.
+  Reproduce:
+    1. At the same frontend origin, log in as restaurant A's admin.
+    2. Record a complimentary item through /staff/pos as above.
+    3. Use the application's logout flow, then log in as restaurant B's admin.
+    4. Open /staff/pos and inspect Complaint & Compensation Dashboard.
+  Expected: B's report contains only B's data, using tenant-scoped storage or an
+    authorized server report; logout invalidates sensitive account-local state.
+  Actual: B sees A's $20 compensation total and QA_RUN_20261007_a_admin name.
+    Both login/me and A logout responses return 200. B's catalog requests use B's
+    slug, so this is browser-retained data rather than a demonstrated API row leak.
+  Scope: reproduced when accounts share an origin/browser profile. Separate custom
+    domain origins isolate browser storage, but do not fix the shared-origin case.
+  Errors: no browser page errors. Determinism: deterministic retained storage.
+  Likely modules: src/services/complaintCompensationService.ts:71/96/112,
+    src/pages/CashierPosPage.tsx:308, src/contexts/AuthContext.tsx (logout).
+  Evidence: browser-reproductions.json and compensation-other-tenant.png.
+  Tests to add: A -> logout -> B, different roles, fresh browser/server consistency,
+    and tenant scoping for compensation/held orders/other persisted business state.
+
+U4. P2 — compensation dashboard counts one item twice, including provisional edits.
+  Project/roles: Menu_React; admin/cashier and report readers.
+  Reproduce: save compensation for one $10 item in /staff/pos; observe $10 report
+    total; check out that same item; refresh the report.
+  Expected: one final $10 compensation contributes once; edits remain audit events.
+  Actual: Total Compensation Cost and Complimentary Value become $20, with two
+    approvals. Ledger contains marked_complimentary and checkout entries for the
+    same item, each with loss_amount=10. Checkout returns 201, no console error.
+  Determinism: deterministic aggregation. Likely modules: CashierPosPage.tsx:582/644
+    and complaintCompensationService.ts:167 (sums every event without finalization).
+  Evidence: browser-reproductions.json, compensation-double-count.png.
+  Tests to add: edit/save/checkout produces one financial entry; repeated edits,
+    removing a draft, returning to normal, failed checkout, and fresh browser reports.
+
+U5. P2 — restaurant activation status currently does not stop operations.
+  Project/roles: Menu_API; super admin and inactive restaurant admin/guests.
+  Reproduce: set a synthetic restaurant to status=inactive, leave its core flags
+    enabled and its admin user active. Log in; create a published packaged dish;
+    GET /api/menu/{inactive-slug}/dishes; POST /api/pos/checkout.
+  Expected launch policy: an inactive restaurant cannot accept sales. If status is
+    intended as an informational field, document that explicitly and provide a
+    separate reliable suspension mechanism.
+  Actual: login=200, dish creation=201, public menu=200 with one dish, sale=201.
+    Feature flags and user activity are enabled and routes are registered; this is
+    not a missing page caused by a disabled plan/flag. No subscription-plan model
+    enforcing suspension was found. No server exception.
+  Determinism: deterministic. Likely modules: AuthController.php,
+    TenantRestaurantResolver.php, EnsureActiveUser.php, EnsureRestaurantFeatureEnabled.php,
+    SuperAdminRestaurantManagementController.php (status mutation).
+  Evidence: api-reproductions.txt (inactive_restaurant_enforcement).
+  Tests to add: inactive tenant guest/staff/finance access and existing token behavior,
+    reactivation, enabled/disabled flags independent of status.
+
+U6. P1 SECURITY/BUILD RISK — shipped Docker context includes production env config.
+  Project/roles: Menu_API; deployment operator and tenants.
+  Reproduce by inspection: Dockerfile:27 uses COPY . .; .dockerignore:5 excludes
+    only .env. The existing .env.production is not excluded and contains a non-empty
+    DB_PASSWORD. Entrypoint deliberately copies .env.production if .env is absent.
+  Expected: production credentials supplied at runtime, excluded from image layers.
+  Actual: current build recipe copies that config into the image when present in
+    the context. No public image disclosure or credential compromise was tested.
+  Endpoint/status/console/screenshot: not applicable; build-definition finding.
+  Determinism: deterministic build-context inclusion. Relevant files: Dockerfile,
+    .dockerignore, docker/entrypoint.sh. Secret values intentionally withheld.
+  Tests to add: image/context secret-exclusion check and disposable image boot check.
+
+U7. P2 DEPLOYMENT RISK — invoice PDFs need Chrome, which the Dockerfile does not install.
+  Project/roles: Menu_API; admin/accountant and customers needing PDF invoices.
+  Reproduce by inspection: InvoicePdfService.php:97-103 searches for Chrome/Chromium
+    and throws "No headless Chrome binary is available for invoice PDF generation."
+    Dockerfile's package installation includes PHP/image dependencies but no browser.
+  Expected: deployment image can serve GET /api/admin/finance/invoices/{id}/pdf.
+  Actual evidence: local PDF tests pass because this host has Chrome. The Docker
+    recipe omits the runtime requirement; actual container response is NOT TESTED.
+    Predicted result on the unaugmented image: export generation failure (500).
+  Determinism: static missing dependency; runtime prediction requires container test.
+  Likely files: Dockerfile, InvoicePdfService.php, InvoiceController.php.
+  Tests to add: PDF download inside a fresh disposable release image, including Arabic.
+  Workaround: frontend invoice print flow; verify it in the launch browser matrix.
+
+U8. P1 SECURITY RISKS / UNPROVEN EXPLOITABILITY — dependency audits are not clean.
+  Projects/roles: both; developers/operators and potentially exposed runtime users.
+  Reproduce: npm audit --json in each project and composer audit --format=json in API.
+  Expected: reviewed, patched dependency set with no unaccepted relevant advisories.
+  Actual: audit exits are nonzero with the counts listed above. No exploitation test
+    or production attack was performed. Critical JS results here concern development
+    tooling; do not interpret them as confirmed critical production vulnerabilities.
+  Endpoint/status: registry/Packagist advisory lookup; no application HTTP defect.
+  Determinism: current dependency graph/current advisory database, time-sensitive.
+  Likely files: package.json/package-lock.json and composer.json/composer.lock.
+  Evidence: react-audit.json, api-npm-audit.json, api-composer-audit.json, including
+    individual advisory links. Review runtime applicability; upgrade and rerun suites.
+
+U9. RELEASE ASSURANCE GAPS — existing green suites are insufficient launch gates.
+  No checked-in CI gate or artifact retention workflow was found. One guest lifecycle
+  browser test fulfills all API requests with mocks. No browser scenario drives real
+  guest PIN -> staff confirmation -> chef ready -> served -> final invoice end to end.
+  No production-like worker/scheduler/Reverb delivery or backup-restore drill ran.
+  The frontend entry bundle is 655.18 kB gzip, with many admin imports eager in App.tsx;
+  actual slow-device performance, LCP/interaction latency and load capacity are unmeasured.
+  These are verification/operational gaps, not invented runtime failures.
+
+NORMAL — IMPORTANT IMPROVEMENTS AFTER THE URGENT ITEMS
+
+N1. Expand concurrency tests. ReservationApiTest's "competing" scenario sends two
+  sequential requests; it is not simultaneous contention. InventoryConcurrencyTest
+  tests a held ingredient lock, which is useful but not a complete overselling test.
+  Add simultaneous reservations, last-stock ordering, refund approval, invoice
+  finalization and idempotency tests across real workers/connections.
+N2. Test tenant selection for multi-restaurant staff. User::currentRestaurant() selects
+  the first owned/staff restaurant. No explicit tenant selection/membership test found
+  for one user with multiple memberships. This is a design/test risk, not a reproduced
+  unauthorized API disclosure. Define intended behavior and test wrong host/slug/ID.
+N3. Exercise service workers and offline workflows in browsers. Current Playwright
+  config blocks service workers; unit mocks cannot prove caching, reconnect, closed
+  sessions, multi-tab replay, lost acknowledgments or upgrade recovery in real browsers.
+N4. Add mobile/Safari/Firefox and keyboard/screen-reader checks; verify both themes,
+  focus management, room-plan dragging alternatives, form errors, Arabic/RTL and print.
+N5. Replace framework-template READMEs with product setup/deployment/operations docs:
+  supported feature combinations, role permissions, test DB setup, worker/scheduler
+  requirements, browser/PDF dependencies, backup restoration, rollback and monitoring.
+N6. Define the commercial operating model. Feature flags and tenant administration
+  exist; a standalone automated subscription/plan billing implementation was not
+  found. This is optional for a manually sold service, but a gap for self-service SaaS.
+
+SMALL — REPRODUCED LOW-IMPACT UI/MAINTENANCE ISSUES
+
+S1. P3 — Arabic POS still contains English complaint/report controls.
+  Role/URL: admin at /staff/pos with multi_language enabled and menu_locale=ar.
+  Reproduce: switch to Arabic, reload, open complaint/report section.
+  Expected: localized controls in the selected language.
+  Actual: document lang=ar/dir=rtl, but "Post-sale complaint / gift", "Complaint &
+    Compensation Dashboard" and related labels remain English. API requests succeed;
+    no page error. Deterministic hardcoded copy in CashierPosPage.tsx:1236/1269.
+  Evidence: ui-reproductions.json and pos-arabic-untranslated.png.
+  Add an Arabic browser assertion for POS complaint, checkout and report labels.
+S2. P3 — decorative login icon is a keyboard-focusable hidden button.
+  Role/URL: unauthenticated user at /admin/login; no flags/permissions needed.
+  Reproduce: tab/focus the leading decorative cutlery icon.
+  Expected: decoration does not receive focus; interactive controls have an accessible name.
+  Actual: rendered button has aria-hidden=true, tabIndex=0 and can receive focus.
+    No HTTP error; deterministic. Files: LoginPage.tsx:69, GlassIconButton.tsx.
+  Evidence: ui-reproductions.json and login-hidden-focus.png.
+  Add keyboard/accessible-name checks; use noninteractive decoration or remove from Tab order.
+S3. P3 MAINTENANCE — GuestInvoicePage.tsx:127 has one missing-useEffect-dependency
+  warning for invoice/cachedInvoice invoiceNumber. Reproduce npm run lint.
+  Expected: clean hook dependency checks. Actual: one warning, zero errors, exit 0.
+  No runtime invoice failure established from this warning; endpoint/screenshot N/A.
+S4. P3 MAINTENANCE — Pint reports formatting in InvoiceController.php,
+  PosComplaintAdjustmentController.php, PosComplaintAdjustment.php,
+  PosComplaintAdjustmentGift.php and the complaint-adjustment migration.
+  Reproduce vendor/bin/pint --test; deterministic exit 1; no runtime error implied.
+
+PRIORITIZED TEST CREATION BACKLOG
+
+FIRST — financial and isolation regressions:
+  1. POS compensation API + browser integration: displayed/payable/printed totals,
+     all compensation modes, authorization, cent rounding and stock effects.
+  2. Complaint adjustment API: cumulative refundable balance, concurrent/stale drafts,
+     idempotency, gift stock/rollback, post/void immutability, role/tenant matrix.
+  3. Browser persisted-state isolation: A logout -> B; report/held-order scoping;
+     persisted report consistency in a fresh browser; edits versus final financial facts.
+  4. Restaurant lifecycle access: inactive/active plus feature on/off and token lifetime.
+
+NEXT — launch confidence:
+  5. Real full lifecycle browser scenario with separate guest/staff/chef/accountant
+     users and two tenants; do not mock the application API.
+  6. Release-image smoke including config boot, migration, private Arabic invoice PDF,
+     queue/scheduler/Reverb and secret exclusion on disposable infrastructure.
+  7. True concurrent requests; real offline/service-worker replay and multiple tabs.
+  8. Reproducible CI gates for both projects with screenshots/traces/JUnit retention,
+     security audits, independent coverage reports and a tested backup/restore drill.
+
+THEN — breadth and polish:
+  9. Mobile/WebKit/Firefox, light/dark, Arabic/RTL, keyboard accessibility and print.
+ 10. Performance budgets for guest entry/catalog/3D/admin data, realistic large datasets,
+     throttled devices/network, capacity and response latency.
+
+Existing weak spots are specific: no dedicated backend complaint-adjustment tests;
+only four CashierPosPage component tests, with its compensation service mocked;
+two compensation reporting tests use handcrafted entries, hiding edit/checkout
+double-counting and tenant scope; six desktop browser scenarios for 48 frontend pages;
+service workers blocked; sequence-based tests labeled as competition; no measured
+coverage or checked-in CI. Finance parity, core auth, ordinary tenancy and asset
+rollback tests are strengths and should be retained, not rewritten without need.
+
+LAUNCH ACCEPTANCE
+
+Close U1-U3 before any real multi-tenant financial use. Correct U4/U5 and settle
+activation policy. Patch/review dependencies, remove image credential inclusion,
+verify PDF in the release image, and run the real role lifecycle plus operations
+rehearsal. Release only with passing regressions for these findings and repeatable
+CI/deployment verification. Optional AI/AR/push features should be enabled only after
+their operational paths have been tested; backend fake-boundary tests are not delivery proof.
+
+EVIDENCE LOCATION
+
+Adjacent directory: docs/testing/market-readiness-2026-10-07/
+Contains 23 sanitized logs, audit JSON files, API JUnit, environment/response summaries
+and screenshots. No complete access tokens or production secret values are included.
+Temporary QA harnesses and database data live under /tmp/menu-market-qa-20261007.
+No application fixes or new repository tests were added in this first pass.

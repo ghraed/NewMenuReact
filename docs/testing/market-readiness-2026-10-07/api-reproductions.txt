@@ -1,0 +1,94 @@
+{
+  "probe": "cumulative_refund_limit",
+  "sale_create_status": 201,
+  "order_id": 3,
+  "sale_total": "10.00",
+  "attempts": [
+    {
+      "create_status": 201,
+      "post_status": 200,
+      "adjustment": {
+        "id": 3,
+        "status": "posted",
+        "original_order_id": 3,
+        "original_invoice_number": "INV-20261007-000003",
+        "complaint_reason": "QA_RUN_20261007_refund_0",
+        "complaint_category": null,
+        "complaint_note": null,
+        "accounting_bucket": "customer_complaint_loss",
+        "refund_amount": "8.00",
+        "refund_payment_method": "cash",
+        "affected_items": [
+          {
+            "quantity": 1,
+            "dish_name": "QA_RUN_20261007_refund_dish",
+            "line_total": "10.00",
+            "order_item_id": 3
+          }
+        ],
+        "gifts": [],
+        "created_at": "2026-10-07T07:09:59+00:00",
+        "posted_at": "2026-10-07T07:09:59+00:00"
+      }
+    },
+    {
+      "create_status": 201,
+      "post_status": 200,
+      "adjustment": {
+        "id": 4,
+        "status": "posted",
+        "original_order_id": 3,
+        "original_invoice_number": "INV-20261007-000003",
+        "complaint_reason": "QA_RUN_20261007_refund_1",
+        "complaint_category": null,
+        "complaint_note": null,
+        "accounting_bucket": "customer_complaint_loss",
+        "refund_amount": "8.00",
+        "refund_payment_method": "cash",
+        "affected_items": [
+          {
+            "quantity": 1,
+            "dish_name": "QA_RUN_20261007_refund_dish",
+            "line_total": "10.00",
+            "order_item_id": 3
+          }
+        ],
+        "gifts": [],
+        "created_at": "2026-10-07T07:09:59+00:00",
+        "posted_at": "2026-10-07T07:09:59+00:00"
+      }
+    }
+  ],
+  "profit_loss_status": 200,
+  "profit_loss": {
+    "date_from": "2026-10-07",
+    "date_to": "2026-10-07",
+    "group_by": "monthly",
+    "revenue": -6,
+    "complaint_refunds": 16,
+    "cogs": 0,
+    "gross_profit": -6,
+    "operating_expenses": 0,
+    "net_profit": -6,
+    "mode": {
+      "expense_status": "approved_paid"
+    },
+    "totals": {
+      "revenue": -6,
+      "expenses": 0,
+      "cogs": 0,
+      "profit": -6,
+      "profit_margin_percent": 0
+    },
+    "expense_breakdown": []
+  }
+}
+{
+  "probe": "inactive_restaurant_enforcement",
+  "restaurant_status": "inactive",
+  "login_status": 200,
+  "dish_create_status": 201,
+  "public_menu_status": 200,
+  "public_dish_count": 1,
+  "pos_checkout_status": 201
+}

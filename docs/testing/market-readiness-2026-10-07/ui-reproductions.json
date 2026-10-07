@@ -1,0 +1,14 @@
+{
+  "hiddenFocusable": {
+    "ariaHidden": "true",
+    "tabIndex": 0,
+    "focused": true,
+    "text": "🍽️"
+  },
+  "localized": {
+    "language": "ar",
+    "direction": "rtl",
+    "englishDashboard": true,
+    "englishComplaint": true
+  }
+}
