@@ -1,0 +1,193 @@
+
+   FAIL  Tests\Feature\PosComplaintRefundConcurrencyTest
+  ⨯ true concurrent approvals share invoice balance                     13.38s
+  ✓ true concurrent same adjustment posts deduct gift once               0.72s
+  ⨯ true concurrent post and void have one immutable outcome             0.72s
+
+   FAIL  Tests\Feature\PosComplaintRefundSafetyTest
+  ⨯ stale drafts cannot exceed sale and reports use actual postings      0.07s
+  ⨯ creation retries remain separate nonfinancial drafts                 0.05s
+  ⨯ shared invoice discount caps refunds across orders                   0.05s
+  ⨯ cent boundary and per order cap                                      0.04s
+  ✓ already posted refund has no restock and cannot be voided            0.04s
+  ✓ voided draft is not posted or counted                                0.05s
+  ✓ staff cannot approve and forged identity is ignored                  0.04s
+  ✓ foreign sale item gift and adjustment are denied                     0.05s
+  ✓ gift failure rolls back refund and success deducts once              0.06s
+  ✓ disabled ordering feature denies adjustments                         0.04s
+  ⨯ unsettled invoice and order are revalidated at posting               0.03s
+  ⨯ legacy sale without finance invoice still has cumulative cap         0.05s
+  ⨯ legacy missing invoice link is included in shared balance            0.04s
+  ⨯ real checkout refund does not restore consumed ingredients           0.07s
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundConcurrencyTest > true concurrent…
+  Failed asserting that two arrays are identical.
+   Array &0 [
+       0 => 200,
+  -    1 => 422,
+  +    1 => 200,
+   ]
+
+
+  at tests/Feature/PosComplaintRefundConcurrencyTest.php:26
+     22▕         $b = $this->draft('8.00', [], $other);
+     23▕         $results = $this->race(["/api/pos/complaint-adjustments/{$a}/post", "/api/pos/complaint-adjustments/{$b}/post"]);
+     24▕         $statuses = array_column($results, 'status');
+     25▕         sort($statuses);
+  ➜  26▕         $this->assertSame([200, 422], $statuses);
+     27▕         $this->assertSame(1, PosComplaintAdjustment::where('status', 'posted')->count());
+     28▕         $this->assertReport(800, 200);
+     29▕     }
+     30▕
+
+  1   tests/Feature/PosComplaintRefundConcurrencyTest.php:26
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundConcurrencyTest > true concurrent…
+  Failed asserting that file "/tmp/menu-qa-z_2sxijt/tmp/QA_RUN_20261007_task2_before_final_86862589/ready1.locking" exists.
+
+  at tests/Feature/PosComplaintRefundConcurrencyTest.php:121
+    117▕                 file_put_contents($evidence.'/refund-concurrent-api.jsonl', json_encode(['scenario' => $this->name(), 'paths' => $paths, 'both_bound_drafts' => true, 'locking_attempts' => [is_file("{$dir}/ready0.locking"), is_file("{$dir}/ready1.locking")], 'responses' => $results])."\n", FILE_APPEND);
+    118▕             }
+    119▕
+    120▕             $this->assertFileExists("{$dir}/ready0.locking");
+  ➜ 121▕             $this->assertFileExists("{$dir}/ready1.locking");
+    122▕
+    123▕             return $results;
+    124▕         } finally {
+    125▕             foreach ($processes as $process) {
+
+  1   tests/Feature/PosComplaintRefundConcurrencyTest.php:121
+  2   tests/Feature/PosComplaintRefundConcurrencyTest.php:43
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > stale drafts cannot…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:31
+     27▕         $first = $this->draft();
+     28▕         $stale = $this->draft('8.00', ['gifts' => [['dish_id' => $this->dish->id, 'quantity' => 1]]]);
+     29▕         $this->approve($first)->assertOk();
+     30▕         $orders = Order::query()->count();
+  ➜  31▕         $this->approve($stale)->assertUnprocessable()->assertJsonValidationErrors('refund_amount');
+     32▕         $this->assertSame($orders, Order::query()->count());
+     33▕         $this->assertSame('5.000', $this->ingredient->fresh()->current_stock_quantity);
+     34▕         $this->assertSame(0, StockMovement::query()->count());
+     35▕         $this->assertDatabaseHas('pos_complaint_adjustments', ['id' => $stale, 'status' => 'draft', 'approved_by' => null, 'posted_at' => null, 'gift_order_id' => null]);
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > creation retries rem…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:51
+     47▕         $b = $this->draft();
+     48▕         $this->assertNotSame($a, $b);
+     49▕         $this->assertReport(0, 1000);
+     50▕         $this->approve($a)->assertOk();
+  ➜  51▕         $this->approve($b)->assertUnprocessable();
+     52▕         $this->approve($a)->assertOk();
+     53▕         $this->assertReport(800, 200);
+     54▕     }
+     55▕
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > shared invoice disco…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:63
+     59▕         $this->invoice->update(['total' => '10.01']); // Two $10 waves settled together with a discount.
+     60▕         $a = $this->draft();
+     61▕         $b = $this->draft('8.00', [], $other);
+     62▕         $this->approve($a)->assertOk();
+  ➜  63▕         $this->approve($b)->assertUnprocessable();
+     64▕         $this->approve($this->draft('2.01', [], $other))->assertOk();
+     65▕         $this->assertReport(1001, 0);
+     66▕     }
+     67▕
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > cent boundary and pe…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:74
+     70▕         $this->invoice->update(['total' => '20.00']);
+     71▕         $a = $this->draft('9.99');
+     72▕         $b = $this->draft('0.02');
+     73▕         $this->approve($a)->assertOk();
+  ➜  74▕         $this->approve($b)->assertUnprocessable();
+     75▕         $this->approve($this->draft('0.01'))->assertOk();
+     76▕         $this->assertSame('10.00', PosComplaintAdjustment::query()->where('status', 'posted')->sum('refund_amount'));
+     77▕     }
+     78▕
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > unsettled invoice an…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:169
+    165▕     public function test_unsettled_invoice_and_order_are_revalidated_at_posting(): void
+    166▕     {
+    167▕         $id = $this->draft();
+    168▕         $this->invoice->update(['status' => Invoice::STATUS_DRAFT]);
+  ➜ 169▕         $this->approve($id)->assertUnprocessable();
+    170▕         $this->invoice->update(['status' => Invoice::STATUS_CANCELLED]);
+    171▕         $this->approve($id)->assertUnprocessable();
+    172▕         $this->invoice->update(['status' => Invoice::STATUS_PAID]);
+    173▕         $this->order->update(['status' => Order::STATUS_CANCELLED]);
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > legacy sale without…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:184
+    180▕         $this->invoice->delete();
+    181▕         $a = $this->draft();
+    182▕         $b = $this->draft();
+    183▕         $this->approve($a)->assertOk();
+  ➜ 184▕         $this->approve($b)->assertUnprocessable();
+    185▕         $this->approve($this->draft('2.00'))->assertOk();
+    186▕     }
+    187▕
+    188▕     public function test_legacy_missing_invoice_link_is_included_in_shared_balance(): void
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > legacy missing invoi…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:195
+    191▕         $a = $this->draft();
+    192▕         $b = $this->draft('8.00', [], $other);
+    193▕         PosComplaintAdjustment::whereKey($a)->update(['original_invoice_id' => null]);
+    194▕         $this->approve($a)->assertOk();
+  ➜ 195▕         $this->approve($b)->assertUnprocessable();
+    196▕         $this->assertReport(800, 200);
+    197▕     }
+    198▕
+    199▕     public function test_real_checkout_refund_does_not_restore_consumed_ingredients(): void
+
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\PosComplaintRefundSafetyTest > real checkout refund…
+  Expected response status code [422] but received 200.
+Failed asserting that 200 is identical to 422.
+
+  at tests/Feature/PosComplaintRefundSafetyTest.php:214
+    210▕         $beforeUsage = DB::table('order_item_ingredient_usages')->count();
+    211▕         $this->assertSame('4.000', $beforeStock);
+    212▕         $this->assertSame(1, $beforeMovements);
+    213▕         $this->approve($a)->assertOk();
+  ➜ 214▕         $this->approve($b)->assertUnprocessable();
+    215▕         $this->approve($this->draft('2.00', [], $order))->assertOk();
+    216▕         $this->assertSame($beforeStock, $this->ingredient->fresh()->current_stock_quantity);
+    217▕         $this->assertSame($beforeMovements, StockMovement::query()->count());
+    218▕         $this->assertSame($beforeUsage, DB::table('order_item_ingredient_usages')->count());
+
+
+  Tests:    10 failed, 7 passed (117 assertions)
+  Duration: 15.61s

@@ -1,0 +1,154 @@
+TASK 2 COMPLETION — CUMULATIVE REFUND SAFETY
+7 October 2026
+
+Selected task / audit IDs:
+  TASK 2 ONLY / U2 (P0). Complete locally for cumulative posting safety.
+  Tasks 0 and 1 commits verified in both repositories before execution; all existing
+  fixes/tests retained. No Task 3-10 implementation, push, merge or deployment.
+
+Branch and before/after commits for each changed repository:
+  Both: fix/task-2-cumulative-refund-safety; both working trees initially clean.
+  Menu_API before: 99c5a2d853482eb11be1a79f9e917a7f44483995
+           after: 6484a65c2e5304e8058445c40702c1f04feb9790
+  Menu_React before: b51d18e94a709daca7de92d559b1c196826c0e10
+             after: final local documentation commit recorded in
+    task-2-2026-10-07/run-ready/completion-commits.json (avoids a self-referential hash).
+  Verified frontend ancestors: Task 0 a91b1d03679c2f283fb87d730a7fb73789cd2316;
+    Task 1 b51d18e94a709daca7de92d559b1c196826c0e10.
+  Verified API ancestor: Task 0 99c5a2d853482eb11be1a79f9e917a7f44483995;
+    Task 1 intentionally left API unchanged at that same commit.
+
+Environment URL, APP_ENV, test DB host/port/name (no secrets):
+  Paired run 20261007_task2_verified2:
+    Frontend http://127.0.0.1:41427; QA API http://127.0.0.1:38507.
+    APP_ENV=testing; MySQL 127.0.0.1:38347.
+    menu_test_QA_RUN_20261007_task2_verified2_suite
+    menu_test_QA_RUN_20261007_task2_verified2_browser
+  Final API run 20261007_task2_api_final:
+    QA API URL http://127.0.0.1:38411; APP_ENV=testing; MySQL 127.0.0.1:38031.
+    menu_test_QA_RUN_20261007_task2_api_final_suite
+  Safe drivers: mail=array, queue=sync, broadcast=null; isolated storage and config
+    caches; external credentials disabled; stray outbound Laravel HTTP prevented.
+  Each run initialized its own MySQL data directory/user/socket and synthetic fixtures.
+  Test clock follows existing Tests/TestCase.php (2026-01-15 12:00 UTC). Browser fixture
+    flags are retained in the paired evidence; refund fixtures enable table_ordering,
+    finance_dashboard, expense_management, inventory and ingredient_stock_deduction.
+    Disabled table_ordering behavior was separately verified (404 feature response).
+  Both final runtimes, servers, databases and storage were removed successfully.
+  Recorded URLs are evidence, not running servers; normal DB/production Compose unused.
+
+Failing regression before the fix:
+  Reproduced original API controller from the verified base commit, using the same
+    validated regressions on disposable MySQL; fixed controller restored afterward.
+  17 new tests: 10 FAIL, 7 PASS, zero skips. Concurrent $8 approvals for a $10 shared
+    settlement both returned 200 through separate PHP processes/MySQL connections.
+  Exact reproduction: admin settles one $10 POS sale; creates two $8 drafts through
+    POST /api/pos/orders/{order}/complaint-adjustments (201 each); POST both IDs to
+    /api/pos/complaint-adjustments/{adjustment}/post. Before: second posting 200;
+    expected: 422 without changing ledger/stock/reports. Deterministic cap failure.
+  Same defect reproduced after an actual checkout, with stale drafts, penny limits,
+    invoice discounts, legacy missing invoice links and legacy invoice-free sales.
+  Post/void workers both bound a draft before release; before they could both return
+    200 and overwrite the posted state. There was no application error in those
+    incorrectly successful responses. API evidence retained; no browser failure here.
+  Likely module: Menu_API/app/Http/Controllers/PosComplaintAdjustmentController.php.
+
+Behavior after the fix:
+  Remaining balance is calculated in integer cents with the existing Money helper.
+  Approval locks original order -> common settled finance invoice -> adjustment,
+    uses current locking reads of posted refunds, and revalidates before side effects.
+  Per-order and shared invoice caps both apply, including session-level discounts.
+  Second $8 posting on a $10 sale returns 422 with refund_amount errors; a remaining
+    $2 posting succeeds. Independent expected cents: refunds 800/revenue 200, then
+    refunds 1000/revenue 0. Profit-loss and dashboard reporting agree without clamping.
+  Four true concurrency regressions pass: two approvals on one sale, two orders on
+    one invoice, duplicate post with gift, and post/void. Requests use distinct MySQL
+    connection IDs and a barrier after reading the draft; transactions overlap.
+  Void rechecks locked status and cannot overwrite posted records; repeat post/void
+    preserves existing timestamps and once-only gift deduction. Authorized approval
+    identity comes from the authenticated user; staff/foreign tenant/item denial kept.
+  Gift stock shortage rolls back all posting effects. Real checkout consumption stays
+    deducted after monetary refunds. Original invoices and sale totals stay unchanged.
+  18 new regressions pass in the final full API suite; existing 338 tests retained.
+
+Changed files and reason:
+  Menu_API:
+    app/Http/Controllers/PosComplaintAdjustmentController.php — cents-based caps,
+      common settlement locks, stale-draft checks, atomic void and bounded retry.
+    tests/Feature/PosComplaintRefundSafetyTest.php — 14 sequential API/finance/stock,
+      role/tenant/feature, retry, legacy and real-checkout regressions.
+    tests/Feature/PosComplaintRefundConcurrencyTest.php — four concurrent regressions,
+      committed fixtures and cleanup preserving the migration-seeded baseline.
+    tests/Support/BuildsComplaintRefundFixtures.php — unique QA_RUN fixtures/reports.
+    tests/Support/complaintRequestWorker.php — guarded separate QA application process,
+      route-binding barrier and sanitized request/response evidence.
+  Menu_React:
+    .gitignore — retain generated Task 2 run evidence locally without shipping it.
+    docs/testing/fix-progress.txt — append Task 2 completion; previous history retained.
+    This completion report and task-2-2026-10-07/* sanitized summaries/contract evidence.
+  No frontend application change, dependency change, deployed migration edit or
+    settled-record rewrite. Formatter applied only to the five touched/new PHP files.
+
+Compatibility/deployment order:
+  API-only behavior fix; no schema migration or frontend rollout required. Existing
+    payloads/response shapes remain compatible; excessive approvals use existing 422
+    error handling. Drain old posting/void workers during API replacement because
+    old binaries still lack the cap. No deployment performed.
+  Creation retries still create separate nonfinancial drafts; lost acknowledgements
+    should be reconciled via the existing sale-adjustments index. Approval retries
+    reuse the stable adjustment ID. No creation-idempotency guarantee is invented.
+  Detailed contract: task-2-2026-10-07/contract-and-limitations.txt.
+
+Checks: PASS / FAIL / BLOCKED / SKIPPED / NOT IMPLEMENTED:
+  PASS — final API full suite: 356 tests, 3,736 assertions, zero skips;
+    includes all original 338 plus 18 new tests. API build and Composer validation.
+  PASS — paired run: 355 API tests/3,712 assertions; then 124 frontend unit tests,
+    eight browser scenarios, warning-free lint, both builds and environment/cleanup.
+    The last same-sale concurrent regression was added after this run loaded its
+    classes; the separate final API run above validates all 356 current tests.
+  PASS — formatter for all five changed/new PHP files; git diff --check.
+  FAIL — full formatter: four existing files (InvoiceController, both adjustment
+    models, original complaint migration). The touched controller's former style
+    failure is resolved; no other baseline formatting file was edited.
+  FAIL — refreshed Composer and both npm audits. Four Composer packages have
+    advisories; API npm reports nine findings, frontend npm thirteen. Locks unchanged;
+    assessment/upgrades remain Task 7. Raw advisory output retained, not called clean.
+  BLOCKED — existing accountant POS approval permission conflict; admin works.
+    Detailed P2 reproduction/evidence/module in contract-and-limitations.txt.
+  SKIPPED — zero automated test cases in the final verified suites.
+  NOT IMPLEMENTED — Tasks 3-10, hosted CI execution/branch protection, production
+    deployment/runtime verification and complete real guest-to-kitchen browser flow.
+    Existing mocked guest UI scenario remains mocked; eight browsers are Chrome only.
+
+Evidence locations:
+  docs/testing/task-2-2026-10-07/:
+    regression-before.txt, concurrent-before.json, concurrent-after.json,
+    verification-context.json, checks-summary.json, contract-and-limitations.txt.
+    run-before-final/ — 10 failing original-code regressions and API response evidence.
+    run-verified2/ — successful paired gates, JUnit, browser report and raw audits.
+    run-api-final/ — final 356-test suite, four concurrent API traces, build/audits.
+    run-ready/completion-commits.json — final commits, clean state and ancestry.
+  Preliminary runs are retained with their failures. New harness issues (wrong fixture
+    flags/environment inheritance/status constant and cleanup affecting seeded records)
+    were corrected before final verification; not counted as product defects or passes.
+
+Known baseline failures and remaining risks:
+  Audits/formatting above remain release risks. Accountant 403 exists in original and
+    fixed code: routes/controller allow that role, RestrictChefApiSurface blocks it.
+    Permission expansion was intentionally left outside this task; admin is a workaround.
+  Historical excess refunds are not repaired/deleted/clamped. Further refunds fail on
+    exhausted/negative balance; historical records require separate reviewed remediation.
+  Posting is an internal ledger operation; no live payment/refund transport was used.
+  Later compensation/reporting/image/operations defects still block market launch.
+
+Rollback procedure:
+  Revert only API 6484a65c2e5304e8058445c40702c1f04feb9790 and the paired Task 2
+    documentation commit after review; preserve Tasks 0/1. No migration/data rollback
+    or key rotation. Reverting the API reintroduces U2; suspend complaint approvals
+    until a safe version is restored. No rollback was performed.
+
+Ready for next task:
+  YES for separately selected local Task 3 after review: cumulative safety and relevant
+    baseline suites pass, previous fixes/tests are preserved. Accountant permission,
+    dependency/style and later release gates remain explicit risks, not launch approval.
+  No later task was started.

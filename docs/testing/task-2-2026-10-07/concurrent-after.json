@@ -1,0 +1,252 @@
+[
+  {
+    "scenario": "test_true_concurrent_approvals_share_original_sale_balance",
+    "paths": [
+      "/api/pos/complaint-adjustments/1/post",
+      "/api/pos/complaint-adjustments/2/post"
+    ],
+    "both_bound_drafts": true,
+    "locking_attempts": [
+      true,
+      true
+    ],
+    "responses": [
+      {
+        "connection_id": 223,
+        "status": 422,
+        "body": {
+          "message": "Refund cannot exceed the remaining refundable balance.",
+          "errors": {
+            "refund_amount": [
+              "Refund cannot exceed the remaining refundable balance."
+            ]
+          }
+        }
+      },
+      {
+        "connection_id": 224,
+        "status": 200,
+        "body": {
+          "adjustment": {
+            "id": 2,
+            "status": "posted",
+            "original_order_id": 1,
+            "original_invoice_number": "QA_RUN_20261007_task2_api_final_3ad11d9d",
+            "complaint_reason": "QA_RUN_20261007_task2_api_final_3ad11d9d",
+            "complaint_category": null,
+            "complaint_note": null,
+            "accounting_bucket": "customer_complaint_loss",
+            "refund_amount": "8.00",
+            "refund_payment_method": "cash",
+            "affected_items": [
+              {
+                "quantity": 1,
+                "dish_name": "QA_RUN_20261007_task2_api_final_3ad11d9d",
+                "line_total": "10.00",
+                "order_item_id": 1
+              }
+            ],
+            "gifts": [],
+            "created_at": "2026-01-15T12:00:00+00:00",
+            "posted_at": "2026-01-15T12:00:00+00:00"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "scenario": "test_true_concurrent_approvals_share_invoice_balance",
+    "paths": [
+      "/api/pos/complaint-adjustments/1/post",
+      "/api/pos/complaint-adjustments/2/post"
+    ],
+    "both_bound_drafts": true,
+    "locking_attempts": [
+      true,
+      true
+    ],
+    "responses": [
+      {
+        "connection_id": 228,
+        "status": 200,
+        "body": {
+          "adjustment": {
+            "id": 1,
+            "status": "posted",
+            "original_order_id": 1,
+            "original_invoice_number": "QA_RUN_20261007_task2_api_final_83fa06b3",
+            "complaint_reason": "QA_RUN_20261007_task2_api_final_83fa06b3",
+            "complaint_category": null,
+            "complaint_note": null,
+            "accounting_bucket": "customer_complaint_loss",
+            "refund_amount": "8.00",
+            "refund_payment_method": "cash",
+            "affected_items": [
+              {
+                "quantity": 1,
+                "dish_name": "QA_RUN_20261007_task2_api_final_83fa06b3",
+                "line_total": "10.00",
+                "order_item_id": 1
+              }
+            ],
+            "gifts": [],
+            "created_at": "2026-01-15T12:00:00+00:00",
+            "posted_at": "2026-01-15T12:00:00+00:00"
+          }
+        }
+      },
+      {
+        "connection_id": 227,
+        "status": 422,
+        "body": {
+          "message": "Refund cannot exceed the remaining refundable balance.",
+          "errors": {
+            "refund_amount": [
+              "Refund cannot exceed the remaining refundable balance."
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "scenario": "test_true_concurrent_same_adjustment_posts_deduct_gift_once",
+    "paths": [
+      "/api/pos/complaint-adjustments/1/post",
+      "/api/pos/complaint-adjustments/1/post"
+    ],
+    "both_bound_drafts": true,
+    "locking_attempts": [
+      true,
+      true
+    ],
+    "responses": [
+      {
+        "connection_id": 232,
+        "status": 200,
+        "body": {
+          "adjustment": {
+            "id": 1,
+            "status": "posted",
+            "original_order_id": 1,
+            "original_invoice_number": "QA_RUN_20261007_task2_api_final_3273594a",
+            "complaint_reason": "QA_RUN_20261007_task2_api_final_3273594a",
+            "complaint_category": null,
+            "complaint_note": null,
+            "accounting_bucket": "customer_complaint_loss",
+            "refund_amount": "2.00",
+            "refund_payment_method": "cash",
+            "affected_items": [
+              {
+                "quantity": 1,
+                "dish_name": "QA_RUN_20261007_task2_api_final_3273594a",
+                "line_total": "10.00",
+                "order_item_id": 1
+              }
+            ],
+            "gifts": [
+              {
+                "dish_name": "QA_RUN_20261007_task2_api_final_3273594a",
+                "quantity": "1.000",
+                "line_value": "10.00"
+              }
+            ],
+            "created_at": "2026-01-15T12:00:00+00:00",
+            "posted_at": "2026-01-15T12:00:00+00:00"
+          }
+        }
+      },
+      {
+        "connection_id": 231,
+        "status": 200,
+        "body": {
+          "adjustment": {
+            "id": 1,
+            "status": "posted",
+            "original_order_id": 1,
+            "original_invoice_number": "QA_RUN_20261007_task2_api_final_3273594a",
+            "complaint_reason": "QA_RUN_20261007_task2_api_final_3273594a",
+            "complaint_category": null,
+            "complaint_note": null,
+            "accounting_bucket": "customer_complaint_loss",
+            "refund_amount": "2.00",
+            "refund_payment_method": "cash",
+            "affected_items": [
+              {
+                "quantity": 1,
+                "dish_name": "QA_RUN_20261007_task2_api_final_3273594a",
+                "line_total": "10.00",
+                "order_item_id": 1
+              }
+            ],
+            "gifts": [
+              {
+                "dish_name": "QA_RUN_20261007_task2_api_final_3273594a",
+                "quantity": "1.000",
+                "line_value": "10.00"
+              }
+            ],
+            "created_at": "2026-01-15T12:00:00+00:00",
+            "posted_at": "2026-01-15T12:00:00+00:00"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "scenario": "test_true_concurrent_post_and_void_have_one_immutable_outcome",
+    "paths": [
+      "/api/pos/complaint-adjustments/1/post",
+      "/api/pos/complaint-adjustments/1/void"
+    ],
+    "both_bound_drafts": true,
+    "locking_attempts": [
+      true,
+      true
+    ],
+    "responses": [
+      {
+        "connection_id": 236,
+        "status": 422,
+        "body": {
+          "message": "A voided adjustment cannot be posted."
+        }
+      },
+      {
+        "connection_id": 235,
+        "status": 200,
+        "body": {
+          "adjustment": {
+            "id": 1,
+            "status": "void",
+            "original_order_id": 1,
+            "original_invoice_number": "QA_RUN_20261007_task2_api_final_84676ad8",
+            "complaint_reason": "QA_RUN_20261007_task2_api_final_84676ad8",
+            "complaint_category": null,
+            "complaint_note": null,
+            "accounting_bucket": "customer_complaint_loss",
+            "refund_amount": "2.00",
+            "refund_payment_method": "cash",
+            "affected_items": [
+              {
+                "quantity": 1,
+                "dish_name": "QA_RUN_20261007_task2_api_final_84676ad8",
+                "line_total": "10.00",
+                "order_item_id": 1
+              }
+            ],
+            "gifts": [
+              {
+                "dish_name": "QA_RUN_20261007_task2_api_final_84676ad8",
+                "quantity": "1.000",
+                "line_value": "10.00"
+              }
+            ],
+            "created_at": "2026-01-15T12:00:00+00:00",
+            "posted_at": null
+          }
+        }
+      }
+    ]
+  }
+]

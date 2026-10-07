@@ -3,7 +3,7 @@ Updated 7 October 2026.
 
 This file was absent when Task 1 began. Task 0 history below was reconstructed
 from the committed completion report, archived verification results and Git ancestry;
-no missing history was assumed. Only Tasks 0 and 1 are complete locally.
+no missing history was assumed. Only Tasks 0, 1 and 2 are complete locally.
 
 TASK 0 — COMPLETE LOCAL BASELINE / HOSTED CI UNEXECUTED
   Menu_React: a91b1d03679c2f283fb87d730a7fb73789cd2316
@@ -34,7 +34,31 @@ TASK 1 / U3 — COMPLETE LOCAL BROWSER TENANT ISOLATION
   Report: docs/testing/task-1-2026-10-07.txt
   Evidence: docs/testing/task-1-2026-10-07/ (generated run-* folders retained locally).
 
-NEXT: TASK 2 — NOT STARTED; await review of Task 1 before its selected execution.
-Tasks 2-10 are NOT IMPLEMENTED by these changes. U1/U2/U4 financial fixes, release
+TASK 2 / U2 — COMPLETE LOCAL CUMULATIVE REFUND SAFETY
+  Branch: fix/task-2-cumulative-refund-safety (both repositories).
+  API base: 99c5a2d853482eb11be1a79f9e917a7f44483995
+  API final: 6484a65c2e5304e8058445c40702c1f04feb9790
+  Frontend base: b51d18e94a709daca7de92d559b1c196826c0e10; application unchanged.
+  Final paired commits: docs/testing/task-2-2026-10-07/run-ready/completion-commits.json.
+  Tasks 0/1 ancestry verified in both repositories; previous fixes/tests preserved.
+  Before: second $8 posting against a $10 sale returned 200; concurrent requests
+  against a shared settlement both posted, and post/void could both succeed.
+  After: integer-cents order and shared settled-invoice balances rechecked under
+  consistent transaction locks; stale/excess approvals return 422; remaining $2 works.
+  Posted records immutable; retry posting/gift deduction exactly once; consumed
+  ingredients stay consumed. Creation retries remain separate nonfinancial drafts.
+  Verified: final 356 API tests / 3,736 assertions (18 new regressions, four true
+  concurrency scenarios); 124 frontend unit tests; eight browser scenarios including
+  Task 1 isolation; warning-free lint, both builds, Composer validation; zero skips.
+  Disposable database/storage/server cleanup passed. No source/schema/lock changes
+  beyond the selected controller and new regressions/support helpers.
+  Remaining: four existing API formatter files and all three dependency audit failures.
+  Existing accountant POS permission conflict (403) documented; admin works and
+  established permission rules preserved. Historical excess refunds not rewritten.
+  Report: docs/testing/task-2-2026-10-07.txt
+  Evidence: docs/testing/task-2-2026-10-07/ (generated run-* folders retained locally).
+
+NEXT: TASK 3 — NOT STARTED; await review and separate selected execution.
+Tasks 3-10 are NOT IMPLEMENTED by these changes. U1/U4 financial fixes, release
 image/operations verification and remaining audit risks still block launch.
-No Task 1 push, merge, deployment, production access or settled-record rewrite.
+No Task 2 push, merge, deployment, production access or settled-record rewrite.

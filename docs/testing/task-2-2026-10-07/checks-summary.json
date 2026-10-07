@@ -1,0 +1,181 @@
+{
+  "api_final": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 356,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "composer-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "paired_verification": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 355,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "composer-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "browser-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-lint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-unit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 124,
+      "skipped": 0
+    },
+    {
+      "check": "react-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-e2e",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 8,
+      "skipped": 0
+    },
+    {
+      "check": "react-npm-audit",
+      "status": "FAIL",
+      "exit": 1,
+      "required": false
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "changed_php_formatter": "PASS (five changed/new PHP files)",
+  "git_diff_check": "PASS",
+  "skipped_tests": 0,
+  "api_assertions": 3736,
+  "baseline_permission_limit": "BLOCKED: existing accountant POS surface middleware returns 403; admin approval tested; no permission expansion",
+  "not_implemented": "Tasks 3-10, hosted CI execution, production deployment/runtime checks",
+  "source_api_commit": "6484a65c2e5304e8058445c40702c1f04feb9790"
+}

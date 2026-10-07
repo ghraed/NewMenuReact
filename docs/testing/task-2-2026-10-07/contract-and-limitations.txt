@@ -1,0 +1,73 @@
+TASK 2 REFUND CONTRACT — 7 October 2026
+
+Settlement boundary:
+  Accounted original order, plus its tenant-scoped issued/paid finance invoice when
+  present. Multiple order waves can share one invoice, and session discounts can
+  make its total less than the sum of original order totals. Both limits apply:
+    order remainder = order total cents - posted refunds for this order;
+    invoice remainder = settled invoice total cents - posted refunds for invoice;
+    maximum new refund = minimum of those remainders.
+  Legacy accounted sales without finance invoices retain their order-level cap.
+  Older adjustment rows with a missing invoice FK still count by invoice-number
+  snapshot, scoped to the restaurant. Drafts, pending approvals and voids consume
+  no refundable balance. Gift value is not subtracted as refunded money.
+
+Posting and voiding:
+  Lock order: original order -> shared finance invoice -> adjustment -> posted
+  ledger rows ordered by ID -> gift inventory through the existing deduction service.
+  Status and refundable balance are re-read while locked, before gift/ledger writes.
+  Locking ledger reads observe current committed values under MySQL REPEATABLE READ.
+  Post/void transactions retry detected database concurrency errors up to three times.
+  An already posted adjustment is returned unchanged; it does not deduct gifts again.
+  A posted adjustment cannot be voided. If void wins a race, post returns 422; if
+  post wins, void returns 422. Repeating a void does not change its original timestamp.
+  Approval identity comes from the authenticated authorized user, never the payload.
+  Inventory shortage rolls back the posting, gift order, usage and stock movements.
+  Monetary refunds do not restore ingredients consumed by the original sale.
+  Original invoices/orders and report arithmetic are not rewritten or clamped.
+
+Creation and retry behavior:
+  POST /api/pos/orders/{order}/complaint-adjustments continues to create a separate
+  unposted draft/pending record each time. Creation is not idempotent and does not
+  automatically reserve money, deduct stock or affect finance reports. No new
+  idempotency-key contract is claimed. If a creation acknowledgement is lost, list
+  that sale's adjustments and reconcile the existing draft before creating another.
+  Approval retries must reuse the returned adjustment ID. Independently approved
+  drafts all consume the same remaining balance; duplicate drafts cannot breach it.
+  Creation keeps the legacy individual-sale maximum; cumulative validation occurs
+  at posting so stale drafts and simultaneous requests are checked against reality.
+  Numeric legacy payloads remain accepted and rounded to two decimals with the
+  existing Money helper. Validation also bounds input to the ledger decimal capacity.
+
+Compatibility/deployment:
+  No migration, client contract change, settled-record rewrite or frontend business
+  change. Existing clients handle the existing 422 errors envelope. Deploy the API
+  first; a frontend deployment is unnecessary for this task. Drain old API workers
+  from complaint posting/void routes during replacement: old binaries do not enforce
+  the cumulative cap. No deployment was performed by this task.
+
+Known existing role limitation (P2, deterministic):
+  Affected role: accountant. With table_ordering enabled, a linked accountant calling
+  POST /api/pos/complaint-adjustments/{draft}/post receives 403 from
+  RestrictChefApiSurface. routes/api.php and the complaint controller advertise
+  admin/accountant approval, but that middleware permits accountants only on the
+  accounting/finance/staff surface. Expected from those route/controller declarations:
+  authorized accountant approval; actual: 403 permission error before the controller.
+  Reproduce: admin creates a valid $2 draft; attach an active accountant to the same
+  synthetic restaurant; authenticate as that accountant; POST the draft's post URL.
+  No browser failure or server exception; this is an API permission response.
+  Evidence: test_staff_cannot_approve_and_forged_identity_is_ignored passes against
+  both original and fixed code, asserting the existing accountant 403, staff denial
+  and authenticated admin approval identity. Admin approval is a workaround.
+  Likely module: app/Http/Middleware/RestrictChefApiSurface.php (accountant allowlist).
+  This task preserves established permissions and does not expand that allowlist.
+  Accountant success is BLOCKED by that pre-existing policy conflict, not claimed
+  as passed. Resolution needs its own reviewed permission change.
+
+Remaining limits:
+  Historical excessive posted refunds are not repaired or deleted. Existing negative
+  reports remain visible; further monetary refunds are rejected when balance is
+  exhausted/negative. Review historical records separately before release.
+  No real payout transport is used; posting is the existing database ledger operation.
+  Full guest/browser financial compensation, canonical browser reporting, production
+  images, external operations and launch gates remain later roadmap tasks.

@@ -1,0 +1,72 @@
+{
+  "Menu_React": {
+    "before": "b51d18e94a709daca7de92d559b1c196826c0e10",
+    "task_0_ancestor": "a91b1d03679c2f283fb87d730a7fb73789cd2316"
+  },
+  "Menu_API": {
+    "before": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+    "task_0_ancestor": "99c5a2d853482eb11be1a79f9e917a7f44483995"
+  },
+  "controller_before_sha256": "deb89109c8d3fdd19013e6f5f6054167cd10d973afd494932d6cea1d02af43fc",
+  "controller_fixed_sha256": "d766cacbd3d144c847a61f2249af45c0e09b2e06a6a389a9ae30301f6beb6e92",
+  "regression_before": {
+    "tests": 17,
+    "failed": 10,
+    "passed": 7,
+    "skipped": 0,
+    "old_controller_restored_from_git_only_for_disposable_reproduction": true,
+    "fixed_controller_restored_before_final_run": true
+  },
+  "environments": {
+    "run-before-final": {
+      "run_id": "20261007_task2_before_final",
+      "api": {
+        "branch": "fix/task-2-cumulative-refund-safety",
+        "commit": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+        "working_tree": "?? tests/Feature/PosComplaintRefundConcurrencyTest.php\n?? tests/Feature/PosComplaintRefundSafetyTest.php\n?? tests/Support/"
+      },
+      "react": null,
+      "api_url": "http://127.0.0.1:43601",
+      "frontend_url": null,
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 45215,
+      "runtime": "/tmp/menu-qa-z_2sxijt"
+    },
+    "run-verified2": {
+      "run_id": "20261007_task2_verified2",
+      "api": {
+        "branch": "fix/task-2-cumulative-refund-safety",
+        "commit": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+        "working_tree": "M app/Http/Controllers/PosComplaintAdjustmentController.php\n?? tests/Feature/PosComplaintRefundConcurrencyTest.php\n?? tests/Feature/PosComplaintRefundSafetyTest.php\n?? tests/Support/"
+      },
+      "react": {
+        "branch": "fix/task-2-cumulative-refund-safety",
+        "commit": "b51d18e94a709daca7de92d559b1c196826c0e10",
+        "working_tree": "M .gitignore\n?? docs/testing/task-2-2026-10-07/"
+      },
+      "api_url": "http://127.0.0.1:38507",
+      "frontend_url": "http://127.0.0.1:41427",
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 38347,
+      "runtime": "/tmp/menu-qa-w2nq5mux"
+    },
+    "run-api-final": {
+      "run_id": "20261007_task2_api_final",
+      "api": {
+        "branch": "fix/task-2-cumulative-refund-safety",
+        "commit": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+        "working_tree": "M app/Http/Controllers/PosComplaintAdjustmentController.php\n?? tests/Feature/PosComplaintRefundConcurrencyTest.php\n?? tests/Feature/PosComplaintRefundSafetyTest.php\n?? tests/Support/"
+      },
+      "react": null,
+      "api_url": "http://127.0.0.1:38411",
+      "frontend_url": null,
+      "APP_ENV": "testing",
+      "DB_HOST": "127.0.0.1",
+      "DB_PORT": 38031,
+      "runtime": "/tmp/menu-qa-bso5_3k_"
+    }
+  },
+  "api_after": "6484a65c2e5304e8058445c40702c1f04feb9790"
+}
