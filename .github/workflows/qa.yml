@@ -30,9 +30,8 @@ jobs:
       - run: npm run lint
       - run: npm run test:unit -- --reporter=default --reporter=junit --outputFile=qa-results/unit-junit.xml
       - run: npm run build -- --mode qa
-      - name: Dependency audit (tracked failure, not a passing release gate)
+      - name: Dependency security release gate
         id: audit
-        continue-on-error: true
         run: |
           mkdir -p qa-results
           npm audit --json > qa-results/npm-audit.json
@@ -40,7 +39,7 @@ jobs:
         if: always()
         env:
           AUDIT_OUTCOME: ${{ steps.audit.outcome }}
-        run: echo "Dependency audit outcome=${AUDIT_OUTCOME}; unresolved findings remain in Task 7." >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Dependency audit outcome=${AUDIT_OUTCOME}; dependency audit is a required gate." >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
