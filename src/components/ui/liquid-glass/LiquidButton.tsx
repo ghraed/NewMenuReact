@@ -15,6 +15,7 @@ type Tone = 'primary' | 'secondary' | 'tertiary';
 interface LiquidButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   tone?: Tone;
   modern?: boolean;
+  noShadow?: boolean;
 }
 
 const toneClass: Record<Tone, string> = {
@@ -28,6 +29,7 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
   children,
   tone = 'primary',
   disabled,
+  noShadow = false,
   ...props
 }) => {
   return (
@@ -40,6 +42,7 @@ const LiquidButton: React.FC<LiquidButtonProps> = ({
         focusRing,
         toneClass[tone],
         disabled && 'cursor-not-allowed opacity-50',
+        noShadow && '!shadow-none hover:!shadow-none !filter-none',
         className
       )}
       disabled={disabled}

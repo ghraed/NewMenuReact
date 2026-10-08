@@ -3,6 +3,7 @@ import { cx, glassSurface, glassSurfaceHover } from '../../../theme/liquidGlass'
 
 interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   modern?: boolean;
+  noShadow?: boolean;
   interactive?: boolean;
   noise?: boolean;
 }
@@ -12,6 +13,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
   children,
   interactive = true,
   noise = false,
+  noShadow = false,
   ...props
 }) => {
   return (
@@ -22,6 +24,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
         interactive && glassSurfaceHover,
         interactive && 'transform-gpu transition duration-300 ease-fluid motion-reduce:transition-none',
         noise && 'lg-noise',
+        noShadow && '!shadow-none hover:!shadow-none !filter-none',
         className
       )}
       {...props}

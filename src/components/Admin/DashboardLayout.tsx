@@ -12,6 +12,8 @@ import { GlassIconButton, LiquidBackground, LiquidButton } from '../ui/liquid-gl
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
+  contentBoardClassName?: string;
+  noShadow?: boolean;
 }
 
 type NavItem = {
@@ -70,7 +72,7 @@ const MoonIcon = () => (
   </svg>
 );
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) => {
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title, contentBoardClassName, noShadow = false }) => {
   const location = useLocation();
   const { logout, user } = useAuth();
   const { theme, toggleTheme } = useAppTheme();
@@ -403,7 +405,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, title }) =>
 
           <main className="p-3 sm:p-5">
             <PageScrollProgress />
-            <section className="rounded-3xl border border-stroke bg-bg1 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.24)] sm:p-6">
+            <section className={["rounded-3xl border border-stroke bg-bg1 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.24)] sm:p-6", noShadow ? "!shadow-none" : "", contentBoardClassName].filter(Boolean).join(" ")}>
               {children}
             </section>
           </main>
