@@ -1,0 +1,124 @@
+Task 8 first QA pass: test-and-report only; source unchanged.
+Frontend main 6065c67a92dfc6548520bcb716a2e924fd53b79e; API main 87ae4b12c1b3911056aaabd38d9a0e02beab9637.
+Runner: python3 scripts/qa/run.py --react-root ../Menu_React --run-id task8_baseline_20261007_02 --evidence /tmp/menu-task8-baseline-02
+Safe target: newly owned MySQL schemas menu_test_QA_RUN_task8_baseline_20261007_02_{suite,browser}, APP_ENV=testing, loopback dynamically allocated ports recorded in repository-environment.json. Production Compose inspected only, never executed. No normal .env or external credentials used.
+Existing coverage does not implement the complete real guest/staff/chef/finalization lifecycle, actual queue/realtime/scheduler, backup restore or migration rollback release gates. These are coverage gaps, not established runtime product defects.
+Initial sandbox attempt blocked before binding any port; escalated retry allowed the disposable runner. Baseline outcomes will be appended when execution finishes.
+
+Final first-pass checks:
+[
+  {
+    "check": "mysql-initialize",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-full",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 412,
+    "skipped": 0
+  },
+  {
+    "check": "api-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-tooling",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-validate",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-pint",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-npm-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-lint",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-unit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 133,
+    "skipped": 0
+  },
+  {
+    "check": "react-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-e2e",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 16,
+    "skipped": 0
+  },
+  {
+    "check": "react-npm-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "cleanup",
+    "status": "PASS",
+    "required": true
+  }
+]
+No source changes made during the first pass. Task 8 runtime/operational/recovery workflows NOT IMPLEMENTED at baseline; hosted branch protection NOT EXECUTED.

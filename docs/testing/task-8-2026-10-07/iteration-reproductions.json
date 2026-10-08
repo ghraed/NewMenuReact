@@ -1,0 +1,74 @@
+[
+  {
+    "run": "task8_launch_20261007_01",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --react-root ../Menu_React --run-id task8_launch_20261007_01 --evidence /tmp/menu-task8-launch-01",
+    "evidence": "/tmp/menu-task8-launch-01",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_02",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_02 --evidence /tmp/menu-task8-focus-02",
+    "evidence": "/tmp/menu-task8-focus-02",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_03",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_03 --evidence /tmp/menu-task8-focus-03",
+    "evidence": "/tmp/menu-task8-focus-03",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_04",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_04 --evidence /tmp/menu-task8-focus-04",
+    "evidence": "/tmp/menu-task8-focus-04",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_05",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --runtime-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_05 --evidence /tmp/menu-task8-focus-05",
+    "evidence": "/tmp/menu-task8-focus-05",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_06",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --runtime-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_06 --evidence /tmp/menu-task8-focus-06",
+    "evidence": "/tmp/menu-task8-focus-06",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_07",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --runtime-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_07 --evidence /tmp/menu-task8-focus-07",
+    "evidence": "/tmp/menu-task8-focus-07",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  },
+  {
+    "run": "task8_focus_20261007_08",
+    "command_from_Menu_API": "python3 scripts/qa/run.py --launch --browser-only --runtime-only --e2e-spec real-order-lifecycle.spec.ts --react-root ../Menu_React --run-id task8_focus_20261007_08 --evidence /tmp/menu-task8-focus-08",
+    "evidence": "/tmp/menu-task8-focus-08",
+    "classification": "QA tooling iteration; not a production/application defect",
+    "severity_for_corrected_harness_failure": "P2",
+    "affected_role": "developer/QA",
+    "determinism": "deterministic for the recorded source/fixture revision"
+  }
+]

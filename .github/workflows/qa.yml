@@ -92,9 +92,9 @@ jobs:
         working-directory: Menu_API
       - run: npm ci
         working-directory: Menu_React
-      - name: Run isolated API-backed browser regressions
+      - name: Required launch lifecycle, isolation and operational recovery gates
         working-directory: Menu_API
-        run: python3 scripts/qa/run.py --browser-only --react-root ../Menu_React --run-id "ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}" --evidence "$RUNNER_TEMP/menu-browser-evidence"
+        run: python3 scripts/qa/run.py --launch --browser-only --react-root ../Menu_React --run-id "ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}" --evidence "$RUNNER_TEMP/menu-browser-evidence"
       - uses: actions/upload-artifact@v7
         if: always()
         with:

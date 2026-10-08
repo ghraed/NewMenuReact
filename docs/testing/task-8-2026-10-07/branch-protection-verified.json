@@ -1,0 +1,23 @@
+{
+  "api": {
+    "repo": "ghraed/NewMenuAPI",
+    "branch": "main",
+    "before": "unprotected (HTTP 404)",
+    "enforce_admins": true,
+    "required_checks": [
+      "api"
+    ],
+    "strict": true
+  },
+  "react": {
+    "repo": "ghraed/NewMenuReact",
+    "branch": "main",
+    "before": "unprotected (HTTP 404)",
+    "enforce_admins": true,
+    "required_checks": [
+      "frontend",
+      "browser"
+    ],
+    "strict": true
+  }
+}

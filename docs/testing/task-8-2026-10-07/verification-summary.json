@@ -1,0 +1,31 @@
+{
+  "full_gate": {
+    "evidence": "/tmp/menu-task8-final-01",
+    "api_tests": 412,
+    "api_assertions": 4221,
+    "unit_tests": 133,
+    "browser_tests": 17,
+    "failed": 0,
+    "skipped": 0
+  },
+  "report_schema_validation": {
+    "evidence": "/tmp/menu-task8-report-09",
+    "browser_tests": 1,
+    "all_operational_statuses": "PASS",
+    "omitted_checks": "lint/unit/other browser cases explicitly NOT EXECUTED; full run covers them"
+  },
+  "source_scope": "Full gate plus focused validation of the final one-line operational report-field correction; README-only clarification uses actual GitHub check identifiers.",
+  "branch_protection": "Applied and read back on both main branches; strict and admins enforced",
+  "hosted_Task8_execution": "NOT EXECUTED; local integration authorized on 2026-10-08, no push/deployment",
+  "owned_cleanup": "PASS; final/focused runtimes removed",
+  "local_integration_record": "git-integration.json",
+  "local_integration": {
+    "date": "2026-10-08",
+    "source_commits": {
+      "Menu_API": "750bb4096616109e73ae097854badd76b4674c1d",
+      "Menu_React": "5c3d65c0513bb8d90d9b191362fc9a657aa66634"
+    },
+    "target": "main",
+    "scope": "local only"
+  }
+}
