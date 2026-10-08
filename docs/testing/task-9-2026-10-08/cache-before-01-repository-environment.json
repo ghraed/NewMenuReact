@@ -1,0 +1,15 @@
+{
+  "run_id": "task9_cache_before_20261008_01",
+  "api": {
+    "branch": "fix/task-9-concurrency-offline-membership",
+    "commit": "4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3",
+    "working_tree": "M scripts/qa/run.py\n?? tests/Feature/StaffMembershipBoundaryTest.php\n?? tests/Feature/Task9ContentionTest.php\n?? tests/Support/RunsContentionRequests.php\n?? tests/Support/contentionRequestWorker.php"
+  },
+  "react": null,
+  "api_url": "http://127.0.0.1:39967",
+  "frontend_url": null,
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 33297,
+  "runtime": "/tmp/menu-qa-v7nteojl"
+}

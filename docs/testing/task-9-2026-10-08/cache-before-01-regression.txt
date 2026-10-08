@@ -1,0 +1,22 @@
+
+   FAIL  Tests\Feature\Task9ContentionTest
+  ⨯ guest replay survives server cache loss without duplicate order     18.69s
+  ────────────────────────────────────────────────────────────────────────────
+   FAILED  Tests\Feature\Task9ContentionTest > guest replay survives server…
+  Expected response status code [200] but received 201.
+Failed asserting that 201 is identical to 200.
+
+  at tests/Feature/Task9ContentionTest.php:101
+     97▕         $payload = ['items' => [['dish_id' => $dish->id, 'quantity' => 1]]];
+     98▕         $headers = [...$this->guestHeaders($token), 'X-Idempotency-Key' => $prefix];
+     99▕         $id = $this->postJson($path, $payload, $headers)->assertCreated()->json('order.id');
+    100▕         \Illuminate\Support\Facades\Cache::flush();
+  ➜ 101▕         $this->postJson($path, $payload, $headers)->assertOk()->assertJsonPath('order.id', $id);
+    102▕         $this->assertSame(1, Order::where('table_session_id', $session->id)->count());
+    103▕         $payload['items'][0]['quantity'] = 2;
+    104▕         $this->postJson($path, $payload, $headers)->assertStatus(409);
+    105▕         $this->assertSame(1, Order::where('table_session_id', $session->id)->count());
+
+
+  Tests:    1 failed (6 assertions)
+  Duration: 18.76s

@@ -1,0 +1,216 @@
+{
+  "status": "COMPLETE LOCAL",
+  "task": 9,
+  "branch": "fix/task-9-concurrency-offline-membership",
+  "counts": {
+    "api": 420,
+    "unit": 135,
+    "browser": 24
+  },
+  "api_assertions": 4319,
+  "skipped": 0,
+  "prior_files_preserved": 125,
+  "required_checks": [
+    {
+      "check": "mysql-initialize",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-full",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 420,
+      "skipped": 0
+    },
+    {
+      "check": "api-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-tooling",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-validate",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-pint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "composer-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "api-npm-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-environment",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "browser-migrations",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-lint",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-unit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 135,
+      "skipped": 0
+    },
+    {
+      "check": "react-build",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "operational-recovery",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "react-e2e",
+      "status": "PASS",
+      "exit": 0,
+      "required": true,
+      "tests": 24,
+      "skipped": 0
+    },
+    {
+      "check": "react-npm-audit",
+      "status": "PASS",
+      "exit": 0,
+      "required": true
+    },
+    {
+      "check": "cleanup",
+      "status": "PASS",
+      "required": true
+    }
+  ],
+  "operations": [
+    {
+      "check": "unowned-operational-runtime-rejected",
+      "status": "PASS",
+      "exit_nonzero": true
+    },
+    {
+      "check": "queue-worker",
+      "status": "PASS",
+      "pending_jobs": 0,
+      "failed_jobs": 0,
+      "verified_domain_rows": 1,
+      "domain_bridge": "synthetic; DNS/TLS provisioning not exercised"
+    },
+    {
+      "check": "scheduler-daemon-and-dedupe",
+      "status": "PASS",
+      "due_logs": 12,
+      "future_or_draft_logs": 0,
+      "due_time": "2026-10-08 11:15:00"
+    },
+    {
+      "check": "isolated-custom-host-http",
+      "status": "PASS",
+      "mapped_status": 200,
+      "unmapped_status": 404
+    },
+    {
+      "check": "latest-request-migration-down-up",
+      "status": "PASS",
+      "request_table_removed": true,
+      "order_and_finalization_preserved": true,
+      "request_table_recreated": true,
+      "data_restore_required": true,
+      "restored_request_identity": true,
+      "request_rows": 1
+    },
+    {
+      "check": "task8-finalization-migration-down-up",
+      "status": "PASS",
+      "latest_column_removed": true,
+      "paid_invoice_preserved": true,
+      "data_restore_required": "finalized_invoice_id links are lost by down(); recovered from backup"
+    },
+    {
+      "check": "synthetic-backup-destruction-restore",
+      "status": "PASS",
+      "runtime_key_preserved": true,
+      "total": "25.30",
+      "finalized_invoice_link": true,
+      "private_storage": true,
+      "encrypted_storage_decrypted": true,
+      "invoice_status": "paid"
+    },
+    {
+      "check": "post-restore-authenticated-finance-http",
+      "status": "PASS",
+      "login_status": 200,
+      "invoice_status": 200,
+      "finance_status": 200,
+      "paid_total": "25.30",
+      "revenue": 25.3,
+      "invoice_count": 1
+    }
+  ],
+  "specific_lock_repeat": {
+    "tests": 8,
+    "assertions": 98,
+    "status": "PASS"
+  },
+  "existing_release_tests": {
+    "tests": 3,
+    "status": "PASS"
+  },
+  "not_executed": [
+    "hosted CI",
+    "other browser engines",
+    "rebuilt release image with Task 9 migration",
+    "deployment/production"
+  ],
+  "source_changes": "uncommitted",
+  "push_merge_deploy": false
+}

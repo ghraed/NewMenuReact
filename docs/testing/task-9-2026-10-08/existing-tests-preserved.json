@@ -1,0 +1,752 @@
+[
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/compensation-report.spec.ts",
+    "sha256": "ad8c2457966ad1247f5e85122cbc730a56255e3b812a9b09885a1e1dd0f33a49",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/guest-order-lifecycle.spec.ts",
+    "sha256": "3256ebd8217578ff4a1915a958df1f487b03e1b4cf53533d80ded9e902ddf30e",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/menu-item-preview-retry.spec.ts",
+    "sha256": "1997ba1b92a6974578881384d1e90d697d194679b2f4f508feaf33812114740b",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/order-history.spec.ts",
+    "sha256": "362bad3cfc93dcdcd67218539e101ce2f202f6c7f2d13a877a2c47235c759a68",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/pos-compensation-checkout.spec.ts",
+    "sha256": "3d90d6fba1219ec28d4d5ba98c502611401b68366d8ba9fef709e339f795fcfc",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/real-order-lifecycle.spec.ts",
+    "sha256": "9aa6120186717131901207044edeeb05548b6c6f098543e7ad349dfc43012f4a",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/restaurant-active-policy.spec.ts",
+    "sha256": "ba25575c7ae81d5c872b04cf545e708757a9c063de6754a5fd61ca356c30e62e",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/room-plan-reservations.spec.ts",
+    "sha256": "2a8933fedc95e4fa6015c8b827c3aa85cbede84bc224f74cbd7bd7e5e283c513",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/serving-temperature.spec.ts",
+    "sha256": "a7dc0913c24466f76c85edf5a7177d097c8311cb61723ef3faa90e2f09615aaf",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/tenant-browser-isolation.spec.ts",
+    "sha256": "9279c32e4b4d39f25769a609d9ba2ff2286173b62bc3eee1b78d26a812e27fc7",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/e2e/user-profile.spec.ts",
+    "sha256": "9c2c55e93e54fdf10a8ef1086ea8e76da71cac5aad90b55fcb8d29b01285b20a",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/lifecycleFixtures.php",
+    "sha256": "f7338967a9f8e5197f8fb7e995cdaa30dda1ecd699a23e40e7146e39e578a285",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/qaBrowser.ts",
+    "sha256": "e7bb7ed3d2c321c241791393cabae48b810474c097ffe348ab284cba13b24c06",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/qaSafety.ts",
+    "sha256": "12ca359b8a59342e051dc3cb276312d520e3bf7ad0d88b122479c3a975e94a18",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/replayKitchenEvent.php",
+    "sha256": "3ba5e690a83055b59d34e0fc71dea41f8afda39be64847d502559f70bb2314dd",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/restaurantPolicyFixtures.php",
+    "sha256": "08ead4c43bf992c8cb1729094034c89a1f7bd931d2d037bfc23bd2d72ab154d4",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/tenantFixtures.php",
+    "sha256": "43da111242c3684d300366b0b17532609df9196c39877b6466d50fc53e48f6f7",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/setup/vitest.setup.ts",
+    "sha256": "6faed9d7ea582816beb599568bba21045e1b3bc1aa620dfc82e18c22098829de",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/__snapshots__/financeMath.regression.test.ts.snap",
+    "sha256": "20502f190ae01f9d105d561889911ea359550047cdbce32b03032c8662aacce1",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminEventsPage.test.tsx",
+    "sha256": "82eb1778a3f404babf09b1d5cb68e8eea421603faff83f5a43753a187cccc155",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminFinanceDashboardPage.test.tsx",
+    "sha256": "fd19a1555fcdea3c39beb67e47c958f997cad8aae902814c2f36b918a0629a85",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminFinanceExpensesPage.test.tsx",
+    "sha256": "49df2d51d6a3348acd4904c1ea4600cd98841d1367096a10d7006c828821c196",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminPayrollManagementPage.test.tsx",
+    "sha256": "9724976356341843972f0882b8aa028ee7fcf3c02798bf9c298066041b59dfa0",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminRoomPlansPage.test.tsx",
+    "sha256": "149ed4b2f465f9027d43e68fb7830a1eb9d0b1f553a9ee552c5778195df49d88",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminStaffSchedulingPage.test.tsx",
+    "sha256": "d67f68a68e1eacd07b20db2069d6ac4df4d4b1ad6285ece98757608c8e5ab403",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/adminUserProfilePage.test.tsx",
+    "sha256": "fcbc45b79096f742dcf07251daa13c7f39ae5abf9ea144126f24aac55eb1cced",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/authTenantIsolation.test.tsx",
+    "sha256": "cafca7805b80be8d9e1bcbac2f0888f0547a4cf399782ec18991deaa9908b5cc",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/billAdjustments.test.ts",
+    "sha256": "cfa187e4ae1cbca3ac2e715f58eed95748103d8fac0db51d48d6b42cc7670050",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/cashierPosPage.test.tsx",
+    "sha256": "57ab4c99ebf1df538410dcabdb66c2ff0ea6ca50bdce6e9a5fb3f307d9cb4210",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/chatbotRecommendations.test.ts",
+    "sha256": "327172be05efe94d1aecc8f34850f1cd8a47666de68f21c1a255972606f8d952",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/complaintCompensationService.test.ts",
+    "sha256": "36853d176166d43199c4467f1aaca824e8908bec9ed46a543cd0a6f2a55d919d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/createDishPage.test.tsx",
+    "sha256": "3a37d15e6cd5fcd4c15b0e12b3bee5624e02d0e2f1d6c62aa4c5f8e9d076198e",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/currency.test.ts",
+    "sha256": "f20c205ed1ddd89dd7a6e92ba704faaf754109ea5283d833355fdf6fb6387ec7",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/dishFormProductStock.test.tsx",
+    "sha256": "db73c6b175c73edd6fa7ab6d3d76a0046e82f28b7e953c38b44848d5e58f4192",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/financeMath.regression.test.ts",
+    "sha256": "c07133d47635605502a39d58015026729d3e2c2dffcb61ff1177a7dba075a401",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/financeMath.test.ts",
+    "sha256": "3a9be91250e0c131cd84abdc4d564f48dc2d87201f0907a835bff01cf355d1c9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/financeReporting.test.ts",
+    "sha256": "790d7a63bfd6f6588999e1342ae91ddefb3eb319570435c8a4b4aeb201fd8d37",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/fixtures/financeBackendParity.json",
+    "sha256": "3b9cde37f52aa5ceec5553109d1b18b51f72a6ce9f9291dd6a29300f7129e919",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/fixtures/financeRegressionFixtures.ts",
+    "sha256": "01347519f11489cd7f9d2fc9ce1d299dab79112d21391ab957ce83adb6710fd5",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/guestDishCard.test.tsx",
+    "sha256": "28c36a8b59b5af68df17b76d7ab373cb2f2ba63e0c5a37027e978ed4d270ef6e",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/guestInvoicePayload.test.ts",
+    "sha256": "54f6afa162befa8477ff208a2128f0eba4d6dafb21ca75ec7de65990361ea3c9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/guestOrderCompensation.test.ts",
+    "sha256": "8b69b64d761fde87708296926b731b6f879597f6d7d15024c6e7e7322f0a9184",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/invoicePreviewCompensation.test.ts",
+    "sha256": "79dcd0f8592f5241e418da5dcd1fb2fe7763228db7b98cbee3ea1a3454e3a381",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/offlineQueue.test.ts",
+    "sha256": "d94f1d8044eb318b6db76a358892db4d98f544834c53aa71e34aeb4c63d25641",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/orderHistoryPages.test.tsx",
+    "sha256": "9a6a97d01f993714291bb55811aebd2575c5f5c89a4ace146112745a1a93a86f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/protectedBrowserStorage.test.ts",
+    "sha256": "f05a4c84a7146860f03072ae2abf7eafc075808694eb5bb2225a163e8b750782",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/publicMenuRoutes.test.tsx",
+    "sha256": "4d92b11879b94ed565da5844d84ac23e41b95d7950bd37a237844960ff88379d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/qaSafety.test.ts",
+    "sha256": "115bb8728789e69d91118737addbf991274853babff21b35c03f88201e9c2362",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/reservationsPage.test.tsx",
+    "sha256": "5950a96cc84c38541d013726b40f8ff743e92317936675c020bf877bbba571bf",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/roomPlanEdgeOverlay.test.ts",
+    "sha256": "bbf1bbfc8854f3fefe230dc91094e99d77bdd299b77b16ea4d13ffe84d92b3fe",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/roomPlanGeometry.test.ts",
+    "sha256": "aa41f256e16de41973e9a19588f11e889e8751cf302bf8dda7c8451e51f6b3de",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/roomPlanUtils.test.ts",
+    "sha256": "d3ef65e8c64da498ada56c163dd1dc9db14b4a97e9bbcb79495732b75d842e46",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/roomPlanWindowSnap.test.ts",
+    "sha256": "843e68ecb1ec191d7a22f52b366d88c4df74433cdbfc0f3f79a1b77c08dd0f9d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_React",
+    "path": "tests/unit/whatsapp.test.ts",
+    "sha256": "adf3e43d006e4b3ba22107392eeb1095d6df96d75425eeb1c44e44efed7b374b",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "scripts/qa/dependency-security.test.cjs",
+    "sha256": "18756e8dd18ac29d7002187ceb47fa964fcd29a18f749cc2d530363914112509",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "scripts/qa/release-tests/test_release_config.py",
+    "sha256": "e40fe87268c819d1893588235b062c891570e234b0f25d5f427afc12763fae85",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/AdminEventReservationApiTest.php",
+    "sha256": "0395c4a9aca9874f25f7034521439eff8bebf8bc9fa48a89d489b8737365ca00",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/AssetFileControllerTest.php",
+    "sha256": "92cd0e0ff6d8b20cb9f3d94c9fcaa08bf6c2640c93b26e091153e447dde759fa",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/AssetReplacementSafetyTest.php",
+    "sha256": "e961f21e5fe425e29b93f82542865d82bda39364ebed0842a8b052716a084952",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/AuthSecurityTest.php",
+    "sha256": "179d06d90a5532e255408237d0a597e8fd4d9e3cecf4ece7a524f6184d9f639c",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/BroadcastChannelAuthorizationTest.php",
+    "sha256": "a7747127718325ff7a6af27312d2aa0099bd1e93e5a64966b61c07fe1ac221f0",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/ChatMenuAvailabilityTest.php",
+    "sha256": "7edbab39a407764997ae8a7b71910748d8d28d7562be37df3880c7685ab9bf1a",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/CompensationReportTest.php",
+    "sha256": "8f2db0bf9ff223adafdf177a05ef0b69f277e182885f42768d8fdb88b04b4bae",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Concerns/BuildsRestaurantOrderFlow.php",
+    "sha256": "88ead4d1194823a4c53021d93f44ba30da2d9c7628d9d6e61474966f79109171",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/CopyDishModelTest.php",
+    "sha256": "62e1d6ccb6420f04fb38f57e5f414d4a2206328b218a7a839475289ae855e523",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/CurrencySettingsControllerTest.php",
+    "sha256": "ae7a7145b24967263b85db09b00be56b9f8483ece70f5d03c6399b515185094d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/DishCreationSafetyTest.php",
+    "sha256": "91d9ffcea66722d2eeb3fa077219784ebe042be4b101eda007ee5f167da30efd",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/DishManagementApiTest.php",
+    "sha256": "1818238dd8fa63c7c32c42c927a49c93f95333dce768baf1e0c85d76df582051",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/EventPlanningAlertsTest.php",
+    "sha256": "f211e5d0fde1ae07653870aacc8e937ee3dc21575d9b8d33ff17f72192ac5cc3",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/ExampleTest.php",
+    "sha256": "aaa4a192fb4aa96d4e81eda06a29968da3d9a73b71026b87a67297e66dd985b8",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinanceDashboardMetricsApiTest.php",
+    "sha256": "787cee09e58e982bd6c853adf556179477fb9c3e2f3eb6b111aa62545b5e82e2",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinanceExpenseManagementApiTest.php",
+    "sha256": "98a1c3e8eb00b8b1017793e23eee5f4a2b149f488efe3d6d348cdd4eb30a2e21",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinanceParityTest.php",
+    "sha256": "6b41704710b2ada86c3abd1ac636b8efdc281d35d0add5efc3521dce8c236511",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinancePayrollApiTest.php",
+    "sha256": "4f78112aeb69ddc940296d2486f5db1a631e8adfd409baa3fdf1784c94cd5955",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinanceProfitLossApiTest.php",
+    "sha256": "27423e862099c76e1849cac84e14f802fa6d94ea27fea5b892515c562dec6bcc",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/FinanceTaxReportApiTest.php",
+    "sha256": "61011b7a2b69a722ef9d08a11fe88602dd946fc35f36f2deefb0c3f5a204d6c9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/InvoiceManagementApiTest.php",
+    "sha256": "0c9cbe0eed522c83d868bb782c9e0706b8184f4d124a24f4a053927936aaa896",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/InvoicePdfDownloadTest.php",
+    "sha256": "0425aa95ad3100ac86644978ad3cfa3a134531ad4939d7f0357ec54f900a76a9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/SessionInvoiceFinalizationTest.php",
+    "sha256": "44327fd5f7673d50def556d751f6f7f62b3c74421ad2b96282aca0cafdd0f163",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/Finance/StaffSchedulingApiTest.php",
+    "sha256": "b46ce5a39adbd21672603dd5f14d11b3b58e38029f8c973c2c060ee6cd9ae823",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/GlobalIngredientControllerTest.php",
+    "sha256": "41e8d5156c5e7d749a506cc57f036e6968d2262033e3d66fa0a3b9532189a40f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/GuestTableVisibilityTest.php",
+    "sha256": "97733da62aed55cc086146748a97471fbd9c04388bff6025e908622090f238a5",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/IngredientImageAssetTest.php",
+    "sha256": "737872ae4f20fc8cf84037e582055a3163480f961b5317ef19a7f1d2f9a6d94f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/IngredientLibraryControllerTest.php",
+    "sha256": "a4f81469160eac8801dc96e943c36e6b434eb79d0589a493ac247056bd0a8d9d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InventoryConcurrencyTest.php",
+    "sha256": "123d40148ab5e1576ee825738576d312d0788d4be4fad5a3a7d2a97e140b7a0f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InventoryContractsTest.php",
+    "sha256": "4e35a63745c872fd7dbdd53d2b0d21a8a7b6d6b2e7c4742c7ffe528ee3b01139",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InventoryIngredientApiTest.php",
+    "sha256": "fab53212b887c1f3573d6fd7bf98fc2289e655c27b88b26888b06e624673bb11",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InventoryIngredientImportTest.php",
+    "sha256": "2b3cf8c6a13b1e4ac6aa70df3c7dda203e9e6cc4d394b4be594742d0182d6b3b",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InventoryShareContactApiTest.php",
+    "sha256": "637aa1df6cad317b20620440cca14efe211e01f22835289d6d9f42e074f9ef50",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/InvoiceSplitApiTest.php",
+    "sha256": "c885d4439f8010c12392aa409019fd98198b2ce7d40d46b3dd9169c8e5d980b5",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/KitchenWorkflowTest.php",
+    "sha256": "9d245540afa84b1c6412f398e4d6fc4dce067deef0a980e4b68040584fa6313a",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/MenuItemApiTest.php",
+    "sha256": "ed34e94c2cdcdf59fc28a158b8f8767631ff07e7eb323d81e492b45b21969a99",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/NotificationDeliveryServicesTest.php",
+    "sha256": "2af6389658f2295405dcca616e8681da3b71b208486c3f266973f66fac40fc8b",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/OrderHistoryApiTest.php",
+    "sha256": "0b0625602d71515025cd5fe5d03154335cd183d3315ad9547598fc7378203965",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/OrderInventoryDeductionTest.php",
+    "sha256": "f553dbba235451c9c9fb06987ef8026e476c0f1eca1ac81d05b0b4f7d6b073d6",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/OrderWorkflowTest.php",
+    "sha256": "c0bb3ac1946a86bf673e11055e8734ad0ca0eafb444fb1dd3db2ce3a04b98181",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/PosCheckoutCompensationTest.php",
+    "sha256": "6d64e09f553d460f21a6efc82b4a8a2e96826ef084aaff19dc9967c1e25ee0b7",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/PosComplaintRefundConcurrencyTest.php",
+    "sha256": "580724e6e397f43db6f993c158365831a1e7fa1e15fa55d527ac581056d33d1c",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/PosComplaintRefundSafetyTest.php",
+    "sha256": "bf61859ec9fb298ae88cb792e6c2c9ff57efea93e413fbe36b91e17b3b9f0741",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/PreviewImageAssetUploadTest.php",
+    "sha256": "8ab5078612cb9db780b6af380edf8398d581fe57327d15311c83111cfc4e2810",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/PublicMenuApiTest.php",
+    "sha256": "3dadbb2f30aec2ba22418e1d806175f6e2899892f57f03ac8b0ab9d87e823d1f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/ReservationApiTest.php",
+    "sha256": "d600b0748ff659ec70af78d02196a83c7aae5d1744cc740caa7b2adc2f94afd2",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/RestaurantActivePolicyTest.php",
+    "sha256": "76cfdc609eca26cb2aa6e2d113a766f3af9bee3f626f5dee806d62e82030f8f9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/RestaurantConfigurationApiTest.php",
+    "sha256": "1df35f0bb08e01c3a69907187a1f6934bced3adc8222dbc969ac0abd31596e1c",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/RoomPlanEditorApiTest.php",
+    "sha256": "e8a0dd02572dfb97b6d063b7bf8975f7ef03a3e01e80e2bc831ab091f2488234",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/ServingTemperatureTest.php",
+    "sha256": "d46d8cc260a26097d2fece7250ac0aa58b9cf382eafa7ce171ed0163e20738c4",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/SharedProductFlowTest.php",
+    "sha256": "91b8289053e385a5aaf1793531f6db10d2f816c232161635fcb8fc7f93fda736",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/StaffManagementTest.php",
+    "sha256": "2c87f51ee128c5bb998316202bd0a0edfce0f5521beb61cb346219373888e7ae",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/SuperAdminCustomDomainProvisioningTest.php",
+    "sha256": "4c2b9e374d9fb9c546788c5a7b7065e1e0891a9cbf1f888a527c81abdb0cc72d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/SuperAdminFeatureFlagApiTest.php",
+    "sha256": "1e942e89eef9539b7abd09682d807489c66078f5c15801a0730abec557c7898c",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/TableSessionSecurityTest.php",
+    "sha256": "31a6f0cd6dec5db64fcc77ebff718b9255fe79ac0d600cf127bc52338df3d1d1",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/TenantDomainRoutingTest.php",
+    "sha256": "1a1de245d2227484178496e833e19f88ff80282d83c597adaf2ef64888ec21e7",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/TenantRestaurantResolverCustomDomainTest.php",
+    "sha256": "e62b630d351d170e8d124149eb71777f980f29220f4d697792e4ec13a4d1d9ab",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/TestEnvironmentSmokeTest.php",
+    "sha256": "a16ec44aff6bdd7499bfa15dde69b56bf66b58e5b274d063d2172d67e23c042a",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/UserProfileUpdateTest.php",
+    "sha256": "5690f5548acb883723333b7021cd88b553b90ab62b4c5564fc495154b438834f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Feature/WaveWorkflowTest.php",
+    "sha256": "7b226190c04c02ee0abfc372ef54385122e3d77bdbf637fa16a6ce775f74817f",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Fixtures/financeBackendParity.json",
+    "sha256": "3b9cde37f52aa5ceec5553109d1b18b51f72a6ce9f9291dd6a29300f7129e919",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Support/BuildsComplaintRefundFixtures.php",
+    "sha256": "5bf5788ada32a7557e558d427d4eb6cf9a26e4359815f641df33838a000acd6d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Support/complaintRequestWorker.php",
+    "sha256": "d6db0921aea3d0ad234bf0e90a60af9bac447ae5546cebc3b70ef5bbaa64edb9",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/TestCase.php",
+    "sha256": "e2a531f2daff141f3494a699170496a153b74f55a2dc6634a6b917a6dab319c1",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Unit/DomainNameTest.php",
+    "sha256": "e43af96cb0062c3163f27d11e916f803e8663a2d5340e0abdbf39b99dd0a4678",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Unit/ExampleTest.php",
+    "sha256": "ffacae5c1a2a44c809420af5b3b404910da1b12167d58764dac6d10b8ba8cfaf",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Unit/InvoiceSplitServiceTest.php",
+    "sha256": "cdabc13d5594e9d19e9ae962ebd1f624effdc445a09f37db7cf252ab6dbbe72d",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/Unit/OrderInvoiceCalculatorTest.php",
+    "sha256": "fc74bd0d897bf3fe8539b6b054fadc69a5e77afe80c1b358f5dcab1a1c208d99",
+    "unchanged": true
+  },
+  {
+    "repository": "Menu_API",
+    "path": "tests/bootstrap.php",
+    "sha256": "83f8c07098c3ebb4b7dbd4b360c72d21a1a5ee92c3eeddbc5be517c30fc4be63",
+    "unchanged": true
+  }
+]

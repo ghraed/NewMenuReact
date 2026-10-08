@@ -82,3 +82,11 @@ python3 scripts/qa/run.py --launch --react-root ../Menu_React --run-id QA_202610
 ```
 
 Use a new run ID and evidence directory each time. See [QA setup](../Menu_API/scripts/qa/README.md) for prerequisites, safety checks, actual scripts, fixtures, CI and cleanup. Direct browser runs require an explicit verified QA runtime; shared default accounts are no longer used. The [Task 0 outcome](docs/testing/task-0-2026-10-07.txt) separates passing checks from unresolved release risks.
+
+Task 9 adds a separate service-worker-enabled `offline-chromium` browser project.
+The full paired launch runner requires its seven real offline/recovery cases as
+well as the original lifecycle. Guest submit intent is persisted before HTTP and
+recovered with its original key; replay requires explicit confirmation, and expired,
+closed or disabled sessions remain for review. Deploy the new API migration/fleet
+before this client and worker v5. See the sibling QA setup's Task 9 section for
+focused commands, coordinated rollout, cache compatibility and rollback limitations.

@@ -23,7 +23,14 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'offline-chromium',
+      testMatch: '**/offline-recovery.spec.ts',
+      use: { ...devices['Desktop Chrome'], serviceWorkers: 'allow', channel: 'chrome',
+        launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROME_EXECUTABLE } },
+    },
+    {
       name: 'chromium',
+      testIgnore: '**/offline-recovery.spec.ts',
       use: {
         ...devices['Desktop Chrome'],
         channel: 'chrome',
