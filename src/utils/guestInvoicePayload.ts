@@ -1,13 +1,12 @@
 import { COMPLAINT_REASON_LABELS, ISSUE_STATUS_LABELS, getOrderItemFinancials } from './orderItemCompensation';
 import type { InvoiceSplitSummary, OrderLineItem, OrderRecord } from '../types';
 import type { PrintableInvoicePayload } from './printableInvoice';
+import { formatPriceWithCurrency, normalizeCurrency } from './currency';
 
 const asNumber = (value: string | number | null | undefined): number => {
   const numeric = typeof value === 'number' ? value : Number(value ?? 0);
   return Number.isFinite(numeric) ? numeric : 0;
 };
-
-const money = (value: number): string => `$${value.toFixed(2)}`;
 
 const buildInvoiceNumber = (orders: OrderRecord[]): string | undefined => {
   const numbers = Array.from(new Set(
@@ -42,6 +41,8 @@ export const buildGuestInvoicePayload = (input: {
   t: (key: string, options?: Record<string, unknown>) => string;
 }): PrintableInvoicePayload => {
   const grouped = new Map<string, PrintableInvoicePayload['items'][number]>();
+  const currency = normalizeCurrency(input.orders[0]?.restaurant.currency);
+  const money = (value: number): string => formatPriceWithCurrency(value, currency);
 
   input.orders.forEach((order) => {
     order.items.forEach((item) => {
@@ -83,6 +84,8 @@ export const buildGuestInvoicePayload = (input: {
   const discountAmount = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.discount_amount), 0);
   const vatRate = input.orders.reduce((max, order) => Math.max(max, asNumber(order.invoice.vat_rate)), 0);
   const taxableSubtotal = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.taxable_subtotal), 0);
+  const serviceChargeRate = input.orders.reduce((max, order) => Math.max(max, asNumber(order.invoice.service_charge_rate)), 0);
+  const serviceChargeAmount = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.service_charge_amount), 0);
   const vatAmount = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.vat_amount), 0);
   const total = input.orders.reduce((sum, order) => sum + asNumber(order.invoice.total), 0);
   const percentageDiscountOrder = input.orders.find((order) => order.invoice.discount_type === 'percentage');
@@ -91,6 +94,7 @@ export const buildGuestInvoicePayload = (input: {
     sourceTableId: input.sourceTableId,
     invoiceNumber: buildInvoiceNumber(input.orders),
     restaurantName: input.restaurantName,
+    currency,
     tableName: input.tableName,
     generatedAt: input.generatedAt,
     generatedAtIso: input.generatedAtIso,
@@ -104,6 +108,8 @@ export const buildGuestInvoicePayload = (input: {
         : input.t('accountingPage.discount'),
       discountAmount: money(discountAmount),
       taxableSubtotal: money(taxableSubtotal),
+      serviceChargeLabel: input.t('accountingPage.serviceChargeWithValue', { value: serviceChargeRate.toFixed(2) }),
+      serviceChargeAmount: money(serviceChargeAmount),
       vatLabel: input.t('accountingPage.vatWithValue', { value: vatRate.toFixed(2) }),
       vatAmount: money(vatAmount),
       total: money(total),
