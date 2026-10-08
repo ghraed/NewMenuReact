@@ -1,0 +1,219 @@
+TASK 10 — PERFORMANCE, ACCESSIBILITY, ARABIC AND DOCUMENTATION
+Date: 8 October 2026 (Asia/Beirut)
+Status: COMPLETE LOCAL — selected task only; no market-launch approval.
+Audit scope: performance/UX gaps, S1 Arabic POS and S2 decorative login focus.
+
+BRANCH / HISTORY / PRESERVATION
+  Both repositories began clean on main. Dedicated paired branch:
+  fix/task-10-performance-accessibility-arabic.
+  Menu_React before: 669e04dd214fbd65bab70455051cc278752d5ba2.
+  Menu_API before: d6df77908098481006e0e67f631598367a79ca69.
+  All 36 recorded Tasks 0–9 before/final/source commits verified as ancestors in
+  their appropriate repository; ancestry.json retains each result.
+  All 131 earlier test/support/fixture/release files remain byte-identical (57
+  frontend, 74 API). No earlier assertion, skip policy or business test was removed.
+  After: uncommitted working trees on the paired branches; no new source commit.
+  Tested application/runtime/test/config hashes: tested-source-sha256.json.
+  API application, deployed migrations, locks, roles, money, stock, settlements
+  and worker v5 remain unchanged. API edits are QA/CI/documentation only.
+
+ENVIRONMENT
+  Complete run: task10_final_20261008_01, /tmp/menu-task10-final01.
+  Frontend http://127.0.0.1:43751; API http://127.0.0.1:48425.
+  APP_ENV=testing; disposable MySQL 127.0.0.1:45811, new owned data directory:
+  menu_test_QA_RUN_task10_final_20261008_01_suite and *_browser.
+  Storage /tmp/menu-qa-cagl7xdq/storage. QA_RUN synthetic records only.
+  External service credentials discarded/blanked, array mail, guarded Laravel
+  HTTP; launch mode uses only owned loopback Reverb and database queue runtime.
+  Each scenario verifies the marker through BOTH origins and resets owned data.
+  No normal restaurantdb, production Compose runtime or live customer data used.
+  Node 22.22.3, npm 10.9.8, PHP 8.4.26, Chrome 154.0.8037.97,
+  Playwright 1.59.1; pinned Firefox 148.0.2 and WebKit 26.4 runtimes launch locally.
+  Feature flags/permissions and effective config retained in run evidence.
+
+BEFORE / AFTER AND DEFECT EVIDENCE
+  1. S1, P3, admin/authorized POS users, deterministic.
+     Reproduce: synthetic admin login; set menu_locale=ar; reload /staff/pos.
+     Expected Arabic/RTL complaint, checkout, options and finalized report labels.
+     Before: HTML ar/rtl but Post-sale complaint / gift and report heading English.
+     Static URL HTTP 200; POS/report requests operate normally; no server exception.
+     Failing real browser cases and screenshots/traces: run-a11y-before/.
+     Missing resource regression: localization-before.log.
+     After: POS strings/options/toasts/report/date labels translated, original
+     codes/payloads/audit history preserved; Arabic checkout independently verifies
+     $0.00 paid and $10.00 waived in both themes and four browser profiles.
+     Likely modules/fix: CashierPosPage.tsx, i18n/pos.ts, resources.ts, GlassToast.
+
+  2. S2, P3, unauthenticated users, deterministic.
+     Reproduce: /admin/login; focus leading button[aria-hidden=true] or tab to it.
+     Expected decoration excluded from keyboard focus; named usable form controls.
+     Before: hidden button accepts focus. Static URL HTTP 200; no server exception.
+     Evidence: login-before.log, run-a11y-before/task10-login.png and browser trace.
+     After: noninteractive hidden span; username/password autocomplete, associated
+     alert/error semantics; actual invalid login HTTP 401 remains visible/announced.
+     LoginPage/GlassInput retain password paste and original role-home destinations.
+
+  3. P3, admin/staff room-plan editors, deterministic.
+     Reproduce: login /admin/room-plans, create QA_RUN plan, add/select table;
+     try to set its position without a drag. Expected an equivalent visible control.
+     Before: no horizontal/vertical position inputs. Real create/read requests
+     succeed; failure is missing UI, not a feature/permission/route 404.
+     Evidence: run-a11y-before/ room-plan failure screenshot/trace.
+     After: labelled numeric X/Y controls reuse existing bounds/window snapping;
+     save HTTP 200 and reload verify 120/140 coordinates on all four profiles.
+     Modules: AdminRoomPlansPage.tsx and roomPlansPage translations.
+
+  4. P3, public guests, deterministic keyboard conflict/missing dialog semantics.
+     Reproduce: publish synthetic same-category stock-0 and stock-5 dishes; open
+     /menu; focus Try Similar Favorites; press Space.
+     Expected related-dish modal, contained focus, Escape, invoker restoration.
+     Before: parent card also activates its detail navigation; popup lacks native
+     modal semantics. Document/detail HTTP 200; no server business failure.
+     Evidence: run-modal-before/ screenshot/trace. Intermediate Chrome Tab and
+     restoration failures retained in run-matrix-guest-01/ and -02/.
+     After: card keyboard handler checks its own target; native dialog, explicit
+     Tab edge cycling and close/restore before React removal. All original related
+     item and ordering content remains. Four-engine keyboard and print checks pass
+     in run-matrix-guest-03/ (12 cases, zero skips).
+     Modules: DishCard.tsx, GuestDishListPage.tsx, AccessibleDialog.tsx.
+
+  5. P3, login/POS users, light-theme contrast, deterministic.
+     Before: active primary login text/background ratio approximately 2.41:1.
+     Expected at least 4.5:1 for normal meaningful text on the checked solid surfaces.
+     URL /admin/login HTTP 200; no console/server exception for the color failure.
+     Evidence: run-contrast-before/ login screenshot/trace; secondary report-color
+     failures from the initial helper were INVALID CSS parsing and are not defects.
+     After: semantic on-gold foreground, stronger focus rings, theme-aware POS
+     values/badges and labels; canvas-resolved alpha contrast assertions pass for
+     login and report surfaces. This is not an exhaustive WCAG certification.
+     Modules: theme/tokens.css, liquidGlass.ts, tailwind.config.ts, GlassInput,
+     LoginPage/CashierPosPage; tests/setup/contrast.ts.
+
+PERFORMANCE / CHUNK REGRESSION
+  Twelve synthetic published dishes; 390x844 viewport, 4x CPU slowdown, 150 ms
+  latency, 200000 bytes/s download, 93750 bytes/s upload, HTTP cache disabled.
+  Three cold samples per route; sampled LCP/ready measurement includes an explicit
+  500 ms observer window. Ordinary data/control readiness is asserted, not only HTML.
+  Before source is the verified Task 0–9 commit in a temporary detached checkout;
+  its copied new measurement test rejects the budgets after retaining all 12 samples.
+  Both that checkout and its runtime were removed after evidence preservation.
+  Populated pre-fix evidence: run-populated-before/, populated-budget-before.log.
+  Median before: /menu JS 1170503 bytes, ready 7989 ms, LCP 6740 ms;
+    login 1170503 / 7275 / 6716; POS 1170503 / 8129 / 7284;
+    finance 1170503 / 7818 / 7152. Units are encoded script bytes/ms/ms.
+  Median final: /menu JS 250836 bytes, ready 2955 ms, LCP 1804 ms;
+    login 250836 / 2312 / 1772; POS 311082 / 4216 / 2940;
+    finance 373096 / 4208 / 3352. Guest script reduction 78.57%.
+  All 12 final samples satisfy byte/ready/LCP budgets; performance-comparison.json
+  retains medians/profile, raw samples and independent CLI budget results retained.
+  Lazy admin routes; finance charts load with finance, Excel/PDF with export, 3D
+  thumbnail library only for a GLB thumbnail. Original 1200 kB warning limit unchanged.
+  Budgets in tests/fixtures/performance-budgets.json: guest/login 300000 bytes,
+  ready 7000/LCP 5000 ms; POS 400000/9000/7000; finance 450000/9000/7000.
+  Browser asserts no chart/3D/export chunk on the ordinary public route; separate
+  real $10 workbook download verifies lazy export and deep-link/reload behavior.
+  Task 10 introduced a chart-registration regression: paid finance deep link gave
+  'bar is not a registered controller' after the chart data arrived. Deterministic
+  P2 admin/accountant finance view; frontend document/API requests succeed (200),
+  route boundary shows failure. run-exports-02/ has screenshot/trace/console error.
+  Fixed by registering BarController in the finance page itself; run-exports-03/
+  passes the unchanged $10 assertion and actual workbook decoding/download.
+  Simulated missing lazy chunk returns 404, shows the boundary, and real reload
+  after restoring the asset recovers. Production/CDN asset replacement not executed.
+
+CHANGED FILES / PURPOSE
+  Frontend App.tsx: lazy protected/admin routes and translated loading fallback.
+  Common/DishAssetThumbnail + new ModelThumbnail: demand-loaded 3D thumbnail code.
+  Guest/DishCard, GuestDishListPage + new AccessibleDialog: correct nested keyboard
+  target, native modal, Tab containment and invoker restoration before removal.
+  LoginPage, GlassInput/GlassToast, theme/liquidGlass + tokens/tailwind config:
+  decorative focus removal, single redirect, form semantics, translated toast names
+  and shared accessible foreground/focus tokens.
+  CashierPosPage, i18n/pos.ts/resources.ts: presentation-only POS/complaint/report
+  localization and fallback without changing requests or stored business codes.
+  AdminRoomPlansPage: X/Y input alternatives through existing constraints.
+  AdminFinanceDashboardPage/AdminEventsPage: lazy export imports; finance owns its
+  bar-controller registration and surfaces export failures.
+  Four new task10 browser specs, two unit regressions, contrast helper, budget JSON
+  and scripts/qa/check-performance.mjs: real UI/performance/export/print checks.
+  Frontend playwright.config.ts and both .github/workflows/qa.yml: mobile Chrome,
+  optional-required Firefox/WebKit mode, pinned engine installation and matrix gates.
+  API scripts/qa/run.py: explicit matrix flag/environment, JUnit engine/case presence
+  enforcement; no app source or test alteration. API scripts/qa/README.md and
+  frontend README/docs/operations.md: reproducible setup and operating/release guide.
+  Frontend .gitignore/progress/report/evidence: local generated-run retention and
+  append-only outcome/history documentation for this selected task.
+
+OTHER SCOPE / COMPATIBILITY
+  Remove duplicate successful-login full-page redirect; keep existing-token redirect
+  and role policy. New cases wait for the protected dashboard before navigation.
+  Aborted auth bootstrap after navigating before readiness appeared intermittently
+  in run-matrix-a11y-01/ (auth/login 200, auth/me aborted). This task does not modify
+  AuthContext or claim arbitrary forced navigation during bootstrap is verified.
+  Canonical server money/approval/reporting untouched. No billing functionality,
+  storage wipe, unscoped financial import, dependency upgrade or permission expansion.
+  Current manual restaurant provisioning/external commercial billing, feature/role
+  matrix, test setup, runtime keys/fonts/browser prerequisites, restore/rollback,
+  monitoring and measured budgets documented in README and docs/operations.md.
+  Future subscription pricing/entitlements/grace/cancellation remains owner policy
+  to resolve before a separately authorized billing implementation.
+  Both CI definitions install pinned Firefox/WebKit and require --browser-matrix.
+  Runner verifies every selected engine/case plus measured and export scenarios;
+  absent engine/missing scenario/skipped JUnit cannot silently satisfy the gate.
+
+VERIFICATION
+  PASS: complete paired run task10_final_20261008_01: 420 API tests / 4319
+  assertions, 137 unit tests, 54 browser cases; zero failures/errors/skips.
+  Browser profiles: mobile Chrome 7, Firefox 7, WebKit 7, offline Chromium 7,
+  desktop Chromium 26. Original 24 browser cases retained unchanged.
+  PASS: lint without warnings, TypeScript/frontend build, API asset build, three
+  tooling regressions, Composer validation, Pint, all three dependency audits,
+  fresh migrations, real operational queue/scheduler/host/migration/backup/restore,
+  fixture resets and owned process/database/storage cleanup.
+  PASS: every measured byte/ready/LCP budget and real $10 spreadsheet/deep-link/
+  reload/missing-chunk recovery; bilingual print media in both themes.
+  FAIL/BLOCKED outstanding locally: none. SKIPPED in complete run: zero.
+  NOT IMPLEMENTED: optional automatic subscription billing, intentionally out of scope.
+  Full sanitized evidence: run-final/; checks-summary.json and performance-*.json.
+  The owned initialization-to-shutdown interval was 22.90 minutes. API CI timeout changes 25 -> 40 minutes
+  for that required matrix plus installation overhead; YAML revalidated. No per-test
+  deadline, performance ceiling or bundle-warning limit was relaxed. No application/
+  test source changed after verification; post-suite-ci-review.json records the
+  configuration-only change and unexecuted hosted status.
+  Additional existing release regressions: three PASS, zero failures/errors/skips.
+  YAML parses locally; not proof of hosted CI. Source/test hashes rechecked.
+  Earlier failed/blocked/invalid attempts remain separate, never counted passed:
+  initial sandbox Git/socket restriction before execution; incorrect finance heading
+  in empty-menu measurement; wrong new login endpoint/checkout nesting; initial
+  CSS color(srgb) parsing; unsupported JSON import attribute in temporary checkout;
+  invented workbook company-name assertion; early native Tab/restoration issues;
+  paid-chart regression above. All substantive assertions are retained/corrected
+  against real contracts; previous 131 files remain byte-identical.
+
+LIMITS / ROLLOUT / ROLLBACK
+  No deployment, push, merge, new commit, production access or historical rewrite.
+  Task 10 frontend is compatible with the completed Task 9 API; no new migration.
+  Apply Task 9 durable API/migration/fleet precautions before the frontend as already
+  documented. QA runners/workflows should be paired to avoid missing matrix gates.
+  Publish a complete static artifact atomically; retain previous hashed chunks for
+  old documents/worker lifetime and rollback. Revalidate HTML/sw.js; a missing JS
+  asset must return 404 rather than SPA HTML. Never clear offline/tenant storage.
+  Rollback only Task 10 code/artifact/config; retain Tasks 0–9, durable request rows,
+  settlements, schemas, APP_KEY and storage. No data migration rollback required.
+  NOT EXECUTED: hosted CI, CDN/fleet deployment/replacement/rollback, rebuilt final
+  API release image, public TLS/DNS, physical devices/printer and field/load capacity.
+  Browser print media uses real paid values with a synthetic scoped receipt-render
+  fixture; it does not certify the OS dialog/printer or replace earlier storage tests.
+  Performance is synthetic local measurement, not field percentiles; optional large
+  export/3D chunks remain. No general market-launch or exhaustive a11y approval.
+  Ready for local review/integration: yes, Task 10 acceptance verified. There is no
+  later roadmap task selected. Release approval remains separate until the listed
+  hosted/deployment/image/physical/field gates are verified on authorized infrastructure.
+
+USER-AUTHORIZED LOCAL INTEGRATION — 8 October 2026
+  Task 10 completion/source preservation reverified before staging.
+  Source commits: Menu_API b3da486688d819c189de2dd141b3524afbd45f5b;
+  Menu_React b6edaeb18e190c27ebef65b61a716e02bcb587e3.
+  User authorized local add/commit/no-ff merge into main. The implementation-run
+  uncommitted/no-merge statements above are historical and superseded here.
+  See git-integration.json. No push/deployment; hosted CI still unexecuted.

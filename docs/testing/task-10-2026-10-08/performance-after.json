@@ -1,0 +1,266 @@
+{
+  "profile": {
+    "viewport": "390x844",
+    "cpuSlowdown": 4,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "cache": "disabled"
+  },
+  "samples": [
+    {
+      "path": "/menu",
+      "readyMs": 3228,
+      "lcpMs": 1960,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/menu",
+      "readyMs": 2901,
+      "lcpMs": 1776,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/index-BISRyHIT.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/menu",
+      "readyMs": 2955,
+      "lcpMs": 1804,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 2405,
+      "lcpMs": 2064,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 2312,
+      "lcpMs": 1772,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 2306,
+      "lcpMs": 1772,
+      "jsBytes": 250836,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 4223,
+      "lcpMs": 2968,
+      "jsBytes": 311082,
+      "scripts": [
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/index-BISRyHIT.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/CashierPosPage-Bt_oPryX.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/financeMath-D7O5r3xW.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 4206,
+      "lcpMs": 2940,
+      "jsBytes": 311082,
+      "scripts": [
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/index-BISRyHIT.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/CashierPosPage-Bt_oPryX.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/financeMath-D7O5r3xW.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 4216,
+      "lcpMs": 2940,
+      "jsBytes": 311082,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/CashierPosPage-Bt_oPryX.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/financeMath-D7O5r3xW.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 4220,
+      "lcpMs": 3456,
+      "jsBytes": 373096,
+      "scripts": [
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/index-BISRyHIT.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/AdminFinanceDashboardPage-B8Q-t-zu.js",
+        "/assets/charts-DA3WsDQ1.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/PageSkeleton-B2Z61mho.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/invoiceService-BTja6PKv.js",
+        "/assets/financeReporting-CB4LrN4Y.js",
+        "/assets/financeExpenseService-CHW4_1HU.js",
+        "/assets/payrollService-DgYiFe1n.js",
+        "/assets/staffScheduleService-DPy9zKfU.js",
+        "/assets/financeAdjustmentMeta-Cdn61_Bu.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 4208,
+      "lcpMs": 3352,
+      "jsBytes": 373096,
+      "scripts": [
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/index-BISRyHIT.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/AdminFinanceDashboardPage-B8Q-t-zu.js",
+        "/assets/charts-DA3WsDQ1.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/PageSkeleton-B2Z61mho.js",
+        "/assets/invoiceService-BTja6PKv.js",
+        "/assets/financeReporting-CB4LrN4Y.js",
+        "/assets/financeExpenseService-CHW4_1HU.js",
+        "/assets/payrollService-DgYiFe1n.js",
+        "/assets/staffScheduleService-DPy9zKfU.js",
+        "/assets/financeAdjustmentMeta-Cdn61_Bu.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 4197,
+      "lcpMs": 2932,
+      "jsBytes": 373096,
+      "scripts": [
+        "/assets/index-BISRyHIT.js",
+        "/assets/react-ddTt0jyJ.js",
+        "/assets/i18n-DmsFyB69.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/realtime-Dg9JsFAb.js",
+        "/sw.js",
+        "/assets/ChatBot-Dq8v-CFl.js",
+        "/assets/AdminFinanceDashboardPage-B8Q-t-zu.js",
+        "/assets/charts-DA3WsDQ1.js",
+        "/assets/DashboardLayout-DxyQUpXA.js",
+        "/assets/GlassIconButton-S6tqAF_M.js",
+        "/assets/GlassCard--jgXDKfv.js",
+        "/assets/motion-BcMeWIMK.js",
+        "/assets/PageSkeleton-B2Z61mho.js",
+        "/assets/invoiceService-BTja6PKv.js",
+        "/assets/financeReporting-CB4LrN4Y.js",
+        "/assets/financeExpenseService-CHW4_1HU.js",
+        "/assets/payrollService-DgYiFe1n.js",
+        "/assets/staffScheduleService-DPy9zKfU.js",
+        "/assets/financeAdjustmentMeta-Cdn61_Bu.js",
+        "/assets/orderItemCompensation-BoRuSNbs.js"
+      ],
+      "overflow": false
+    }
+  ]
+}

@@ -26,7 +26,6 @@ import type {
   PublishedDishSummary,
   RoomPlan,
 } from '../types';
-import { downloadEventPlanPdf } from '../utils/eventPlanPdf';
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -318,6 +317,7 @@ const AdminEventsPage: React.FC = () => {
         setForecast(nextForecast);
       }
 
+      const { downloadEventPlanPdf } = await import('../utils/eventPlanPdf');
       downloadEventPlanPdf({
         restaurantName: user?.restaurant?.name || t('adminEventsPage.restaurantFallback'),
         event: {

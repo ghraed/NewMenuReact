@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BrowserRouter,
   matchPath,
@@ -9,40 +10,6 @@ import {
 } from 'react-router-dom';
 import GuestDishListPage from './pages/GuestDishListPage';
 import LoginPage from './pages/LoginPage';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminRestaurantProfilePage from './pages/AdminRestaurantProfilePage';
-import AdminUserProfilePage from './pages/AdminUserProfilePage';
-import CreateDishPage from './pages/CreateDishPage';
-import EditDishPage from './pages/EditDishPage';
-import IngredientLibrary from './pages/IngredientLibrary';
-import GlobalIngredientsPage from './pages/GlobalIngredientsPage';
-import AdminIngredientsPage from './pages/AdminIngredientsPage';
-import AdminStockHistoryPage from './pages/AdminStockHistoryPage';
-import AdminIngredientTrackerPage from './pages/AdminIngredientTrackerPage';
-import AdminDishPage from './pages/AdminDishPage';
-import StaffOrdersPage from './pages/StaffOrdersPage';
-import TodayOrdersPage from './pages/TodayOrdersPage';
-import TodayOrderDetailsPage from './pages/TodayOrderDetailsPage';
-import CashierPosPage from './pages/CashierPosPage';
-import ChefDashboardPage from './pages/ChefDashboardPage';
-import KitchenOrderHistoryPage from './pages/KitchenOrderHistoryPage';
-import AdminStaffPage from './pages/AdminStaffPage';
-import AccountingOrdersPage from './pages/AccountingOrdersPage';
-import AdminCurrencyPage from './pages/AdminCurrencyPage';
-import AdminFinanceDashboardPage from './pages/AdminFinanceDashboardPage';
-import AdminFinanceExpensesPage from './pages/AdminFinanceExpensesPage';
-import AdminFinanceInvoiceDetailsPage from './pages/AdminFinanceInvoiceDetailsPage';
-import AdminFinanceProfitLossPage from './pages/AdminFinanceProfitLossPage';
-import AdminFinanceProfitLossRecordsPage from './pages/AdminFinanceProfitLossRecordsPage';
-import AdminPayrollManagementPage from './pages/AdminPayrollManagementPage';
-import AdminStaffSchedulingPage from './pages/AdminStaffSchedulingPage';
-import AdminRoomPlansPage from './pages/AdminRoomPlansPage';
-import AdminReservationsPage from './pages/AdminReservationsPage';
-import AdminEventsPage from './pages/AdminEventsPage';
-import SuperAdminLoginPage from './pages/SuperAdminLoginPage';
-import SuperAdminDashboardPage from './pages/SuperAdminDashboardPage';
-import SuperAdminRestaurantSetupPage from './pages/SuperAdminRestaurantSetupPage';
-import SuperAdminRestaurantsPage from './pages/SuperAdminRestaurantsPage';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SuperAdminAuthProvider } from './contexts/SuperAdminAuthContext';
@@ -57,6 +24,41 @@ import NotFoundView from './components/Common/NotFoundView';
 import AppChangeGuards from './components/AppChangeGuards';
 import { GuestMenuResourceProvider } from './contexts/GuestMenuResourceContext';
 import LoadingSpinner from './components/Common/LoadingSpinner';
+
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const AdminRestaurantProfilePage = React.lazy(() => import('./pages/AdminRestaurantProfilePage'));
+const AdminUserProfilePage = React.lazy(() => import('./pages/AdminUserProfilePage'));
+const CreateDishPage = React.lazy(() => import('./pages/CreateDishPage'));
+const EditDishPage = React.lazy(() => import('./pages/EditDishPage'));
+const IngredientLibrary = React.lazy(() => import('./pages/IngredientLibrary'));
+const GlobalIngredientsPage = React.lazy(() => import('./pages/GlobalIngredientsPage'));
+const AdminIngredientsPage = React.lazy(() => import('./pages/AdminIngredientsPage'));
+const AdminStockHistoryPage = React.lazy(() => import('./pages/AdminStockHistoryPage'));
+const AdminIngredientTrackerPage = React.lazy(() => import('./pages/AdminIngredientTrackerPage'));
+const AdminDishPage = React.lazy(() => import('./pages/AdminDishPage'));
+const StaffOrdersPage = React.lazy(() => import('./pages/StaffOrdersPage'));
+const TodayOrdersPage = React.lazy(() => import('./pages/TodayOrdersPage'));
+const TodayOrderDetailsPage = React.lazy(() => import('./pages/TodayOrderDetailsPage'));
+const CashierPosPage = React.lazy(() => import('./pages/CashierPosPage'));
+const ChefDashboardPage = React.lazy(() => import('./pages/ChefDashboardPage'));
+const KitchenOrderHistoryPage = React.lazy(() => import('./pages/KitchenOrderHistoryPage'));
+const AdminStaffPage = React.lazy(() => import('./pages/AdminStaffPage'));
+const AccountingOrdersPage = React.lazy(() => import('./pages/AccountingOrdersPage'));
+const AdminCurrencyPage = React.lazy(() => import('./pages/AdminCurrencyPage'));
+const AdminFinanceDashboardPage = React.lazy(() => import('./pages/AdminFinanceDashboardPage'));
+const AdminFinanceExpensesPage = React.lazy(() => import('./pages/AdminFinanceExpensesPage'));
+const AdminFinanceInvoiceDetailsPage = React.lazy(() => import('./pages/AdminFinanceInvoiceDetailsPage'));
+const AdminFinanceProfitLossPage = React.lazy(() => import('./pages/AdminFinanceProfitLossPage'));
+const AdminFinanceProfitLossRecordsPage = React.lazy(() => import('./pages/AdminFinanceProfitLossRecordsPage'));
+const AdminPayrollManagementPage = React.lazy(() => import('./pages/AdminPayrollManagementPage'));
+const AdminStaffSchedulingPage = React.lazy(() => import('./pages/AdminStaffSchedulingPage'));
+const AdminRoomPlansPage = React.lazy(() => import('./pages/AdminRoomPlansPage'));
+const AdminReservationsPage = React.lazy(() => import('./pages/AdminReservationsPage'));
+const AdminEventsPage = React.lazy(() => import('./pages/AdminEventsPage'));
+const SuperAdminLoginPage = React.lazy(() => import('./pages/SuperAdminLoginPage'));
+const SuperAdminDashboardPage = React.lazy(() => import('./pages/SuperAdminDashboardPage'));
+const SuperAdminRestaurantSetupPage = React.lazy(() => import('./pages/SuperAdminRestaurantSetupPage'));
+const SuperAdminRestaurantsPage = React.lazy(() => import('./pages/SuperAdminRestaurantsPage'));
 
 const GuestDishPage = React.lazy(() => import('./pages/GuestDishPage'));
 const GuestDishIngredientsPage = React.lazy(() => import('./pages/GuestDishIngredientsPage'));
@@ -200,7 +202,7 @@ class RouteErrorBoundary extends React.Component<{ children: React.ReactNode; re
       return (
         <NotFoundView
           title="Something went wrong"
-          message="A page error occurred. Please refresh once. If it keeps happening, clear site data and login again."
+          message="A page could not load. Refresh the page to retry."
         />
       );
     }
@@ -209,8 +211,13 @@ class RouteErrorBoundary extends React.Component<{ children: React.ReactNode; re
   }
 }
 
+const RouteLoading = () => {
+  const { t } = useTranslation();
+  return <LoadingSpinner fullPage text={t('common.loadingContent')} />;
+};
+
 const lazyRoute = (element: React.ReactNode) => (
-  <Suspense fallback={<LoadingSpinner fullPage text="Loading page..." />}>
+  <Suspense fallback={<RouteLoading />}>
     {element}
   </Suspense>
 );
@@ -313,7 +320,7 @@ const AppRoutes: React.FC = () => {
           />
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'chef', 'stock_manager', 'staff', 'accountant']} />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/dashboard" element={lazyRoute(<AdminDashboard />)} />
             <Route path="/admin/profile" element={lazyRoute(<AdminRestaurantProfilePage />)} />
             <Route path="/admin/user-profile" element={lazyRoute(<AdminUserProfilePage />)} />
             <Route path="/admin/dishes/create" element={lazyRoute(<CreateDishPage />)} />

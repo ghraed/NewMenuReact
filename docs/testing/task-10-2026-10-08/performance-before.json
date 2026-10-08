@@ -1,0 +1,251 @@
+{
+  "profile": {
+    "viewport": "390x844",
+    "cpuSlowdown": 4,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "cache": "disabled"
+  },
+  "samples": [
+    {
+      "path": "/menu",
+      "readyMs": 8628,
+      "lcpMs": 7396,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/react-DEvL4jnu.js",
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/menu",
+      "readyMs": 7989,
+      "lcpMs": 6740,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/react-DEvL4jnu.js",
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/menu",
+      "readyMs": 7853,
+      "lcpMs": 6712,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 7277,
+      "lcpMs": 6728,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 7275,
+      "lcpMs": 6716,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/login",
+      "readyMs": 7248,
+      "lcpMs": 6688,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 8241,
+      "lcpMs": 7344,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 8129,
+      "lcpMs": 7284,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/react-DEvL4jnu.js",
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/staff/pos",
+      "readyMs": 8127,
+      "lcpMs": 7280,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 7818,
+      "lcpMs": 7148,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 7738,
+      "lcpMs": 7152,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/index-CKD8cSWm.js",
+        "/assets/react-DEvL4jnu.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    },
+    {
+      "path": "/admin/finance",
+      "readyMs": 7890,
+      "lcpMs": 7256,
+      "jsBytes": 1170503,
+      "scripts": [
+        "/assets/react-DEvL4jnu.js",
+        "/assets/index-CKD8cSWm.js",
+        "/assets/i18n-CtJNzWrJ.js",
+        "/assets/http-BCn5QfZZ.js",
+        "/assets/three-BKLwnFPR.js",
+        "/assets/model-viewer-DBgOC8HA.js",
+        "/assets/realtime-LyJIaLP5.js",
+        "/assets/motion-CyeNg-ow.js",
+        "/assets/charts-BJ0iapVO.js",
+        "/sw.js",
+        "/assets/ChatBot-BLSdfCmw.js"
+      ],
+      "overflow": false
+    }
+  ]
+}

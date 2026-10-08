@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { cx } from '../../../theme/liquidGlass';
 import type { ToastState } from './useGlassToast';
@@ -10,6 +11,7 @@ interface GlassToastProps {
 }
 
 const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) => {
+  const { t } = useTranslation();
   const tone = toast.tone || 'primary';
   const durationMs = Math.max(600, toast.durationMs ?? 2200);
   const isDarkTheme = typeof document !== 'undefined'
@@ -27,9 +29,9 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
   };
 
   const toneTitle: Record<NonNullable<ToastState['tone']>, string> = {
-    primary: 'Update',
-    secondary: 'Info',
-    tertiary: 'Error',
+    primary: t('common.toastUpdate'),
+    secondary: t('common.toastInfo'),
+    tertiary: t('common.toastError'),
   };
 
   const toneShell: Record<NonNullable<ToastState['tone']>, string> = {
@@ -93,7 +95,7 @@ const GlassToast: React.FC<GlassToastProps> = ({ toast, onClose, className }) =>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close toast"
+              aria-label={t('common.closeToast')}
               className={cx(
                 'ml-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-sm font-semibold leading-none transition',
                 isDarkTheme ? 'hover:bg-white/10' : 'hover:bg-black/5',

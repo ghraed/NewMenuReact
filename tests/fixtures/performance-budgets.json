@@ -1,0 +1,6 @@
+{
+  "/menu": { "jsBytes": 300000, "readyMs": 7000, "lcpMs": 5000 },
+  "/admin/login": { "jsBytes": 300000, "readyMs": 7000, "lcpMs": 5000 },
+  "/staff/pos": { "jsBytes": 400000, "readyMs": 9000, "lcpMs": 7000 },
+  "/admin/finance": { "jsBytes": 450000, "readyMs": 9000, "lcpMs": 7000 }
+}

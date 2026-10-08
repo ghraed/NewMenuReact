@@ -1,0 +1,9 @@
+{
+  "command": "python3 -m unittest discover -s scripts/qa/release-tests -v",
+  "tests": 3,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "status": "PASS",
+  "scope": "Existing synthetic context/runtime recipe regressions only; image rebuild not executed"
+}

@@ -1,7 +1,13 @@
+import { posTranslations } from './pos';
+
 export const resources = {
   en: {
     translation: {
       common: {
+        toastUpdate: 'Update',
+        toastInfo: 'Info',
+        toastError: 'Error',
+        closeToast: 'Close toast',
         language: 'Language',
         close: 'Close',
         loading: 'Loading...',
@@ -865,6 +871,8 @@ export const resources = {
         tip: 'Tip: keep exchange rates updated before downloading finance reports so charts, summaries, and exported workbooks stay consistent.',
       },
       roomPlansPage: {
+        horizontalPosition: 'Horizontal position',
+        verticalPosition: 'Vertical position',
         pageTitle: 'Room Plan Editor',
         failedLoad: 'Failed to load room plans.',
         failedLoadSelected: 'Failed to load selected room plan.',
@@ -1076,6 +1084,7 @@ export const resources = {
         conflictsCounts: 'Reservations: {{reservations}} | Events: {{events}}',
       },
       adminFinancePage: {
+        exportFailed: 'Could not load or download the report. Refresh the page and try again.',
         pageTitle: 'Finance Dashboard',
         invoiceStatus: {
           draft: 'Draft',
@@ -1556,6 +1565,7 @@ export const resources = {
         noShifts: 'No shifts in this range.',
       },
       cashierPosPage: {
+        extra: posTranslations.en,
         pageTitle: 'Cashier POS',
         loading: 'Loading POS...',
         readOnlyCompensation: 'Your role is read-only for cancellations, complimentary items, and invoice total edits.',
@@ -2052,6 +2062,10 @@ export const resources = {
   ar: {
     translation: {
       common: {
+        toastUpdate: 'تحديث',
+        toastInfo: 'معلومة',
+        toastError: 'خطأ',
+        closeToast: 'إغلاق الإشعار',
         language: 'اللغة',
         close: 'إغلاق',
         loading: 'جارٍ التحميل...',
@@ -2915,6 +2929,8 @@ export const resources = {
         tip: 'نصيحة: حدّث أسعار الصرف قبل تنزيل التقارير المالية حتى تبقى الرسوم البيانية والملخصات وملفات التصدير متسقة.',
       },
       roomPlansPage: {
+        horizontalPosition: 'الموضع الأفقي',
+        verticalPosition: 'الموضع العمودي',
         pageTitle: 'محرر مخططات الغرف',
         failedLoad: 'فشل تحميل مخططات الغرف.',
         failedLoadSelected: 'فشل تحميل مخطط الغرفة المحدد.',
@@ -3126,6 +3142,7 @@ export const resources = {
         conflictsCounts: 'الحجوزات: {{reservations}} | الفعاليات: {{events}}',
       },
       adminFinancePage: {
+        exportFailed: 'تعذر تحميل التقرير أو تنزيله. حدّث الصفحة ثم حاول مجدداً.',
         pageTitle: 'لوحة المالية',
         invoiceStatus: {
           draft: 'مسودة',
@@ -3606,6 +3623,7 @@ export const resources = {
         noShifts: 'لا توجد مناوبات في هذا النطاق.',
       },
       cashierPosPage: {
+        extra: posTranslations.ar,
         pageTitle: 'نقطة بيع الكاشير',
         loading: 'جارٍ تحميل نقطة البيع...',
         readOnlyCompensation: 'صلاحيتك للقراءة فقط فيما يخص الإلغاءات والعناصر المجانية وتعديلات إجمالي الفاتورة.',

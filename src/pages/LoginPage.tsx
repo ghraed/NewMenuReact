@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/useAuth';
 import { getDefaultRouteForRole } from '../utils/auth';
 import {
   GlassBoard,
-  GlassIconButton,
   GlassInput,
   GlassToast,
   LiquidBackground,
@@ -42,9 +41,8 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const nextUser = await login(identifier, password);
+      await login(identifier, password);
       showToast(t('login.success'), 'primary');
-      window.location.replace(getDefaultRouteForRole(nextUser.role));
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('login.failed')));
     } finally {
@@ -58,8 +56,8 @@ const LoginPage: React.FC = () => {
         <GlassBoard className="w-full max-w-md">
           <div className="mb-8 text-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-stroke bg-panel2 px-3 py-2">
-              <GlassIconButton aria-hidden="true">🍽️</GlassIconButton>
-              <span className="text-xs uppercase tracking-[0.2em] text-gold2/90">{t('login.badge')}</span>
+              <span aria-hidden="true" className="inline-flex h-10 w-10 items-center justify-center text-base">🍽️</span>
+              <span className="text-xs uppercase tracking-[0.2em] text-text">{t('login.badge')}</span>
             </div>
             <h1 className="text-3xl font-semibold text-text">{t('login.title')}</h1>
             <p className="mt-2 text-sm text-muted">{t('login.subtitle')}</p>
@@ -72,6 +70,9 @@ const LoginPage: React.FC = () => {
               </label>
               <GlassInput
                 id="identifier"
+                autoComplete="username"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'login-error' : undefined}
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -86,6 +87,9 @@ const LoginPage: React.FC = () => {
               </label>
               <GlassInput
                 id="password"
+                autoComplete="current-password"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'login-error' : undefined}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -95,7 +99,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {error && (
-              <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
+              <div id="login-error" role="alert" className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-3 text-sm text-spicy">
                 {error}
               </div>
             )}

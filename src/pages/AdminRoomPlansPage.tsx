@@ -918,6 +918,16 @@ const AdminRoomPlansPage: React.FC = () => {
 
                 {selectedItem ? (
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <label className="text-sm text-text">{t('roomPlansPage.horizontalPosition')}
+                      <input aria-label={t('roomPlansPage.horizontalPosition')} type="number" value={selectedItem.x}
+                        onChange={(event) => patchSelectedItem({ x: Number(event.target.value) })}
+                        className="mt-1 w-full rounded-xl border border-stroke bg-bg1 px-3 py-2" />
+                    </label>
+                    <label className="text-sm text-text">{t('roomPlansPage.verticalPosition')}
+                      <input aria-label={t('roomPlansPage.verticalPosition')} type="number" value={selectedItem.y}
+                        onChange={(event) => patchSelectedItem({ y: Number(event.target.value) })}
+                        className="mt-1 w-full rounded-xl border border-stroke bg-bg1 px-3 py-2" />
+                    </label>
                     <input
                       value={selectedItem.label}
                       onChange={(event) => patchSelectedItem({ label: event.target.value })}

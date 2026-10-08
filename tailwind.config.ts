@@ -10,6 +10,7 @@ const config: Config = {
         modalSurface: 'rgb(var(--color-modal-surface) / 0.99)',
         modalRow: 'rgb(var(--color-modal-row) / 0.97)',
         modalStroke: 'rgb(var(--color-modal-stroke) / 0.16)',
+        onGold: 'rgb(var(--color-on-gold) / <alpha-value>)',
         gold: 'rgb(var(--color-gold) / <alpha-value>)',
         gold2: 'rgb(var(--color-gold2) / <alpha-value>)',
         sage: 'rgb(var(--color-sage) / <alpha-value>)',

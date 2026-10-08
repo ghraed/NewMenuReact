@@ -1,0 +1,12 @@
+{
+  "prior_files_verified": 131,
+  "tested_source_matches": true,
+  "owned_final_runtime_absent": true,
+  "owned_baseline_worktree_absent": true,
+  "branches": "fix/task-10-performance-accessibility-arabic",
+  "main_unchanged": true,
+  "new_commits": false,
+  "merge": false,
+  "push": false,
+  "deployment": false
+}

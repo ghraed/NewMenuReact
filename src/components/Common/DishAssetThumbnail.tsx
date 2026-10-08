@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import '@google/model-viewer';
 import type { Dish } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
+
+const ModelThumbnail = React.lazy(() => import('./ModelThumbnail'));
 
 interface DishAssetThumbnailProps {
   dish: Dish;
@@ -24,7 +25,6 @@ const DishAssetThumbnail: React.FC<DishAssetThumbnailProps> = ({
     dish.assets.find((asset) => asset.asset_type === 'preview_image')?.file_url || dish.image_url,
   );
   const glbUrl = resolveAssetUrl(dish.assets.find((asset) => asset.asset_type === 'glb')?.file_url);
-  const ModelViewer = 'model-viewer' as React.ElementType;
 
   return (
     <div
@@ -45,22 +45,9 @@ const DishAssetThumbnail: React.FC<DishAssetThumbnailProps> = ({
         />
       ) : glbUrl && !modelFailed ? (
         <div className="pointer-events-none h-full w-full p-1.5">
-          <ModelViewer
-            src={glbUrl}
-            camera-target="auto auto auto"
-            camera-orbit="0deg 75deg auto"
-            min-camera-orbit="auto auto auto"
-            max-camera-orbit="auto auto auto"
-            field-of-view="26deg"
-            bounds="tight"
-            environment-image="neutral"
-            shadow-intensity="0"
-            interaction-prompt="none"
-            disable-zoom
-            disable-pan
-            onError={() => setModelFailed(true)}
-            style={{ width: '100%', height: '100%' }}
-          />
+          <React.Suspense fallback={<span aria-hidden="true">🍽</span>}>
+            <ModelThumbnail src={glbUrl} onError={() => setModelFailed(true)} />
+          </React.Suspense>
         </div>
       ) : (
         <div

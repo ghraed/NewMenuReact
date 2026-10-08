@@ -1,3 +1,4 @@
+import { getEnglishPosText } from '../i18n/pos';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import DashboardLayout from '../components/Admin/DashboardLayout';
@@ -26,12 +27,7 @@ import type {
   UserRole,
 } from '../types';
 import {
-  COMPLAINT_ACCOUNTING_BUCKET_LABELS,
-  COMPLAINT_CATEGORY_LABELS,
-  COMPLAINT_REASON_LABELS,
   COMPLAINT_REASON_OPTIONS,
-  COMPENSATION_TYPE_LABELS,
-  ISSUE_STATUS_LABELS,
   getCompensationSuggestions,
   getComplaintCategoryFromReason,
   getDefaultComplaintBucket,
@@ -183,6 +179,7 @@ const buildAuditLogFromEntry = (
 
 const CashierPosPage: React.FC = () => {
   const { t } = useTranslation();
+  const posText = useCallback((key: string, values: Record<string, string | number> = {}) => t(`cashierPosPage.extra.${key}`, { ...values, defaultValue: getEnglishPosText(key, values) }), [t]);
   const { user } = useAuth();
   const storageIdentity = getVerifiedBrowserIdentity();
   const { toast, showToast, dismiss } = useGlassToast(4200);
@@ -291,8 +288,8 @@ const CashierPosPage: React.FC = () => {
         && 'response' in loadError
         && (loadError as { response?: { data?: { message?: string } } }).response?.data?.message
         ? (loadError as { response?: { data?: { message?: string } } }).response?.data?.message
-        : 'Failed to load POS data.';
-      setError(message || 'Failed to load POS data.');
+        : 'loadFailed';
+      setError(message || 'loadFailed');
     } finally {
       setLoading(false);
     }
@@ -352,7 +349,7 @@ const CashierPosPage: React.FC = () => {
 
   const addDish = (dish: PublishedDishSummary, complimentary = false): void => {
     if (complimentary && !canUseCompensation) {
-      showToast('Compensation is unavailable for this account or server.', 'secondary');
+      showToast(posText('compUnavailable'), 'secondary');
       return;
     }
     const isOutOfStock = dish.is_orderable === false || dish.is_out_of_stock === true;
@@ -409,14 +406,14 @@ const CashierPosPage: React.FC = () => {
 
   const searchCompletedSales = async (): Promise<void> => {
     if (completedSaleQuery.trim().length < 2) {
-      showToast('Enter at least two characters from the order or invoice number.', 'secondary');
+      showToast(posText('searchLength'), 'secondary');
       return;
     }
     setPostSaleBusy(true);
     try {
       setCompletedSales(await searchPosCompletedSales(completedSaleQuery.trim()));
     } catch {
-      showToast('Could not find completed POS sales.', 'secondary');
+      showToast(posText('findFailed'), 'secondary');
     } finally {
       setPostSaleBusy(false);
     }
@@ -432,7 +429,7 @@ const CashierPosPage: React.FC = () => {
 
   const submitPostSaleComplaint = async (): Promise<void> => {
     if (!selectedCompletedSale || !postSaleComplaintReason.trim() || complaintItemIds.length === 0) {
-      showToast('Select a completed sale, affected item(s), and a complaint reason.', 'secondary');
+      showToast(posText('selectComplaint'), 'secondary');
       return;
     }
     setPostSaleBusy(true);
@@ -445,9 +442,9 @@ const CashierPosPage: React.FC = () => {
         gifts: postSaleGifts.map(({ dish_id, quantity }) => ({ dish_id, quantity })),
       });
       setPendingAdjustment(adjustment);
-      showToast(canApprovePostSaleComplaint ? 'Complaint adjustment saved. Review and post it below.' : 'Complaint submitted for admin/accountant approval.', 'secondary');
+      showToast(canApprovePostSaleComplaint ? posText('savedComplaint') : posText('submittedComplaint'), 'secondary');
     } catch {
-      showToast('Could not save the complaint adjustment.', 'secondary');
+      showToast(posText('saveComplaintFailed'), 'secondary');
     } finally {
       setPostSaleBusy(false);
     }
@@ -460,9 +457,9 @@ const CashierPosPage: React.FC = () => {
       const posted = await postPosComplaintAdjustment(pendingAdjustment.id);
       setPendingAdjustment(posted);
       setReportRefreshKey((current) => current + 1);
-      showToast('Complaint adjustment posted. Refund and gift loss are now available to finance.', 'secondary');
+      showToast(posText('postedComplaint'), 'secondary');
     } catch {
-      showToast('Could not post the complaint adjustment.', 'secondary');
+      showToast(posText('postComplaintFailed'), 'secondary');
     } finally {
       setPostSaleBusy(false);
     }
@@ -488,12 +485,12 @@ const CashierPosPage: React.FC = () => {
     setVatRate('0');
     setEditingLineId(null);
     setCompDraft(makeDefaultDraft());
-    showToast('Current POS order cleared.', 'secondary');
-  }, [showToast]);
+    showToast(posText('cleared'), 'secondary');
+  }, [showToast, posText]);
 
   const holdCurrentOrder = useCallback(() => {
     if (!cartItems.length) {
-      showToast('Cannot hold an empty order.', 'secondary');
+      showToast(posText('emptyHold'), 'secondary');
       return;
     }
 
@@ -510,13 +507,13 @@ const CashierPosPage: React.FC = () => {
 
     setHeldOrders((current) => [heldOrder, ...current].slice(0, 25));
     clearOrder();
-    showToast(`Order ${heldOrder.id} moved to hold list.`, 'secondary');
-  }, [cartItems, clearOrder, discountType, discountValue, orderNote, showToast, tableReference, vatRate]);
+    showToast(posText('held', { id: heldOrder.id }), 'secondary');
+  }, [cartItems, clearOrder, discountType, discountValue, orderNote, showToast, tableReference, vatRate, posText]);
 
   const resumeHeldOrder = (heldOrder: HeldPosOrder): void => {
     if (cartItems.length > 0) {
       const shouldReplaceOrder = window.confirm(
-        'Resuming this held order will move the current order to the hold list. Continue?',
+        posText('resumeConfirm'),
       );
 
       if (!shouldReplaceOrder) {
@@ -538,10 +535,10 @@ const CashierPosPage: React.FC = () => {
         currentOrder,
         ...current.filter((item) => item.id !== heldOrder.id),
       ].slice(0, 25));
-      showToast(`Current order moved to hold. Resumed ${heldOrder.id}.`, 'secondary');
+      showToast(posText('heldResumed', { id: heldOrder.id }), 'secondary');
     } else {
       setHeldOrders((current) => current.filter((item) => item.id !== heldOrder.id));
-      showToast(`Resumed ${heldOrder.id}.`, 'secondary');
+      showToast(posText('resumed', { id: heldOrder.id }), 'secondary');
     }
 
     setCartItems(heldOrder.items);
@@ -576,12 +573,12 @@ const CashierPosPage: React.FC = () => {
     }
 
     if (!canUseCompensation) {
-      showToast('You are not authorized to cancel or compensate items.', 'secondary');
+      showToast(posText('unauthorized'), 'secondary');
       return;
     }
 
     if (compDraft.status !== 'normal' && !compDraft.reason) {
-      showToast('Please select a complaint reason before saving.', 'secondary');
+      showToast(posText('selectReasonFirst'), 'secondary');
       return;
     }
 
@@ -632,12 +629,12 @@ const CashierPosPage: React.FC = () => {
 
     setEditingLineId(null);
     setCompDraft(makeDefaultDraft());
-    showToast('Compensation details saved and logged.', 'secondary');
+    showToast(posText('compSaved'), 'secondary');
   };
 
   const checkout = useCallback(async () => {
     if (!cartItems.length) {
-      showToast('Add at least one dish before checkout.', 'secondary');
+      showToast(posText('emptyCheckout'), 'secondary');
       return;
     }
 
@@ -646,13 +643,13 @@ const CashierPosPage: React.FC = () => {
     ));
 
     if (invalidCompensation) {
-      showToast(`Complete reason and approval for ${invalidCompensation.dish.name} before checkout.`, 'secondary', 4800);
+      showToast(posText('completeApproval', { dish: invalidCompensation.dish.name }), 'secondary', 4800);
       return;
     }
 
     const hasCompensation = cartItems.some((item) => item.issueStatus !== 'normal' || item.compensationType !== 'none' || item.isComplimentary);
     if (hasCompensation && !canUseCompensation) {
-      showToast('Compensation is unavailable for this account or server. Review the order before checkout.', 'secondary');
+      showToast(posText('reviewCheckout'), 'secondary');
       return;
     }
     if (checkoutBusy) return;
@@ -686,7 +683,7 @@ const CashierPosPage: React.FC = () => {
       }
       const response = await quickPosCheckout(payload, checkoutAttempt.current.key);
       if (hasCompensation && response.compensation_version !== 1) {
-        throw new Error('The server did not confirm compensation. Check the sale before retrying.');
+        throw new Error(posText('serverNotConfirmed'));
       }
       const reference = response.order.invoice_number || response.order.order_number || 'POS';
       const settledTotal = String(response.order.invoice.total);
@@ -703,21 +700,22 @@ const CashierPosPage: React.FC = () => {
 
       setReportRefreshKey((current) => current + 1);
       clearOrder();
-      showToast(`Checkout complete: ${reference}. Paid ${formatPriceWithCurrency(Number(settledTotal), settledCurrency)}.`, 'secondary', 4500);
+      showToast(posText('checkoutComplete', { reference, amount: formatPriceWithCurrency(Number(settledTotal), settledCurrency) }), 'secondary', 4500);
     } catch (checkoutError: unknown) {
       const message = typeof checkoutError === 'object'
         && checkoutError !== null
         && 'response' in checkoutError
         && (checkoutError as { response?: { data?: { message?: string } } }).response?.data?.message
         ? (checkoutError as { response?: { data?: { message?: string } } }).response?.data?.message
-        : checkoutError instanceof Error ? checkoutError.message : 'POS checkout failed.';
+        : checkoutError instanceof Error ? checkoutError.message : posText('checkoutFailed');
 
-      showToast(message || 'POS checkout failed.', 'secondary', 4500);
+      showToast(message || posText('checkoutFailed'), 'secondary', 4500);
     } finally {
       setCheckoutBusy(false);
     }
   }, [
     actor,
+    posText,
     storageIdentity,
     cartItems,
     canUseCompensation,
@@ -767,12 +765,12 @@ const CashierPosPage: React.FC = () => {
       {loading ? (
         <div className="py-12 text-center text-muted">{t('cashierPosPage.loading')}</div>
       ) : error ? (
-        <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error}</div>
+        <div className="rounded-xl2 border border-spicy/40 bg-spicy/12 p-4 text-spicy">{error === 'loadFailed' ? posText('loadFailed') : error}</div>
       ) : (
         <div className="space-y-4">
           {!canUseCompensation ? (
-            <div className="rounded-xl2 border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-              {compensationAvailable ? t('cashierPosPage.readOnlyCompensation') : 'Compensation is unavailable for this account or server. Ordinary checkout is available.'}
+            <div className="rounded-xl2 border border-amber-500/40 bg-amber-400/10 px-4 py-3 text-sm text-text">
+              {compensationAvailable ? t('cashierPosPage.readOnlyCompensation') : posText('ordinaryCheckout')}
             </div>
           ) : null}
 
@@ -800,11 +798,11 @@ const CashierPosPage: React.FC = () => {
                       type="button"
                       onClick={() => setSelectedCategory(category)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${selectedCategory === category
-                        ? 'border-gold/60 bg-gold/20 text-gold2'
+                        ? 'border-gold/60 bg-gold/20 text-text'
                         : 'border-stroke bg-bg1/70 text-muted hover:border-gold/35 hover:text-text'
                         }`}
                     >
-                      {category}
+                      {category === 'All' ? posText('allCategories') : category}
                     </button>
                   ))}
                 </div>
@@ -828,7 +826,7 @@ const CashierPosPage: React.FC = () => {
                       <div className="flex items-center justify-between gap-3">
                         {/* <p className="text-sm text-muted">{dish.category}</p> */}
                         <h3 className="mt-1 text-base font-semibold text-text">{dish.name}</h3>
-                        <span className="shrink-0 text-lg font-semibold text-gold2">{toMoney(dish.price)}</span>
+                        <span className="shrink-0 text-lg font-semibold text-text">{toMoney(dish.price)}</span>
                       </div>
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
@@ -852,8 +850,8 @@ const CashierPosPage: React.FC = () => {
 
               <GlassCard>
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.heldOrders')}</h3>
-                  <span className="rounded-full border border-gold/35 bg-gold/10 px-2 py-1 text-xs text-gold2">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.heldOrders')}</h3>
+                  <span className="rounded-full border border-gold/35 bg-gold/10 px-2 py-1 text-xs text-text">
                     {heldOrders.length}
                   </span>
                 </div>
@@ -922,21 +920,21 @@ const CashierPosPage: React.FC = () => {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
-                              <p className={`truncate text-sm font-semibold ${isRed ? 'text-rose-200 line-through' : 'text-text'}`}>
+                              <p className={`truncate text-sm font-semibold ${isRed ? 'text-text line-through' : 'text-text'}`}>
                                 {item.dish.name}
                               </p>
                               <div className="mt-1 flex flex-wrap items-center gap-2">
-                                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted2">
-                                  {ISSUE_STATUS_LABELS[item.issueStatus]}
+                                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted">
+                                  {posText(`statuses.${item.issueStatus}`)}
                                 </span>
                                 {item.isComplimentary ? (
-                                  <span className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-emerald-100">
+                                  <span className="rounded-full border border-emerald-300/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-text">
                                     Complimentary
                                   </span>
                                 ) : null}
                                 {item.issueStatus === 'cancelled' ? (
-                                  <span className="rounded-full border border-rose-300/40 bg-rose-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-rose-100">
-                                    Cancelled
+                                  <span className="rounded-full border border-rose-300/40 bg-rose-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-text">
+                                    {posText('cancelled')}
                                   </span>
                                 ) : null}
                               </div>
@@ -945,19 +943,19 @@ const CashierPosPage: React.FC = () => {
                                 {item.finalUnitPrice !== item.originalUnitPrice ? ` → ${toMoney(item.finalUnitPrice)} ${t('cashierPosPage.each')}` : ''}
                               </p>
                               {item.complaintReason ? (
-                                <p className="mt-1 text-xs text-muted2">
-                                  {t('cashierPosPage.reason')}: {COMPLAINT_REASON_LABELS[item.complaintReason]}
+                                <p className="mt-1 text-xs text-muted">
+                                  {t('cashierPosPage.reason')}: {posText(`reasons.${item.complaintReason}`, { defaultValue: item.complaintReason })}
                                   {item.complaintNote ? ` • ${item.complaintNote}` : ''}
                                 </p>
                               ) : null}
                               {item.approvedBy?.name && item.approvedAt ? (
-                                <p className="mt-1 text-[11px] text-muted2">
+                                <p className="mt-1 text-[11px] text-muted">
                                   {t('cashierPosPage.approvedBy', { name: item.approvedBy.name, date: new Date(item.approvedAt).toLocaleString() })}
                                 </p>
                               ) : null}
                             </div>
                             <div className="shrink-0 text-right">
-                              <p className={`text-sm font-semibold ${isGreen ? 'text-emerald-200' : isRed ? 'text-rose-200' : 'text-gold2'}`}>
+                              <p className={`text-sm font-semibold ${isGreen ? 'text-text' : isRed ? 'text-text' : 'text-text'}`}>
                                 {toMoney(finalLineTotal)}
                               </p>
                               {finalLineTotal !== originalLineTotal ? (
@@ -998,7 +996,7 @@ const CashierPosPage: React.FC = () => {
                               <div className="grid gap-3">
                                 <div className="grid gap-2 md:grid-cols-2">
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.status')}</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.status')}</span>
                                     <select
                                       value={compDraft.status}
                                       onChange={(event) => {
@@ -1020,13 +1018,13 @@ const CashierPosPage: React.FC = () => {
                                       className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                                     >
                                       {(['normal', 'problematic', 'cancelled', 'compensated'] as OrderItemIssueStatus[]).map((status) => (
-                                        <option key={status} value={status}>{ISSUE_STATUS_LABELS[status]}</option>
+                                        <option key={status} value={status}>{posText(`statuses.${status}`)}</option>
                                       ))}
                                     </select>
                                   </label>
 
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.compensationType')}</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.compensationType')}</span>
                                     <select
                                       value={compDraft.compensationType}
                                       disabled={compDraft.status === 'normal'}
@@ -1041,7 +1039,7 @@ const CashierPosPage: React.FC = () => {
                                       className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45 disabled:opacity-60"
                                     >
                                       {(['none', 'full_waiver', 'partial_discount', 'complimentary'] as OrderItemCompensationType[]).map((type) => (
-                                        <option key={type} value={type}>{COMPENSATION_TYPE_LABELS[type]}</option>
+                                        <option key={type} value={type}>{posText(`types.${type}`)}</option>
                                       ))}
                                     </select>
                                   </label>
@@ -1049,7 +1047,7 @@ const CashierPosPage: React.FC = () => {
 
                                 <div className="grid gap-2 md:grid-cols-2">
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.reason')}</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.reason')}</span>
                                     <select
                                       value={compDraft.reason}
                                       onChange={(event) => {
@@ -1064,13 +1062,13 @@ const CashierPosPage: React.FC = () => {
                                     >
                                       <option value="">{t('cashierPosPage.selectReason')}</option>
                                       {COMPLAINT_REASON_OPTIONS.map((reasonOption) => (
-                                        <option key={reasonOption.value} value={reasonOption.value}>{reasonOption.label}</option>
+                                        <option key={reasonOption.value} value={reasonOption.value}>{posText(`reasons.${reasonOption.value}`)}</option>
                                       ))}
                                     </select>
                                   </label>
 
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.category')}</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.category')}</span>
                                     <select
                                       value={compDraft.category}
                                       onChange={(event) => setCompDraft((current) => ({ ...current, category: event.target.value as ComplaintCategory | '' }))}
@@ -1078,7 +1076,7 @@ const CashierPosPage: React.FC = () => {
                                     >
                                       <option value="">{t('cashierPosPage.autoFromReason')}</option>
                                       {(['quality_control', 'service', 'safety', 'other'] as ComplaintCategory[]).map((category) => (
-                                        <option key={category} value={category}>{COMPLAINT_CATEGORY_LABELS[category]}</option>
+                                        <option key={category} value={category}>{posText(`categories.${category}`)}</option>
                                       ))}
                                     </select>
                                   </label>
@@ -1086,7 +1084,7 @@ const CashierPosPage: React.FC = () => {
 
                                 {compDraft.compensationType === 'partial_discount' ? (
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.partialDiscount')}</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.partialDiscount')}</span>
                                     <input
                                       type="number"
                                       min="0"
@@ -1100,7 +1098,7 @@ const CashierPosPage: React.FC = () => {
                                 ) : null}
 
                                 <label className="block">
-                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">{t('cashierPosPage.accountingBucket')}</span>
+                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{t('cashierPosPage.accountingBucket')}</span>
                                   <select
                                     value={compDraft.accountingBucket}
                                     onChange={(event) => setCompDraft((current) => ({ ...current, accountingBucket: event.target.value as ComplaintAccountingBucket | '' }))}
@@ -1108,13 +1106,13 @@ const CashierPosPage: React.FC = () => {
                                   >
                                     <option value="">{t('cashierPosPage.autoBucket')}</option>
                                     {(['wastage', 'customer_complaint_loss', 'quality_control_loss', 'marketing_expense', 'customer_retention', 'goodwill_expense'] as ComplaintAccountingBucket[]).map((bucket) => (
-                                      <option key={bucket} value={bucket}>{COMPLAINT_ACCOUNTING_BUCKET_LABELS[bucket]}</option>
+                                      <option key={bucket} value={bucket}>{posText(`buckets.${bucket}`)}</option>
                                     ))}
                                   </select>
                                 </label>
 
                                 <label className="block">
-                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Note (optional)</span>
+                                  <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('noteOptional')}</span>
                                   <textarea
                                     value={compDraft.note}
                                     rows={2}
@@ -1125,7 +1123,7 @@ const CashierPosPage: React.FC = () => {
 
                                 <div className="grid gap-2 md:grid-cols-2">
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Photo evidence URL</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('photoEvidence')}</span>
                                     <input
                                       type="url"
                                       value={compDraft.evidencePhotoUrl}
@@ -1135,7 +1133,7 @@ const CashierPosPage: React.FC = () => {
                                     />
                                   </label>
                                   <label className="block">
-                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Satisfaction (1-5)</span>
+                                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('satisfaction')}</span>
                                     <input
                                       type="number"
                                       min="1"
@@ -1148,8 +1146,8 @@ const CashierPosPage: React.FC = () => {
                                 </div>
 
                                 {compDraft.reason ? (
-                                  <div className="rounded-xl border border-gold/20 bg-gold/10 px-3 py-2 text-xs text-gold2">
-                                    Suggestions: {getCompensationSuggestions(compDraft.reason).join(' • ')}
+                                  <div className="rounded-xl border border-gold/20 bg-gold/10 px-3 py-2 text-xs text-text">
+                                    {posText('suggestions', { suggestions: getCompensationSuggestions(compDraft.reason).map((suggestion) => posText(`suggestionLabels.${suggestion}`)).join(' • ') })}
                                   </div>
                                 ) : null}
 
@@ -1162,13 +1160,13 @@ const CashierPosPage: React.FC = () => {
                                     }}
                                     className="px-3 py-1.5 text-xs"
                                   >
-                                    Cancel
+                                    {posText('cancel')}
                                   </LiquidButton>
                                   <LiquidButton
                                     onClick={applyCompensation}
                                     className="px-3 py-1.5 text-xs"
                                   >
-                                    Save Compensation
+                                    {posText('saveCompensation')}
                                   </LiquidButton>
                                 </div>
                               </div>
@@ -1184,45 +1182,45 @@ const CashierPosPage: React.FC = () => {
               <GlassCard>
                 <div className="space-y-3">
                   <label className="block">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Table / Channel</span>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('tableChannel')}</span>
                     <select
                       value={tableReference}
                       onChange={(event) => setTableReference(event.target.value)}
                       className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                     >
                       {tableOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
+                        <option key={option} value={option}>{QUICK_TABLE_OPTIONS.includes(option) ? posText(`channels.${option}`) : option}</option>
                       ))}
                     </select>
                   </label>
 
                   <label className="block">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Note</span>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('note')}</span>
                     <textarea
                       value={orderNote}
                       onChange={(event) => setOrderNote(event.target.value)}
                       rows={2}
-                      placeholder="Optional note..."
+                      placeholder={posText('optionalNote')}
                       className="w-full rounded-2xl border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45"
                     />
                   </label>
 
                   <div className="grid grid-cols-2 gap-2">
                     <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Discount Type</span>
+                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('discountType')}</span>
                       <select
                         value={discountType}
                         disabled={!canManageCompensation}
                         onChange={(event) => setDiscountType(event.target.value as '' | 'fixed' | 'percentage')}
                         className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2.5 text-sm text-text outline-none focus:border-gold/45 disabled:opacity-60"
                       >
-                        <option value="">No Discount</option>
-                        <option value="fixed">Fixed</option>
-                        <option value="percentage">Percentage</option>
+                        <option value="">{posText('noDiscount')}</option>
+                        <option value="fixed">{posText('fixed')}</option>
+                        <option value="percentage">{posText('percentage')}</option>
                       </select>
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">Discount Value</span>
+                      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('discountValue')}</span>
                       <input
                         value={discountValue}
                         disabled={!canManageCompensation}
@@ -1236,7 +1234,7 @@ const CashierPosPage: React.FC = () => {
                   </div>
 
                   <label className="block">
-                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2">VAT %</span>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted">{posText('vatRate')}</span>
                     <input
                       value={vatRate}
                       disabled={!canManageCompensation}
@@ -1254,42 +1252,42 @@ const CashierPosPage: React.FC = () => {
               <GlassCard>
                 <div className="space-y-1 text-sm">
                   <div className="flex items-center justify-between text-muted">
-                    <span>Original Subtotal</span>
+                    <span>{posText('originalSubtotal')}</span>
                     <span>{toMoney(originalSubtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between font-medium text-spicy">
-                    <span>Compensation (Complaints/Gifts)</span>
+                    <span>{posText('compensation')}</span>
                     <span>- {toMoney(compensationCost)}</span>
                   </div>
                   <div className="flex items-center justify-between text-muted">
-                    <span>Adjusted Subtotal</span>
+                    <span>{posText('adjustedSubtotal')}</span>
                     <span>{toMoney(adjustedSubtotal)}</span>
                   </div>
                   <div className="flex items-center justify-between text-muted">
-                    <span>Discount</span>
+                    <span>{posText('discount')}</span>
                     <span>- {toMoney(discountAmount)}</span>
                   </div>
                   <div className="flex items-center justify-between text-muted">
-                    <span>VAT</span>
+                    <span>{posText('vat')}</span>
                     <span>{toMoney(vatAmount)}</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t border-stroke pt-2 text-base font-semibold text-text">
-                    <span>Total</span>
+                    <span>{posText('total')}</span>
                     <span>{toMoney(total)}</span>
                   </div>
                 </div>
 
                 {lastCheckout ? (
                   <p role="status" className="mt-3 text-sm text-text">
-                    Last checkout: {lastCheckout.reference} · Paid {formatPriceWithCurrency(Number(lastCheckout.total), normalizeCurrency(lastCheckout.currency))}
+                    {posText('lastCheckout', { reference: lastCheckout.reference, amount: formatPriceWithCurrency(Number(lastCheckout.total), normalizeCurrency(lastCheckout.currency)) })}
                   </p>
                 ) : null}
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <LiquidButton tone="tertiary" onClick={holdCurrentOrder} disabled={checkoutBusy || cartItems.length === 0}>
-                    Hold (F4)
+                    {posText('hold')}
                   </LiquidButton>
                   <LiquidButton onClick={() => void checkout()} disabled={checkoutBusy || cartItems.length === 0}>
-                    {checkoutBusy ? 'Processing...' : 'Checkout (Ctrl+Enter)'}
+                    {checkoutBusy ? posText('processing') : posText('checkout')}
                   </LiquidButton>
                 </div>
               </GlassCard>
@@ -1298,32 +1296,32 @@ const CashierPosPage: React.FC = () => {
 
           <GlassCard>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-text">Post-sale complaint / gift</h3>
-              <p className="text-sm text-muted">Find the settled POS sale, record the complaint and submit any refund or catalog gift for approval.</p>
+              <h3 className="text-lg font-semibold text-text">{posText('postSale')}</h3>
+              <p className="text-sm text-muted">{posText('postSaleHelp')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <input value={completedSaleQuery} onChange={(event) => setCompletedSaleQuery(event.target.value)} placeholder="Invoice or order number" className="min-w-56 flex-1 rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
-              <LiquidButton tone="tertiary" onClick={() => void searchCompletedSales()} disabled={postSaleBusy}>Find sale</LiquidButton>
+              <input value={completedSaleQuery} onChange={(event) => setCompletedSaleQuery(event.target.value)} aria-label={posText('saleQuery')} placeholder={posText('saleQuery')} className="min-w-56 flex-1 rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+              <LiquidButton tone="tertiary" onClick={() => void searchCompletedSales()} disabled={postSaleBusy}>{posText('findSale')}</LiquidButton>
             </div>
             {completedSales.length > 0 ? <div className="mt-3 space-y-2">{completedSales.map((sale) => (
               <button key={sale.id} type="button" onClick={() => selectCompletedSale(sale)} className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-sm ${selectedCompletedSale?.id === sale.id ? 'border-gold/60 bg-gold/10' : 'border-stroke bg-bg1/50'}`}>
-                <span>{sale.invoice_number || sale.order_number} · {sale.items.length} item(s)</span><span>{toMoney(Number(sale.total))}</span>
+                <span>{sale.invoice_number || sale.order_number} · {posText('itemCount', { count: sale.items.length })}</span><span>{toMoney(Number(sale.total))}</span>
               </button>
             ))}</div> : null}
             {selectedCompletedSale ? <div className="mt-4 grid gap-3 rounded-2xl border border-stroke bg-bg1/50 p-4 lg:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-text">Affected items</p>
+                <p className="text-sm font-semibold text-text">{posText('affectedItems')}</p>
                 {selectedCompletedSale.items.map((item) => <label key={item.id} className="flex items-center justify-between gap-2 text-sm text-text"><span><input type="checkbox" checked={complaintItemIds.includes(item.id)} onChange={() => setComplaintItemIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} className="mr-2" />{item.dish_name} × {item.quantity}</span><span>{toMoney(Number(item.line_total))}</span></label>)}
-                <input value={postSaleComplaintReason} onChange={(event) => setPostSaleComplaintReason(event.target.value)} placeholder="Complaint reason" className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
-                <textarea value={postSaleComplaintNote} onChange={(event) => setPostSaleComplaintNote(event.target.value)} placeholder="Notes and resolution details" rows={2} className="w-full rounded-xl border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted2">Cash refund<input value={postSaleRefund} onChange={(event) => setPostSaleRefund(event.target.value)} type="number" min="0" max={selectedCompletedSale.total} step="0.01" className="mt-1 w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" /></label>
+                <input value={postSaleComplaintReason} onChange={(event) => setPostSaleComplaintReason(event.target.value)} aria-label={posText('complaintReason')} placeholder={posText('complaintReason')} className="w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+                <textarea value={postSaleComplaintNote} onChange={(event) => setPostSaleComplaintNote(event.target.value)} aria-label={posText('resolutionNotes')} placeholder={posText('resolutionNotes')} rows={2} className="w-full rounded-xl border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" />
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted">{posText('cashRefund')}<input value={postSaleRefund} onChange={(event) => setPostSaleRefund(event.target.value)} type="number" min="0" max={selectedCompletedSale.total} step="0.01" className="mt-1 w-full rounded-full border border-stroke bg-bg1 px-4 py-2 text-sm text-text outline-none focus:border-gold/45" /></label>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-text">Catalog gift / replacement</p>
-                <div className="flex gap-2"><select value={giftDishId} onChange={(event) => setGiftDishId(event.target.value)} className="min-w-0 flex-1 rounded-full border border-stroke bg-bg1 px-3 py-2 text-sm text-text"><option value="">Select dish</option>{dishes.filter((dish) => dish.is_orderable !== false && !dish.is_out_of_stock).map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}</select><input value={giftQuantity} onChange={(event) => setGiftQuantity(event.target.value)} type="number" min="1" className="w-16 rounded-full border border-stroke bg-bg1 px-2 py-2 text-sm text-text" /><LiquidButton tone="tertiary" className="px-3" onClick={() => { const dish = dishes.find((row) => row.id === Number(giftDishId)); const quantity = Math.max(1, Math.floor(Number(giftQuantity) || 1)); if (dish) setPostSaleGifts((current) => [...current, { dish_id: dish.id, quantity, name: dish.name }]); }}>Add</LiquidButton></div>
-                {postSaleGifts.map((gift, index) => <div key={`${gift.dish_id}-${index}`} className="flex items-center justify-between rounded-xl border border-stroke px-3 py-2 text-sm text-text"><span>{gift.name} × {gift.quantity}</span><button type="button" onClick={() => setPostSaleGifts((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-spicy">Remove</button></div>)}
-                <LiquidButton onClick={() => void submitPostSaleComplaint()} disabled={postSaleBusy}>Submit complaint adjustment</LiquidButton>
-                {pendingAdjustment ? <div className="rounded-xl border border-gold/35 bg-gold/10 p-3 text-sm text-text"><p>Adjustment #{pendingAdjustment.id}: {pendingAdjustment.status}</p>{canApprovePostSaleComplaint && pendingAdjustment.status !== 'posted' ? <LiquidButton className="mt-2 px-3 py-1.5 text-xs" onClick={() => void postSavedComplaintAdjustment()} disabled={postSaleBusy}>Approve & post</LiquidButton> : null}</div> : null}
+                <p className="text-sm font-semibold text-text">{posText('catalogGift')}</p>
+                <div className="flex gap-2"><select aria-label={posText('selectDish')} value={giftDishId} onChange={(event) => setGiftDishId(event.target.value)} className="min-w-0 flex-1 rounded-full border border-stroke bg-bg1 px-3 py-2 text-sm text-text"><option value="">{posText('selectDish')}</option>{dishes.filter((dish) => dish.is_orderable !== false && !dish.is_out_of_stock).map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}</select><input aria-label={posText('giftQuantity')} value={giftQuantity} onChange={(event) => setGiftQuantity(event.target.value)} type="number" min="1" className="w-16 rounded-full border border-stroke bg-bg1 px-2 py-2 text-sm text-text" /><LiquidButton tone="tertiary" className="px-3" onClick={() => { const dish = dishes.find((row) => row.id === Number(giftDishId)); const quantity = Math.max(1, Math.floor(Number(giftQuantity) || 1)); if (dish) setPostSaleGifts((current) => [...current, { dish_id: dish.id, quantity, name: dish.name }]); }}>{posText('add')}</LiquidButton></div>
+                {postSaleGifts.map((gift, index) => <div key={`${gift.dish_id}-${index}`} className="flex items-center justify-between rounded-xl border border-stroke px-3 py-2 text-sm text-text"><span>{gift.name} × {gift.quantity}</span><button type="button" onClick={() => setPostSaleGifts((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-spicy">{posText('remove')}</button></div>)}
+                <LiquidButton onClick={() => void submitPostSaleComplaint()} disabled={postSaleBusy}>{posText('submitComplaint')}</LiquidButton>
+                {pendingAdjustment ? <div className="rounded-xl border border-gold/35 bg-gold/10 p-3 text-sm text-text"><p>{posText('adjustment', { id: pendingAdjustment.id, status: posText(`adjustmentStatuses.${pendingAdjustment.status}`) })}</p>{canApprovePostSaleComplaint && pendingAdjustment.status !== 'posted' ? <LiquidButton className="mt-2 px-3 py-1.5 text-xs" onClick={() => void postSavedComplaintAdjustment()} disabled={postSaleBusy}>{posText('approvePost')}</LiquidButton> : null}</div> : null}
               </div>
             </div> : null}
           </GlassCard>
@@ -1331,63 +1329,63 @@ const CashierPosPage: React.FC = () => {
           <GlassCard>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-lg font-semibold text-text">Complaint & Compensation Dashboard</h3>
-                <p className="text-sm text-muted">Finalized server records. Waived menu revenue excludes VAT, service charges and order discounts; refunds use the posted amount. Gift value is catalog value, not inventory cost.</p>
+                <h3 className="text-lg font-semibold text-text">{posText('reportTitle')}</h3>
+                <p className="text-sm text-muted">{posText('reportHelp')}</p>
               </div>
               <LiquidButton tone="tertiary" className="px-3 py-1.5 text-xs" onClick={() => setReportRefreshKey((current) => current + 1)}>
-                Refresh Report
+                {posText('refreshReport')}
               </LiquidButton>
             </div>
 
             <div className="mb-3 flex flex-wrap gap-3">
-              <label>From<input aria-label="Report from" type="date" value={reportDateFrom} onChange={(event) => setReportDateFrom(event.target.value)} className="block bg-bg1 text-text" /></label>
-              <label>Through<input aria-label="Report through" type="date" value={reportDateTo} onChange={(event) => setReportDateTo(event.target.value)} className="block bg-bg1 text-text" /></label>
-              <label>Currency<select aria-label="Report currency" value={reportCurrency} onChange={(event) => setReportCurrency(event.target.value)} className="block bg-bg1 text-text">{Array.from(new Set([currency, ...Object.keys(serverReport?.totals_by_currency || {})])).map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
-              <p className="text-sm text-muted">Dates use {reportTimezone}.</p>
+              <label>{posText('from')}<input aria-label={posText('reportFrom')} type="date" value={reportDateFrom} onChange={(event) => setReportDateFrom(event.target.value)} className="block bg-bg1 text-text" /></label>
+              <label>{posText('through')}<input aria-label={posText('reportThrough')} type="date" value={reportDateTo} onChange={(event) => setReportDateTo(event.target.value)} className="block bg-bg1 text-text" /></label>
+              <label>{posText('currency')}<select aria-label={posText('reportCurrency')} value={reportCurrency} onChange={(event) => setReportCurrency(event.target.value)} className="block bg-bg1 text-text">{Array.from(new Set([currency, ...Object.keys(serverReport?.totals_by_currency || {})])).map((code) => <option key={code} value={code}>{code}</option>)}</select></label>
+              <p className="text-sm text-muted">{posText('datesUse', { timezone: reportTimezone })}</p>
             </div>
-            {!serverReport && <p aria-live="polite" className="mb-3 text-sm text-muted">{reportError ? 'Report unavailable. Check access or dates and use Refresh Report to retry.' : 'Loading finalized report…'}</p>}
+            {!serverReport && <p aria-live="polite" className="mb-3 text-sm text-muted">{reportError ? posText('reportUnavailable') : posText('loadingReport')}</p>}
             <div className="grid gap-3 sm:grid-cols-3" aria-busy={!serverReport && !reportError}>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Waived Revenue</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('waivedRevenue')}</p>
                 <p className="mt-1 text-lg font-semibold text-text">{reportAmount('waived_revenue')}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Refunded Revenue</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('refundedRevenue')}</p>
                 <p className="mt-1 text-lg font-semibold text-spicy">{reportAmount('refunded_revenue')}</p>
               </div>
               <div className="rounded-2xl border border-stroke bg-bg1/60 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Gift Catalog Value</p>
-                <p className="mt-1 text-lg font-semibold text-emerald-200">{reportAmount('gift_catalog_value')}</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('giftValue')}</p>
+                <p className="mt-1 text-lg font-semibold text-text">{reportAmount('gift_catalog_value')}</p>
               </div>
             </div>
 
             <details className="mt-3 text-sm text-muted">
-              <summary>Local audit activity (drafts are excluded from financial totals)</summary>
-              {readCompensationAuditLogs().slice(0, 10).map((log) => <p key={log.id}>{log.phase || 'legacy audit'}: {log.message}</p>)}
+              <summary>{posText('localAudit')}</summary>
+              {readCompensationAuditLogs().slice(0, 10).map((log) => <p key={log.id}>{posText(`auditPhases.${log.phase || 'legacy'}`)}: {log.message}</p>)}
             </details>
             <div className="mt-4 grid gap-4 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Most Cancelled Dishes</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('cancelledDishes')}</p>
                 <div className="mt-2 space-y-2 text-sm">
                   {compensationReport.most_cancelled_dishes.length === 0 ? (
-                    <p className="text-muted">No cancelled items yet.</p>
+                    <p className="text-muted">{posText('noCancelled')}</p>
                   ) : compensationReport.most_cancelled_dishes.map((dish) => (
                     <div key={dish.dish_name} className="flex items-center justify-between text-text">
                       <span>{dish.dish_name}</span>
-                      <span className="text-rose-200">{dish.count}</span>
+                      <span className="text-text">{dish.count}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Most Common Reasons</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('commonReasons')}</p>
                 <div className="mt-2 space-y-2 text-sm">
                   {compensationReport.most_common_reasons.length === 0 ? (
-                    <p className="text-muted">No complaint reasons yet.</p>
+                    <p className="text-muted">{posText('noReasons')}</p>
                   ) : compensationReport.most_common_reasons.map((reason) => (
                     <div key={reason.reason} className="flex items-center justify-between text-text">
-                      <span>{COMPLAINT_REASON_LABELS[reason.reason as ComplaintReasonCode] || reason.reason}</span>
+                      <span>{posText(`reasons.${reason.reason as ComplaintReasonCode}`, { defaultValue: reason.reason as ComplaintReasonCode })}</span>
                       <span>{reason.count}</span>
                     </div>
                   ))}
@@ -1395,13 +1393,13 @@ const CashierPosPage: React.FC = () => {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-                <p className="text-xs uppercase tracking-[0.13em] text-muted2">Staff Approvals</p>
+                <p className="text-xs uppercase tracking-[0.13em] text-muted">{posText('staffApprovals')}</p>
                 <div className="mt-2 space-y-2 text-sm">
                   {compensationReport.staff_approvals.length === 0 ? (
-                    <p className="text-muted">No approvals yet.</p>
+                    <p className="text-muted">{posText('noApprovals')}</p>
                   ) : compensationReport.staff_approvals.slice(0, 6).map((approval) => (
                     <div key={`${approval.staff_name}-${approval.role}`} className="flex items-center justify-between text-text">
-                      <span>{approval.staff_name} ({approval.role})</span>
+                      <span>{approval.staff_name} ({posText(`roles.${approval.role}`, { defaultValue: approval.role })})</span>
                       <span>{approval.approvals}</span>
                     </div>
                   ))}
