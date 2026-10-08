@@ -417,3 +417,15 @@ TASK 10 — COMPLETE LOCAL PERFORMANCE / ACCESSIBILITY / ARABIC / DOCUMENTATION
   Changes remain uncommitted on both dedicated task branches. No push, merge,
   deployment, production access, data rewrite or new commit performed. No later
   task selected; ready for local review, with release approval/gates still separate.
+
+
+TASK 10 — USER-AUTHORIZED LOCAL COMMIT / MAIN INTEGRATION (8 October 2026)
+  Source commits: API b3da486688d819c189de2dd141b3524afbd45f5b;
+  frontend b6edaeb18e190c27ebef65b61a716e02bcb587e3. User explicitly authorized
+  add, commit and merge into local main after completed Task 10 verification.
+  Both integrations use no-ff from fix/task-10-performance-accessibility-arabic,
+  preserving all previous history. Tested source hashes and 131 earlier files
+  reverified before committing; no application/test behavior changed afterward.
+  Integration record: task-10-2026-10-08/git-integration.json. Older uncommitted/
+  no-merge notes describe the implementation run and are superseded here.
+  No push or deployment authorized/performed; hosted CI remains NOT EXECUTED.

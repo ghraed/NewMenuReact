@@ -209,3 +209,11 @@ LIMITS / ROLLOUT / ROLLBACK
   Ready for local review/integration: yes, Task 10 acceptance verified. There is no
   later roadmap task selected. Release approval remains separate until the listed
   hosted/deployment/image/physical/field gates are verified on authorized infrastructure.
+
+USER-AUTHORIZED LOCAL INTEGRATION — 8 October 2026
+  Task 10 completion/source preservation reverified before staging.
+  Source commits: Menu_API b3da486688d819c189de2dd141b3524afbd45f5b;
+  Menu_React b6edaeb18e190c27ebef65b61a716e02bcb587e3.
+  User authorized local add/commit/no-ff merge into main. The implementation-run
+  uncommitted/no-merge statements above are historical and superseded here.
+  See git-integration.json. No push/deployment; hosted CI still unexecuted.
