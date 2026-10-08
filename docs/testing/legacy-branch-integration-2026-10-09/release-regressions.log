@@ -1,0 +1,8 @@
+test_docker_context_excludes_secret_variants_and_cached_configuration (test_release_config.ReleaseConfigTest.test_docker_context_excludes_secret_variants_and_cached_configuration) ... ok
+test_docker_recipe_installs_browser_and_arabic_fonts (test_release_config.ReleaseConfigTest.test_docker_recipe_installs_browser_and_arabic_fonts) ... ok
+test_entrypoint_requires_runtime_key_without_creating_or_rotating_one (test_release_config.ReleaseConfigTest.test_entrypoint_requires_runtime_key_without_creating_or_rotating_one) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.257s
+
+OK

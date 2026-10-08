@@ -1,0 +1,63 @@
+{
+  "Menu_React": {
+    "main_merge": "20faf972353646c9ba7c771450b0717c57c2f042",
+    "integration": "c8da545835e30de360f5bce797b13128b371abb9",
+    "backup": "444c97583aebd3ea29003e007610169703465ae1",
+    "old_branches_in_main": {
+      "add_auth": "b189253989b6c91fcabf7ac29b1192058b159c6b",
+      "animated_dish": "6e3cc303071ee9e465e14e0553128c72623e403e",
+      "black_design": "136a3605d3ec36861ad5f88a39e889532c94ead5",
+      "feat/task-8-real-lifecycle-operational-staging": "678736989a9dce0b3609a2e7ced73df627d0e4fd",
+      "fix/task-1-browser-tenant-isolation": "b51d18e94a709daca7de92d559b1c196826c0e10",
+      "fix/task-10-performance-accessibility-arabic": "b25280ddc5c8d3c0c54900cd610eee3db85a2784",
+      "fix/task-2-cumulative-refund-safety": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+      "fix/task-3-server-pos-compensation": "ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba",
+      "fix/task-4-authoritative-compensation-reporting": "29f37271e65a6b1a053619309d8a1ebff349a429",
+      "fix/task-5-restaurant-active-policy": "e2ecb9cdc34be18f437eff6284f337b085e7366f",
+      "fix/task-6-safe-release-image-pdf": "2800071ce33beff8e24714e7b9d89456712cc78d",
+      "fix/task-7-dependency-security-formatting": "6065c67a92dfc6548520bcb716a2e924fd53b79e",
+      "fix/task-9-concurrency-offline-membership": "6031f2c512d62db63a9ec8bc4e9b6ff74c27d218",
+      "hardening-dependencies": "b8b227edab6b62f2c9bfcaa1fe841573469f6cb6",
+      "hardening-e2e": "debac87ff25674aec3760e39becbb310e3ecbf7c",
+      "hardening-finance": "705423ff6eaaace23895b93f3450298547defb20",
+      "hardening-rel": "1add1f27b53a887e16fd00402daa26c93acb865e",
+      "new_colors": "23342c19f5ea3d72a38de1c0fce0fdebedda9565",
+      "new_colors_1": "91defa04981f78be7afd1430b57da4dd6e2847b1",
+      "qa-integration-20260831": "debac87ff25674aec3760e39becbb310e3ecbf7c",
+      "qa/task-0-repeatable-baseline": "a91b1d03679c2f283fb87d730a7fb73789cd2316",
+      "shared_database": "7deb9199b31b4f4a4552122423634a88bad67c34"
+    },
+    "source_hashes_match": true,
+    "previous_history_preserved": true
+  },
+  "Menu_API": {
+    "main_merge": "f7079d481f238feba48ab356143078fcf6c4021c",
+    "integration": "6cd70ab6281c77b87f3f3a44b1640eb57a2fa665",
+    "backup": "d95dff07b2a506ade5326914c0e994c166aa9a82",
+    "old_branches_in_main": {
+      "add_auth": "160195d825ec8adc796bc69c9d671ae58a4f5705",
+      "animated_dish": "8f6d54d1a26d9e4a2c508e1e2e57d70e30b41ef2",
+      "feat/task-8-real-lifecycle-operational-staging": "750bb4096616109e73ae097854badd76b4674c1d",
+      "fix/task-1-browser-tenant-isolation": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+      "fix/task-10-performance-accessibility-arabic": "b3da486688d819c189de2dd141b3524afbd45f5b",
+      "fix/task-2-cumulative-refund-safety": "6484a65c2e5304e8058445c40702c1f04feb9790",
+      "fix/task-3-server-pos-compensation": "d6388a65eb35e59165534d5e173456cdbd311764",
+      "fix/task-4-authoritative-compensation-reporting": "29944c8beb17ebd6d1b12d011eef219507c9f8ce",
+      "fix/task-5-restaurant-active-policy": "9e870ef8696cef4c9eaea81b3c090b12e4a7c9df",
+      "fix/task-6-safe-release-image-pdf": "09cd8ccc7afd832bacb44a88af64881a1107a933",
+      "fix/task-7-dependency-security-formatting": "87ae4b12c1b3911056aaabd38d9a0e02beab9637",
+      "fix/task-9-concurrency-offline-membership": "3ba558048c43ed4439586db5c4a8572218d29a74",
+      "hardening-dependencies": "28909357091a7afbd9e9f6c2ee27035d8986cf0a",
+      "hardening-e2e": "f0eb6498e2a9214cd2362cbb894a969863750eb1",
+      "hardening-finance": "7abb1e66516eced5a5e4c133b9d9ee50ea061817",
+      "hardening-rel": "c626b75b3bb60f9570d141ce78f969a21f4bd2be",
+      "hardening-security": "90eec803369869a01413549fec2e72b3b3bcf88d",
+      "hardening-style": "70ce5c03a06adfb732e7886fab56311be511ee40",
+      "qa-integration-20260831": "f0eb6498e2a9214cd2362cbb894a969863750eb1",
+      "qa/task-0-repeatable-baseline": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+      "shared_database": "f5acc800ecbccd039b3f066eeab30d29c3ca7781"
+    },
+    "source_hashes_match": true,
+    "previous_history_preserved": true
+  }
+}
