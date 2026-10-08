@@ -41,7 +41,7 @@ export const buildGuestInvoicePayload = (input: {
   t: (key: string, options?: Record<string, unknown>) => string;
 }): PrintableInvoicePayload => {
   const grouped = new Map<string, PrintableInvoicePayload['items'][number]>();
-  const currency = normalizeCurrency(input.orders[0]?.restaurant.currency);
+  const currency = normalizeCurrency(input.orders[0]?.invoice.currency || input.orders[0]?.restaurant.currency);
   const money = (value: number): string => formatPriceWithCurrency(value, currency);
 
   input.orders.forEach((order) => {
