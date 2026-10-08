@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-08",
+  "timezone": "Asia/Beirut",
+  "scope": "User-requested local add, commit and merge; no push or deployment",
+  "task_branch": "feat/task-8-real-lifecycle-operational-staging",
+  "target_branch": "main",
+  "source_commits": {
+    "Menu_API": "750bb4096616109e73ae097854badd76b4674c1d",
+    "Menu_React": "5c3d65c0513bb8d90d9b191362fc9a657aa66634"
+  },
+  "merge_method": "git merge --no-ff --no-edit feat/task-8-real-lifecycle-operational-staging",
+  "validation": "Committed runtime sources match tested-source-sha256.json; prior full/focused required checks PASS",
+  "hosted_Task8_execution": "NOT EXECUTED; release validation remains pending after paired publishing"
+}

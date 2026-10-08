@@ -18,5 +18,14 @@
   "branch_protection": "Applied and read back on both main branches; strict and admins enforced",
   "hosted_Task8_execution": "NOT EXECUTED; local integration authorized on 2026-10-08, no push/deployment",
   "owned_cleanup": "PASS; final/focused runtimes removed",
-  "local_integration_record": "git-integration.json"
+  "local_integration_record": "git-integration.json",
+  "local_integration": {
+    "date": "2026-10-08",
+    "source_commits": {
+      "Menu_API": "750bb4096616109e73ae097854badd76b4674c1d",
+      "Menu_React": "5c3d65c0513bb8d90d9b191362fc9a657aa66634"
+    },
+    "target": "main",
+    "scope": "local only"
+  }
 }
