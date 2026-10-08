@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="159" failures="0" errors="0" time="10.82246269">
+    <testsuite name="tests/unit/adminEventsPage.test.tsx" timestamp="2026-10-08T21:21:35.596Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.656865584">
+        <testcase classname="tests/unit/adminEventsPage.test.tsx" name="AdminEventsPage &gt; creates a new event from form inputs" time="0.300753319">
+        </testcase>
+        <testcase classname="tests/unit/adminEventsPage.test.tsx" name="AdminEventsPage &gt; saves planned menu using only restaurant dish options" time="0.120963069">
+        </testcase>
+        <testcase classname="tests/unit/adminEventsPage.test.tsx" name="AdminEventsPage &gt; lets the user add a dish from search and set its quantity inside the category group" time="0.230973069">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminFinanceDashboardPage.test.tsx" timestamp="2026-10-08T21:21:35.597Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="1.036478406">
+        <testcase classname="tests/unit/adminFinanceDashboardPage.test.tsx" name="AdminFinanceDashboardPage &gt; builds dashboard totals from paginated fixtures using independent expected arithmetic" time="0.257001448">
+        </testcase>
+        <testcase classname="tests/unit/adminFinanceDashboardPage.test.tsx" name="AdminFinanceDashboardPage &gt; passes active filters through to invoice and expense fetches without hidden defaults" time="0.361879347">
+        </testcase>
+        <testcase classname="tests/unit/adminFinanceDashboardPage.test.tsx" name="AdminFinanceDashboardPage &gt; attributes mirrored paid payroll by expense date without leaking it into the paid-at month" time="0.414482165">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminFinanceExpensesPage.test.tsx" timestamp="2026-10-08T21:21:35.598Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="1.445015112">
+        <testcase classname="tests/unit/adminFinanceExpensesPage.test.tsx" name="AdminFinanceExpensesPage &gt; renders independently derived totals and pagination from the loaded expense records" time="0.147257539">
+        </testcase>
+        <testcase classname="tests/unit/adminFinanceExpensesPage.test.tsx" name="AdminFinanceExpensesPage &gt; validates paid date rules and submits a decimal create payload in cents" time="0.963549482">
+        </testcase>
+        <testcase classname="tests/unit/adminFinanceExpensesPage.test.tsx" name="AdminFinanceExpensesPage &gt; updates an existing expense in cents and can create categories and vendors" time="0.331822774">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminPayrollManagementPage.test.tsx" timestamp="2026-10-08T21:21:35.598Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.842587139">
+        <testcase classname="tests/unit/adminPayrollManagementPage.test.tsx" name="AdminPayrollManagementPage &gt; creates payroll period and saves entries in cents payload" time="0.506453138">
+        </testcase>
+        <testcase classname="tests/unit/adminPayrollManagementPage.test.tsx" name="AdminPayrollManagementPage &gt; updates selected payroll period status" time="0.110406021">
+        </testcase>
+        <testcase classname="tests/unit/adminPayrollManagementPage.test.tsx" name="AdminPayrollManagementPage &gt; blocks saving entries when net pay would be negative" time="0.222501884">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminRoomPlansPage.test.tsx" timestamp="2026-10-08T21:21:35.598Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.435449055">
+        <testcase classname="tests/unit/adminRoomPlansPage.test.tsx" name="AdminRoomPlansPage &gt; saves a room layout and reloads the persisted plan state when reopened" time="0.431994923">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminStaffSchedulingPage.test.tsx" timestamp="2026-10-08T21:21:35.599Z" hostname="Rozer" tests="2" failures="0" errors="0" skipped="0" time="0.45673199">
+        <testcase classname="tests/unit/adminStaffSchedulingPage.test.tsx" name="AdminStaffSchedulingPage &gt; creates shifts with selected employee and updates shift status" time="0.240081524">
+        </testcase>
+        <testcase classname="tests/unit/adminStaffSchedulingPage.test.tsx" name="AdminStaffSchedulingPage &gt; blocks create when end time is before start time" time="0.214346221">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/adminUserProfilePage.test.tsx" timestamp="2026-10-08T21:21:35.599Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.257167131">
+        <testcase classname="tests/unit/adminUserProfilePage.test.tsx" name="AdminUserProfilePage &gt; saves name and phone with the registered PATCH endpoint" time="0.14820718">
+        </testcase>
+        <testcase classname="tests/unit/adminUserProfilePage.test.tsx" name="AdminUserProfilePage &gt; preserves password whitespace and clears password inputs after success" time="0.040381442">
+        </testcase>
+        <testcase classname="tests/unit/adminUserProfilePage.test.tsx" name="AdminUserProfilePage &gt; retains form values and displays validation failure without refreshing or using PUT" time="0.043752089">
+        </testcase>
+        <testcase classname="tests/unit/adminUserProfilePage.test.tsx" name="AdminUserProfilePage &gt; blocks mismatched password confirmation before sending an update" time="0.020665471">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/authTenantIsolation.test.tsx" timestamp="2026-10-08T21:21:35.599Z" hostname="Rozer" tests="9" failures="0" errors="0" skipped="0" time="0.307322471">
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; keeps guest work available during unresolved staff auth and preserves its in-memory state across account changes" time="0.113073447">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; isolates ledger, printable invoice and in-memory held work across A -&gt; logout -&gt; B -&gt; A" time="0.037496132">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; quarantines legacy financial history without assigning it to unresolved or first authenticated tenants" time="0.014265384">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; fails closed on failed login and a user with no restaurant identity" time="0.025437481">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; does not resurrect A when its delayed /me returns after logout and B login" time="0.035997289">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; ignores a delayed successful A login after B has already logged in" time="0.014363782">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; invalidates A immediately and leaves a new B session intact when A logout returns late" time="0.023858288">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; withholds protected descendants during cross-tab identity resolution" time="0.023110109">
+        </testcase>
+        <testcase classname="tests/unit/authTenantIsolation.test.tsx" name="actual auth provider and protected persistence &gt; fails closed immediately when a cookie identity changes without a revision event" time="0.016396743">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/billAdjustments.test.ts" timestamp="2026-10-08T21:21:35.600Z" hostname="Rozer" tests="2" failures="0" errors="0" skipped="0" time="0.007129029">
+        <testcase classname="tests/unit/billAdjustments.test.ts" name="bill adjustments &gt; persists partial discount type and value fields" time="0.004742292">
+        </testcase>
+        <testcase classname="tests/unit/billAdjustments.test.ts" name="bill adjustments &gt; falls back to table local-only gifts when included order references do not match" time="0.000817055">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/browserCredentialStorage.test.tsx" timestamp="2026-10-08T21:21:35.600Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.159607248">
+        <testcase classname="tests/unit/browserCredentialStorage.test.tsx" name="browser credential persistence &gt; keeps restaurant and owner sessions across refresh via cookies without localStorage bearer tokens" time="0.115977854">
+        </testcase>
+        <testcase classname="tests/unit/browserCredentialStorage.test.tsx" name="browser credential persistence &gt; persists cart data without the guest bearer credential" time="0.012774582">
+        </testcase>
+        <testcase classname="tests/unit/browserCredentialStorage.test.tsx" name="browser credential persistence &gt; does not claim logout while the HttpOnly credential may still be live" time="0.028027155">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/cashierPosPage.test.tsx" timestamp="2026-10-08T21:21:35.600Z" hostname="Rozer" tests="11" failures="0" errors="0" skipped="0" time="1.7034693">
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; does not show out-of-stock dishes in POS catalog" time="0.238533577">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; disables Hold and Checkout when the order is empty" time="0.075875177">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; does not show payment method controls" time="0.081318021">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; confirms before holding an in-progress order to resume a held order" time="0.20130742">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; sends compensation intent and displays the server confirmed payable total" time="0.185558577">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; fails closed on an old server while ordinary checkout remains available" time="0.09308669">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; retains rejected compensation and reuses the attempt key on an unchanged retry" time="0.277191044">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; rounds a half cent retained unit price before multiplying quantity" time="0.261193072">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; uses server financial facts and never promotes local draft edits into report totals" time="0.187659647">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; shows unavailable values on report failure and retries without falling back to browser events" time="0.074330258">
+        </testcase>
+        <testcase classname="tests/unit/cashierPosPage.test.tsx" name="CashierPosPage &gt; discards a report response if another tab replaces the authenticated session token" time="0.024175708">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/chatbotRecommendations.test.ts" timestamp="2026-10-08T21:21:35.601Z" hostname="Rozer" tests="10" failures="0" errors="0" skipped="0" time="0.02212155">
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; prefers profitable dishes for category requests" time="0.002842238">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; matches a generic category term across sibling categories" time="0.000711091">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; prefers profitable related dishes for direct dish questions" time="0.011015829">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; falls back to other related dishes before same-category profitable dishes" time="0.001240852">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; falls back to same-category profitable dishes when no related dishes exist" time="0.000533091">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; falls back to standard same-category dishes when no profitable fallback exists" time="0.001089562">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; uses profitable dishes for broad recommendation requests" time="0.000431225">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; excludes out-of-stock and non-orderable dishes from recommendation pools" time="0.000836996">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; does not re-suggest the asked dish itself" time="0.000707625">
+        </testcase>
+        <testcase classname="tests/unit/chatbotRecommendations.test.ts" name="chatbot recommendations &gt; detects when the backend already explicitly recommends the same dish" time="0.000778068">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/complaintCompensationService.test.ts" timestamp="2026-10-08T21:21:35.602Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.007353382">
+        <testcase classname="tests/unit/complaintCompensationService.test.ts" name="complaint compensation reporting &gt; aggregates cancelled dishes and complaint reasons" time="0.004041802">
+        </testcase>
+        <testcase classname="tests/unit/complaintCompensationService.test.ts" name="complaint compensation reporting &gt; returns zeroed metrics when no records exist" time="0.000684627">
+        </testcase>
+        <testcase classname="tests/unit/complaintCompensationService.test.ts" name="financial event identity &gt; excludes provisional edits and counts repeated finalized identities once" time="0.00032247">
+        </testcase>
+        <testcase classname="tests/unit/complaintCompensationService.test.ts" name="buckets offset timestamps by the report local date including local Monday" time="0.000502886">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/createDishPage.test.tsx" timestamp="2026-10-08T21:21:35.602Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.712026986">
+        <testcase classname="tests/unit/createDishPage.test.tsx" name="CreateDishPage preview upload &gt; submits the preview in one create request and navigates after success" time="0.233446556">
+        </testcase>
+        <testcase classname="tests/unit/createDishPage.test.tsx" name="CreateDishPage preview upload &gt; retains the form after preview failure and retries the complete create request" time="0.190362286">
+        </testcase>
+        <testcase classname="tests/unit/createDishPage.test.tsx" name="CreateDishPage preview upload &gt; stays on the form after server validation fails without creating an asset separately" time="0.172525274">
+        </testcase>
+        <testcase classname="tests/unit/createDishPage.test.tsx" name="CreateDishPage preview upload &gt; includes the selected serving temperature in packaged-drink creation" time="0.1123881">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/currency.test.ts" timestamp="2026-10-08T21:21:35.602Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.022264353">
+        <testcase classname="tests/unit/currency.test.ts" name="currency utils &gt; normalizes known aliases and defaults unknown values to USD" time="0.002006387">
+        </testcase>
+        <testcase classname="tests/unit/currency.test.ts" name="currency utils &gt; formats USD with leading symbol and non-USD with trailing symbol" time="0.017760902">
+        </testcase>
+        <testcase classname="tests/unit/currency.test.ts" name="currency utils &gt; converts prices to and from USD using a valid rate" time="0.0003838">
+        </testcase>
+        <testcase classname="tests/unit/currency.test.ts" name="currency utils &gt; falls back safely when rate is invalid" time="0.000371248">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/dishFormProductStock.test.tsx" timestamp="2026-10-08T21:21:35.603Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.442734076">
+        <testcase classname="tests/unit/dishFormProductStock.test.tsx" name="packaged product editing &gt; allows temperature edits with own stock quantity 10 and no ingredient link" time="0.23796298">
+        </testcase>
+        <testcase classname="tests/unit/dishFormProductStock.test.tsx" name="packaged product editing &gt; allows temperature edits with own stock quantity 0 and no ingredient link" time="0.102988004">
+        </testcase>
+        <testcase classname="tests/unit/dishFormProductStock.test.tsx" name="packaged product editing &gt; allows an inventory-linked product without its own stock quantity" time="0.055844266">
+        </testcase>
+        <testcase classname="tests/unit/dishFormProductStock.test.tsx" name="packaged product editing &gt; keeps save disabled when neither stock source is provided" time="0.041720646">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/financeMath.regression.test.ts" timestamp="2026-10-08T21:21:35.603Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.00445303">
+        <testcase classname="tests/unit/financeMath.regression.test.ts" name="financeMath regression fixtures &gt; matches locked calculation snapshots for known scenarios" time="0.003393052">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/financeMath.test.ts" timestamp="2026-10-08T21:21:35.603Z" hostname="Rozer" tests="8" failures="0" errors="0" skipped="0" time="0.025920824">
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; numeric normalization &gt; parses only finite numbers" time="0.002096872">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; numeric normalization &gt; converts money values to cents with proper rounding" time="0.00040401">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; invoice preview math &gt; calculates fixed discount then VAT" time="0.000416848">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; invoice preview math &gt; caps percentage discount at 100%" time="0.000408885">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; invoice preview math &gt; caps fixed discount at subtotal" time="0.000210496">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; invoice preview math &gt; clamps invalid and negative input values" time="0.000259376">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; invoice preview math &gt; keeps accounting invariants across combinations" time="0.019531251">
+        </testcase>
+        <testcase classname="tests/unit/financeMath.test.ts" name="financeMath &gt; cash settlement &gt; computes change and remaining due only for cash payments" time="0.000401868">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/financeReporting.test.ts" timestamp="2026-10-08T21:21:35.604Z" hostname="Rozer" tests="5" failures="0" errors="0" skipped="0" time="0.003639019">
+        <testcase classname="tests/unit/financeReporting.test.ts" name="financeReporting utilities &gt; prefers major unit field when both major and cents exist" time="0.001138239">
+        </testcase>
+        <testcase classname="tests/unit/financeReporting.test.ts" name="financeReporting utilities &gt; falls back to cents and converts to major units" time="0.000196384">
+        </testcase>
+        <testcase classname="tests/unit/financeReporting.test.ts" name="financeReporting utilities &gt; accepts numeric strings and returns zero for invalid inputs" time="0.000221763">
+        </testcase>
+        <testcase classname="tests/unit/financeReporting.test.ts" name="financeReporting utilities &gt; validates date range boundaries" time="0.000391349">
+        </testcase>
+        <testcase classname="tests/unit/financeReporting.test.ts" name="financeReporting utilities &gt; builds a stable csv report payload" time="0.00059843">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/guestDishCard.test.tsx" timestamp="2026-10-08T21:21:35.604Z" hostname="Rozer" tests="2" failures="0" errors="0" skipped="0" time="0.248629325">
+        <testcase classname="tests/unit/guestDishCard.test.tsx" name="DishCard &gt; renders fallback visuals for missing images and shows out-of-stock state" time="0.203058147">
+        </testcase>
+        <testcase classname="tests/unit/guestDishCard.test.tsx" name="DishCard &gt; renders add-to-cart controls for available dishes" time="0.042319703">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/guestInvoicePayload.test.ts" timestamp="2026-10-08T21:21:35.605Z" hostname="Rozer" tests="10" failures="0" errors="0" skipped="0" time="0.165644197">
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; keeps the table invoice total even when split item lines are zeroed out" time="0.00911599">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses USD currency metadata and formatting in guest and print payloads" time="0.047933896">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses LBP currency metadata and formatting in guest and print payloads" time="0.010895358">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses SYP currency metadata and formatting in guest and print payloads" time="0.0078358">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses SAR currency metadata and formatting in guest and print payloads" time="0.010193641">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses AED currency metadata and formatting in guest and print payloads" time="0.009836902">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses EUR currency metadata and formatting in guest and print payloads" time="0.013570515">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; uses QAR currency metadata and formatting in guest and print payloads" time="0.026041904">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; renders every visible total component including the service charge so rows reconcile exactly" time="0.021315891">
+        </testcase>
+        <testcase classname="tests/unit/guestInvoicePayload.test.ts" name="guest invoice payload &gt; prints the settled currency snapshot after restaurant settings change" time="0.001031456">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/guestOrderCompensation.test.ts" timestamp="2026-10-08T21:21:35.605Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.004448474">
+        <testcase classname="tests/unit/guestOrderCompensation.test.ts" name="guest order compensation &gt; recalculates item and invoice totals from saved 100% partial discounts" time="0.002669966">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/guestOrderSubmissionReliability.test.ts" timestamp="2026-10-08T21:21:35.605Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.005168399">
+        <testcase classname="tests/unit/guestOrderSubmissionReliability.test.ts" name="guest order submission idempotency &gt; keeps one key across double-click, timeout, dropped response, and identical retry" time="0.002480426">
+        </testcase>
+        <testcase classname="tests/unit/guestOrderSubmissionReliability.test.ts" name="guest order submission idempotency &gt; creates a new key only when the logical request changes" time="0.000723822">
+        </testcase>
+        <testcase classname="tests/unit/guestOrderSubmissionReliability.test.ts" name="guest order submission idempotency &gt; reuses the unresolved key after a dropped response and full page reload" time="0.000679015">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/invoicePreviewCompensation.test.ts" timestamp="2026-10-08T21:21:35.606Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.00591854">
+        <testcase classname="tests/unit/invoicePreviewCompensation.test.ts" name="invoice preview compensation &gt; applies persisted issue adjustments even when preview items do not include order_item_id" time="0.003109823">
+        </testcase>
+        <testcase classname="tests/unit/invoicePreviewCompensation.test.ts" name="invoice preview compensation &gt; includes local-only gifts when present for the table invoice" time="0.000642192">
+        </testcase>
+        <testcase classname="tests/unit/invoicePreviewCompensation.test.ts" name="invoice preview compensation &gt; recalculates the summary from adjusted line totals" time="0.000353515">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/offlineQueue.test.ts" timestamp="2026-10-08T21:21:35.606Z" hostname="Rozer" tests="8" failures="0" errors="0" skipped="0" time="0.119938764">
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; counts a persisted in-flight order after a reload as pending" time="0.001807206">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; automatically replays an interrupted order with its original idempotency key" time="0.003145312">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; allows manual recovery of an interrupted order" time="0.001039617">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; shares an active attempt between simultaneous replay and manual sync" time="0.053225466">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; retains the order and idempotency key after a retryable network error" time="0.001402471">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; serializes attempts from separate tabs with the same browser lock" time="0.054552472">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; keeps expired-session failures out of automatic replay" time="0.000932708">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueue.test.ts" name="interrupted offline guest orders &gt; does not replay review-required, completed, or empty orders" time="0.000465064">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/offlineQueueReliability.test.ts" timestamp="2026-10-08T21:21:35.607Z" hostname="Rozer" tests="5" failures="0" errors="0" skipped="0" time="0.015360326">
+        <testcase classname="tests/unit/offlineQueueReliability.test.ts" name="offline queue recovery and multi-tab claiming &gt; recovers an expired syncing lease but leaves an active lease alone" time="0.005109581">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueueReliability.test.ts" name="offline queue recovery and multi-tab claiming &gt; allows two tabs to race while issuing only one waiter mutation" time="0.00240648">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueueReliability.test.ts" name="offline queue recovery and multi-tab claiming &gt; renews the database claim while a waiter request runs beyond the original lease" time="0.003004322">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueueReliability.test.ts" name="offline queue recovery and multi-tab claiming &gt; queues an offline guest order without persisting its bearer credential" time="0.001404907">
+        </testcase>
+        <testcase classname="tests/unit/offlineQueueReliability.test.ts" name="offline queue recovery and multi-tab claiming &gt; persists one waiter idempotency key and uses the atomic update-confirm endpoint" time="0.001546434">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/orderHistoryPages.test.tsx" timestamp="2026-10-08T21:21:35.607Z" hostname="Rozer" tests="7" failures="0" errors="0" skipped="0" time="0.38189878">
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; shows settled orders as paid without requiring finance reporting" time="0.214339557">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; surfaces history failures rather than showing incomplete queue fallbacks" time="0.033228664">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; passes the selected date range to history reads" time="0.04762167">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; staff reads today with a timezone and counts settled orders as paid" time="0.034837997">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; loads settled or historical details directly by ID" time="0.023443741">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; does not interpret partial numeric IDs as valid order IDs" time="0.01219541">
+        </testcase>
+        <testcase classname="tests/unit/orderHistoryPages.test.tsx" name="order history pages &gt; shows a readable not-found message without exposing backend model names" time="0.013129038">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/protectedBrowserStorage.test.ts" timestamp="2026-10-08T21:21:35.608Z" hostname="Rozer" tests="6" failures="0" errors="0" skipped="0" time="0.014323205">
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; isolates financial/audit/table data by restaurant and private print data by account" time="0.006159083">
+        </testcase>
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; blocks writes from stale callbacks including a previous login of the same account" time="0.000606844">
+        </testcase>
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; fails closed immediately when another tab replaces the token before the storage event is processed" time="0.000493128">
+        </testcase>
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; never guesses ownership of old staff queues; supports only the same restaurant AND user" time="0.000525288">
+        </testcase>
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; keeps guest invoice and table caches separate by tenant, table and access credential" time="0.000875789">
+        </testcase>
+        <testcase classname="tests/unit/protectedBrowserStorage.test.ts" name="tenant and account ownership of persisted work &gt; retains exact legacy bytes on quota failure and preserves separate quarantine snapshots" time="0.003885323">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/publicMenuRoutes.test.tsx" timestamp="2026-10-08T21:21:35.608Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.687554568">
+        <testcase classname="tests/unit/publicMenuRoutes.test.tsx" name="Public menu routes &gt; filters the public menu and switches between LTR and RTL without console errors" time="0.568439959">
+        </testcase>
+        <testcase classname="tests/unit/publicMenuRoutes.test.tsx" name="Public menu routes &gt; supports direct dish URLs with Arabic and English content" time="0.065450081">
+        </testcase>
+        <testcase classname="tests/unit/publicMenuRoutes.test.tsx" name="Public menu routes &gt; shows the empty-menu state without console errors" time="0.050399265">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/qaSafety.test.ts" timestamp="2026-10-08T21:21:35.608Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.017263075">
+        <testcase classname="tests/unit/qaSafety.test.ts" name="browser QA target guard &gt; accepts explicit disposable targets" time="0.008786874">
+        </testcase>
+        <testcase classname="tests/unit/qaSafety.test.ts" name="browser QA target guard &gt; rejects remote URLs, credentials and URL paths in PLAYWRIGHT_BASE_URL" time="0.000716693">
+        </testcase>
+        <testcase classname="tests/unit/qaSafety.test.ts" name="browser QA target guard &gt; rejects remote URLs, credentials and URL paths in QA_API_URL" time="0.000436732">
+        </testcase>
+        <testcase classname="tests/unit/qaSafety.test.ts" name="browser QA target guard &gt; rejects missing identity, normal databases, remote DBs and mismatched run ownership" time="0.004574769">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/reservationsPage.test.tsx" timestamp="2026-10-08T21:21:35.609Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.397716198">
+        <testcase classname="tests/unit/reservationsPage.test.tsx" name="ReservationsPage &gt; blocks unavailable table selection and submits selected available table" time="0.394637415">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/roomPlanEdgeOverlay.test.ts" timestamp="2026-10-08T21:21:35.609Z" hostname="Rozer" tests="4" failures="0" errors="0" skipped="0" time="0.003155081">
+        <testcase classname="tests/unit/roomPlanEdgeOverlay.test.ts" name="room plan edge overlay utils &gt; detects pixel edges using right and bottom differences" time="0.001225335">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanEdgeOverlay.test.ts" name="room plan edge overlay utils &gt; converts border points into snap points with tangents" time="0.000376366">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanEdgeOverlay.test.ts" name="room plan edge overlay utils &gt; builds dense snap points for segments" time="0.000263751">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanEdgeOverlay.test.ts" name="room plan edge overlay utils &gt; parses JSON content with BOM marker" time="0.000236158">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/roomPlanGeometry.test.ts" timestamp="2026-10-08T21:21:35.609Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.024052026">
+        <testcase classname="tests/unit/roomPlanGeometry.test.ts" name="room plan geometry contour extraction &gt; selects the largest closed interior contour over outer frame" time="0.017107137">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanGeometry.test.ts" name="room plan geometry contour extraction &gt; produces tangent angle changes on curved contour segments" time="0.002927625">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanGeometry.test.ts" name="room plan geometry contour extraction &gt; falls back to generic stroke sampling when no closed contour exists" time="0.00235632">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/roomPlanUtils.test.ts" timestamp="2026-10-08T21:21:35.609Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.005562505">
+        <testcase classname="tests/unit/roomPlanUtils.test.ts" name="room plan utils &gt; clamps item coordinates and dimensions inside room bounds" time="0.00236554">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanUtils.test.ts" name="room plan utils &gt; returns visual colors by availability status" time="0.000387937">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanUtils.test.ts" name="room plan utils &gt; creates 15-minute time slots" time="0.001098085">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/roomPlanWindowSnap.test.ts" timestamp="2026-10-08T21:21:35.610Z" hostname="Rozer" tests="5" failures="0" errors="0" skipped="0" time="0.006783805">
+        <testcase classname="tests/unit/roomPlanWindowSnap.test.ts" name="room plan window snapping &gt; samples rectangle border points with tangent angles" time="0.002399371">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanWindowSnap.test.ts" name="room plan window snapping &gt; snaps a window to top border and applies tangent rotation" time="0.001222324">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanWindowSnap.test.ts" name="room plan window snapping &gt; snaps to right border and rotates to vertical tangent during drag" time="0.000688798">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanWindowSnap.test.ts" name="room plan window snapping &gt; uses preferred index stickiness to reduce drag jitter" time="0.000368412">
+        </testcase>
+        <testcase classname="tests/unit/roomPlanWindowSnap.test.ts" name="room plan window snapping &gt; falls back to clamped behavior when no border points are available" time="0.000312886">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/serviceWorkerPrivacy.test.ts" timestamp="2026-10-08T21:21:35.610Z" hostname="Rozer" tests="2" failures="0" errors="0" skipped="0" time="0.006535462">
+        <testcase classname="tests/unit/serviceWorkerPrivacy.test.ts" name="shipped service worker privacy boundaries &gt; does not share table session responses between guest tokens at the same URL" time="0.003539013">
+        </testcase>
+        <testcase classname="tests/unit/serviceWorkerPrivacy.test.ts" name="shipped service worker privacy boundaries &gt; bypasses authenticated catalog requests while keeping public slug catalogs cacheable" time="0.001420631">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/task10LoginAccessibility.test.tsx" timestamp="2026-10-08T21:21:35.610Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.142524732">
+        <testcase classname="tests/unit/task10LoginAccessibility.test.tsx" name="login keyboard and error semantics &gt; keeps decoration outside the tab sequence and associates failed login with fields" time="0.138945897">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/task10PosLocalization.test.ts" timestamp="2026-10-08T21:21:35.610Z" hostname="Rozer" tests="1" failures="0" errors="0" skipped="0" time="0.018395113">
+        <testcase classname="tests/unit/task10PosLocalization.test.ts" name="POS localization &gt; resolves Arabic complaint/report controls and interpolates timezone and settlement" time="0.009762464">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/unit/whatsapp.test.ts" timestamp="2026-10-08T21:21:35.610Z" hostname="Rozer" tests="3" failures="0" errors="0" skipped="0" time="0.00325443">
+        <testcase classname="tests/unit/whatsapp.test.ts" name="WhatsApp sharing helpers &gt; normalizes an international phone number" time="0.001238025">
+        </testcase>
+        <testcase classname="tests/unit/whatsapp.test.ts" name="WhatsApp sharing helpers &gt; rejects phone numbers outside the WhatsApp length range" time="0.000332664">
+        </testcase>
+        <testcase classname="tests/unit/whatsapp.test.ts" name="WhatsApp sharing helpers &gt; builds an encoded wa.me URL" time="0.000207229">
+        </testcase>
+    </testsuite>
+</testsuites>

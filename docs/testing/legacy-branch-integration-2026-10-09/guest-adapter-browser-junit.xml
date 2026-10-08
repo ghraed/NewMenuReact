@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="15.860039">
+<testsuite name="guest-order-lifecycle.spec.ts" timestamp="2026-10-08T21:39:38.561Z" hostname="chromium" tests="1" failures="0" skipped="0" time="15.164" errors="0">
+<testcase name="Guest order lifecycle › guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state" classname="guest-order-lifecycle.spec.ts" time="15.164">
+</testcase>
+</testsuite>
+</testsuites>

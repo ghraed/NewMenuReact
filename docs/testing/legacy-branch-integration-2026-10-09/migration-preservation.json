@@ -1,0 +1,15 @@
+{
+  "Menu_React": {
+    "previous_migrations_unchanged": true,
+    "added_migrations": []
+  },
+  "Menu_API": {
+    "previous_migrations_unchanged": true,
+    "added_migrations": [
+      "database/migrations/2026_08_31_000000_create_guest_order_idempotencies_table.php",
+      "database/migrations/2026_08_31_000100_create_staff_mutation_idempotencies_table.php",
+      "database/migrations/2026_08_31_000200_create_order_alert_outboxes_table.php",
+      "database/migrations/2026_08_31_000300_add_recipient_state_to_order_alert_outboxes.php"
+    ]
+  }
+}

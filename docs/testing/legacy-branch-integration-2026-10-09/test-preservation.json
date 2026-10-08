@@ -1,0 +1,35 @@
+{
+  "Menu_React": {
+    "baseline_file_count": 65,
+    "missing": [],
+    "adapted_or_extended": [
+      "tests/e2e/compensation-report.spec.ts",
+      "tests/e2e/guest-order-lifecycle.spec.ts",
+      "tests/e2e/tenant-browser-isolation.spec.ts",
+      "tests/unit/guestInvoicePayload.test.ts",
+      "tests/unit/adminFinanceDashboardPage.test.tsx",
+      "tests/unit/authTenantIsolation.test.tsx"
+    ]
+  },
+  "Menu_API": {
+    "baseline_file_count": 73,
+    "missing": [],
+    "adapted_or_extended": [
+      "tests/Feature/OrderWorkflowTest.php",
+      "tests/Feature/PreviewImageAssetUploadTest.php",
+      "tests/Feature/TableSessionSecurityTest.php",
+      "tests/Feature/TenantDomainRoutingTest.php",
+      "tests/Feature/WaveWorkflowTest.php",
+      "tests/Feature/AssetFileControllerTest.php",
+      "tests/Feature/AssetReplacementSafetyTest.php",
+      "tests/Feature/AuthSecurityTest.php",
+      "tests/Feature/CopyDishModelTest.php",
+      "tests/Feature/DishCreationSafetyTest.php",
+      "tests/Feature/IngredientImageAssetTest.php",
+      "tests/Feature/NotificationDeliveryServicesTest.php",
+      "tests/Feature/Concerns/BuildsRestaurantOrderFlow.php",
+      "tests/Feature/Finance/InvoiceManagementApiTest.php",
+      "tests/Feature/Finance/InvoicePdfDownloadTest.php"
+    ]
+  }
+}

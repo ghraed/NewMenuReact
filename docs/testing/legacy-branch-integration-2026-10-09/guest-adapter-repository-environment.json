@@ -1,0 +1,19 @@
+{
+  "run_id": "legacy_guest_adapter_20261009",
+  "api": {
+    "branch": "integration/legacy-branches-20261008",
+    "commit": "6cd70ab6281c77b87f3f3a44b1640eb57a2fa665",
+    "working_tree": ""
+  },
+  "react": {
+    "branch": "integration/legacy-branches-20261008",
+    "commit": "c2557489f8a0e8fff08500f5babd6f257521300d",
+    "working_tree": "M docs/operations.md\n M tests/e2e/compensation-report.spec.ts\n M tests/e2e/guest-order-lifecycle.spec.ts\n?? docs/testing/legacy-branch-integration-2026-10-09.txt\n?? docs/testing/legacy-branch-integration-2026-10-09/"
+  },
+  "api_url": "http://127.0.0.1:52687",
+  "frontend_url": "http://127.0.0.1:47387",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 54683,
+  "runtime": "/tmp/menu-qa-h7nb4_n5"
+}
