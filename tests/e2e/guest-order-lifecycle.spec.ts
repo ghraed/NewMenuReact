@@ -1,18 +1,25 @@
+import { createHash } from 'node:crypto';
 import { expect, test } from '../setup/qaBrowser';
 
 test.describe('Guest order lifecycle', () => {
   test('guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state', async ({ page }) => {
     const browserErrors: string[] = [];
     const guestToken = 'guest-token-abc';
+    const guestCacheKey = createHash('sha256').update(guestToken).digest('hex');
     const sessionId = 501;
+    const guestCookieName = `guest_table_access_${sessionId}`;
     const tableId = 1;
     const createdAt = '2026-07-26T12:05:00.000Z';
     let submittedOrderId = 0;
     let submittedQuantity = 0;
     let lastIdempotencyKey: string | null = null;
+    const exposedGuestAccessHeaders: string[] = [];
+    const unhandledRoutes: string[] = [];
+    const loggedOutBootstrapRoutes: string[] = [];
 
     page.on('console', (message) => {
       if (message.type() === 'error') {
+        if (/Failed to load resource:.*status of 401/i.test(message.text())) return;
         browserErrors.push(message.text());
       }
     });
@@ -45,7 +52,20 @@ test.describe('Guest order lifecycle', () => {
       const url = new URL(request.url());
       const path = url.pathname;
       const guestAccessToken = request.headers()['x-guest-access-token'];
-      const isUnlocked = guestAccessToken === guestToken;
+      if (guestAccessToken) exposedGuestAccessHeaders.push(guestAccessToken);
+      const isUnlocked = (request.headers().cookie || '').split(';').some((cookie) => (
+        cookie.trim() === `${guestCookieName}=${guestToken}`
+      ));
+
+      if (request.method() === 'GET' && ['/api/auth/me', '/api/super-admin/auth/me'].includes(path)) {
+        loggedOutBootstrapRoutes.push(path);
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Unauthenticated.' }),
+        });
+        return;
+      }
 
       const tableMenuPayload = {
         restaurant: {
@@ -94,7 +114,8 @@ test.describe('Guest order lifecycle', () => {
         guest_access: isUnlocked
           ? {
             verified: true,
-            token: guestToken,
+            token: null,
+            cache_key: guestCacheKey,
             joined_at: '2026-07-26T12:01:00.000Z',
             last_seen_at: '2026-07-26T12:04:00.000Z',
             expires_at: null,
@@ -206,6 +227,9 @@ test.describe('Guest order lifecycle', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: {
+            'Set-Cookie': `${guestCookieName}=${guestToken}; Path=/api; HttpOnly; SameSite=Strict`,
+          },
           body: JSON.stringify({
             message: 'Ordering unlocked for this table.',
             restaurant: tableMenuPayload.restaurant,
@@ -213,7 +237,8 @@ test.describe('Guest order lifecycle', () => {
             table_session: tableMenuPayload.table_session,
             guest_access: {
               verified: true,
-              token: guestToken,
+              token: null,
+              cache_key: guestCacheKey,
               joined_at: '2026-07-26T12:01:00.000Z',
               last_seen_at: '2026-07-26T12:04:00.000Z',
               expires_at: null,
@@ -370,7 +395,8 @@ test.describe('Guest order lifecycle', () => {
             table_session: tableMenuPayload.table_session,
             guest_access: {
               verified: true,
-              token: guestToken,
+              token: null,
+              cache_key: guestCacheKey,
               joined_at: '2026-07-26T12:01:00.000Z',
               last_seen_at: '2026-07-26T12:04:00.000Z',
               expires_at: null,
@@ -389,6 +415,7 @@ test.describe('Guest order lifecycle', () => {
         return;
       }
 
+      unhandledRoutes.push(`${request.method()} ${path}`);
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
@@ -402,7 +429,26 @@ test.describe('Guest order lifecycle', () => {
     await expect(page.getByText('Unlock ordering for this table')).toBeVisible();
 
     await page.getByPlaceholder('0000').fill('2468');
+    const unlockResponsePromise = page.waitForResponse((response) => (
+      response.url().endsWith(`/api/menu/table/${tableId}/verify-pin`)
+      && response.request().method() === 'POST'
+    ));
     await page.getByRole('button', { name: 'Unlock Ordering' }).click();
+    const unlockPayload = await (await unlockResponsePromise).json() as {
+      guest_access: { token: string | null };
+    };
+    expect(unlockPayload.guest_access.token).toBeNull();
+
+    const browserCredentialState = await page.evaluate((secret) => ({
+      documentCookie: document.cookie,
+      deprecatedGuestToken: window.localStorage.getItem('guest_access_token'),
+      persistedCart: window.localStorage.getItem('guest_order_cart_state') || '',
+      secret,
+    }), guestToken);
+    expect(browserCredentialState.documentCookie).not.toContain(guestCookieName);
+    expect(browserCredentialState.documentCookie).not.toContain(browserCredentialState.secret);
+    expect(browserCredentialState.deprecatedGuestToken).toBeNull();
+    expect(browserCredentialState.persistedCart).not.toContain(browserCredentialState.secret);
 
     await expect(page.getByText('Protected actions are ready')).toBeVisible();
     await page.getByRole('button', { name: 'Add to Cart', exact: true }).first().click();
@@ -429,6 +475,9 @@ test.describe('Guest order lifecycle', () => {
     await expect(page.getByText('staff confirmed')).toBeVisible();
     await expect(page.getByText('Mixed Grill Plate')).toBeVisible();
     await expect(page.getByText('$37.50').first()).toBeVisible();
+    expect(exposedGuestAccessHeaders).toEqual([]);
+    expect(unhandledRoutes).toEqual([]);
+    expect(new Set(loggedOutBootstrapRoutes)).toEqual(new Set(['/api/auth/me', '/api/super-admin/auth/me']));
     expect(browserErrors).toEqual([]);
   });
 });

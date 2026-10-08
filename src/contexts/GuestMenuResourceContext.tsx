@@ -73,6 +73,8 @@ const toErrorMessage = (error: unknown): string => {
 
 const buildQueryKey = (query: GuestMenuQuery): string | null => {
   const language = (query.language || '').trim() || 'default';
+  // Cookie cache revisions are opaque and credential-free. Distinguish actual
+  // guest scopes instead of collapsing every verified guest to one memory key.
   const token = query.guestAccessToken || 'no-token';
   const includeDishes = query.includeDishes || 'all';
   const limit = typeof query.limit === 'number' ? query.limit : 'na';
@@ -284,7 +286,6 @@ export const GuestMenuResourceProvider: React.FC<{ children: React.ReactNode }> 
           void putGuestMenuCache({
             key,
             tableId: query.tableId,
-            guestAccessToken: query.guestAccessToken,
             language: query.language || 'default',
             updatedAt: nextEntry.lastLoadedAt ?? Date.now(),
             payload: {

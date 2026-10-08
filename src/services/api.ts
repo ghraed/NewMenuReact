@@ -1,3 +1,5 @@
+import { getVerifiedBrowserIdentity } from './protectedBrowserStorage';
+import { readAuthSessionIdentity } from './browserAuthSession';
 import axios from 'axios';
 import { getStoredLanguage } from '../i18n/language';
 
@@ -42,6 +44,7 @@ export const getApiBase = (): string => {
 };
 
 const api = axios.create({
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -49,13 +52,21 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   config.baseURL = getApiBase();
-  const token = localStorage.getItem('admin_auth_token');
   const language = getStoredLanguage();
 
   config.headers = config.headers || {};
 
-  if (token && !config.headers.Authorization) {
-    config.headers.Authorization = `Bearer ${token}`;
+  config.headers['X-Rozer-Auth-Mode'] = 'cookie-v1';
+  const path = (config.url || '').replace(/^\/api/, '');
+  const authRequest = /^\/auth\//.test(path);
+  const publicRequest = /^\/(menu(?:\/|$)|table-session(?:\/|$)|reservations(?:\/|$)|assets(?:\/|$)|chat(?:\/|$)|ai-chat(?:\/|$)|analytics(?:\/|$)|__qa(?:\/|$))/.test(path);
+  const identity = authRequest ? readAuthSessionIdentity() : getVerifiedBrowserIdentity();
+  if (!authRequest && !publicRequest && !identity && !config.headers.Authorization) {
+    throw new Error('Resolve the current browser session before accessing protected data.');
+  }
+  if (identity && !publicRequest && !config.headers.Authorization) {
+    config.headers['X-Rozer-Expected-User'] = String(identity.userId);
+    config.headers['X-Rozer-Expected-Restaurant'] = String(identity.restaurantId);
   }
 
   config.headers['Accept-Language'] = language;

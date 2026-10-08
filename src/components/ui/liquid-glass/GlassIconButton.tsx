@@ -1,11 +1,12 @@
 import React from 'react';
-import { cx, focusRing, glassControl, glassControlHover, glassInteractive } from '../../../theme/liquidGlass';
+import { cx, focusRing, glassControl, glassControlHover, glassInteractive, primaryTone, secondaryTone, tertiaryTone } from '../../../theme/liquidGlass';
 
 interface GlassIconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   modern?: boolean;
+  tone?: 'primary' | 'secondary' | 'tertiary';
 }
 
-const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, ...props }) => {
+const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, tone, ...props }) => {
   return (
     <button
       className={cx(
@@ -14,6 +15,7 @@ const GlassIconButton: React.FC<GlassIconButtonProps> = ({ className, children, 
         glassControlHover,
         glassInteractive,
         focusRing,
+        tone && { primary: primaryTone, secondary: secondaryTone, tertiary: tertiaryTone }[tone],
         className
       )}
       {...props}

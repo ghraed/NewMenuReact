@@ -3,6 +3,7 @@ import { cx, focusRing, glassControl, glassControlHover, glassInteractive } from
 
 interface GlassPillProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   modern?: boolean;
+  noShadow?: boolean;
   active?: boolean;
   soft?: boolean;
 }
@@ -12,6 +13,7 @@ const GlassPill: React.FC<GlassPillProps> = ({
   children,
   active = false,
   soft = false,
+  noShadow = false,
   ...props
 }) => {
   return (
@@ -24,6 +26,7 @@ const GlassPill: React.FC<GlassPillProps> = ({
         glassInteractive,
         focusRing,
         active && '!border-gold/65 !bg-gold/22 !text-text enabled:hover:!border-gold enabled:hover:!bg-gold/26',
+        noShadow && '!shadow-none hover:!shadow-none !filter-none',
         className
       )}
       {...props}

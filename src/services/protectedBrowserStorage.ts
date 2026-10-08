@@ -3,6 +3,7 @@ import type { AuthUserSummary } from '../types';
 export interface BrowserIdentity { readonly restaurantId: number; readonly userId: number }
 let identity: BrowserIdentity | null = null;
 let verifiedToken: string | null = null;
+let verifiedStorageKey = 'admin_auth_token';
 
 const validId = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
 const legacyKeys = ['pos_compensation_ledger_v1', 'pos_compensation_audit_v1', 'bill_item_adjustments_v1', 'printable_invoice_payload'];
@@ -27,7 +28,7 @@ export function quarantineLegacyProtectedStorage(): void {
   }
 }
 
-export function setVerifiedBrowserIdentity(user: AuthUserSummary | null, token: string | null): void {
+export function setVerifiedBrowserIdentity(user: AuthUserSummary | null, token: string | null, storageKey = 'admin_auth_token'): void {
   if (!token || !validId(user?.id) || !validId(user?.restaurant?.id)) {
     identity = null;
     verifiedToken = null;
@@ -37,12 +38,18 @@ export function setVerifiedBrowserIdentity(user: AuthUserSummary | null, token: 
     identity = Object.freeze({ userId: user.id, restaurantId: user.restaurant.id });
   }
   verifiedToken = token;
+  verifiedStorageKey = storageKey;
 }
 
 export function getVerifiedBrowserIdentity(): BrowserIdentity | null {
   if (typeof window === 'undefined') return null;
   try {
-    return verifiedToken && localStorage.getItem('admin_auth_token') === verifiedToken ? identity : null;
+    if (!identity || !verifiedToken || localStorage.getItem(verifiedStorageKey) !== verifiedToken) return null;
+    if (verifiedStorageKey === 'admin_auth_session') {
+      const expected = JSON.parse(localStorage.getItem('admin_auth_identity') || 'null');
+      if (!expected || expected.pending || expected.signedOut || expected.userId !== identity?.userId || expected.restaurantId !== identity.restaurantId) return null;
+    }
+    return identity;
   } catch {
     return null;
   }

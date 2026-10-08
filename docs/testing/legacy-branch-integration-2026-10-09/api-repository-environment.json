@@ -1,0 +1,19 @@
+{
+  "run_id": "legacy_final_20261009_03",
+  "api": {
+    "branch": "integration/legacy-branches-20261008",
+    "commit": "9bdfa5adfcb200b62b30bd1323d4f4aaa270b502",
+    "working_tree": ""
+  },
+  "react": {
+    "branch": "integration/legacy-branches-20261008",
+    "commit": "c2557489f8a0e8fff08500f5babd6f257521300d",
+    "working_tree": ""
+  },
+  "api_url": "http://127.0.0.1:36639",
+  "frontend_url": "http://127.0.0.1:39345",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 44945,
+  "runtime": "/tmp/menu-qa-ixv0x3tb"
+}

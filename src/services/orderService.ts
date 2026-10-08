@@ -146,7 +146,8 @@ interface VerifyGuestTablePinResponse {
   table: GuestTableMenuResponse['table'];
   table_session: TableSessionSummary;
   guest_access: {
-    token: string;
+    cache_key?: string | null;
+    token?: string;
     verified: boolean;
     joined_at: string | null;
     last_seen_at: string | null;
@@ -557,33 +558,33 @@ export const resolvePendingWave = async (waveId: number): Promise<WaveResponse> 
   return response.data;
 };
 
-const staffReplayAuthorization = (token?: string) => token ? { headers: { Authorization: `Bearer ${token}` } } : undefined;
+const idempotencyConfig = (key?: string) => key ? { headers: { 'X-Idempotency-Key': key } } : {};
 
-export const confirmPendingOrder = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
+export const confirmPendingOrder = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`, undefined, staffReplayAuthorization(replayToken));
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/confirm`, undefined, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
 export const updatePendingOrder = async (
   orderId: number,
   payload: UpdatePendingOrderRequest,
-  replayToken?: string
+  idempotencyKey?: string
 ): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload, staffReplayAuthorization(replayToken));
+  const response = await api.patch<OrderResponse>(`/orders/${orderId}`, payload, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
-export const cancelPendingOrder = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
+export const cancelPendingOrder = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`, undefined, staffReplayAuthorization(replayToken));
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/cancel`, undefined, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
-export const markOrderServed = async (orderId: number, replayToken?: string): Promise<OrderResponse> => {
+export const markOrderServed = async (orderId: number, idempotencyKey?: string): Promise<OrderResponse> => {
   assertOnlineForStaffWrite();
-  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`, undefined, staffReplayAuthorization(replayToken));
+  const response = await api.post<OrderResponse>(`/orders/${orderId}/served`, undefined, idempotencyConfig(idempotencyKey));
   return response.data;
 };
 
@@ -670,4 +671,18 @@ export const createPosComplaintAdjustment = async (orderId: number, payload: {
 export const postPosComplaintAdjustment = async (adjustmentId: number): Promise<PosComplaintAdjustment> => {
   const response = await api.post<{ adjustment: PosComplaintAdjustment }>(`/pos/complaint-adjustments/${adjustmentId}/post`);
   return response.data.adjustment;
+};
+
+export const updateAndConfirmPendingOrder = async (
+  orderId: number,
+  payload: UpdatePendingOrderRequest,
+  idempotencyKey?: string
+): Promise<OrderResponse> => {
+  assertOnlineForStaffWrite();
+  const response = await api.post<OrderResponse>(
+    `/orders/${orderId}/update-and-confirm`,
+    payload,
+    idempotencyConfig(idempotencyKey)
+  );
+  return response.data;
 };

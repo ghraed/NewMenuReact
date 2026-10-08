@@ -152,3 +152,38 @@ request rows, schema, settled orders and APP_KEY. Never drop replay/finalization
 or use an old cache-only API as a shortcut. Keep compatible old hashed chunks until
 old documents are retired. Native dialog and numeric positioning changes have no
 data migration. Infrastructure/fleet rollback remains unexecuted by this task.
+
+## Legacy hardening integration (9 October 2026)
+
+The [integration record](testing/legacy-branch-integration-2026-10-09.txt) describes
+cookie authentication, private dish assets, durable staff retries and alert outboxes.
+Deploy the reviewed API/frontend pair together through the release gates above.
+Apply the additive migrations before exposing new endpoints and drain guest writes
+for the transition. Keep both old and canonical guest idempotency records.
+
+Browser credentials now use HttpOnly cookies on `/api`, with Secure outside local/
+testing and SameSite Strict. Frontend/API should share an HTTPS origin through the
+existing `/api` proxy. Explicit trusted CORS origins are required for supported
+same-site development; arbitrary cross-site hosting will not carry these cookies.
+Keep bearer mode for supported non-browser clients; browser session revisions,
+expected account IDs and guest cache hashes are metadata, not credentials.
+
+Persist and grant the API runtime access to `storage/app/dish-assets`. New dish
+assets use the private `dish_assets` disk; authorized reads use `/api/assets`.
+Rehearse `php artisan dish-assets:migrate-to-protected --dry-run` and migration
+against disposable synthetic assets first. Verify protected bytes, metadata and
+retry recovery before any separately approved live run. Web-server denial of
+`/storage/dishes` and removal of public test routes are part of the boundary.
+
+Run the existing scheduler and queue/realtime workers. The scheduler retries the
+order alert outbox with `orders:deliver-pending-alerts`; monitor pending rows,
+attempts, delivery errors and recipient retry state. Replay still checks current
+permissions and table assignment before returning cached staff mutation responses.
+
+IndexedDB upgrades retain queued payloads and request keys, migrate readable guest
+credentials to opaque scope, and quarantine caches with unknown ownership. Older
+open app tabs may need closing to allow the schema upgrade. Do not clear browser
+storage or delete queued work to resolve deployment issues. Preserve old static
+chunks until offline clients can update. Rollback must support private asset paths,
+issued cookies and all durable request/outbox records; retain backups and rehearse
+the paired rollback on disposable infrastructure.

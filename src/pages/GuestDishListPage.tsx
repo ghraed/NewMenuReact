@@ -26,6 +26,7 @@ import { translateCategoryLabel } from '../i18n/dynamic';
 import { getIngredientDisplayName } from '../utils/ingredientDisplay';
 import { formatPriceWithCurrency, normalizeCurrency, parsePositiveRate, readGuestCurrencySettings } from '../utils/currency';
 import { useGuestMenuResource } from '../contexts/GuestMenuResourceContext';
+import { guestCredentialFromAccess } from '../utils/guestAccess';
 
 type IngredientFilterMode = 'show' | 'hide' | 'highlight';
 
@@ -475,7 +476,8 @@ const GuestDishListPage: React.FC = () => {
           tableReference: response.table.name,
         });
         setGuestAccess({
-          token: response.guest_access.token,
+          token: guestCredentialFromAccess(response.guest_access) || undefined,
+          cacheKey: response.guest_access.cache_key || undefined,
           expiresAt: response.guest_access.expires_at,
         });
       })

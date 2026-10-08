@@ -1,0 +1,182 @@
+LEGACY BRANCH INTEGRATION — 9 October 2026
+
+Scope and authorization
+The user explicitly requested merging older branches while preserving working code,
+then listing the next steps. This integration does not select another roadmap task.
+The referenced fix roadmap contains Tasks 0 through 10; it has no Task 14.
+
+Before state
+Frontend main: 444c97583aebd3ea29003e007610169703465ae1.
+API main: d95dff07b2a506ade5326914c0e994c166aa9a82.
+Both working trees were clean. Recorded completed Task 0–10 commits were present.
+Both repositories retain backup/pre-legacy-integration-20261008 and all old branches.
+Work performed on integration/legacy-branches-20261008; no history rewritten.
+
+Branches reconciled
+Frontend: hardening-dependencies, hardening-finance, hardening-rel,
+hardening-e2e, qa-integration-20260831 and new_colors.
+API: hardening-dependencies, hardening-finance, hardening-security,
+hardening-rel, hardening-style, hardening-e2e and qa-integration-20260831.
+Other older local feature branches were already ancestors. Duplicate implementations
+on different commit histories were compared against the integrated QA branch before
+conflict resolution. Every old branch tip is now an integration-branch ancestor.
+
+Resulting behavior
+- Cookie authentication: staff, owner and guest credentials are HttpOnly and removed
+  from browser storage. Legacy non-browser bearer clients retain their supported
+  contract; browser upgrades validate legacy tokens before issuing cookies.
+- Tenant isolation: non-secret verified browser identity and session revision bind
+  private requests to the displayed account. Server rejects mismatched expected
+  identities with 409. Failed login hides private work; cross-tab changes invalidate
+  stale state. Cookie origin checks reject cross-site mutations. CORS permits the
+  reviewed mode, identity and guest-scope request headers.
+- Protected assets: new dish assets use the private dish_assets disk. Atomic upload/
+  replacement/copy failure behavior is retained. Legacy public assets have a
+  failure-safe, fingerprint-checked migration command; public test routes are removed.
+- Guest retries: Task 9 singular guest_order_idempotency remains canonical, with
+  transactionally reconciled legacy plural records. Stock/order effects remain once
+  only. Closed sessions and changed guest identity cannot gain access through replay.
+- Staff retries: stable request keys, lease/heartbeat coordination and transactional
+  update-and-confirm survive reload/retry. Cached responses recheck current tenant
+  and table assignment; revoked membership is not bypassed by idempotency replay.
+- Alerts: order creation records an outbox in the same transaction. Failed recipient
+  deliveries can retry through the worker/scheduler without resending known successes.
+- Offline upgrade: IndexedDB v4 preserves queue intent, original request keys,
+  payloads, menu content and preferences. Legacy readable guest credentials become
+  non-secret hashed cookie scope; caches with unknown ownership are quarantined.
+- Finance: terminal invoice financial fields remain immutable; reporting accounts
+  for refunds. Guest print service charge and settled currency are retained.
+- Old real browser lifecycle runs through the guarded disposable QA runner. Unsafe
+  legacy default URLs/databases were replaced; original lifecycle assertions remain.
+
+Conflict decisions preserving previous work
+The Task 7 patched npm/Composer lockfiles supersede older hardening lock versions.
+Task 0 invoice identifiers and Task 3 compensation caps remain authoritative.
+Task 9 durable locking and guest replay remain; weaker duplicate implementations
+were reconciled rather than replacing them. The February new_colors visual scheme
+is superseded by the current semantic theme, translations, mobile navigation and
+focus/contrast behavior. Compatible noShadow, icon tone and contentBoardClassName
+component options were ported without changing current default styling.
+
+Test preservation
+All 138 baseline test/support files remain; none were deleted. Existing migration
+files remain unchanged; four legacy migrations were added. Some test fixtures were
+adapted to the integrated transport/storage contract: HttpOnly cookies instead of
+readable bearer credentials, protected storage failure injection instead of public
+disk injection, and current invoice numbering. Original financial, rollback,
+permission and lifecycle expectations remain, with added absence-of-secret checks.
+The preservation manifest identifies adapted/extended files; byte identity is not
+claimed for those files. Existing waiter ownership restrictions remain in tests.
+
+Evidence and intermediate results
+Initial unchanged baseline /tmp/menu-legacy-baseline: PASS 420 API tests/4319
+assertions, 137 frontend unit tests, 54 browser scenarios, required audits, builds,
+formatting and operations. Focused evidence retained in /tmp/menu-legacy-*.
+New failing regressions included revoked-table cached replay (200 instead of 403)
+and allowed-origin preflight omitting X-Rozer-Auth-Mode. Both underlying gaps were
+corrected. Other retained intermediate failures were fixture transport/disk/version
+adapters or compile/format checks; they are not counted as passes.
+/tmp/menu-legacy-final01 was invalidated by conflict markers written while its tests
+ran; its parse errors do not count as completed regression evidence. The next run
+was intentionally stopped to correct CORS; neither is a release pass.
+Final combined verification and local main integration are recorded below when done.
+
+Deployment/compatibility — not executed by this integration
+Publish both reviewed commits and run paired required CI against those exact refs.
+Use the existing operating guide and disposable environment for rehearsal first.
+Drain guest writes before database/asset transition; retain both idempotency tables.
+Apply additive migrations before exposing new code paths. Serve frontend/API at the
+same origin with /api proxy routing; Secure/Strict cookies require HTTPS outside
+local/testing and do not support arbitrary cross-site frontend hosting. Configure
+explicit trusted origins for same-site development and do not enable wildcard CORS.
+Rebuild the final API image, verify Chromium/PDF/private-volume ownership, deploy the
+compatible API then frontend, and restart queue/scheduler/realtime workers.
+Rehearse dish-assets:migrate-to-protected --dry-run and actual migration against
+synthetic disposable assets before any separately approved live operation. Verify
+web-server /storage/dishes denial and authorized /api/assets retrieval together.
+Never restore public asset exposure or delete new idempotency/outbox tables as a
+casual rollback. A code rollback must remain compatible with migrated asset paths
+and already issued cookies; preserve files, records and queued work. Keep retained
+old frontend chunks/service-worker compatibility until offline clients finish.
+
+Outstanding release work
+Hosted CI for this new integration, final image verification, deployment/fleet
+rollback, owned public DNS/TLS, physical devices/printer and field/load capacity are
+not executed here. Accountant POS settlement permission remains the previously
+recorded policy decision; this merge does not expand roles. Optional billing or
+staff multi-membership is not added without a separately defined business model.
+Passing local tests is not approval for general market launch.
+
+Deterministic reconciliation regressions and reproduction
+P0, staff: confirm an assigned-table pending order with a request key, detach the
+staff user from the table, retry POST /api/orders/{order}/confirm with the same key.
+Expected 403 with no new mutation; previously cached 200 bypassed reassignment.
+Likely module IdempotentStaffMutation; fixed by resolving the order and rechecking
+fresh assignment before cached replay. API evidence: /tmp/menu-legacy-boundary-api01
+and api02 (focused four cases/35 assertions pass after correction).
+P0, stale admin browser: tenant B cookie plus tenant A expected user/restaurant,
+POST /api/admin/finance/invoices with synthetic line. Expected 409 and no invoice for
+either tenant; regression now verifies the server rejects the mismatch. Likely
+modules EnsureCookieIdentity, API interceptor and verified browser storage.
+P2, browser using allowed same-site frontend origin: OPTIONS /api/auth/login with
+Origin http://localhost:5173 and requested X-Rozer-Auth-Mode/Expected-User/
+Expected-Restaurant/X-Guest-Cache-Key. Expected 204, exact origin, credentials true
+and all requested allowed headers. Old actual 204 omitted new headers and browser
+would refuse the subsequent request. CORS configuration corrected. Deterministic
+failing evidence /tmp/menu-legacy-cors-red/api-focused.log; new full run includes
+this regression. These API failures have no browser screenshot requirement.
+
+Verified backend gates
+/tmp/menu-legacy-final03: full API PASS 485 tests/4712 assertions, zero skips;
+API build, tooling and Composer validation PASS. Its aggregate run stopped at Pint.
+The subsequent style-only commit adds two blank lines and removes two unused test
+imports; no application logic or test assertions changed. Final full Pint PASS
+422 files; separate Composer/npm audits PASS (zero vulnerabilities). Three original
+Task 6 release regressions PASS after granting the synthetic Docker test socket
+access. Sandbox DNS/socket attempts were blocked before successful reruns and do
+not count as passes. Browser/operational final run uses that formatting-only head.
+
+Verified environments
+API suite run: APP_ENV=testing, loopback API 127.0.0.1:36639, MySQL
+127.0.0.1:44945, menu_test_QA_RUN_legacy_final_20261009_03_suite.
+Final browser run: APP_ENV=testing, API http://127.0.0.1:60025, frontend
+http://127.0.0.1:36569, MySQL 127.0.0.1:40637,
+menu_test_QA_RUN_legacy_browser_final_20261009_browser.
+All payment/SMS/mail/AI/push transport credentials disabled; owned runtime cleanup
+is part of the guarded runner. No production database or real customer data used.
+
+Remote-main recheck
+Read-only ls-remote during final verification confirms remote frontend main is
+444c97583aebd3ea29003e007610169703465ae1 and API main is
+d95dff07b2a506ade5326914c0e994c166aa9a82, both original starting commits.
+No newly advanced remote-main history is excluded by the integration.
+
+Full matrix outcome and fixture reconciliation
+/tmp/menu-legacy-browser-final: PASS lint, 159 unit tests, TypeScript/build,
+operational recovery; matrix 54 PASS/2 FAIL/0 SKIPPED over 56 executed scenarios.
+The two failing fixtures are retained with screenshots and traces under its
+browser-results directory. No application/runtime failure was hidden as a pass.
+Compensation report's no-Authorization fetch still sent its HttpOnly cookie, so
+its expected 401 was correctly 200. It now explicitly omits credentials and keeps
+the 401 assertion. The guest unlock mock returned no readable token but omitted
+the real API's required non-secret cache_key, leaving ordering locked. It now
+returns the SHA-256 identifier with the HttpOnly cookie; existing order/quantity/
+notes/status assertions and added no-readable-credential assertions remain.
+No application code changed after the matrix; only these two fixtures were adapted.
+The original performance budgets, tenant isolation and all seven service-worker
+scenarios pass. Focused rerun outcomes are recorded below after completion.
+
+Final reconciliation results
+Guest lifecycle focused rerun /tmp/menu-legacy-guest-adapter-final: PASS 1/0 skips.
+Compensation report /tmp/menu-legacy-report-adapter-final: PASS 1/0 skips.
+All 56 distinct browser scenarios verified across matrix and focused reruns; there
+was no single all-green matrix rerun after the two fixture-only changes. Original
+assertions retained, no application changes after the 54 passing matrix scenarios.
+Final lint, TypeScript/build and frontend audit PASS; owned runtime cleanup PASS.
+Local outstanding FAIL/BLOCKED: none; skipped automated scenarios: zero.
+Final verification.json separates the intermediate run outcomes and omitted release
+work. Current source hashes, migration/test preservation and all old branch ancestry
+are recorded. Tasks 0–10 remain integrated; no Task 11/14 exists in this roadmap.
+The user-authorized local main merges preserve both starting mains and all older
+branch tips. Original branches and pre-integration backups remain. No remote push,
+production deployment or live asset/data migration performed by this integration.

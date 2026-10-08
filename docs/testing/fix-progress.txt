@@ -429,3 +429,26 @@ TASK 10 — USER-AUTHORIZED LOCAL COMMIT / MAIN INTEGRATION (8 October 2026)
   Integration record: task-10-2026-10-08/git-integration.json. Older uncommitted/
   no-merge notes describe the implementation run and are superseded here.
   No push or deployment authorized/performed; hosted CI remains NOT EXECUTED.
+
+
+LEGACY BRANCH INTEGRATION — USER-AUTHORIZED (9 October 2026)
+  Task 0–10 main bases verified: frontend 444c97583aebd3ea29003e007610169703465ae1,
+  API d95dff07b2a506ade5326914c0e994c166aa9a82. These were also remote main heads
+  at the read-only recheck; older Task 10 no-push notes describe a superseded state.
+  Selected scope: integrate older branches outside the roadmap, preserving fixes.
+  Source heads: frontend 3194166; API 6cd70ab. All old branch heads are ancestors;
+  backups/pre-existing branches retained; prior deployed migrations unchanged.
+  PASS: 485 API/4712 assertions, 159 unit, 56 distinct browser scenarios, 3 release
+  regressions, lint/TypeScript/builds/Pint/tooling/validation, all dependency audits,
+  operational recovery and cleanup. Zero automated skips. Matrix had 54 passes and
+  two stale transport fixtures; both original scenarios pass on focused reruns after
+  fixture-only corrections. No single clean matrix rerun claimed; no app code changed.
+  Reconciled HttpOnly auth, protected assets, durable staff dedupe/alerts, legacy guest
+  records, offline data upgrade and finance; preserve Task 0–10 isolation/calculations.
+  Report/evidence: docs/testing/legacy-branch-integration-2026-10-09.txt and matching
+  directory. Intermediate failures, test adapters and superseded styling/locks noted.
+  User-authorized no-ff local main integration preserves history in both repositories.
+  No remote push or production deployment performed by this integration. Hosted CI
+  for these new heads, final image/runtime and deployment/fleet/device/load gates
+  remain NOT EXECUTED. Accountant POS permission remains a business-policy decision.
+  Roadmap ends at Task 10; no Task 11 or Task 14 exists in this referenced document.

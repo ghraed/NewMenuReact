@@ -1,0 +1,6 @@
+<testsuites id="" name="" tests="1" failures="0" skipped="0" errors="0" time="19.119107">
+<testsuite name="compensation-report.spec.ts" timestamp="2026-10-08T21:40:51.825Z" hostname="chromium" tests="1" failures="0" skipped="0" time="18.471" errors="0">
+<testcase name="draft edits, normal restoration, holding and removal stay out of finalized reporting; fresh browser agrees" classname="compensation-report.spec.ts" time="18.471">
+</testcase>
+</testsuite>
+</testsuites>

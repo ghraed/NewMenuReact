@@ -76,7 +76,7 @@ test('draft edits, normal restoration, holding and removal stay out of finalized
       const posted = await fetch(`/api/pos/complaint-adjustments/${draft.id}/post`, { method: 'POST', headers });
       const retry = await fetch(`/api/pos/complaint-adjustments/${draft.id}/post`, { method: 'POST', headers });
       const after = await (await fetch('/api/pos/compensation-report', { headers })).json();
-      const denied = await fetch('/api/pos/compensation-report', { headers: { Accept: 'application/json' } });
+      const denied = await fetch('/api/pos/compensation-report', { credentials: 'omit', headers: { Accept: 'application/json' } });
       return { sale: saleResponse.status, draft: draftResponse.status, before, posted: posted.status, retry: retry.status, after, denied: denied.status };
     }, created.id);
     expect(posting.sale).toBe(201);

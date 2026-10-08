@@ -1,0 +1,259 @@
+<testsuites id="" name="" tests="56" failures="2" skipped="0" errors="0" time="917.6188149999999">
+<testsuite name="task10-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="mobile-chrome" tests="4" failures="0" skipped="0" time="57.43" errors="0">
+<testcase name="login keyboard skips decoration and announces real authentication errors" classname="task10-accessibility.spec.ts" time="13.001">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in light" classname="task10-accessibility.spec.ts" time="14.308">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in dark" classname="task10-accessibility.spec.ts" time="14.716">
+</testcase>
+<testcase name="room plan can be positioned without dragging and persists coordinates" classname="task10-accessibility.spec.ts" time="15.405">
+</testcase>
+</testsuite>
+<testsuite name="task10-guest-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="mobile-chrome" tests="3" failures="0" skipped="0" time="40.654" errors="0">
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in light" classname="task10-guest-accessibility.spec.ts" time="13.608">
+</testcase>
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in dark" classname="task10-guest-accessibility.spec.ts" time="13.236">
+</testcase>
+<testcase name="paid bilingual receipt stays readable with toolbar hidden in print media" classname="task10-guest-accessibility.spec.ts" time="13.81">
+</testcase>
+</testsuite>
+<testsuite name="task10-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="firefox" tests="4" failures="0" skipped="0" time="56.977" errors="0">
+<testcase name="login keyboard skips decoration and announces real authentication errors" classname="task10-accessibility.spec.ts" time="12.984">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in light" classname="task10-accessibility.spec.ts" time="14.241">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in dark" classname="task10-accessibility.spec.ts" time="14.692">
+</testcase>
+<testcase name="room plan can be positioned without dragging and persists coordinates" classname="task10-accessibility.spec.ts" time="15.06">
+</testcase>
+</testsuite>
+<testsuite name="task10-guest-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="firefox" tests="3" failures="0" skipped="0" time="41.081" errors="0">
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in light" classname="task10-guest-accessibility.spec.ts" time="13.639">
+</testcase>
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in dark" classname="task10-guest-accessibility.spec.ts" time="13.229">
+</testcase>
+<testcase name="paid bilingual receipt stays readable with toolbar hidden in print media" classname="task10-guest-accessibility.spec.ts" time="14.213">
+</testcase>
+</testsuite>
+<testsuite name="task10-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="webkit" tests="4" failures="0" skipped="0" time="71.394" errors="0">
+<testcase name="login keyboard skips decoration and announces real authentication errors" classname="task10-accessibility.spec.ts" time="13.166">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in light" classname="task10-accessibility.spec.ts" time="20.175">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in dark" classname="task10-accessibility.spec.ts" time="18.884">
+</testcase>
+<testcase name="room plan can be positioned without dragging and persists coordinates" classname="task10-accessibility.spec.ts" time="19.169">
+</testcase>
+</testsuite>
+<testsuite name="task10-guest-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="webkit" tests="3" failures="0" skipped="0" time="46.293" errors="0">
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in light" classname="task10-guest-accessibility.spec.ts" time="15.12">
+</testcase>
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in dark" classname="task10-guest-accessibility.spec.ts" time="15.193">
+</testcase>
+<testcase name="paid bilingual receipt stays readable with toolbar hidden in print media" classname="task10-guest-accessibility.spec.ts" time="15.98">
+</testcase>
+</testsuite>
+<testsuite name="offline-recovery.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="offline-chromium" tests="7" failures="0" skipped="0" time="103.867" errors="0">
+<testcase name="service worker keeps public offline menu while token-sensitive responses bypass shared caches" classname="offline-recovery.spec.ts" time="13.96">
+</testcase>
+<testcase name="lost acknowledgement survives reload, application upgrade and competing tabs with one server order" classname="offline-recovery.spec.ts" time="18.36">
+</testcase>
+<testcase name="interrupted network submit before server commit survives reload and reconnect" classname="offline-recovery.spec.ts" time="14.279">
+</testcase>
+<testcase name="reload during an unacknowledged committed submit recovers the queued intent instead of sending a new cart" classname="offline-recovery.spec.ts" time="14.311">
+</testcase>
+<testcase name="offline interrupted submit requires review after session expire" classname="offline-recovery.spec.ts" time="14.247">
+</testcase>
+<testcase name="offline interrupted submit requires review after session close" classname="offline-recovery.spec.ts" time="14.309">
+</testcase>
+<testcase name="offline interrupted submit requires review after session disable" classname="offline-recovery.spec.ts" time="14.401">
+</testcase>
+</testsuite>
+<testsuite name="compensation-report.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="1" skipped="0" time="17.266" errors="0">
+<testcase name="draft edits, normal restoration, holding and removal stay out of finalized reporting; fresh browser agrees" classname="compensation-report.spec.ts" time="17.266">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/test-failed-2.png]]
+
+[[ATTACHMENT|browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/error-context.md]]
+
+[[ATTACHMENT|browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/trace.zip]]
+]]>
+</system-out>
+<failure message="expect(received).toBe(expected) // Object.is equality" type="expect.toBe">
+<![CDATA[  [chromium] › compensation-report.spec.ts:5:1 › draft edits, normal restoration, holding and removal stay out of finalized reporting; fresh browser agrees 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      87 |     expect(posting.after.entries).toHaveLength(3);
+      88 |     expect(posting.after.totals_by_currency.USD).toEqual({ waived_revenue: '10.00', refunded_revenue: '8.00', gift_catalog_value: '10.00' });
+    > 89 |     expect(posting.denied).toBe(401);
+         |                            ^
+      90 |     await fresh.getByRole('button', { name: 'Refresh Report', exact: true }).click();
+      91 |     await expect(fresh.getByText('Waived Revenue', { exact: true }).locator('..')).toContainText('$10.00');
+      92 |     await expect(fresh.getByText('Refunded Revenue', { exact: true }).locator('..')).toContainText('$8.00');
+        at /media/raed/Data/from ubuntu/new_menu/Menu_React/tests/e2e/compensation-report.spec.ts:89:28
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/compensation-report-draft--5f6f4-orting-fresh-browser-agrees-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="guest-order-lifecycle.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="1" skipped="0" time="22.392" errors="0">
+<testcase name="Guest order lifecycle › guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state" classname="guest-order-lifecycle.spec.ts" time="22.392">
+<system-out>
+<![CDATA[
+[[ATTACHMENT|browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/error-context.md]]
+
+[[ATTACHMENT|browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/trace.zip]]
+]]>
+</system-out>
+<failure message="expect(locator).toBeVisible() failed" type="expect.toBeVisible">
+<![CDATA[  [chromium] › guest-order-lifecycle.spec.ts:4:3 › Guest order lifecycle › guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Protected actions are ready')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for getByText('Protected actions are ready')
+
+
+      446 |     expect(browserCredentialState.persistedCart).not.toContain(browserCredentialState.secret);
+      447 |
+    > 448 |     await expect(page.getByText('Protected actions are ready')).toBeVisible();
+          |                                                                 ^
+      449 |     await page.getByRole('button', { name: 'Add to Cart', exact: true }).first().click();
+      450 |     await page.getByLabel('Increase quantity').click();
+      451 |
+        at /media/raed/Data/from ubuntu/new_menu/Menu_React/tests/e2e/guest-order-lifecycle.spec.ts:448:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../../../tmp/menu-legacy-browser-final/browser-results/guest-order-lifecycle-Gues-8cd8c--the-progressed-order-state-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+</testcase>
+</testsuite>
+<testsuite name="legacy-offline-upgrade.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="12.286" errors="0">
+<testcase name="legacy offline upgrade preserves intent and menu data while removing readable guest credentials" classname="legacy-offline-upgrade.spec.ts" time="12.286">
+</testcase>
+</testsuite>
+<testsuite name="live-order-lifecycle.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="24.3" errors="0">
+<testcase name="isolated live restaurant lifecycle › guest, waiter, kitchen, accounting, closure, cancellation, and isolation" classname="live-order-lifecycle.spec.ts" time="24.3">
+</testcase>
+</testsuite>
+<testsuite name="menu-item-preview-retry.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="13.793" errors="0">
+<testcase name="retrying a preview failure creates one complete menu item" classname="menu-item-preview-retry.spec.ts" time="13.793">
+</testcase>
+</testsuite>
+<testsuite name="order-history.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="13.62" errors="0">
+<testcase name="a settled POS sale appears in history and opens its details" classname="order-history.spec.ts" time="13.62">
+</testcase>
+</testsuite>
+<testsuite name="pos-compensation-checkout.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="6" failures="0" skipped="0" time="88.465" errors="0">
+<testcase name="real POS complimentary checkout agrees with payable invoice and PDF" classname="pos-compensation-checkout.spec.ts" time="15.516">
+</testcase>
+<testcase name="real POS full_waiver checkout agrees with payable invoice and PDF" classname="pos-compensation-checkout.spec.ts" time="14.609">
+</testcase>
+<testcase name="real POS partial_discount checkout agrees with payable invoice and PDF" classname="pos-compensation-checkout.spec.ts" time="14.621">
+</testcase>
+<testcase name="real POS cancelled checkout agrees with payable invoice and PDF" classname="pos-compensation-checkout.spec.ts" time="14.886">
+</testcase>
+<testcase name="real POS mixed checkout agrees with payable invoice and PDF" classname="pos-compensation-checkout.spec.ts" time="14.95">
+</testcase>
+<testcase name="real compensation validation failure retains the POS cart and does not announce success" classname="pos-compensation-checkout.spec.ts" time="13.883">
+</testcase>
+</testsuite>
+<testsuite name="real-order-lifecycle.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="28.972" errors="0">
+<testcase name="real PIN, staff, kitchen, paid receipt and finance lifecycle isolates two tenants and denied roles" classname="real-order-lifecycle.spec.ts" time="28.972">
+<system-err>
+</system-err>
+</testcase>
+</testsuite>
+<testsuite name="restaurant-active-policy.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="17.245" errors="0">
+<testcase name="inactive restaurant keeps menu and staff login but blocks POS with a clear message; reactivation permits checkout" classname="restaurant-active-policy.spec.ts" time="17.245">
+</testcase>
+</testsuite>
+<testsuite name="room-plan-reservations.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="13.774" errors="0">
+<testcase name="Room plan editor + reservations › admin creates plan, saves layout, and public reservation reflects availability" classname="room-plan-reservations.spec.ts" time="13.774">
+</testcase>
+</testsuite>
+<testsuite name="serving-temperature.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="18.468" errors="0">
+<testcase name="packaged drink temperature survives creation, editing, clearing, and reload" classname="serving-temperature.spec.ts" time="18.468">
+</testcase>
+</testsuite>
+<testsuite name="task10-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="4" failures="0" skipped="0" time="56.518" errors="0">
+<testcase name="login keyboard skips decoration and announces real authentication errors" classname="task10-accessibility.spec.ts" time="12.264">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in light" classname="task10-accessibility.spec.ts" time="14.346">
+</testcase>
+<testcase name="Arabic POS complaint and settled report remain localized in dark" classname="task10-accessibility.spec.ts" time="14.416">
+</testcase>
+<testcase name="room plan can be positioned without dragging and persists coordinates" classname="task10-accessibility.spec.ts" time="15.492">
+</testcase>
+</testsuite>
+<testsuite name="task10-guest-accessibility.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="3" failures="0" skipped="0" time="40.079" errors="0">
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in light" classname="task10-guest-accessibility.spec.ts" time="13.21">
+</testcase>
+<testcase name="guest related-dish modal keeps keyboard focus and restores it in dark" classname="task10-guest-accessibility.spec.ts" time="13.01">
+</testcase>
+<testcase name="paid bilingual receipt stays readable with toolbar hidden in print media" classname="task10-guest-accessibility.spec.ts" time="13.859">
+</testcase>
+</testsuite>
+<testsuite name="task10-performance.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="58.133" errors="0">
+<testcase name="throttled phone measures guest catalog and admin deep links" classname="task10-performance.spec.ts" time="58.133">
+</testcase>
+</testsuite>
+<testsuite name="task10-runtime.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="16.394" errors="0">
+<testcase name="finance deep link reload and demand-loaded spreadsheet export work from built assets" classname="task10-runtime.spec.ts" time="16.394">
+</testcase>
+</testsuite>
+<testsuite name="tenant-browser-isolation.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="2" failures="0" skipped="0" time="37.166" errors="0">
+<testcase name="same browser isolates compensation across logout, failed login, reload and two tenant accounts" classname="tenant-browser-isolation.spec.ts" time="19.689">
+</testcase>
+<testcase name="unresolved auth hides legacy caches, account queues remain private and guest offline work survives" classname="tenant-browser-isolation.spec.ts" time="17.477">
+</testcase>
+</testsuite>
+<testsuite name="user-profile.spec.ts" timestamp="2026-10-08T21:23:07.732Z" hostname="chromium" tests="1" failures="0" skipped="0" time="15.209" errors="0">
+<testcase name="profile changes persist after reload and the new password works" classname="user-profile.spec.ts" time="15.209">
+</testcase>
+</testsuite>
+</testsuites>

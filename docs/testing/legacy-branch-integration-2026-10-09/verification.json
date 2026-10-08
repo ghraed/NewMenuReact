@@ -1,0 +1,67 @@
+{
+  "api": {
+    "status": "PASS",
+    "tests": 485,
+    "assertions": 4712,
+    "skipped": 0,
+    "evidence": "/tmp/menu-legacy-final03",
+    "note": "Aggregate runner stopped at Pint; final Pint passed after two blank lines and two unused test imports were corrected."
+  },
+  "unit": {
+    "status": "PASS",
+    "tests": 159,
+    "skipped": 0
+  },
+  "browser": {
+    "status": "PASS",
+    "distinct_scenarios_verified": 56,
+    "full_matrix": {
+      "passed": 54,
+      "failed": 2,
+      "skipped": 0
+    },
+    "focused_reruns": [
+      {
+        "spec": "guest-order-lifecycle.spec.ts",
+        "passed": 1,
+        "failed": 0,
+        "evidence": "/tmp/menu-legacy-guest-adapter-final"
+      },
+      {
+        "spec": "compensation-report.spec.ts",
+        "passed": 1,
+        "failed": 0,
+        "evidence": "/tmp/menu-legacy-report-adapter-final"
+      }
+    ],
+    "note": "Only the two fixture setups changed after the matrix; original assertions retained, no application changes."
+  },
+  "required_checks": {
+    "lint": "PASS",
+    "typescript": "PASS",
+    "frontend-build": "PASS",
+    "api-build": "PASS",
+    "api-tooling": "PASS",
+    "composer-validate": "PASS",
+    "pint": "PASS",
+    "composer-audit": "PASS",
+    "api-npm-audit": "PASS",
+    "react-npm-audit": "PASS",
+    "operational-recovery": "PASS",
+    "owned-runtime-cleanup": "PASS"
+  },
+  "release_regressions": {
+    "status": "PASS",
+    "tests": 3
+  },
+  "not_executed": [
+    "hosted CI for the new integration",
+    "final API image rebuild and runtime check",
+    "live deployment and fleet rollback",
+    "public DNS/TLS",
+    "physical devices/printer",
+    "field/load capacity"
+  ],
+  "push_performed": false,
+  "production_access": false
+}

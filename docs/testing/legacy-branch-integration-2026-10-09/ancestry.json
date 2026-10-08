@@ -1,0 +1,186 @@
+{
+  "Menu_React": {
+    "head": "319416637eef588c3426a60a19bdd1e6b470d207",
+    "branches": {
+      "add_auth": {
+        "sha": "b189253989b6c91fcabf7ac29b1192058b159c6b",
+        "included": true
+      },
+      "animated_dish": {
+        "sha": "6e3cc303071ee9e465e14e0553128c72623e403e",
+        "included": true
+      },
+      "black_design": {
+        "sha": "136a3605d3ec36861ad5f88a39e889532c94ead5",
+        "included": true
+      },
+      "feat/task-8-real-lifecycle-operational-staging": {
+        "sha": "678736989a9dce0b3609a2e7ced73df627d0e4fd",
+        "included": true
+      },
+      "fix/task-1-browser-tenant-isolation": {
+        "sha": "b51d18e94a709daca7de92d559b1c196826c0e10",
+        "included": true
+      },
+      "fix/task-10-performance-accessibility-arabic": {
+        "sha": "b25280ddc5c8d3c0c54900cd610eee3db85a2784",
+        "included": true
+      },
+      "fix/task-2-cumulative-refund-safety": {
+        "sha": "a5bf769e5514eff337fb129c31c29362ae0c15cf",
+        "included": true
+      },
+      "fix/task-3-server-pos-compensation": {
+        "sha": "ae5ddd479b761c15f4e2ee0cc5eb15d9ee1d88ba",
+        "included": true
+      },
+      "fix/task-4-authoritative-compensation-reporting": {
+        "sha": "29f37271e65a6b1a053619309d8a1ebff349a429",
+        "included": true
+      },
+      "fix/task-5-restaurant-active-policy": {
+        "sha": "e2ecb9cdc34be18f437eff6284f337b085e7366f",
+        "included": true
+      },
+      "fix/task-6-safe-release-image-pdf": {
+        "sha": "2800071ce33beff8e24714e7b9d89456712cc78d",
+        "included": true
+      },
+      "fix/task-7-dependency-security-formatting": {
+        "sha": "6065c67a92dfc6548520bcb716a2e924fd53b79e",
+        "included": true
+      },
+      "fix/task-9-concurrency-offline-membership": {
+        "sha": "6031f2c512d62db63a9ec8bc4e9b6ff74c27d218",
+        "included": true
+      },
+      "hardening-dependencies": {
+        "sha": "b8b227edab6b62f2c9bfcaa1fe841573469f6cb6",
+        "included": true
+      },
+      "hardening-e2e": {
+        "sha": "debac87ff25674aec3760e39becbb310e3ecbf7c",
+        "included": true
+      },
+      "hardening-finance": {
+        "sha": "705423ff6eaaace23895b93f3450298547defb20",
+        "included": true
+      },
+      "hardening-rel": {
+        "sha": "1add1f27b53a887e16fd00402daa26c93acb865e",
+        "included": true
+      },
+      "new_colors": {
+        "sha": "23342c19f5ea3d72a38de1c0fce0fdebedda9565",
+        "included": true
+      },
+      "new_colors_1": {
+        "sha": "91defa04981f78be7afd1430b57da4dd6e2847b1",
+        "included": true
+      },
+      "qa-integration-20260831": {
+        "sha": "debac87ff25674aec3760e39becbb310e3ecbf7c",
+        "included": true
+      },
+      "qa/task-0-repeatable-baseline": {
+        "sha": "a91b1d03679c2f283fb87d730a7fb73789cd2316",
+        "included": true
+      },
+      "shared_database": {
+        "sha": "7deb9199b31b4f4a4552122423634a88bad67c34",
+        "included": true
+      }
+    },
+    "test_migration_changes": "M\ttests/e2e/guest-order-lifecycle.spec.ts\nA\ttests/e2e/legacy-offline-upgrade.spec.ts\nA\ttests/e2e/live-order-lifecycle.spec.ts\nM\ttests/e2e/tenant-browser-isolation.spec.ts\nM\ttests/unit/adminFinanceDashboardPage.test.tsx\nM\ttests/unit/authTenantIsolation.test.tsx\nA\ttests/unit/browserCredentialStorage.test.tsx\nM\ttests/unit/guestInvoicePayload.test.ts\nA\ttests/unit/guestOrderSubmissionReliability.test.ts\nA\ttests/unit/offlineQueueReliability.test.ts\n"
+  },
+  "Menu_API": {
+    "head": "6cd70ab6281c77b87f3f3a44b1640eb57a2fa665",
+    "branches": {
+      "add_auth": {
+        "sha": "160195d825ec8adc796bc69c9d671ae58a4f5705",
+        "included": true
+      },
+      "animated_dish": {
+        "sha": "8f6d54d1a26d9e4a2c508e1e2e57d70e30b41ef2",
+        "included": true
+      },
+      "feat/task-8-real-lifecycle-operational-staging": {
+        "sha": "750bb4096616109e73ae097854badd76b4674c1d",
+        "included": true
+      },
+      "fix/task-1-browser-tenant-isolation": {
+        "sha": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+        "included": true
+      },
+      "fix/task-10-performance-accessibility-arabic": {
+        "sha": "b3da486688d819c189de2dd141b3524afbd45f5b",
+        "included": true
+      },
+      "fix/task-2-cumulative-refund-safety": {
+        "sha": "6484a65c2e5304e8058445c40702c1f04feb9790",
+        "included": true
+      },
+      "fix/task-3-server-pos-compensation": {
+        "sha": "d6388a65eb35e59165534d5e173456cdbd311764",
+        "included": true
+      },
+      "fix/task-4-authoritative-compensation-reporting": {
+        "sha": "29944c8beb17ebd6d1b12d011eef219507c9f8ce",
+        "included": true
+      },
+      "fix/task-5-restaurant-active-policy": {
+        "sha": "9e870ef8696cef4c9eaea81b3c090b12e4a7c9df",
+        "included": true
+      },
+      "fix/task-6-safe-release-image-pdf": {
+        "sha": "09cd8ccc7afd832bacb44a88af64881a1107a933",
+        "included": true
+      },
+      "fix/task-7-dependency-security-formatting": {
+        "sha": "87ae4b12c1b3911056aaabd38d9a0e02beab9637",
+        "included": true
+      },
+      "fix/task-9-concurrency-offline-membership": {
+        "sha": "3ba558048c43ed4439586db5c4a8572218d29a74",
+        "included": true
+      },
+      "hardening-dependencies": {
+        "sha": "28909357091a7afbd9e9f6c2ee27035d8986cf0a",
+        "included": true
+      },
+      "hardening-e2e": {
+        "sha": "f0eb6498e2a9214cd2362cbb894a969863750eb1",
+        "included": true
+      },
+      "hardening-finance": {
+        "sha": "7abb1e66516eced5a5e4c133b9d9ee50ea061817",
+        "included": true
+      },
+      "hardening-rel": {
+        "sha": "c626b75b3bb60f9570d141ce78f969a21f4bd2be",
+        "included": true
+      },
+      "hardening-security": {
+        "sha": "90eec803369869a01413549fec2e72b3b3bcf88d",
+        "included": true
+      },
+      "hardening-style": {
+        "sha": "70ce5c03a06adfb732e7886fab56311be511ee40",
+        "included": true
+      },
+      "qa-integration-20260831": {
+        "sha": "f0eb6498e2a9214cd2362cbb894a969863750eb1",
+        "included": true
+      },
+      "qa/task-0-repeatable-baseline": {
+        "sha": "99c5a2d853482eb11be1a79f9e917a7f44483995",
+        "included": true
+      },
+      "shared_database": {
+        "sha": "f5acc800ecbccd039b3f066eeab30d29c3ca7781",
+        "included": true
+      }
+    },
+    "test_migration_changes": "A\tdatabase/migrations/2026_08_31_000000_create_guest_order_idempotencies_table.php\nA\tdatabase/migrations/2026_08_31_000100_create_staff_mutation_idempotencies_table.php\nA\tdatabase/migrations/2026_08_31_000200_create_order_alert_outboxes_table.php\nA\tdatabase/migrations/2026_08_31_000300_add_recipient_state_to_order_alert_outboxes.php\nM\ttests/Feature/AssetFileControllerTest.php\nM\ttests/Feature/AssetReplacementSafetyTest.php\nM\ttests/Feature/AuthSecurityTest.php\nM\ttests/Feature/Concerns/BuildsRestaurantOrderFlow.php\nM\ttests/Feature/CopyDishModelTest.php\nM\ttests/Feature/DishCreationSafetyTest.php\nM\ttests/Feature/Finance/InvoiceManagementApiTest.php\nM\ttests/Feature/Finance/InvoicePdfDownloadTest.php\nA\ttests/Feature/GuestOrderIdempotencyConcurrencyTest.php\nA\ttests/Feature/GuestOrderIdempotencyDurabilityTest.php\nA\ttests/Feature/HttpOnlyCredentialAuthTest.php\nM\ttests/Feature/IngredientImageAssetTest.php\nA\ttests/Feature/LegacyMergeBoundaryTest.php\nA\ttests/Feature/LegacyTestRouteSecurityTest.php\nA\ttests/Feature/MigrateDishAssetsToProtectedStorageTest.php\nM\ttests/Feature/NotificationDeliveryServicesTest.php\nM\ttests/Feature/OrderWorkflowTest.php\nM\ttests/Feature/PreviewImageAssetUploadTest.php\nA\ttests/Feature/QaE2eFixtureCommandTest.php\nA\ttests/Feature/Security/AccountingDraftAuthorizationTest.php\nA\ttests/Feature/StaffMutationIdempotencyTest.php\nM\ttests/Feature/TableSessionSecurityTest.php\nM\ttests/Feature/TenantDomainRoutingTest.php\nM\ttests/Feature/WaveWorkflowTest.php\nA\ttests/Unit/DeploymentAssetBoundaryTest.php\n"
+  }
+}
