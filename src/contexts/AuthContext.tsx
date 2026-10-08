@@ -1,3 +1,4 @@
+import { AUTH_SESSION_STORAGE_KEY, AUTH_IDENTITY_STORAGE_KEY, HTTP_ONLY_AUTH_SESSION, newAuthSessionRevision, readAuthSessionIdentity } from '../services/browserAuthSession';
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
 import api from '../services/api';
@@ -40,22 +41,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const sessionVersion = useRef(0);
-  const sessionToken = useRef<string | null>(null);
+  const loginAbort = useRef<AbortController | null>(null);
+  const legacyBootstrapToken = useRef<string | null>(null);
   const invalidateSession = React.useCallback(() => {
     ++sessionVersion.current;
+    loginAbort.current?.abort();
     setVerifiedBrowserIdentity(null, null);
   }, []);
 
   const refreshUser = React.useCallback(async () => {
     const version = sessionVersion.current;
-    const requestToken = sessionToken.current;
-    if (!requestToken) throw new Error('No authenticated session.');
-    const response = await api.get('/auth/me', { headers: { Authorization: `Bearer ${requestToken}` } });
-    if (version !== sessionVersion.current || requestToken !== localStorage.getItem(TOKEN_STORAGE_KEY)) {
+    const revision = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    const legacy = legacyBootstrapToken.current;
+    const response = await api.get('/auth/me', legacy ? { headers: { Authorization: `Bearer ${legacy}` } } : undefined);
+    if (version !== sessionVersion.current || revision !== localStorage.getItem(AUTH_SESSION_STORAGE_KEY)) {
       throw new Error('The authenticated session changed.');
     }
     const nextUser = response.data.user as AuthUser;
-    setVerifiedBrowserIdentity(nextUser, requestToken);
+    const expected = readAuthSessionIdentity();
+    if (expected && (expected.userId !== nextUser.id || expected.restaurantId !== nextUser.restaurant?.id)) {
+      throw new Error('The cookie session no longer matches the verified browser identity.');
+    }
+    const nextRevision = revision || newAuthSessionRevision();
+    localStorage.setItem(AUTH_SESSION_STORAGE_KEY, nextRevision);
+    localStorage.setItem(AUTH_IDENTITY_STORAGE_KEY, JSON.stringify({ userId: nextUser.id, restaurantId: nextUser.restaurant?.id || 0 }));
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    legacyBootstrapToken.current = null;
+    setVerifiedBrowserIdentity(nextUser, nextRevision, AUTH_SESSION_STORAGE_KEY);
+    setToken(HTTP_ONLY_AUTH_SESSION);
     setUser(nextUser);
     return nextUser;
   }, []);
@@ -63,28 +76,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     setVerifiedBrowserIdentity(null, null);
     quarantineLegacyProtectedStorage();
-    const bootstrap = async (storedToken: string | null) => {
+    const bootstrap = async () => {
       const version = ++sessionVersion.current;
-      sessionToken.current = storedToken;
-      setVerifiedBrowserIdentity(null, null);
-      setUser(null);
-      setToken(storedToken);
-      if (!storedToken) {
-        setLoading(false);
+      const signal = JSON.parse(localStorage.getItem(AUTH_IDENTITY_STORAGE_KEY) || 'null');
+      if (signal?.pending || signal?.signedOut) {
+        setVerifiedBrowserIdentity(null, null);
+        setUser(null);
+        setToken(null);
+        setLoading(Boolean(signal.pending));
         return;
       }
+      legacyBootstrapToken.current = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (legacyBootstrapToken.current) {
+        localStorage.removeItem(AUTH_IDENTITY_STORAGE_KEY);
+        localStorage.setItem(AUTH_SESSION_STORAGE_KEY, newAuthSessionRevision());
+      }
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+      setVerifiedBrowserIdentity(null, null);
+      setUser(null);
+      setToken(null);
       setLoading(true);
-      try {
-        await refreshUser();
-      } catch {
+      try { await refreshUser(); }
+      catch {
         if (version !== sessionVersion.current) return;
-        const currentToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-        if (currentToken !== storedToken) {
-          void bootstrap(currentToken);
-          return;
-        }
-        localStorage.removeItem(TOKEN_STORAGE_KEY);
-        sessionToken.current = null;
+        localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+        localStorage.removeItem(AUTH_IDENTITY_STORAGE_KEY);
         setVerifiedBrowserIdentity(null, null);
         setToken(null);
         setUser(null);
@@ -93,59 +109,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (version === sessionVersion.current) setLoading(false);
       }
     };
-    void bootstrap(localStorage.getItem(TOKEN_STORAGE_KEY));
+    void bootstrap();
     const onStorage = (event: StorageEvent) => {
-      if (event.key === TOKEN_STORAGE_KEY || event.key === null) {
+      if (event.key === TOKEN_STORAGE_KEY || event.key === AUTH_SESSION_STORAGE_KEY || event.key === AUTH_IDENTITY_STORAGE_KEY || event.key === null) {
         resetEcho();
-        void bootstrap(localStorage.getItem(TOKEN_STORAGE_KEY));
+        void bootstrap();
       }
     };
     window.addEventListener('storage', onStorage);
-    return () => {
-      invalidateSession();
-      window.removeEventListener('storage', onStorage);
-    };
+    return () => { invalidateSession(); window.removeEventListener('storage', onStorage); };
   }, [refreshUser, invalidateSession]);
 
   const login = async (identifier: string, password: string) => {
     const version = ++sessionVersion.current;
-    sessionToken.current = null;
-    setVerifiedBrowserIdentity(null, null);
+    loginAbort.current?.abort();
+    const abort = new AbortController();
+    loginAbort.current = abort;
+    const revision = newAuthSessionRevision();
     localStorage.removeItem(TOKEN_STORAGE_KEY);
-    resetEcho();
-    setToken(null);
-    setUser(null);
-    setLoading(false);
-    const response = await api.post('/auth/login', { email: identifier, password });
-    if (version !== sessionVersion.current) throw new Error('The authenticated session changed.');
-    const nextToken = response.data.token as string;
-    const nextUser = response.data.user as AuthUser;
-
-    localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
-    sessionToken.current = nextToken;
-    setVerifiedBrowserIdentity(nextUser, nextToken);
-    resetEcho();
-    setToken(nextToken);
-    setUser(nextUser);
-    return nextUser;
-  };
-
-  const logout = async () => {
-    const requestToken = sessionToken.current;
-    ++sessionVersion.current;
-    sessionToken.current = null;
+    localStorage.setItem(AUTH_IDENTITY_STORAGE_KEY, JSON.stringify({ pending: true }));
+    localStorage.setItem(AUTH_SESSION_STORAGE_KEY, revision);
+    legacyBootstrapToken.current = null;
     setVerifiedBrowserIdentity(null, null);
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
     resetEcho();
     setToken(null);
     setUser(null);
     setLoading(false);
     try {
-      if (requestToken) await api.post('/auth/logout', undefined, { headers: { Authorization: `Bearer ${requestToken}` } });
-    } catch {
-      // ignore API logout failures and clear local auth state
+      const response = await api.post('/auth/login', { email: identifier, password }, { signal: abort.signal });
+      if (version !== sessionVersion.current || revision !== localStorage.getItem(AUTH_SESSION_STORAGE_KEY)) {
+        throw new Error('The authenticated session changed.');
+      }
+      const nextUser = response.data.user as AuthUser;
+      localStorage.setItem(AUTH_IDENTITY_STORAGE_KEY, JSON.stringify({ userId: nextUser.id, restaurantId: nextUser.restaurant?.id || 0 }));
+      setVerifiedBrowserIdentity(nextUser, revision, AUTH_SESSION_STORAGE_KEY);
+      setToken(HTTP_ONLY_AUTH_SESSION);
+      setUser(nextUser);
+      return nextUser;
+    } catch (error) {
+      if (version === sessionVersion.current && revision === localStorage.getItem(AUTH_SESSION_STORAGE_KEY)) {
+        localStorage.setItem(AUTH_IDENTITY_STORAGE_KEY, JSON.stringify({ signedOut: true }));
+      }
+      throw error;
     }
   };
+
+  const logout = React.useCallback(async () => {
+    const version = ++sessionVersion.current;
+    loginAbort.current?.abort();
+    // Hide protected work immediately; restore the same verified session only if
+    // transport fails and no newer login has replaced it.
+    const previousUser = user;
+    const previousToken = token;
+    const previousRevision = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+    setVerifiedBrowserIdentity(null, null);
+    setUser(null);
+    setToken(null);
+    try { await api.post('/auth/logout'); }
+    catch (error) {
+      if (version === sessionVersion.current && previousRevision === localStorage.getItem(AUTH_SESSION_STORAGE_KEY)) {
+        setVerifiedBrowserIdentity(previousUser, previousRevision, AUTH_SESSION_STORAGE_KEY);
+        setUser(previousUser);
+        setToken(previousToken);
+      }
+      throw error;
+    }
+    if (version !== sessionVersion.current) return;
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    localStorage.removeItem(AUTH_IDENTITY_STORAGE_KEY);
+    setVerifiedBrowserIdentity(null, null);
+    resetEcho();
+    setToken(null);
+    setUser(null);
+  }, [user, token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -162,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       refreshUser,
     }),
-    [user, token, loading, refreshUser]
+    [user, token, loading, refreshUser, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -111,7 +111,7 @@ test('unresolved auth hides legacy caches, account queues remain private and gue
     const guestCart = JSON.stringify({ restaurant: { id: a.id, name: 'QA_RUN_guest_cart', slug: 'qa-run-guest' }, items: [], draft: { tableId: 70001, tableSessionId: 70001, tableReference: 'QA_RUN_guest_table', guestAccessToken: 'QA_RUN_guest_offline', guestAccessVerified: true, guestAccessExpiresAt: null, notes: 'QA_RUN_preserved_work' } });
     localStorage.setItem('guest_order_cart_state', guestCart);
     await new Promise<void>((done, reject) => {
-      const open = indexedDB.open('menu-react-offline', 1);
+      const open = indexedDB.open('menu-react-offline');
       open.onupgradeneeded = () => {
         for (const name of ['guest_menu_cache', 'guest_order_queue', 'waiter_action_queue', 'sync_events_log']) {
           if (!open.result.objectStoreNames.contains(name)) open.result.createObjectStore(name, { keyPath: name === 'guest_menu_cache' ? 'key' : 'id', autoIncrement: name !== 'guest_menu_cache' });
@@ -162,7 +162,7 @@ test('unresolved auth hides legacy caches, account queues remain private and gue
 
   const after = await page.evaluate(async () => {
     const guestQueue = await new Promise<unknown[]>((done, reject) => {
-      const open = indexedDB.open('menu-react-offline', 1);
+      const open = indexedDB.open('menu-react-offline');
       open.onsuccess = () => {
         const db = open.result;
         const get = db.transaction('guest_order_queue').objectStore('guest_order_queue').getAll();
@@ -174,7 +174,13 @@ test('unresolved auth hides legacy caches, account queues remain private and gue
     return { legacy: localStorage.getItem('protected_quarantine_v1:pos_compensation_ledger_v1'), guestCart: localStorage.getItem('guest_order_cart_state'), guestQueue, language: localStorage.getItem('menu_locale'), theme: localStorage.getItem('guest_menu_theme') };
   });
   expect(after.legacy).toBe(preserved.legacy);
-  expect(after.guestCart).toBe(preserved.guestCart);
+  const beforeCart = JSON.parse(preserved.guestCart);
+  const afterCart = JSON.parse(after.guestCart!);
+  expect(afterCart.restaurant).toEqual(beforeCart.restaurant);
+  expect(afterCart.items).toEqual(beforeCart.items);
+  expect(afterCart.draft).toMatchObject({ tableId: 70001, tableSessionId: 70001, tableReference: 'QA_RUN_guest_table', notes: 'QA_RUN_preserved_work' });
+  expect(afterCart.draft.guestAccessToken).toBeNull();
+  expect(after.guestCart).not.toContain('QA_RUN_guest_offline');
   expect(after.guestQueue).toHaveLength(1);
   expect(after.guestQueue[0]).toMatchObject({ id: 100, idempotencyKey: 'QA_RUN_guest_retry', status: 'pending' });
   expect(after.language).toBe('en');

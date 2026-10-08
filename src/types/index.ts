@@ -353,6 +353,7 @@ export interface GuestOrderDraft {
   tableSessionId: number | null;
   tableReference: string;
   guestAccessToken: string | null;
+  guestAccessCacheKey?: string | null;
   guestAccessVerified: boolean;
   guestAccessExpiresAt: string | null;
   notes: string;
@@ -454,6 +455,7 @@ export interface InvoiceSplitSummary {
 }
 
 export interface GuestAccessSummary {
+  cache_key?: string | null;
   verified: boolean;
   token?: string;
   joined_at: string | null;

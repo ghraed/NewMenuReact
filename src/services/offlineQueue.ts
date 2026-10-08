@@ -1,10 +1,12 @@
-import { getVerifiedBrowserIdentity, isCurrentBrowserIdentity, waiterActionBelongsToCurrentAccount } from './protectedBrowserStorage';
+import { guestCookieCacheKey } from '../utils/guestAccess';
+import { getVerifiedBrowserIdentity, waiterActionBelongsToCurrentAccount } from './protectedBrowserStorage';
 import {
   cancelPendingOrder,
   confirmPendingOrder,
   createGuestTableSessionOrder,
   markOrderServed,
   updatePendingOrder,
+  updateAndConfirmPendingOrder,
 } from './orderService';
 import {
   appendSyncEvent,
@@ -18,6 +20,8 @@ import {
   type WaiterActionQueueRecord,
   type WaiterQueueActionType,
   updateQueuedWaiterAction,
+  claimQueuedWaiterAction,
+  renewQueuedWaiterActionLease,
   updateQueuedGuestOrder,
 } from './offlineStore';
 import type { CreateGuestOrderRequest, UpdatePendingOrderRequest } from '../types';
@@ -64,7 +68,7 @@ export const queueGuestOrder = async (input: {
 }): Promise<number> => {
   const queueId = await enqueueGuestOrder({
     sessionId: input.sessionId,
-    guestAccessToken: input.guestAccessToken,
+    ...(guestCookieCacheKey(input.guestAccessToken) ? { guestAccessToken: input.guestAccessToken } : {}),
     payload: input.payload,
     createdAt: new Date().toISOString(),
     idempotencyKey: input.idempotencyKey || createIdempotencyKey(),
@@ -216,14 +220,32 @@ export const isReplayableGuestOrder = (item: GuestOrderQueueRecord): boolean => 
   });
 };
 
+const SYNC_LEASE_DURATION_MS = 60_000;
+const REPLAY_OWNER = createIdempotencyKey();
+
+const withWaiterLeaseHeartbeat = async <T>(item: WaiterActionQueueRecord, action: () => Promise<T>): Promise<T> => {
+  if (!item.id) return action();
+  const timer = window.setInterval(() => {
+    void renewQueuedWaiterActionLease(item.id!, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
+  }, Math.floor(SYNC_LEASE_DURATION_MS / 3));
+  try {
+    return await action();
+  } finally {
+    window.clearInterval(timer);
+  }
+};
+
+
 export const queueWaiterAction = async (input: {
   type: WaiterQueueActionType;
   orderId: number;
   updatePayload?: UpdatePendingOrderRequest;
 }): Promise<number> => {
+  if (!getVerifiedBrowserIdentity()) throw new Error('Resolve the authenticated account before queuing a staff action.');
   const queueId = await enqueueWaiterAction({
     type: input.type,
     createdAt: new Date().toISOString(),
+    idempotencyKey: createIdempotencyKey(),
     payload: {
       orderId: input.orderId,
       updatePayload: input.updatePayload,
@@ -235,33 +257,29 @@ export const queueWaiterAction = async (input: {
 
 export const getPendingWaiterQueueCount = async (): Promise<number> => {
   const queued = await listQueuedWaiterActions();
-  return queued.filter((item) => item.status === 'pending' || item.status === 'failed').length;
+  return queued.filter(isQueuedRecordClaimable).length;
 };
 
 const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<void> => {
   if (!waiterActionBelongsToCurrentAccount(item.owner)) throw new Error('The queued action belongs to a different or unresolved account.');
-  const identity = getVerifiedBrowserIdentity();
-  const replayToken = localStorage.getItem('admin_auth_token')!;
   const { orderId, updatePayload } = item.payload;
   switch (item.type) {
     case 'confirm_order':
-      await confirmPendingOrder(orderId, replayToken);
+      await confirmPendingOrder(orderId, item.idempotencyKey);
       return;
     case 'cancel_order':
-      await cancelPendingOrder(orderId, replayToken);
+      await cancelPendingOrder(orderId, item.idempotencyKey);
       return;
     case 'mark_served':
-      await markOrderServed(orderId, replayToken);
+      await markOrderServed(orderId, item.idempotencyKey);
       return;
     case 'update_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload, replayToken);
+      await updatePendingOrder(orderId, updatePayload, item.idempotencyKey);
       return;
     case 'update_and_confirm_order':
       if (!updatePayload) throw new Error('Missing update payload');
-      await updatePendingOrder(orderId, updatePayload, replayToken);
-      if (!isCurrentBrowserIdentity(identity)) throw new Error('The authenticated account changed during replay.');
-      await confirmPendingOrder(orderId, replayToken);
+      await updateAndConfirmPendingOrder(orderId, updatePayload, item.idempotencyKey);
       return;
     default:
       throw new Error('Unsupported waiter queue action');
@@ -269,26 +287,39 @@ const replaySingleWaiterAction = async (item: WaiterActionQueueRecord): Promise<
 };
 
 export const replayQueuedWaiterActions = async (): Promise<QueueReplayResult> => {
-  const queued = await listQueuedWaiterActions();
-  const replayable = queued.filter((item) => item.status === 'pending' || item.status === 'failed');
-  const summary: QueueReplayResult = { synced: 0, failed: 0, needsReview: 0 };
+  return withReplayLock('menu-react:waiter-action-replay', async () => {
+    const queued = await listQueuedWaiterActions();
+    const replayable = queued.filter(isQueuedRecordClaimable);
+    const summary: QueueReplayResult = { synced: 0, failed: 0, needsReview: 0 };
 
-  for (const item of replayable) {
-    if (!item.id) continue;
-    await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
-    try {
-      await replaySingleWaiterAction(item);
-      await deleteQueuedWaiterAction(item.id);
-      summary.synced += 1;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
-      summary.failed += 1;
+    for (const candidate of replayable) {
+      if (!candidate.id) continue;
+      const item = await claimQueuedWaiterAction(
+        candidate.id,
+        REPLAY_OWNER,
+        new Date(),
+        SYNC_LEASE_DURATION_MS
+      );
+      if (!item) continue;
+      try {
+        await withWaiterLeaseHeartbeat(item, () => replaySingleWaiterAction(item));
+        await deleteQueuedWaiterAction(item.id!);
+        summary.synced += 1;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Sync failed';
+        await updateQueuedWaiterAction(item.id!, {
+          status: 'failed',
+          lastError: errorMessage,
+          syncLeaseOwner: null,
+          syncLeaseExpiresAt: null,
+        });
+        summary.failed += 1;
+      }
     }
-  }
 
-  emitOfflineQueueUpdated();
-  return summary;
+    emitOfflineQueueUpdated();
+    return summary;
+  }, { synced: 0, failed: 0, needsReview: 0 });
 };
 
 export const getQueuedWaiterActions = async (): Promise<WaiterActionQueueRecord[]> => {
@@ -307,16 +338,42 @@ export const syncQueuedWaiterAction = async (id: number): Promise<{ synced: bool
     return { synced: false, error: 'Queued waiter action not found' };
   }
 
-  await updateQueuedWaiterAction(item.id, { status: 'syncing', lastError: null });
+  const claimed = await claimQueuedWaiterAction(item.id, REPLAY_OWNER, new Date(), SYNC_LEASE_DURATION_MS);
+  if (!claimed) return { synced: false, error: 'Queued waiter action is already being synced' };
   try {
-    await replaySingleWaiterAction(item);
-    await deleteQueuedWaiterAction(item.id);
+    await withWaiterLeaseHeartbeat(claimed, () => replaySingleWaiterAction(claimed));
+    await deleteQueuedWaiterAction(claimed.id!);
     emitOfflineQueueUpdated();
     return { synced: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-    await updateQueuedWaiterAction(item.id, { status: 'failed', lastError: errorMessage });
+    await updateQueuedWaiterAction(claimed.id!, {
+      status: 'failed',
+      lastError: errorMessage,
+      syncLeaseOwner: null,
+      syncLeaseExpiresAt: null,
+    });
     emitOfflineQueueUpdated();
     return { synced: false, error: errorMessage };
   }
+};
+
+export const isQueuedRecordClaimable = (item: GuestOrderQueueRecord | WaiterActionQueueRecord): boolean => {
+  if (item.status === 'pending' || item.status === 'failed') return true;
+  if (item.status !== 'syncing') return false;
+
+  const leaseExpiresAt = item.syncLeaseExpiresAt ? Date.parse(item.syncLeaseExpiresAt) : Number.NaN;
+  if (Number.isFinite(leaseExpiresAt)) return leaseExpiresAt <= Date.now();
+
+  const createdAt = Date.parse(item.createdAt);
+  return Number.isFinite(createdAt) && createdAt <= Date.now() - SYNC_LEASE_DURATION_MS;
+};
+
+const withReplayLock = async <T>(name: string, action: () => Promise<T>, unavailable: T): Promise<T> => {
+  const lockManager = typeof navigator !== 'undefined' ? navigator.locks : undefined;
+  if (!lockManager) return action();
+
+  return lockManager.request(name, { mode: 'exclusive', ifAvailable: true }, async (lock) => (
+    lock ? action() : unavailable
+  ));
 };

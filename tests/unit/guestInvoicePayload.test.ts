@@ -179,4 +179,13 @@ describe('guest invoice payload', () => {
     expect(screen.getAllByText('$43.13').length).toBeGreaterThan(0);
     expect(40 - 2.5 + 3.75 + 1.88).toBe(43.13);
   });
+  it('prints the settled currency snapshot after restaurant settings change', () => {
+    const order = buildOrder();
+    order.invoice.currency = 'EUR';
+    order.restaurant.currency = 'USD';
+    const payload = buildGuestInvoicePayload({ sourceTableId: 1, restaurantName: 'QA_RUN_currency', tableName: 'T1', generatedAt: '2026-10-08', notes: [], orders: [order], t: (key) => key });
+    expect(payload.currency).toBe('EUR');
+    expect(payload.summary.total).toBe('30.00 €');
+  });
+
 });

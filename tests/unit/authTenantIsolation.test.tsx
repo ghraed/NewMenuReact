@@ -1,3 +1,4 @@
+import { AUTH_SESSION_STORAGE_KEY, AUTH_IDENTITY_STORAGE_KEY } from '../../src/services/browserAuthSession';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
@@ -141,10 +142,11 @@ describe('actual auth provider and protected persistence', () => {
 
   it('does not resurrect A when its delayed /me returns after logout and B login', async () => {
     let resolveMe!: (value: unknown) => void;
-    http.get.mockReturnValue(new Promise((resolve) => { resolveMe = resolve; }));
+    http.get.mockRejectedValueOnce(new Error('QA_RUN no cookie'));
     render(<AuthProvider><AccountView /></AuthProvider>);
     fireEvent.click(await screen.findByText('Login A'));
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('1'));
+    http.get.mockReturnValueOnce(new Promise((resolve) => { resolveMe = resolve; }));
     fireEvent.click(screen.getByText('Refresh'));
     fireEvent.click(screen.getByText('Logout'));
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('none'));
@@ -165,7 +167,9 @@ describe('actual auth provider and protected persistence', () => {
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('2'));
     await act(async () => { resolveA({ data: { token: 'QA_RUN_unit_token_A', user: user(1, 11) } }); });
     expect(screen.getByTestId('user')).toHaveTextContent('2');
-    expect(localStorage.getItem('admin_auth_token')).toBe('QA_RUN_unit_token_B');
+    expect(localStorage.getItem('admin_auth_token')).toBeNull();
+    expect(localStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(AUTH_IDENTITY_STORAGE_KEY)!)).toEqual({ userId: 2, restaurantId: 22 });
   });
 
   it('invalidates A immediately and leaves a new B session intact when A logout returns late', async () => {
@@ -181,7 +185,9 @@ describe('actual auth provider and protected persistence', () => {
     await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('2'));
     await act(async () => { resolveLogout({ data: {} }); });
     expect(screen.getByTestId('user')).toHaveTextContent('2');
-    expect(localStorage.getItem('admin_auth_token')).toBe('QA_RUN_unit_token_B');
+    expect(localStorage.getItem('admin_auth_token')).toBeNull();
+    expect(localStorage.getItem(AUTH_SESSION_STORAGE_KEY)).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(AUTH_IDENTITY_STORAGE_KEY)!)).toEqual({ userId: 2, restaurantId: 22 });
   });
 
   it('withholds protected descendants during cross-tab identity resolution', async () => {
@@ -200,4 +206,14 @@ describe('actual auth provider and protected persistence', () => {
     expect(screen.getByTestId('held')).toHaveTextContent('false');
     expect(screen.getByTestId('invoice')).toHaveTextContent('none');
   });
+  it('fails closed immediately when a cookie identity changes without a revision event', async () => {
+    render(<AuthProvider><AccountView /></AuthProvider>);
+    fireEvent.click(await screen.findByText('Login A'));
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('1'));
+    fireEvent.click(screen.getByText('Create A work'));
+    expect(readCompensationLedger()).toHaveLength(1);
+    localStorage.setItem(AUTH_IDENTITY_STORAGE_KEY, JSON.stringify({ userId: 2, restaurantId: 22 }));
+    expect(readCompensationLedger()).toEqual([]);
+  });
+
 });

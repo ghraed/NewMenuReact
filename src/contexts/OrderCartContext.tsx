@@ -8,6 +8,7 @@ import type {
   OrderCartRestaurant,
 } from '../types';
 import { resolveAssetUrl } from '../services/api';
+import { guestCredentialFromAccess, guestCookieCacheKey } from '../utils/guestAccess';
 
 interface OrderCartState {
   restaurant: OrderCartRestaurant | null;
@@ -34,7 +35,8 @@ interface OrderCartContextValue {
     guestAccess?: GuestAccessSummary;
   }) => void;
   setGuestAccess: (access: {
-    token: string;
+    token?: string;
+    cacheKey?: string;
     expiresAt: string | null;
   }) => void;
   clearGuestAccess: () => void;
@@ -95,9 +97,12 @@ const normalizeState = (value: unknown): OrderCartState => {
       tableId: typeof candidate.draft?.tableId === 'number' ? candidate.draft.tableId : null,
       tableSessionId: typeof candidate.draft?.tableSessionId === 'number' ? candidate.draft.tableSessionId : null,
       tableReference: typeof candidate.draft?.tableReference === 'string' ? candidate.draft.tableReference : '',
-      guestAccessToken: typeof candidate.draft?.guestAccessToken === 'string' ? candidate.draft.guestAccessToken : null,
-      guestAccessVerified: candidate.draft?.guestAccessVerified === true,
-      guestAccessExpiresAt: typeof candidate.draft?.guestAccessExpiresAt === 'string' ? candidate.draft.guestAccessExpiresAt : null,
+      guestAccessToken: candidate.draft?.guestAccessCacheKey
+        ? guestCredentialFromAccess({ cache_key: candidate.draft.guestAccessCacheKey })
+        : typeof candidate.draft?.guestAccessToken === 'string' ? candidate.draft.guestAccessToken : null,
+      guestAccessCacheKey: typeof candidate.draft?.guestAccessCacheKey === 'string' ? candidate.draft.guestAccessCacheKey : null,
+      guestAccessVerified: Boolean(candidate.draft?.guestAccessCacheKey || candidate.draft?.guestAccessVerified),
+      guestAccessExpiresAt: candidate.draft?.guestAccessExpiresAt || null,
       notes: typeof candidate.draft?.notes === 'string' ? candidate.draft.notes : '',
     },
   };
@@ -128,7 +133,16 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   });
 
   useEffect(() => {
-    localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(ORDER_CART_STORAGE_KEY, JSON.stringify({
+      ...state,
+      draft: {
+        ...state.draft,
+        guestAccessCacheKey: guestCookieCacheKey(state.draft.guestAccessToken),
+        guestAccessToken: null,
+        guestAccessVerified: false,
+        guestAccessExpiresAt: state.draft.guestAccessExpiresAt,
+      },
+    }));
   }, [state]);
 
   const setGuestContext = useCallback((context: {
@@ -150,8 +164,8 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       const incomingVerifiedAccess = context.guestAccess?.verified === true;
       const incomingGuestAccessToken = (
-        typeof context.guestAccess?.token === 'string' && context.guestAccess.token.trim() !== ''
-          ? context.guestAccess.token
+        incomingVerifiedAccess
+          ? guestCredentialFromAccess(context.guestAccess)
           : null
       );
 
@@ -184,6 +198,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           tableReference: context.tableReference,
           tableSessionId: context.tableSessionId,
           guestAccessToken: nextGuestAccessToken,
+          guestAccessCacheKey: guestCookieCacheKey(nextGuestAccessToken),
           guestAccessVerified: nextGuestAccessVerified && Boolean(nextGuestAccessToken),
           guestAccessExpiresAt: nextGuestAccessExpiresAt,
         },
@@ -192,15 +207,17 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const setGuestAccess = useCallback((access: {
-    token: string;
+    token?: string;
+    cacheKey?: string;
     expiresAt: string | null;
   }) => {
     setState((current) => ({
       ...current,
       draft: {
         ...current.draft,
-        guestAccessToken: access.token,
-        guestAccessVerified: true,
+        guestAccessToken: guestCredentialFromAccess({ token: access.token, cache_key: access.cacheKey }),
+        guestAccessCacheKey: access.cacheKey || null,
+        guestAccessVerified: Boolean(guestCredentialFromAccess({ token: access.token, cache_key: access.cacheKey })),
         guestAccessExpiresAt: access.expiresAt,
       },
     }));
@@ -212,6 +229,7 @@ export const OrderCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       draft: {
         ...current.draft,
         guestAccessToken: null,
+        guestAccessCacheKey: null,
         guestAccessVerified: false,
         guestAccessExpiresAt: null,
       },
