@@ -1,0 +1,19 @@
+{
+  "Menu_React": {
+    ".github/workflows/qa.yml": "a9d298e16eca0f503dd27dba8a22d41ce3bc8369e6bf69587906efcef242bb48",
+    "README.md": "cc53bdde10be04a3a8614d48ed4e3b5b09480b385f3d455aad0a853b0c0d0e20",
+    "tests/e2e/real-order-lifecycle.spec.ts": "9aa6120186717131901207044edeeb05548b6c6f098543e7ad349dfc43012f4a",
+    "tests/setup/lifecycleFixtures.php": "f7338967a9f8e5197f8fb7e995cdaa30dda1ecd699a23e40e7146e39e578a285",
+    "tests/setup/replayKitchenEvent.php": "3ba5e690a83055b59d34e0fc71dea41f8afda39be64847d502559f70bb2314dd"
+  },
+  "Menu_API": {
+    ".github/workflows/qa.yml": "4a41472f23df516eb42b71b90e568f272a02a2c99c42341dc5f9943716a6a725",
+    "scripts/qa/run.py": "6bd60265183ba96a502d2b8b51b0c84f0bb979fffa3c7c3cb0ae1949525ea4cf",
+    "scripts/qa/bootstrap.php": "968cbeaa4b81e39bf9b4c61cff00489f865499965deea3e81cb7a0425ee1a2ab",
+    "scripts/qa/console.php": "fc7198fd97e6bda0c872affffbda7fd166d975f2bbfd1c840404d449ac7986c7",
+    "scripts/qa/operational-config.php": "045d2e6dbfeeafb71ca9d1983fbe7bedf7e323b2bb3650fe56c005d335e694ae",
+    "scripts/qa/operational-fixtures.php": "73a3763fd23431f6e53751a365b0895bbcc857daada7793f0c0aae7221dcc14b",
+    "scripts/qa/operational.py": "5f09b97fe2f5ac5a727cb3c6ab4eb8c7982b25ae5015ad8dcd56759157ad78f1",
+    "scripts/qa/README.md": "2d7577f07939989c69a655ea000ad4bfa7bf4a948eafe5fe40483319dbeaec09"
+  }
+}

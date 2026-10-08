@@ -1,0 +1,530 @@
+[
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/restaurant/profile",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/dishes",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/orders/pending-confirmation",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/waves/pending",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/table-sessions/active",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "GET",
+    "endpoint": "/api/orders/pending-confirmation",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "GET",
+    "endpoint": "/api/waves/pending",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "GET",
+    "endpoint": "/api/table-sessions/active",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/table-sessions/activate",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "POST",
+    "endpoint": "/api/table-sessions/1/finalize",
+    "status": 403
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/restaurant/profile",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/dishes",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "POST",
+    "endpoint": "/api/table-sessions/1/finalize",
+    "status": 404
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/kitchen/orders",
+    "status": 403
+  },
+  {
+    "role": "admin B",
+    "method": "POST",
+    "endpoint": "/api/pos/checkout",
+    "status": 404
+  },
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/chat",
+    "status": 403
+  },
+  {
+    "role": "guest A",
+    "method": "GET",
+    "endpoint": "/api/menu/table/1",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/menu/table/1/verify-pin",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "GET",
+    "endpoint": "/api/menu/table/1",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/table-session/1/heartbeat",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "GET",
+    "endpoint": "/api/menu/table/1",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "GET",
+    "endpoint": "/api/menu/table/1",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/table-session/1/heartbeat",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/table-session/1/order",
+    "status": 201
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/table-session/1/order",
+    "status": 200
+  },
+  {
+    "role": "unassigned staff A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/confirm",
+    "status": 403
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/orders/1",
+    "status": 404
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/account",
+    "status": 403
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "GET",
+    "endpoint": "/api/kitchen/orders",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/account",
+    "status": 403
+  },
+  {
+    "role": "admin B",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 403
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 403
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/orders/pending-confirmation",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/waves/pending",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/table-sessions/active",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/confirm",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "GET",
+    "endpoint": "/api/kitchen/orders/1",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "GET",
+    "endpoint": "/api/kitchen/orders",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/kitchen/orders/1/start",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "POST",
+    "endpoint": "/api/kitchen/orders/1/ready",
+    "status": 200
+  },
+  {
+    "role": "assigned staff A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/served",
+    "status": 200
+  },
+  {
+    "role": "chef A",
+    "method": "GET",
+    "endpoint": "/api/kitchen/orders",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/orders/1",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/orders/accounting",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/menu/qa-run-task8-report-20261007-09/tables",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/dishes/published",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/broadcasting/auth",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/table-sessions/1/invoice-split",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/orders/1/account",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/table-sessions/1/finalize",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/table-sessions/1/invoice-split",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1",
+    "status": 200
+  },
+  {
+    "role": "guest A",
+    "method": "POST",
+    "endpoint": "/api/table-session/1/order",
+    "status": 403
+  },
+  {
+    "role": "admin A",
+    "method": "POST",
+    "endpoint": "/api/table-sessions/1/finalize",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1",
+    "status": 404
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1/pdf",
+    "status": 404
+  },
+  {
+    "role": "assigned staff A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1",
+    "status": 403
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices/1/pdf",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/dashboard-metrics",
+    "status": 200
+  },
+  {
+    "role": "admin B",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/dashboard-metrics",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/restaurant/currency-settings",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/expenses",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/invoices",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/payroll/summary",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/payroll/periods",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/staff/schedules",
+    "status": 200
+  },
+  {
+    "role": "admin A",
+    "method": "GET",
+    "endpoint": "/api/admin/finance/tax/summary",
+    "status": 200
+  }
+]

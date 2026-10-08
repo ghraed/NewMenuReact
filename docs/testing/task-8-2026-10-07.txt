@@ -1,0 +1,157 @@
+TASK 8 — REAL ORDERING LIFECYCLE AND OPERATIONAL STAGING
+7 October 2026. Implemented across Menu_API and Menu_React.
+
+Local complete release-gate run: PASS. GitHub required-check settings: VERIFIED.
+Task 8 hosted workflow execution: NOT EXECUTED. The user authorized local add,
+commit and merge on 8 October 2026; integration is recorded in git-integration.json.
+No push or application deployment is included in this authorization.
+
+First QA pass was test-and-report only, before any source edits. The disposable
+baseline passed 412 API tests, 133 unit tests and 16 browser scenarios, zero skips.
+See first-pass.txt and /tmp/menu-task8-baseline-02. Coverage gaps were recorded;
+baseline success was not described as proof of Task 8's then-missing workflows.
+
+Repositories/environment:
+  QA verification ran on main with uncommitted Task 8 changes. Local integration
+  on 8 October 2026 uses a Task 8 feature branch and merges back into main; see
+  docs/testing/task-8-2026-10-07/git-integration.json for source commits.
+  API baseline/head: 87ae4b12c1b3911056aaabd38d9a0e02beab9637.
+  Frontend baseline/head: 6065c67a92dfc6548520bcb716a2e924fd53b79e.
+  These also matched the published GitHub main heads at the settings inspection.
+  Run: task8_final_20261007_01, APP_ENV=testing.
+  API: http://127.0.0.1:56631; frontend: http://127.0.0.1:51045.
+  MySQL: 127.0.0.1:45273, newly initialized private data directory.
+  Schemas: menu_test_QA_RUN_task8_final_20261007_01_suite and _browser.
+  Separate runtime/storage/bridge; disposable local staging only. Mail=array,
+  normal external credentials blank, Laravel outbound HTTP blocked, browser HTTP
+  restricted to owned origins. Operational Reverb/database queues are permitted
+  only after normal safety and exact run ownership checks. Reverb binds loopback,
+  scaling is disabled, domain bridge stays in this runtime. Standard testing safety
+  provider, production Compose, application .env and normal MySQL were untouched.
+  Synthetic QA_RUN data only; no live payment/SMS or real customer data.
+
+Reproduction (from Menu_API):
+  python3 scripts/qa/run.py --launch --react-root ../Menu_React --run-id task8_final_20261007_01 --evidence /tmp/menu-task8-final-01
+  Use a NEW identifier and evidence directory for another run. Actual npm/Artisan/
+  Composer project commands and prerequisites are documented in scripts/qa/README.md.
+
+Real browser lifecycle:
+  A guest enters the PIN returned by real assigned-staff activation, adds two
+  USD 12.50 dishes and submits to the real API (201). Replaying the idempotency
+  key returns the same order (200). Assigned staff confirms through the UI (200).
+  A separate chef subscribes to the real private kitchen channel, starts preparation
+  and marks ready through the UI (200 each). Assigned staff serves through real
+  browser HTTP (200). With websocket held down, the kitchen's actual timed poll
+  reconciles the served ticket. A separate authenticated admin uses the Accounting
+  UI to finalize after USD 2.00 fixed discount and 10% VAT. Persisted paid invoice,
+  rendered details, real generated PDF and finance agree on 25.00 - 2.00 + 2.30 =
+  USD 25.30. Repeated finalization reuses one invoice; finance counts one invoice.
+  PDF extracted text includes the real invoice number, item, VAT and total.
+
+Isolation, roles and features:
+  Separate guest, assigned staff, chef, unassigned staff and two tenant-admin
+  contexts/users. Fixture flags are attached to browser evidence. Enabled ordering,
+  kitchen/finance and isolated custom-domain routing are exercised. Tenant B has
+  ordering disabled; both have AI chatbot/push disabled; B custom-domain is disabled.
+  Unassigned staff cannot confirm/finalize (403), staff/chef cannot account (403),
+  staff cannot read finance invoices (403), and cross-tenant order/session/invoice/
+  PDF access returns 404. Cross-tenant kitchen channel auth returns 403; authorized
+  chef auth returns 200 with a real subscription. Disabled ordering returns the
+  registered middleware's intentional 404; disabled chatbot returns 403. Unknown
+  and disabled test hosts return 404. Finalization revokes guest ordering (403).
+  Tenant B finance stays at zero revenue/invoices. The original mocked guest
+  scenario and every existing test remain unchanged (51 frontend / 69 API files).
+
+Realtime/operations/recovery:
+  Genuine Reverb frames reach the kitchen UI. The same application kitchen-created
+  event is published twice through Reverb and both frames arrive while one ticket
+  remains. An interrupted transport reconnects and reauthorizes the same private
+  channel. With transport unavailable, actual 8-second kitchen polling reconciles
+  server state. HTTP responses/events are not fabricated; only the disconnect fault
+  and optional external font fallback are controlled by the browser test.
+  A separate real queue worker consumes a genuinely pending application domain job,
+  persists one verified domain mapping and leaves zero pending/failed jobs. Its
+  provisioning bridge receives a SYNTHETIC acknowledgement, not a DNS/TLS action.
+  A real schedule:work daemon spawns guarded schedule:run and delivers the due
+  T-1 reminder only. Repeated invocation keeps the same 12 role/channel logs;
+  draft/future events have no logs. Push transport itself is disabled/excluded.
+  Synthetic backup includes the owned schema and private/public disk tree. The
+  latest real migration is rolled down/up; the paid invoice survives. The rehearsal
+  wipes only this owned schema/files, restores both backups, and matches every
+  table row count/hash and every file checksum. It verifies paid amount, session
+  finalization link and encrypted storage decryption with the retained runtime key.
+  Post-restore migrate is a no-op, host routing succeeds, and real authenticated
+  invoice/finance HTTP confirms USD 25.30 revenue and exactly one paid invoice.
+  Latest down() drops finalized_invoice_id values. Up() cannot recreate them;
+  recovery restores those links from backup. This is documented as a data rollback
+  limitation, not described as safe to apply blindly to settled production data.
+  Raw backups/keys stay in temporary runtime and are removed by owned cleanup.
+
+CI and GitHub enforcement:
+  Both workflow jobs now invoke --launch as a required step, without continue-on-error.
+  Skipped JUnit cases fail the gate. The named complete real lifecycle must appear
+  exactly once in JUnit, preventing an old paired frontend from satisfying launch
+  with only the 16 old scenarios. Logs/JUnit/PDF/PNG/HTML/failure screenshots and
+  multi-context traces are retained 14 days with password/token/signature redaction.
+  Both GitHub main branches were unprotected (404). After reading actual successful
+  current-main check identifiers and confirming admin access, required protection
+  was applied and read back: API api; frontend frontend + browser; strict=true and
+  enforce_admins=true. JSON requests and verified state are in this evidence folder.
+  No extra PR review requirement was added. New Task 8 hosted CI still requires
+  paired source integration; existing hosted check successes are not Task 8 runs.
+
+PASS:
+  Complete run: 412 API tests / 4,221 assertions; 133 unit tests; 17 browser cases;
+  three tooling/security regressions. Zero failures/errors/skipped JUnit cases.
+  Fresh migrations in both schemas, API/frontend builds, lint, Composer validation,
+  Pint (391 API PHP files), all three dependency audits, real fixture cleanup and
+  owned process/database/storage cleanup. New frontend PHP helpers also pass Pint.
+  Both workflow YAML files and Python/PHP syntax checked. Existing tests preserved.
+  Unowned operational runtime rejected before boot; worker, scheduler, host routing,
+  migration down/up, database/storage/key restore and authenticated restored finance.
+  Full-run artifacts record invoice paid status in the QA status field for the restore
+  row due to a report-field collision. Functional assertions passed. The one-line
+  reporting correction separates invoice_status from QA status; focused report-09
+  is retained as the validation of that final schema correction.
+
+FAIL / BLOCKED during implementation, all corrected locally:
+  P2 developer/QA harness issues, deterministic for recorded revisions: preflight
+  exit-zero bootstrap error, incorrect disabled-feature expectation, incomplete
+  operational feature fixture, empty-directory destruction expectation, redundant
+  manual tracing, chef landing-page assumption, switched-driver channel registration,
+  accounting accessible-name/obsolete-button assumptions, and report status collision.
+  Expected: verified target, correct contract/fixture/policy and complete real checks.
+  Actual: setup rejection, intended 404/403 responses or a browser setup/selector
+  timeout. No demonstrated application financial/tenant/authorization defect.
+  Exact commands: iteration-reproductions.json. Expected/actual and likely modules:
+  progress.txt; guards/config/operational runner and real browser spec/helper fixtures.
+  Browser statuses, console errors, screenshots and traces: each retained /tmp run.
+  Sandbox loopback/network attempts were blocked; reviewed retries succeeded.
+
+SKIPPED:
+  Zero cases in the complete run. Focused iterations explicitly mark omitted lint,
+  units and other browser scenarios NOT EXECUTED; they are not complete release runs.
+
+NOT EXECUTED / limitations:
+  New hosted Task 8 workflow, source push/merge/deployment, deployed-image/fleet
+  rollback, public DNS/TLS provisioning, real push/payment/SMS, physical printer,
+  other browser engines and production. Local staging verifies actual PHP services
+  through guarded QA entrypoints, not a running production Compose fleet.
+  No prior deployed image was supplied as a rollback target. No claim that API/UI
+  testing alone proves all possible tenant, authorization, operational or failure modes.
+
+Changed files:
+  Frontend real-order-lifecycle.spec.ts, lifecycleFixtures.php, replayKitchenEvent.php;
+  both .github/workflows/qa.yml; frontend README; API run.py/bootstrap.php plus guarded
+  console.php/operational-config.php/operational-fixtures.php/operational.py and QA
+  README; this task's reports/evidence. Business code and deployed migrations unchanged.
+  Pair the reviewed API/frontend refs during integration. --launch is required for
+  paired browser runs; --runtime-only/--e2e-spec are explicit partial iteration options.
+
+Evidence:
+  docs/testing/task-8-2026-10-07/: baseline/full/focused sanitized summaries, source
+  hashes, preserved-test proof, branch-protection payloads/readback and progress.
+  /tmp/menu-task8-final-01: full logs/JUnit/HTML, real HTTP ledger, generated PDF,
+  finance screenshot and operational outcomes. /tmp/menu-task8-report-09: corrected
+  operational reporting verification. All prior failure artifacts remain retained.
+  Operational details and safe rollback steps: Menu_API/scripts/qa/README.md.

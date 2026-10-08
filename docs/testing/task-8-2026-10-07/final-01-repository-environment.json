@@ -1,0 +1,19 @@
+{
+  "run_id": "task8_final_20261007_01",
+  "api": {
+    "branch": "main",
+    "commit": "87ae4b12c1b3911056aaabd38d9a0e02beab9637",
+    "working_tree": "M .github/workflows/qa.yml\n M scripts/qa/README.md\n M scripts/qa/bootstrap.php\n M scripts/qa/run.py\n?? scripts/qa/console.php\n?? scripts/qa/operational-config.php\n?? scripts/qa/operational-fixtures.php\n?? scripts/qa/operational.py"
+  },
+  "react": {
+    "branch": "main",
+    "commit": "6065c67a92dfc6548520bcb716a2e924fd53b79e",
+    "working_tree": "M .github/workflows/qa.yml\n M README.md\n?? docs/testing/task-8-2026-10-07/\n?? tests/e2e/real-order-lifecycle.spec.ts\n?? tests/setup/lifecycleFixtures.php\n?? tests/setup/replayKitchenEvent.php"
+  },
+  "api_url": "http://127.0.0.1:56631",
+  "frontend_url": "http://127.0.0.1:51045",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 45273,
+  "runtime": "/tmp/menu-qa-wp8q3tio"
+}
