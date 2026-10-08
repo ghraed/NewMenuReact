@@ -281,3 +281,86 @@ TASK 7 / U8-S3-S4 — COMPLETE LOCAL DEPENDENCY SECURITY / FORMATTING
   Ready for separately selected Task 8. Tasks 8-10 NOT IMPLEMENTED by this task.
   No push, merge, deployment, production access or history rewrite performed.
   Earlier Task 7-not-started and audit/style-failure entries describe prior states.
+
+TASK 8 — PROGRESS LOG RECONCILIATION (8 October 2026)
+  The older entries above ended at Task 7. Task 8 was subsequently completed and
+  locally integrated under separate authorization, as recorded in task-8's report
+  and git-integration.json. Verified source commits: API 750bb4096616109e73ae097854badd76b4674c1d,
+  frontend 5c3d65c0513bb8d90d9b191362fc9a657aa66634. Current Task 9 bases are
+  API 4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3 and frontend
+  620c5bd2050043452c536c3e008bbb9ab7969946, both containing those Task 8 commits
+  and every recorded Task 0–7 base/final commit. No Task 8 implementation changed.
+
+TASK 9 — SELECTED, LOCAL VERIFICATION IN PROGRESS (8 October 2026)
+  Both initially clean main trees verified; dedicated paired branch:
+  fix/task-9-concurrency-offline-membership. Scope is Task 9 only.
+  First pass: unchanged application baseline 412 API, 133 unit and 17 browser
+  tests, builds/lint/style/audits/operational recovery PASS, zero skips.
+  All 125 existing test/fixture/release files remain byte-identical.
+  True contention tests use independent PHP processes/MySQL connections with
+  shared barriers and, for booking/stock/finalization, held locks before release.
+  Corrected fixtures verify existing single-staff-membership enforcement; no
+  tenant selector or role/schema policy expansion. New offline project allows the
+  real shipped worker and exercises real API behavior with network faults only.
+  Reproduced shared session cache, missing offline navigation fallback, lost
+  acknowledgement intent loss and same-key duplicate creation after cache eviction.
+  Fixes: worker v5 safe caches/shell; persist guest intent before HTTP; durable
+  per-session hashed request identity with atomic order creation and session lock.
+  Focused API/browser checks PASS; complete paired run pending. This entry does
+  not declare full completion. Final results will be appended below.
+
+TASK 9 — COMPLETE LOCAL CONCURRENCY / OFFLINE / MEMBERSHIP COVERAGE
+  8 October 2026. Paired branch: fix/task-9-concurrency-offline-membership.
+  Bases: frontend 620c5bd2050043452c536c3e008bbb9ab7969946; API
+  4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3. Recorded Tasks 0–8 ancestry verified;
+  all 125 previous test/fixture/release files byte-identical. Prior fixes preserved.
+  True separate-worker/MySQL contention: one booking; final-stock loser rollback;
+  one same-key guest order; one paid finalization receipt. Final test-only barrier
+  refinement verifies BOTH requests reach the SPECIFIC held table before release;
+  separate repeat passed eight cases / 98 assertions with independent QA_RUN data.
+  Reproduced/fixed: shared token-sensitive worker caches; missing public offline
+  navigation fallback; lost-acknowledgement/reload intent loss; second same-key
+  order after server cache eviction. Persist intent before HTTP, recover matching
+  cart with its original key, durable atomic hashed request/order identity and
+  session lock with guest reauthorization. Known legacy cache records are adopted
+  only with exact tenant/session/payload checks. No old settlement rewrite.
+  Seven service-worker-enabled real browser cases cover two-tenant cache privacy,
+  offline menu, interrupted submit before commit, lost ack/server cache eviction,
+  reload during outstanding commit, real worker activation upgrade, competing tabs,
+  expired/closed sessions and disabled ordering. Invalid requests remain for review;
+  valid recovery creates exactly one order. Existing 17 browser cases preserved.
+  Staff multi-membership remains intentionally unsupported: existing DB unique
+  constraint rejects second link; Host/restaurant_id cannot switch authenticated
+  tenant. No permission expansion, schema-policy change or arbitrary-first selector.
+  New migration exposed Task 8's latest-migration assumption. Original rollback
+  assertion fixture remains unchanged; runner now rehearses that named migration
+  plus the latest request table, restoring exact identities/orders/finalization,
+  storage/key and paid finance from disposable backup. No assertions weakened.
+  Final paired run task9_final_20261008_02, /tmp/menu-task9-final-02: PASS
+  420 API / 4319 assertions; 135 unit; 24 browser; zero failures/errors/skips.
+  Builds/lint/TypeScript/Pint/Composer validation, all three audits/tooling, fresh
+  migrations, real worker/scheduler/host checks, migration/backup/restore and all
+  owned fixture/database/storage/process cleanup passed. Three previous Task 6
+  release regressions also passed. Corrected/invalid attempts retained separately.
+  Report: docs/testing/task-9-2026-10-08.txt; source hashes/summary/evidence:
+  docs/testing/task-9-2026-10-08/. Earlier in-progress entry is superseded here.
+  Compatibility: additive migration, drain guest writes for complete API fleet
+  replacement, then client/worker v5. Retain request table/rows for code rollback;
+  old cache-only API restores duplicate risk. Already-lost pre-upgrade identities
+  need review; mixed old/new writer contention is not claimed safe.
+  FAIL/BLOCKED outstanding locally: none. SKIPPED: zero in complete runs.
+  NOT EXECUTED: hosted CI, other engines, rebuilt Task 9 release image, deployment/
+  production/fleet rollback. Task 10 remains unselected/NOT IMPLEMENTED.
+  Changes are uncommitted on both task branches. No merge, push, deployment,
+  production access or history rewrite; no claim of general market-launch approval.
+
+TASK 9 — USER-AUTHORIZED LOCAL COMMIT / MAIN INTEGRATION (8 October 2026)
+  Completed Task 9 source commits: API 3ba558048c43ed4439586db5c4a8572218d29a74;
+  frontend d592d9b1501138afd778e644c9c6e4cfc1705a8d. The user explicitly authorized
+  add, commit and merge into local main. Both use no-ff integration from the paired
+  Task 9 branch, preserving prior history. Tested-source hashes and all 125 prior
+  test/fixture files reverified before committing. Generated evidence whitespace
+  normalized only; no application/test behavior changed after verification.
+  Integration record: task-9-2026-10-08/git-integration.json. Earlier uncommitted/
+  no-merge notes describe the original implementation run, superseded here.
+  No push or deployment authorized/performed; hosted CI remains NOT EXECUTED.

@@ -1,0 +1,102 @@
+{
+  "scenario": "service worker keeps public offline menu while token-sensitive responses bypass shared caches",
+  "status": "passed",
+  "requests": [
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1/verify-pin",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/heartbeat",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/heartbeat",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/heartbeat",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/qa-run-task9-final-20261008-02/dishes",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": true
+    },
+    {
+      "endpoint": "/api/menu/qa-run-task9-final-20261008-02-1da54512d9-b/dishes",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": true
+    },
+    {
+      "endpoint": "/api/menu/qa-run-task9-final-20261008-02/dishes",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": true
+    },
+    {
+      "endpoint": "/api/menu/qa-run-task9-final-20261008-02-1da54512d9-b/dishes",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": true
+    }
+  ]
+}

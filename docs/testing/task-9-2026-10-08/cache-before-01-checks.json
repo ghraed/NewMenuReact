@@ -1,0 +1,37 @@
+[
+  {
+    "check": "mysql-initialize",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-full",
+    "status": "FAIL",
+    "exit": 1,
+    "required": true
+  },
+  {
+    "check": "runner",
+    "status": "BLOCKED",
+    "reason": "api-full failed; see its retained log.",
+    "required": true
+  },
+  {
+    "check": "cleanup",
+    "status": "PASS",
+    "required": true
+  }
+]

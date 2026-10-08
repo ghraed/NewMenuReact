@@ -1,0 +1,75 @@
+[
+  {
+    "check": "mysql-initialize",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-full",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 5,
+    "skipped": 0
+  },
+  {
+    "check": "api-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-tooling",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-validate",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-pint",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-npm-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "complete-api-suite",
+    "status": "NOT EXECUTED",
+    "required": false,
+    "reason": "Explicit focused PHPUnit filter."
+  },
+  {
+    "check": "cleanup",
+    "status": "PASS",
+    "required": true
+  }
+]

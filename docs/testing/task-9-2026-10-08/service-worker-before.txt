@@ -1,0 +1,57 @@
+
+> menu-react@0.0.0 test:unit
+> vitest run tests/unit/serviceWorkerPrivacy.test.ts
+
+
+ RUN  v5.0.3 /media/raed/Data/from ubuntu/new_menu/Menu_React
+
+ ❯ tests/unit/serviceWorkerPrivacy.test.ts (2 tests | 2 failed) 8ms
+   ❯ shipped service worker privacy boundaries (2)
+     × does not share table session responses between guest tokens at the same URL 6ms
+     × bypasses authenticated catalog requests while keeping public slug catalogs cacheable 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/serviceWorkerPrivacy.test.ts > shipped service worker privacy boundaries > does not share table session responses between guest tokens at the same URL
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/unit/serviceWorkerPrivacy.test.ts:30:28
+     28|     const fetchMenu = worker();
+     29|     const result = await fetchMenu('/api/menu/table/1', { 'x-guest-acc…
+     30|     expect(result.handled).toBe(false);
+       |                            ^
+     31|     expect([...result.records.values()].flatMap(cache => [...cache.key…
+     32|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  tests/unit/serviceWorkerPrivacy.test.ts > shipped service worker privacy boundaries > bypasses authenticated catalog requests while keeping public slug catalogs cacheable
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/unit/serviceWorkerPrivacy.test.ts:35:110
+     33|   it('bypasses authenticated catalog requests while keeping public slu…
+     34|     const fetchMenu = worker();
+     35|     expect((await fetchMenu('/api/menu/QA_RUN_A/dishes', { authorizati…
+       |                                                                                                              ^
+     36|     expect((await fetchMenu('/api/menu/QA_RUN_A/dishes')).handled).toB…
+     37|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  12:25:42
+   Duration  586ms (environment 52%, transform 31%, setup 13%, tests 2%, worker 1%, import 1%)

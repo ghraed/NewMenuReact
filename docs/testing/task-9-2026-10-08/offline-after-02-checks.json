@@ -1,0 +1,69 @@
+[
+  {
+    "check": "mysql-initialize",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-lint",
+    "status": "NOT EXECUTED",
+    "required": false,
+    "reason": "Explicit focused runtime iteration, not a release gate."
+  },
+  {
+    "check": "react-unit",
+    "status": "NOT EXECUTED",
+    "required": false,
+    "reason": "Explicit focused runtime iteration, not a release gate."
+  },
+  {
+    "check": "react-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-e2e",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 6,
+    "skipped": 0
+  },
+  {
+    "check": "complete-browser-launch",
+    "status": "NOT EXECUTED",
+    "required": false,
+    "reason": "Focused iteration only; all other specs must run before launch."
+  },
+  {
+    "check": "react-npm-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "cleanup",
+    "status": "PASS",
+    "required": true
+  }
+]

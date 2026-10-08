@@ -1,0 +1,33 @@
+[
+  {
+    "check": "unowned-operational-runtime-rejected",
+    "status": "PASS",
+    "exit_nonzero": true
+  },
+  {
+    "check": "queue-worker",
+    "status": "PASS",
+    "pending_jobs": 0,
+    "failed_jobs": 0,
+    "verified_domain_rows": 1,
+    "domain_bridge": "synthetic; DNS/TLS provisioning not exercised"
+  },
+  {
+    "check": "scheduler-daemon-and-dedupe",
+    "status": "PASS",
+    "due_logs": 12,
+    "future_or_draft_logs": 0,
+    "due_time": "2026-10-08 11:00:00"
+  },
+  {
+    "check": "isolated-custom-host-http",
+    "status": "PASS",
+    "mapped_status": 200,
+    "unmapped_status": 404
+  },
+  {
+    "check": "operational-recovery",
+    "status": "FAIL",
+    "reason": "rollback-check did not return valid fixture JSON; see retained log."
+  }
+]

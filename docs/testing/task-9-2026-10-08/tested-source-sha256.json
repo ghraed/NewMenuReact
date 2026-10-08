@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "task9_final_20261008_02",
+    "task9_specific_lock_20261008_01"
+  ],
+  "note": "The final held-table barrier refinement is test-only and was reverified by the eight-case specific-lock run; application/runtime sources match the complete paired run.",
+  "sources": {
+    "Menu_React": {
+      "playwright.config.ts": "de313f9d5b14eb4094ad1bb1e7882c78049729ae0c62a5d5800d1c301c9ff538",
+      "public/sw.js": "b06c8cf36d9cdee3ed2ad9ec76601b7840d2ba043f69d30d44d048fd14388d09",
+      "src/pages/OrderReviewPage.tsx": "10ad044b2d9ec8725916693b9f481da16f8422d4a9995b6dc3b64378b7f191ea",
+      "tests/e2e/offline-recovery.spec.ts": "7b3ac2cb2b3be495e555d68d53455ff9820da1f91f7766d183bb9400faf26144",
+      "tests/setup/offlineFixtures.php": "63be5a41c24b86295ef4f34f5adbee51957a373a1dc2164acbd0cc044f9a21b7",
+      "tests/unit/serviceWorkerPrivacy.test.ts": "9fd36a161f8903e4e664b2870594b94719d5b77bdb4d6f09287b8316c4270ca8"
+    },
+    "Menu_API": {
+      "app/Http/Controllers/OrderController.php": "24ca76dd90c41f32fa0aba371d650028f4c76d04354463789fb782a7205d42d7",
+      "database/migrations/2026_10_08_120000_create_guest_order_idempotency_table.php": "fd6face4ece05c89fce62b15b29211d603721aa3df42a7d0c9e20fc530a32b60",
+      "scripts/qa/run.py": "4c7fbfe9e2c32f1d9adef80fc22cfe34b1ba69496946bd9ba07d388bfbb1f93f",
+      "scripts/qa/operational.py": "53caaf8e94ec704d2965614794b475351e9d46a17f4d19e0fe311788eb760a2d",
+      "scripts/qa/task9-operational-fixtures.php": "a6a38d8cda7076ade004cdd66ffce9d1680c5f2f8a365e934e0634540e17e0d0",
+      "tests/Feature/StaffMembershipBoundaryTest.php": "84ff1ef8d72b84c68c0d6c4d2f9d3d74bf020b7a0eb2855b402fde00d78eb286",
+      "tests/Feature/Task9ContentionTest.php": "d4feee7816ce7d166db0785dc1f09248594fb2fd79c383a74c3d20b0c3cb55c3",
+      "tests/Support/RunsContentionRequests.php": "2eda97ec1dcf30a16dc8efc927bceb2b4b9054e096892f078a29213806a46b55",
+      "tests/Support/contentionRequestWorker.php": "29a95e589354726fc9dcc8a313adb955ae1314f2fcfc9cd8142746b338182677"
+    }
+  }
+}

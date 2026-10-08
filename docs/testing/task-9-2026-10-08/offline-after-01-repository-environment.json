@@ -1,0 +1,19 @@
+{
+  "run_id": "task9_offline_after_20261008_01",
+  "api": {
+    "branch": "fix/task-9-concurrency-offline-membership",
+    "commit": "4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3",
+    "working_tree": "M scripts/qa/run.py\n?? tests/Feature/StaffMembershipBoundaryTest.php\n?? tests/Feature/Task9ContentionTest.php\n?? tests/Support/RunsContentionRequests.php\n?? tests/Support/contentionRequestWorker.php"
+  },
+  "react": {
+    "branch": "fix/task-9-concurrency-offline-membership",
+    "commit": "620c5bd2050043452c536c3e008bbb9ab7969946",
+    "working_tree": "M playwright.config.ts\n M public/sw.js\n M src/pages/OrderReviewPage.tsx\n?? docs/testing/task-9-2026-10-08/\n?? tests/e2e/offline-recovery.spec.ts\n?? tests/setup/offlineFixtures.php\n?? tests/unit/serviceWorkerPrivacy.test.ts"
+  },
+  "api_url": "http://127.0.0.1:41031",
+  "frontend_url": "http://127.0.0.1:41293",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 56337,
+  "runtime": "/tmp/menu-qa-4wtr4yoi"
+}

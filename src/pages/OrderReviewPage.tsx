@@ -1,3 +1,4 @@
+import { updateQueuedGuestOrder } from '../services/offlineStore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -55,7 +56,6 @@ const OrderReviewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [submittedOrder, setSubmittedOrder] = useState<OrderRecord | null>(null);
   const [queuedOffline, setQueuedOffline] = useState(false);
-  const [submitIdempotencyKey, setSubmitIdempotencyKey] = useState<string | null>(null);
   const { isOnline } = useNetworkStatus();
   const [queuedOrders, setQueuedOrders] = useState<Array<{
     id: number;
@@ -88,8 +88,18 @@ const OrderReviewPage: React.FC = () => {
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
 
   useEffect(() => {
+    let active = true;
     const refreshQueuedOrders = () => {
       void getQueuedGuestOrders().then((rows) => {
+        if (!active) return;
+        // A reload can interrupt delivery before the original page clears its
+        // cart. The persisted request already owns that intent; recover it once.
+        const payload = { notes: draft.notes.trim() || undefined, items: items.map(item => ({ dish_id: item.dishId, quantity: item.quantity })) };
+        if (!submitting && items.length > 0 && rows.some(row => row.status === 'syncing'
+          && row.sessionId === draft.tableSessionId && row.guestAccessToken === draft.guestAccessToken
+          && JSON.stringify(row.payload) === JSON.stringify(payload))) {
+          clearCart();
+        }
         setQueuedOrders(rows.filter((row) => typeof row.id === 'number').map((row) => ({
           id: row.id as number,
           payload: row.payload,
@@ -100,8 +110,8 @@ const OrderReviewPage: React.FC = () => {
 
     refreshQueuedOrders();
     const unsubscribe = onOfflineQueueUpdated(refreshQueuedOrders);
-    return unsubscribe;
-  }, []);
+    return () => { active = false; unsubscribe(); };
+  }, [items, draft.notes, draft.tableSessionId, draft.guestAccessToken, submitting, clearCart]);
 
   useEffect(() => {
     if (!activeTableId || submittedOrder) {
@@ -150,12 +160,6 @@ const OrderReviewPage: React.FC = () => {
       });
   }, [activeTableId, submittedOrder, ensureGuestMenu, guestMenuResourceKey, setGuestContext, updateDraft, clearGuestAccess, t]);
 
-  useEffect(() => {
-    if (!submitting && !submittedOrder) {
-      setSubmitIdempotencyKey(null);
-    }
-  }, [items, draft.notes, draft.tableSessionId, submitting, submittedOrder]);
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -173,43 +177,47 @@ const OrderReviewPage: React.FC = () => {
     setError(null);
     setQueuedOffline(false);
 
+    let queueId: number | undefined;
+    const idempotencyKey = createIdempotencyKey();
+    const payload = {
+      notes: draft.notes.trim() || undefined,
+      items: items.map((item) => ({ dish_id: item.dishId, quantity: item.quantity })),
+    };
     try {
+      // Persist intent before sending: the server may commit even if its response
+      // is lost or this tab closes. Recovery must reuse this exact request key.
+      queueId = await queueGuestOrder({
+        sessionId: draft.tableSessionId,
+        guestAccessToken: draft.guestAccessToken,
+        payload,
+        idempotencyKey,
+      });
       if (!navigator.onLine) {
-        await queueGuestOrder({
-          sessionId: draft.tableSessionId,
-          guestAccessToken: draft.guestAccessToken,
-          payload: {
-            notes: draft.notes.trim() || undefined,
-            items: items.map((item) => ({
-              dish_id: item.dishId,
-              quantity: item.quantity,
-            })),
-          },
-          idempotencyKey: createIdempotencyKey(),
-        });
         clearCart();
         setQueuedOffline(true);
         return;
       }
-
-      const nextIdempotencyKey = submitIdempotencyKey || createIdempotencyKey();
-      setSubmitIdempotencyKey(nextIdempotencyKey);
-
-      const response = await createGuestTableSessionOrder(draft.tableSessionId, {
-        notes: draft.notes.trim() || undefined,
-        items: items.map((item) => ({
-          dish_id: item.dishId,
-          quantity: item.quantity,
-        })),
-      }, draft.guestAccessToken, nextIdempotencyKey);
-
+      await updateQueuedGuestOrder(queueId, { status: 'syncing' });
+      const response = await createGuestTableSessionOrder(
+        draft.tableSessionId, payload, draft.guestAccessToken, idempotencyKey
+      );
+      await removeQueuedGuestOrder(queueId);
       setSubmittedOrder(response.order);
-      setSubmitIdempotencyKey(null);
       clearCart();
     } catch (err: unknown) {
       const status = typeof err === 'object' && err !== null && 'response' in err
         ? (err as { response?: { status?: number } }).response?.status
         : undefined;
+
+      if (queueId !== undefined) {
+        if (status && status < 500) {
+          await removeQueuedGuestOrder(queueId);
+        } else {
+          // An unknown outcome remains recoverable after reload or reconnect.
+          clearCart();
+          setQueuedOffline(true);
+        }
+      }
 
       if (status && [401, 403, 404, 409, 423].includes(status)) {
         clearGuestAccess();
@@ -445,6 +453,7 @@ const OrderReviewPage: React.FC = () => {
                         <div className="inline-flex items-center gap-2 rounded-full border px-2 py-2" style={{ borderColor: 'var(--guest-border)' }}>
                           <button
                             type="button"
+                            disabled={submitting}
                             onClick={() => updateQuantity(item.dishId, item.quantity - 1)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg transition"
                             style={{
@@ -458,6 +467,7 @@ const OrderReviewPage: React.FC = () => {
                           <span className="min-w-[2rem] text-center text-sm font-semibold text-[var(--guest-text)]">{item.quantity}</span>
                           <button
                             type="button"
+                            disabled={submitting}
                             onClick={() => updateQuantity(item.dishId, item.quantity + 1)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-lg transition"
                             style={{
@@ -581,6 +591,7 @@ const OrderReviewPage: React.FC = () => {
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             type="button"
+                            disabled={submitting}
                             onClick={() => {
                               void removeQueuedGuestOrder(queued.id);
                             }}
@@ -591,6 +602,7 @@ const OrderReviewPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
+                            disabled={submitting}
                             onClick={() => {
                               const nextNotes = window.prompt('Edit notes for this queued order', queued.payload.notes || '');
                               if (nextNotes === null) return;
@@ -606,8 +618,9 @@ const OrderReviewPage: React.FC = () => {
                           </button>
                           <button
                             type="button"
+                            disabled={submitting}
                             onClick={() => {
-                              if (!navigator.onLine) return;
+                              if (!navigator.onLine || submitting) return;
                               void syncQueuedGuestOrder(queued.id);
                             }}
                             className="rounded-full border px-3 py-1.5 text-xs font-semibold"

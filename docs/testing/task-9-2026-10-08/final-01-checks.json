@@ -1,0 +1,113 @@
+[
+  {
+    "check": "mysql-initialize",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-full",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 420,
+    "skipped": 0
+  },
+  {
+    "check": "api-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-tooling",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-validate",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-pint",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "composer-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "api-npm-audit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-environment",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "browser-migrations",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-lint",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "react-unit",
+    "status": "PASS",
+    "exit": 0,
+    "required": true,
+    "tests": 135,
+    "skipped": 0
+  },
+  {
+    "check": "react-build",
+    "status": "PASS",
+    "exit": 0,
+    "required": true
+  },
+  {
+    "check": "operational-recovery",
+    "status": "FAIL",
+    "exit": 1,
+    "required": true
+  },
+  {
+    "check": "runner",
+    "status": "BLOCKED",
+    "reason": "operational-recovery failed; see its retained log.",
+    "required": true
+  },
+  {
+    "check": "cleanup",
+    "status": "PASS",
+    "required": true
+  }
+]

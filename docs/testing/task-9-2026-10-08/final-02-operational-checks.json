@@ -1,0 +1,339 @@
+[
+  {
+    "check": "unowned-operational-runtime-rejected",
+    "status": "PASS",
+    "exit_nonzero": true
+  },
+  {
+    "check": "queue-worker",
+    "status": "PASS",
+    "pending_jobs": 0,
+    "failed_jobs": 0,
+    "verified_domain_rows": 1,
+    "domain_bridge": "synthetic; DNS/TLS provisioning not exercised"
+  },
+  {
+    "check": "scheduler-daemon-and-dedupe",
+    "status": "PASS",
+    "due_logs": 12,
+    "future_or_draft_logs": 0,
+    "due_time": "2026-10-08 11:15:00"
+  },
+  {
+    "check": "isolated-custom-host-http",
+    "status": "PASS",
+    "mapped_status": 200,
+    "unmapped_status": 404
+  },
+  {
+    "check": "latest-request-migration-down-up",
+    "status": "PASS",
+    "request_table_removed": true,
+    "order_and_finalization_preserved": true,
+    "request_table_recreated": true,
+    "data_restore_required": true,
+    "restored_request_identity": true,
+    "request_rows": 1
+  },
+  {
+    "check": "task8-finalization-migration-down-up",
+    "status": "PASS",
+    "latest_column_removed": true,
+    "paid_invoice_preserved": true,
+    "data_restore_required": "finalized_invoice_id links are lost by down(); recovered from backup"
+  },
+  {
+    "check": "synthetic-backup-destruction-restore",
+    "status": "PASS",
+    "table_fingerprints": {
+      "analytics_events": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "cache": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "cache_locks": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "chat_messages": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "chat_orders": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "chat_sessions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "contact_leads": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "dish_assets": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "dish_ingredients": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "dish_related_dishes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "dish_suggestions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "dishes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "event_menu_items": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "event_notification_logs": {
+        "rows": 12,
+        "sha256": "9d8ff1f0e7e762db119bf9879e6ad3edfc2b92ee80be71f8aa452037291366bf"
+      },
+      "event_order_links": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "event_reservations": {
+        "rows": 3,
+        "sha256": "da3e9061a696752315555b71496c3f6146b6c33972773014e7adbe52d5eeb3de"
+      },
+      "expense_attachments": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "expense_categories": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "expenses": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "failed_jobs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "feature_flag_audit_logs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "features": {
+        "rows": 25,
+        "sha256": "878142e88dcf2a32ce43116122b4b9bf66aa47eb097b84ecd55e14f95296abb2"
+      },
+      "global_ingredients": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "guest_order_idempotency": {
+        "rows": 1,
+        "sha256": "31a5593b33e5aae028b1b616dd8f1bae1f50d878fe43df3ef5a327622f6495ac"
+      },
+      "ingredients": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "inventory_share_contacts": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "invoice_items": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "invoices": {
+        "rows": 1,
+        "sha256": "277140e8bac5d6babcb695ff115659b9cf8fc5d175cbde4f5c28def251097a65"
+      },
+      "job_batches": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "jobs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "migrations": {
+        "rows": 95,
+        "sha256": "9148d3185b5b30ec7571ed87526151e90e20ba41605654279fe922a757b951d3"
+      },
+      "mobile_push_tokens": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "order_item_ingredient_usages": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "order_items": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "orders": {
+        "rows": 1,
+        "sha256": "685f46c956bbaf76dc8dc3fddeb74326a828da0eee0accf5162b8b5c0dafa7a3"
+      },
+      "password_reset_tokens": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "payroll_entries": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "payroll_periods": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "personal_access_tokens": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "pos_complaint_adjustment_gifts": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "pos_complaint_adjustments": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "push_subscriptions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "qr_codes": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "reservations": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "restaurant_domains": {
+        "rows": 1,
+        "sha256": "0b699c191cb7561afdbbe846a7e994fba4a9304748aaed563b90a0da24ea3a60"
+      },
+      "restaurant_features": {
+        "rows": 6,
+        "sha256": "5c75a359515ecb6960cc3fee0c900609f95236c2817890e7e524a060c2b20802"
+      },
+      "restaurant_table_user": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "restaurant_tables": {
+        "rows": 10,
+        "sha256": "963a90f6038e55036cdb3e55459c95a881e87da74ede3ceebf1788540fcf1b53"
+      },
+      "restaurant_user": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "restaurants": {
+        "rows": 1,
+        "sha256": "952cbcb36e0e390f8517f5fc4bf4e8623e43ca127693891c59dccf9b6b52f135"
+      },
+      "room_plan_items": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "room_plans": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "saas_owners": {
+        "rows": 1,
+        "sha256": "1e13f66f57fdd25399b33eb9aa32fa01d092b460612eb381fbcb1ef617cb2c4b"
+      },
+      "scan_images": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "scan_job_outputs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "scan_jobs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "scans": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "sessions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "staff_shifts": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "stock_movements": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "table_guest_accesses": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "table_sessions": {
+        "rows": 1,
+        "sha256": "bcdda57fa537208934c35778a38b3fb057c462e2d39aef40e15164a739810023"
+      },
+      "table_waves": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "users": {
+        "rows": 1,
+        "sha256": "8295a1bf1fbb2b5eed4aed711402ddc82a149c04612128d0b62fccf3956e3b3b"
+      },
+      "vendors": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "storage_sha256": {
+      "local/QA_RUN_task9_final_20261008_02_operations/receipt.txt": "16279d90306021e6de10c403258015e933182a5498dd230ab7c7f8f29b5d3404",
+      "local/QA_RUN_task9_final_20261008_02_operations/key-proof.enc": "738b61afe56171f307b59afb4bb7e786ba97d5551392975dd2c75f1a315f32f4",
+      "local/invoices/121/inv-20260115-000099.pdf": "99fe2069b845f1c3faa0e4f26574bc4be8a336b3c47faf3f325011e5b8cb5a57",
+      "local/invoices/119/inv-20260115-000097.pdf": "69b82041c93e3b3aecf355db20f30e44e47ac40a5a2adcefc4975688cb21c7b0",
+      "local/invoices/120/inv-20260115-000098.pdf": "2ad0936925c412c81acfe712a55a6b0b807c7032a61b9b162c5dcfee67cc2063",
+      "local/invoices/117/inv-20260115-000095.pdf": "c4235a5a84c23e3e7c7891917ed80ab3886c2759e4eaa1cf540c7fde99ad466f",
+      "local/invoices/118/inv-20260115-000096.pdf": "58c5209a50fb146c39a239b9a4b6b332b2edaeccefda7bc19eea6010912d7cd3",
+      "b2/dishes/1/model.glb": "ed2a7bb926181b07573a3938c9128f7856850b6e6b8140a418a9fcd21ac54dba",
+      "public/smoke-test/example.txt": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+      "public/room-plans/10/3ceaccb0-e891-43b6-aba6-6bde40b1f3ad.png": "02310843c671f9a63942651f81ab23bab894fe54be8fe5129b05f638f2a93cab"
+    },
+    "runtime_key_preserved": true,
+    "total": "25.30",
+    "finalized_invoice_link": true,
+    "private_storage": true,
+    "encrypted_storage_decrypted": true,
+    "invoice_status": "paid"
+  },
+  {
+    "check": "post-restore-authenticated-finance-http",
+    "status": "PASS",
+    "login_status": 200,
+    "invoice_status": 200,
+    "finance_status": 200,
+    "paid_total": "25.30",
+    "revenue": 25.3,
+    "invoice_count": 1
+  }
+]

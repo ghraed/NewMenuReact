@@ -1,0 +1,212 @@
+TASK 9 — CONCURRENCY, OFFLINE AND STAFF MEMBERSHIP COVERAGE
+8 October 2026. Scope: selected Task 9 only, both repositories.
+Complete final paired validation: PASS. Task 9 is complete locally.
+The user subsequently authorized local add/commit/merge into main. Paired source
+commits and integration method are recorded in git-integration.json; no push/deploy.
+
+Repository state and preservation
+  Initially clean main: Menu_React 620c5bd2050043452c536c3e008bbb9ab7969946;
+  Menu_API 4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3.
+  Every recorded Task 0–8 base/final/source commit is an ancestor in its correct
+  repository (ancestry.json). Task 8's separately authorized merges were present,
+  although fix-progress.txt stopped at Task 7; the reconciliation is append-only.
+  Dedicated paired branch: fix/task-9-concurrency-offline-membership.
+  All 125 previous test/fixture/release files are byte-identical to those bases.
+  No prior test removed, weakened or skipped. No prior migration edited.
+  No Task 10, dependency upgrade, UI redesign, permission expansion, production
+  access, push, deployment or settled-record rewrite performed during implementation.
+  Local commit/merge was subsequently authorized separately by the user.
+
+First pass / environment
+  Baseline 412 API / 4221 assertions, 133 unit, 17 browser; zero skips. Full
+  application builds/lint/style/security/tooling and Task 8 operations passed.
+  Exact command from Menu_API:
+  python3 scripts/qa/run.py --launch --react-root ../Menu_React --run-id task9_baseline_20261008_01 --evidence /tmp/menu-task9-baseline-01
+  Effective environment is recorded per run: APP_ENV=testing, newly initialized
+  private MySQL directory/loopback port, new menu_test_QA_RUN_<run>_suite/_browser
+  schemas, isolated runtime/storage, owned frontend/API origins, disabled external
+  services. Browser guards verify BOTH origins before fixtures mutate data.
+  Only synthetic QA_RUN data. No normal restaurantdb, Compose defaults, live
+  credentials/customer data, or persistent developer server used. Runtime/db/
+  storage cleanup is asserted. API concurrency uses separate real Laravel kernel
+  processes and MySQL connections, not sequential calls or mocked controllers.
+  The browser runtime serves a fresh production-mode QA build and real API.
+
+True concurrency and single outcomes
+  Booking: two admin reservation workers share the same table/time, bind before
+  release and both attempt locks while the parent holds the table row. Exactly
+  one 201, one 422, one booking, no finance artifact. Distinct customer fixtures.
+  Last stock: two separate pending orders contend for the final ingredient unit.
+  Both independent workers bind orders and attempt transactions before releasing
+  the held ingredient. One 200, one 422; stock exactly zero; one usage/movement;
+  loser stays pending without approver/invoice number and partial stock effects.
+  Guest same-key order: simultaneous workers read the same session behind a
+  shared request barrier; separate CONNECTION_ID values; durable fix yields one
+  201 plus one 200, one order and one request identity. Subsequent replay is 200.
+  Finalization: two workers bind stale session models and attempt locks before
+  parent release. Both 200 with the same invoice ID; one paid receipt, payment
+  reference/time and session link; independent cents expectation (1000-200)*1.10
+  = 880 cents. No invoice/totals assertions relaxed.
+  Former sequential booking and ingredient-lock-timeout tests remain unchanged.
+
+Reproduced defects and before/after evidence
+  P1, guest ordering/recovery, deterministic. Endpoint POST
+  /api/table-session/{session}/order. Submit online; let real server commit 201;
+  drop its acknowledgement. Previously the queue remained empty and the cart's
+  ephemeral request key was reset/lost. Reload could send a new identity.
+  Expected: persist original intent/key before transport, recover that same order.
+  After: queue intent persists before HTTP; original key survives failed response,
+  reload during an outstanding committed request and application worker upgrade.
+  On reload, the queued in-flight intent owns its matching cart; no fresh Send
+  Order Request can duplicate it. Explicit recovery returns the original order.
+  Likely files: OrderReviewPage.tsx, offlineQueue.ts/offlineStore.ts (existing queue
+  logic preserved). Browser reproduction trace/screenshots: before-browser/ under
+  task-9 evidence, lost-acknowledgement case. Real HTTP statuses are retained.
+
+  P1, guest ordering/data integrity, deterministic. Same endpoint. Create with
+  X-Idempotency-Key, evict the server cache, resend identical validated intent.
+  Expected 200 with original order; actual 201 created a second order. Failing
+  regression: cache-before-01-regression.txt, six assertions, one failure.
+  After: append-only guest_order_idempotency table stores hashed key/payload and
+  original order ID atomically. Per-session lock serializes creation/replay and
+  finalization; guest authorization is checked again after acquiring the lock.
+  Changed payload with an existing key remains 409. Cache eviction leaves the
+  original identity intact. Known pre-upgrade cache entries are adopted only with
+  matching tenant/session/payload; failed validation leaves no partial identity.
+  Likely files: OrderController.php and the new 2026_10_08_120000 migration.
+
+  P2, guest offline menu/session display, deterministic. GET /api/menu/table/1
+  with different X-Guest-Access-Token values previously populated shared URL-only
+  worker caches. Expected protected/session responses bypass shared HTTP caches;
+  actual cached entries survived identity changes. Two meaningful worker unit
+  regressions failed before and pass after (service-worker-before.txt); real
+  browser cache-key evidence and failure trace are retained in before-browser/.
+  After: worker v5 bypasses table-session API and Authorization/guest-token requests;
+  existing token-scoped application IndexedDB cache remains the offline source.
+  Public slug catalogs stay cached separately for both tenants. Old app/guest
+  caches are purged during activation, while unrelated caches and IndexedDB work
+  survive. Likely module: public/sw.js. Original response was HTTP 200; missing
+  shared-cache exclusion was the failed assertion, not an API authorization breach.
+
+  P2, guest offline reload, deterministic. /menu/table/1/review had no navigation
+  cache entry after client-side routing. With network disconnected, reload failed
+  net::ERR_FAILED despite persisted offline work. Expected reload restores the
+  application and queued request. After: worker installation caches the SPA shell;
+  navigation fallback uses it for public routes. Protected staff/admin navigation
+  continues bypassing worker navigation caches. Screenshots/traces for expire/close
+  before-browser cases include Chromium's failed-navigation page.
+
+Offline project / real failure recovery
+  Separate offline-chromium project allows the application's shipped worker,
+  registered by main.tsx. Existing chromium project still blocks workers.
+  Seven real browser scenarios: offline menu/two public tenant catalogs/cache
+  privacy; committed lost acknowledgement plus server cache eviction/upgrade/
+  competing tabs; network interruption before server commit; reload while a
+  committed submit remains outstanding; expired session; closed session; disabled
+  ordering. Faults abort real transport; they do not mock business responses.
+  Exactly one server order after valid replay; zero new orders for invalid sessions.
+  Invalid/disabled sessions remain needs_review and retain the original key;
+  replay requires confirmation. Multiple tabs use actual browser Web Locks and
+  shared IndexedDB. Snapshot checks assert persisted order count/amount and another
+  tenant's zero orders. HTTP ledgers omit credentials and record status/SW origin.
+  Upgrade rehearsal executes the real worker installation/activation with obsolete
+  caches; it is a local worker/cache upgrade rehearsal, not a deployed fleet test.
+
+Staff membership contract
+  Multi-restaurant staff membership is unsupported. The existing unique
+  restaurant_user.user_id constraint and staff-account reuse validation already
+  enforce this intentionally. Tests verify a second membership raises SQLSTATE
+  23000 without replacing the first, eager/unloaded identity agrees, and client
+  restaurant_id/Host inputs cannot change the authenticated tenant in /api/auth/me.
+  No arbitrary-first selection becomes reachable through supported membership
+  writes; no selector or policy change added. Existing tenant/role/host/ID suites
+  remain mandatory. Original early ambiguous-membership fixture attempted to
+  violate that constraint and was invalid; it is not a product bug.
+
+Migration and recovery rehearsal
+  Adding a migration revealed Task 8's runner assumption that finalized_invoice_id
+  was always the latest migration. Full attempt final-01 passed 420 API/4321
+  assertions and frontend unit/build checks, then correctly FAILED recovery's
+  rollback-check (the new latest down() did not drop that old column).
+  Updated operational.py rehearses the latest request table separately, then
+  explicitly targets Task 8's migration/batch. Task 8's original PHP assertion
+  fixture is byte-identical. A separate synthetic request/order seed proves its
+  exact hashed identity and order link return from backup. Down/up alone loses
+  request identities; paid orders/finalization remain intact. Full database/file/
+  encryption and authenticated finance restore assertions are retained.
+
+Compatibility, release and rollback
+  Apply the additive migration, quiesce/drain guest writes while replacing the
+  complete API fleet, then deploy frontend/worker v5. New code persists orders and
+  request identities in one transaction; original finance/stock/role calculations
+  remain server-controlled. Supported unkeyed legacy requests stay accepted but
+  cannot claim exactly-once replay. A pre-upgrade request whose key/cache is already
+  lost cannot safely be inferred; review before replay. Mixed cache-only/durable
+  writer concurrency is not verified; avoid guest writes during partial rollout.
+  Keep the request table and rows when rolling back application code; never drop
+  it or rewrite settled orders for rollback. Old API restores cache-eviction risk.
+  Keep durable API and safe cache-purging worker during client rollback. Full detail
+  and actual runner commands: Menu_API/scripts/qa/README.md, Task 9 section.
+
+Implementation iterations / evidence interpretation
+  Initial sandbox attempt failed socket creation before tests; guarded escalated
+  loopback run passed. Docker context test initially blocked by sandbox socket
+  access; reviewed rerun passed all three existing Task 6 tests.
+  API before-01: two genuine contention passes; three invalid fixture/assertion
+  failures (single-membership constraint, parent array versus worker file cache,
+  missing payment reference). API-02 corrected those and all five cases passed
+  before API business changes. API-after-01 passed 56 focused cases; repeat-01
+  passed all eight current Task 9 cases with independent data and 98 assertions.
+  Final test-only barrier refinement requires both locking markers to name the
+  exact held table (room_plan_items, ingredients or table_sessions), not just any
+  locking query. specific-lock-01 repeats all eight current cases with 98
+  assertions after that stricter helper change; application/runtime source matches
+  the full paired final-02 run. Full final-02 API output has 4319 assertions; the
+  earlier full attempt had 4321 before tightening the same-key status assertion.
+  Browser before-01 had a plural-only cart selector and is invalid reproduction.
+  Before-02 corrected it and retained four valid product failures. After-01 passed
+  three cases; its remaining failure expected Add to Cart while the existing cart
+  showed quantity controls. After-02 checked the actual dish and passed six cases.
+  The seventh reload-during-submit scenario adds the stricter timing check.
+  ops-after-01: all eight operational outcomes and seven browser cases passed,
+  but its already-loaded earlier runner then rejected the missing real lifecycle
+  in this explicitly focused invocation. The overall attempt is FAIL/partial,
+  not a full launch pass. Focused semantics are corrected to mark complete-browser
+  launch NOT EXECUTED; the full gate still requires lifecycle and all seven offline
+  cases. The complete final-02 run uses that corrected guard.
+  Focused omissions are NOT EXECUTED, never counted as complete suite passes.
+  No prior known failure suppressed; evidence snapshots and original /tmp runs
+  distinguish attempts. Hosted CI and production/deployment/other browser engines
+  are NOT EXECUTED. No claim of universal failure-mode coverage or launch approval.
+
+Final validation and artifact paths
+  PASS full run task9_final_20261008_02, /tmp/menu-task9-final-02:
+    420 API tests / 4319 assertions; 135 unit tests; 24 browser cases (17 original
+    plus seven offline). Zero failures/errors/skipped cases. Builds, lint/TypeScript,
+    Composer validation, Pint, all three audits, tooling, fresh migrations, both
+    migration rehearsals, backup/restore, real worker/scheduler/host/finance checks,
+    fixture reset and owned runtime/database/storage cleanup passed.
+    Separate final specific-lock repeat: eight cases / 98 assertions, all passed.
+    Existing Task 6 release/context regressions: three passed.
+  FAIL: none outstanding locally. Corrected reproduction/harness attempts above
+    remain retained and are not counted as complete passes.
+  BLOCKED: none outstanding for local Task 9. Earlier socket restrictions recovered.
+  SKIPPED: zero cases in the final complete run and specific-lock repeat.
+  NOT EXECUTED: hosted CI, other browser engines, rebuilt release image containing
+    Task 9 migration, fleet rollout/rollback, real external services and production.
+  NOT IMPLEMENTED: unselected Task 10 work; multi-membership is intentionally
+    unsupported, with the existing rejection contract tested.
+  Effective final target: APP_ENV=testing, API http://127.0.0.1:60649,
+    MySQL 127.0.0.1:58675, menu_test_QA_RUN_task9_final_20261008_02_suite and
+    _browser; exact frontend URL and safe transport settings in final-02 environment
+    artifacts. Owned runtime /tmp/menu-qa-hm078v_t was removed after validation.
+  Changed modules: API OrderController, new request migration, run.py focused/full
+    gates, operational.py/new guarded recovery fixture, new contention/membership
+    tests/workers, QA README; frontend OrderReviewPage, worker v5, Playwright offline
+    project, new offline/worker regressions and fixture helper, README, append-only
+    progress plus this report/evidence. Existing operational assertion fixture and
+    all 125 prior tests/fixtures/release tests remain byte-identical.
+  Evidence folder: docs/testing/task-9-2026-10-08/. Named failure screenshots/traces,
+  ancestry/preserved-tests proof, per-run safe environment/checks/HTTP/concurrency
+  summaries, first-pass note and final source hashes. Runtime credentials/raw
+  backups are removed by owned cleanup, never included in reports.

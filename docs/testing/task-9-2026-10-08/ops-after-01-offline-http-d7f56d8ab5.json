@@ -1,0 +1,72 @@
+{
+  "scenario": "lost acknowledgement survives reload, application upgrade and competing tabs with one server order",
+  "status": "passed",
+  "requests": [
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1/verify-pin",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/heartbeat",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/heartbeat",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/menu/table/1",
+      "method": "GET",
+      "status": 200,
+      "serviceWorker": false
+    },
+    {
+      "endpoint": "/api/table-session/1/order",
+      "method": "POST",
+      "status": 200,
+      "serviceWorker": false
+    }
+  ]
+}

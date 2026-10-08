@@ -1,0 +1,19 @@
+{
+  "run_id": "task9_baseline_20261008_01",
+  "api": {
+    "branch": "main",
+    "commit": "4a2cc2ecf8caaaf7242ec45a4019328d5da9f9d3",
+    "working_tree": ""
+  },
+  "react": {
+    "branch": "main",
+    "commit": "620c5bd2050043452c536c3e008bbb9ab7969946",
+    "working_tree": ""
+  },
+  "api_url": "http://127.0.0.1:52401",
+  "frontend_url": "http://127.0.0.1:44111",
+  "APP_ENV": "testing",
+  "DB_HOST": "127.0.0.1",
+  "DB_PORT": 48617,
+  "runtime": "/tmp/menu-qa-7r_y_gom"
+}
