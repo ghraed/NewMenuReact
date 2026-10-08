@@ -1,92 +1,42 @@
-# React + TypeScript + Vite
+# Restaurant Menu frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 / TypeScript / Vite frontend for the sibling Laravel `Menu_API`. Guest
+catalog, table PIN ordering, staff/kitchen/POS, accounting and restaurant
+administration share the tenant-scoped API. Arabic and English, RTL and light/dark
+modes are supported. Backend permissions, prices, settlement and stock are authoritative.
 
-Currently, two official plugins are available:
+## Setup and disposable verification
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-# Project QA
-
-From the sibling `Menu_API` directory, run the paired disposable baseline:
+Use Node >=22.12 and the committed dependency locks. Run `npm ci` here; install
+Composer and npm dependencies in `Menu_API` as described in its
+[QA setup](../Menu_API/scripts/qa/README.md). Do not use `composer setup`, the normal
+restaurant database or production Compose configuration for automated testing.
 
 ```sh
-python3 scripts/qa/run.py --launch --react-root ../Menu_React --run-id QA_20261007_example --evidence /tmp/menu-evidence-QA_20261007_example
+# From Menu_React: install the pinned additional browser runtimes.
+npx playwright install --with-deps firefox webkit
+# From Menu_API: replace the example ID and evidence directory for each run.
+python3 scripts/qa/run.py --launch --browser-matrix --react-root ../Menu_React --run-id task10_example --evidence /tmp/menu-task10-example
 ```
 
-Use a new run ID and evidence directory each time. See [QA setup](../Menu_API/scripts/qa/README.md) for prerequisites, safety checks, actual scripts, fixtures, CI and cleanup. Direct browser runs require an explicit verified QA runtime; shared default accounts are no longer used. The [Task 0 outcome](docs/testing/task-0-2026-10-07.txt) separates passing checks from unresolved release risks.
+The paired runner verifies branch/commit, loopback URLs, `APP_ENV=testing`, new
+`menu_test_QA_RUN_*` MySQL schemas and safe transports before migrations. It builds
+this frontend against only its API, records flags and synthetic users, tests actual
+scripts and cleans its owned processes/database/storage. Direct browser tests fail
+closed without that environment. Frontend scripts are `npm run lint`,
+`npm run test:unit`, `npm run build`, `npm run dev`, `npm run preview` and
+`npm run test:e2e`. The full runner also checks API tests, assets, audits, formatting,
+realtime, queues, scheduler and backup restore. No skipped test satisfies a gate.
 
-Task 9 adds a separate service-worker-enabled `offline-chromium` browser project.
-The full paired launch runner requires its seven real offline/recovery cases as
-well as the original lifecycle. Guest submit intent is persisted before HTTP and
-recovered with its original key; replay requires explicit confirmation, and expired,
-closed or disabled sessions remain for review. Deploy the new API migration/fleet
-before this client and worker v5. See the sibling QA setup's Task 9 section for
-focused commands, coordinated rollout, cache compatibility and rollback limitations.
+For UI development, run `npm run dev` only after explicitly verifying
+`VITE_PROXY_TARGET` points to your isolated development API. For a built preview use
+`npm run build -- --mode qa` and `npm run preview -- --mode qa`. Preview alone does
+not seed data or verify the API. Keep runtime credentials outside this repository.
+
+## Product operations and release
+
+See the [operating guide](docs/operations.md) for feature/role combinations,
+subscription/provisioning behavior, test data, runtime prerequisites, performance
+budgets, asset deployment, monitoring, restore and rollback. Previous task reports
+and [fix progress](docs/testing/fix-progress.txt) retain the financial/isolation and
+offline compatibility constraints. This document does not authorize deployment.

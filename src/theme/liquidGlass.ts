@@ -3,7 +3,7 @@ import { cn } from '../utils/cn';
 export const cx = (...classes: (string | boolean | undefined | null)[]) => cn(...classes);
 
 export const primaryTone =
-  '!bg-gold !text-bg0 !border-transparent enabled:hover:!bg-gold/92 enabled:hover:shadow-[0_2px_10px_rgba(0,0,0,0.26)]';
+  '!bg-gold !text-onGold !border-transparent enabled:hover:!bg-gold/92 enabled:hover:shadow-[0_2px_10px_rgba(0,0,0,0.26)]';
 export const secondaryTone =
   'bg-sage/20 text-text border-sage/35 enabled:hover:bg-sage/28 enabled:hover:border-sage/50';
 export const tertiaryTone =
@@ -29,6 +29,6 @@ export const glassInteractive =
   'transition duration-150 ease-fluid motion-reduce:transition-none';
 
 export const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/55 focus-visible:ring-offset-2 focus-visible:ring-offset-bg1';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg1';
 
 export const getModernMode = () => true;

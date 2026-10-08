@@ -1,0 +1,12 @@
+{
+  "file": "Menu_API/.github/workflows/qa.yml",
+  "change": "API job timeout 25 -> 40 minutes for measured matrix plus pinned-browser installation overhead",
+  "complete_local_runner_minutes": 22.9,
+  "validation": "YAML parsed; only job timeout changed after runtime source freeze",
+  "runtime_source_changes": false,
+  "scenario_deadline_changes": false,
+  "performance_budget_changes": false,
+  "chunk_warning_limit_changes": false,
+  "hosted_execution": "NOT EXECUTED",
+  "duration_method": "First owned MySQL initialization timestamp to owned server shutdown timestamp; sanitized file mtimes are not a clock"
+}

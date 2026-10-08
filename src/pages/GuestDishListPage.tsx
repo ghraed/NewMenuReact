@@ -1,3 +1,4 @@
+import AccessibleDialog from '../components/Common/AccessibleDialog';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -1280,10 +1281,7 @@ const GuestDishListPage: React.FC = () => {
       </main>
 
       {relatedPopupSourceDish ? (
-        <div
-          className="fixed inset-0 z-[2147483647] flex items-start justify-center bg-black/55 px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:items-center sm:p-6"
-          onClick={() => setRelatedPopupDishId(null)}
-        >
+        <AccessibleDialog labelledBy="related-dish-title" onDismiss={() => setRelatedPopupDishId(null)}>
           <div
             className="relative mt-[4.5rem] flex max-h-[calc(100dvh-env(safe-area-inset-top,0px)-6rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border p-4 sm:mt-0 sm:max-h-[82vh] sm:p-6"
             style={{
@@ -1298,7 +1296,7 @@ const GuestDishListPage: React.FC = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--guest-accent)]">
                   {t('dishCard.outOfStock')}
                 </p>
-                <h3 className="mt-2 text-lg font-semibold text-[var(--guest-text)] sm:text-xl">
+                <h3 id="related-dish-title" className="mt-2 text-lg font-semibold text-[var(--guest-text)] sm:text-xl">
                   {t('dishCard.orderRelatedTitle', {
                     defaultValue: 'Order related dishes for {{name}}',
                     name: relatedPopupSourceDish.name,
@@ -1431,7 +1429,7 @@ const GuestDishListPage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </AccessibleDialog>
       ) : null}
     </GuestPageShell>
   );

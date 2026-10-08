@@ -23,6 +23,16 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'mobile-chrome',
+      testMatch: '**/task10-*accessibility.spec.ts',
+      use: { ...devices['Pixel 7'], channel: 'chrome',
+        launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROME_EXECUTABLE } },
+    },
+    ...(process.env.QA_BROWSER_MATRIX === '1' ? [
+      { name: 'firefox', testMatch: '**/task10-*accessibility.spec.ts', use: { ...devices['Desktop Firefox'] } },
+      { name: 'webkit', testMatch: '**/task10-*accessibility.spec.ts', use: { ...devices['Desktop Safari'] } },
+    ] : []),
+    {
       name: 'offline-chromium',
       testMatch: '**/offline-recovery.spec.ts',
       use: { ...devices['Desktop Chrome'], serviceWorkers: 'allow', channel: 'chrome',

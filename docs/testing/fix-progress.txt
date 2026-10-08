@@ -364,3 +364,56 @@ TASK 9 — USER-AUTHORIZED LOCAL COMMIT / MAIN INTEGRATION (8 October 2026)
   Integration record: task-9-2026-10-08/git-integration.json. Earlier uncommitted/
   no-merge notes describe the original implementation run, superseded here.
   No push or deployment authorized/performed; hosted CI remains NOT EXECUTED.
+
+
+TASK 10 — SELECTED, VERIFICATION IN PROGRESS (8 October 2026)
+  Paired branch: fix/task-10-performance-accessibility-arabic.
+  Frontend base: 669e04dd214fbd65bab70455051cc278752d5ba2.
+  API base: d6df77908098481006e0e67f631598367a79ca69.
+  Both initially clean main trees; all 36 recorded Task 0–9 base/final/source
+  commits verified as ancestors. All prior test/support/fixture hashes preserved.
+  Task 10 only: measured lazy admin/export/3D loading, POS Arabic presentation,
+  login/keyboard/contrast/modal/room-plan alternatives and operating documentation.
+  Regressions and intermediate invalid attempts retained separately. Full paired
+  matrix/launch verification is running; this entry is not a completion claim.
+  No commit, merge, push, deployment, production access or billing implementation.
+
+
+TASK 10 — COMPLETE LOCAL PERFORMANCE / ACCESSIBILITY / ARABIC / DOCUMENTATION
+  8 October 2026. Paired branch: fix/task-10-performance-accessibility-arabic.
+  Bases: frontend 669e04dd214fbd65bab70455051cc278752d5ba2; API
+  d6df77908098481006e0e67f631598367a79ca69. Initially clean main trees; all 36
+  recorded Tasks 0–9 base/final/source commits verified as ancestors. All 131
+  previous test/support/fixture/release files remain byte-identical.
+  Three cold samples/route, populated 12-dish catalog, 390x844 phone, 4x CPU,
+  150ms latency, 200000 bytes/s download. Guest JS median 1170503 -> 250836 bytes
+  (-78.57%), readiness 7989 -> 2955ms, sampled LCP 6740 -> 1804ms. Login/POS/
+  finance also improve; all 12 final samples meet measured budgets. Warning limit
+  unchanged. Lazy admin routes, on-demand Excel/PDF and conditional thumbnail 3D.
+  Arabic/RTL POS complaints/options/toasts/checkout/reports in light/dark; decorative
+  login span, announced/associated errors, single redirect, stronger contrast/focus;
+  native related-dish modal with contained Tab/Escape/invoker restoration; labelled
+  X/Y room-plan controls reuse existing bounds/snapping; bilingual print media.
+  Caught/fixed finance BarController eager-side-effect dependency after splitting.
+  Real $10 workbook, deep-link/reload and simulated missing-chunk recovery pass.
+  Current manual provisioning/external billing model, flags/roles, test data,
+  runtime dependencies, monitoring, asset rollout and restore/rollback documented.
+  No optional billing, business/financial/role/schema/lock/worker-version changes.
+  Full task10_final_20261008_01: PASS 420 API / 4319 assertions, 137 unit,
+  54 browser (desktop/mobile Chrome, Firefox, WebKit plus original offline project),
+  zero failures/errors/skips. Lint/TypeScript/builds/Pint/Composer validation,
+  all three audits/tooling, migrations, queue/scheduler/host/recovery and all owned
+  fixture/database/storage/process cleanup pass; three Task 6 release regressions pass.
+  Required matrix CI definitions install pinned engines. Only API CI job timeout
+  adjusted after the suite for measured runtime plus installation, with YAML review;
+  application/test sources stayed frozen. Hosted execution remains NOT EXECUTED.
+  Invalid/intermediate failures and initial sandbox restrictions retained separately;
+  earlier in-progress entry superseded. No assertions weakened or prior tests edited.
+  Report: docs/testing/task-10-2026-10-08.txt. Evidence/hashes/summary:
+  docs/testing/task-10-2026-10-08/. Operating guide: docs/operations.md.
+  FAIL/BLOCKED outstanding locally: none. SKIPPED: zero. NOT EXECUTED: hosted CI,
+  rebuilt final API image, deployment/CDN/fleet rollback, public TLS/DNS, physical
+  devices/printer and field/load capacity. No general market-launch/a11y certification.
+  Changes remain uncommitted on both dedicated task branches. No push, merge,
+  deployment, production access, data rewrite or new commit performed. No later
+  task selected; ready for local review, with release approval/gates still separate.

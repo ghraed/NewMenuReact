@@ -1,0 +1,68 @@
+{
+  "profile": {
+    "viewport": "390x844",
+    "cpuSlowdown": 4,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "cache": "disabled"
+  },
+  "workload": "12 synthetic published dishes, 3 cold samples per route",
+  "medians": [
+    {
+      "path": "/menu",
+      "before": {
+        "jsBytes": 1170503,
+        "readyMs": 7989,
+        "lcpMs": 6740
+      },
+      "after": {
+        "jsBytes": 250836,
+        "readyMs": 2955,
+        "lcpMs": 1804
+      },
+      "scriptReductionPercent": 78.57
+    },
+    {
+      "path": "/admin/login",
+      "before": {
+        "jsBytes": 1170503,
+        "readyMs": 7275,
+        "lcpMs": 6716
+      },
+      "after": {
+        "jsBytes": 250836,
+        "readyMs": 2312,
+        "lcpMs": 1772
+      },
+      "scriptReductionPercent": 78.57
+    },
+    {
+      "path": "/staff/pos",
+      "before": {
+        "jsBytes": 1170503,
+        "readyMs": 8129,
+        "lcpMs": 7284
+      },
+      "after": {
+        "jsBytes": 311082,
+        "readyMs": 4216,
+        "lcpMs": 2940
+      },
+      "scriptReductionPercent": 73.42
+    },
+    {
+      "path": "/admin/finance",
+      "before": {
+        "jsBytes": 1170503,
+        "readyMs": 7818,
+        "lcpMs": 7152
+      },
+      "after": {
+        "jsBytes": 373096,
+        "readyMs": 4208,
+        "lcpMs": 3352
+      },
+      "scriptReductionPercent": 68.13
+    }
+  ]
+}

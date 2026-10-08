@@ -3,6 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
+  BarController,
   BarElement,
   CategoryScale,
   LineElement,
@@ -49,7 +50,6 @@ import {
   readGuestCurrencySettings,
 } from '../utils/currency';
 import { validateFinanceDateRange } from '../utils/financeReporting';
-import { downloadFinanceExecutiveWorkbook } from '../utils/financeReportWorkbook';
 import {
   buildOperationalLossDashboardReport,
   type OperationalLossDashboardReport,
@@ -59,7 +59,7 @@ import {
   OPERATIONAL_LOSS_CATEGORY_LABELS,
 } from '../utils/orderItemCompensation';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, LineController, Tooltip, Legend);
+ChartJS.register(BarController, CategoryScale, LinearScale, BarElement, LineElement, PointElement, LineController, Tooltip, Legend);
 
 const INVOICE_STATUS_VALUES: FinanceInvoiceStatus[] = ['draft', 'issued', 'paid', 'cancelled'];
 
@@ -1077,43 +1077,49 @@ const AdminFinanceDashboardPage: React.FC = () => {
   };
 
   const handleDownloadFinanceReport = async () => {
-    await downloadFinanceExecutiveWorkbook({
-      companyName: user?.restaurant?.name ?? t('adminFinancePage.executiveFinanceFallback'),
-      currency,
-      dateFrom,
-      dateTo,
-      pnl: {
-        ...pnlSummary,
-        revenue: convertFinanceAmount(pnlSummary.revenue),
-        cogs: convertFinanceAmount(pnlSummary.cogs),
-        gross_profit: convertFinanceAmount(pnlSummary.gross_profit),
-        operating_expenses: convertFinanceAmount(pnlSummary.operating_expenses),
-        net_profit: convertFinanceAmount(pnlSummary.net_profit),
-      },
-      tax: {
-        ...taxSummary,
-        taxable_sales: convertFinanceAmount(taxSummary.taxable_sales),
-        output_vat: convertFinanceAmount(taxSummary.output_vat),
-        input_vat: convertFinanceAmount(taxSummary.input_vat),
-        net_vat_payable: convertFinanceAmount(taxSummary.net_vat_payable),
-      },
-      payroll: {
-        ...payrollTotals,
-        gross_pay: convertFinanceAmount(payrollTotals.gross_pay),
-        deductions: convertFinanceAmount(payrollTotals.deductions),
-        tax: convertFinanceAmount(payrollTotals.tax),
-        net_pay: convertFinanceAmount(payrollTotals.net_pay),
-      },
-      chartLabels,
-      chartMetrics: {
-        revenue: chartMetrics.revenue.map((value) => convertFinanceAmount(value)),
-        totalCosts: chartMetrics.totalCosts.map((value) => convertFinanceAmount(value)),
-        netProfit: chartMetrics.netProfit.map((value) => convertFinanceAmount(value)),
-        cogs: chartMetrics.cogs.map((value) => convertFinanceAmount(value)),
-        operatingExpenses: chartMetrics.operatingExpenses.map((value) => convertFinanceAmount(value)),
-        payroll: chartMetrics.payroll.map((value) => convertFinanceAmount(value)),
-      },
-    });
+    setError(null);
+    try {
+      const { downloadFinanceExecutiveWorkbook } = await import('../utils/financeReportWorkbook');
+      await downloadFinanceExecutiveWorkbook({
+        companyName: user?.restaurant?.name ?? t('adminFinancePage.executiveFinanceFallback'),
+        currency,
+        dateFrom,
+        dateTo,
+        pnl: {
+          ...pnlSummary,
+          revenue: convertFinanceAmount(pnlSummary.revenue),
+          cogs: convertFinanceAmount(pnlSummary.cogs),
+          gross_profit: convertFinanceAmount(pnlSummary.gross_profit),
+          operating_expenses: convertFinanceAmount(pnlSummary.operating_expenses),
+          net_profit: convertFinanceAmount(pnlSummary.net_profit),
+        },
+        tax: {
+          ...taxSummary,
+          taxable_sales: convertFinanceAmount(taxSummary.taxable_sales),
+          output_vat: convertFinanceAmount(taxSummary.output_vat),
+          input_vat: convertFinanceAmount(taxSummary.input_vat),
+          net_vat_payable: convertFinanceAmount(taxSummary.net_vat_payable),
+        },
+        payroll: {
+          ...payrollTotals,
+          gross_pay: convertFinanceAmount(payrollTotals.gross_pay),
+          deductions: convertFinanceAmount(payrollTotals.deductions),
+          tax: convertFinanceAmount(payrollTotals.tax),
+          net_pay: convertFinanceAmount(payrollTotals.net_pay),
+        },
+        chartLabels,
+        chartMetrics: {
+          revenue: chartMetrics.revenue.map((value) => convertFinanceAmount(value)),
+          totalCosts: chartMetrics.totalCosts.map((value) => convertFinanceAmount(value)),
+          netProfit: chartMetrics.netProfit.map((value) => convertFinanceAmount(value)),
+          cogs: chartMetrics.cogs.map((value) => convertFinanceAmount(value)),
+          operatingExpenses: chartMetrics.operatingExpenses.map((value) => convertFinanceAmount(value)),
+          payroll: chartMetrics.payroll.map((value) => convertFinanceAmount(value)),
+        },
+      });
+    } catch {
+      setError(t('adminFinancePage.exportFailed'));
+    }
   };
 
   return (

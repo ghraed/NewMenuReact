@@ -20,7 +20,7 @@ const GlassInput = React.forwardRef<HTMLInputElement, GlassInputProps>(({
       <input
         ref={ref}
         className={cx(
-          'w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text placeholder:text-muted2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/55',
+          'w-full rounded-2xl border border-stroke bg-bg1/65 px-4 py-2.5 text-sm text-text placeholder:text-muted2 focus:outline-none focus-visible:ring-2 focus-visible:ring-text/70',
           hasSlots ? 'pl-10' : '',
           rightSlot ? 'pr-10' : '',
           className
