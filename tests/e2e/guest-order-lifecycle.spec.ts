@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import { expect, test } from '../setup/qaBrowser';
 
 test.describe('Guest order lifecycle', () => {
   test('guest unlocks a table, reviews the cart, submits an order, and sees the progressed order state', async ({ page }) => {
     const browserErrors: string[] = [];
     const guestToken = 'guest-token-abc';
+    const guestCacheKey = createHash('sha256').update(guestToken).digest('hex');
     const sessionId = 501;
     const guestCookieName = `guest_table_access_${sessionId}`;
     const tableId = 1;
@@ -113,6 +115,7 @@ test.describe('Guest order lifecycle', () => {
           ? {
             verified: true,
             token: null,
+            cache_key: guestCacheKey,
             joined_at: '2026-07-26T12:01:00.000Z',
             last_seen_at: '2026-07-26T12:04:00.000Z',
             expires_at: null,
@@ -235,6 +238,7 @@ test.describe('Guest order lifecycle', () => {
             guest_access: {
               verified: true,
               token: null,
+              cache_key: guestCacheKey,
               joined_at: '2026-07-26T12:01:00.000Z',
               last_seen_at: '2026-07-26T12:04:00.000Z',
               expires_at: null,
@@ -392,6 +396,7 @@ test.describe('Guest order lifecycle', () => {
             guest_access: {
               verified: true,
               token: null,
+              cache_key: guestCacheKey,
               joined_at: '2026-07-26T12:01:00.000Z',
               last_seen_at: '2026-07-26T12:04:00.000Z',
               expires_at: null,
