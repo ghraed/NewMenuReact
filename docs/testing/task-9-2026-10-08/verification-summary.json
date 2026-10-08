@@ -211,6 +211,8 @@
     "rebuilt release image with Task 9 migration",
     "deployment/production"
   ],
-  "source_changes": "uncommitted",
-  "push_merge_deploy": false
+  "source_changes": "committed",
+  "local_main_integration": "User-authorized no-ff integration; source commits and method in git-integration.json",
+  "push": false,
+  "deployment": false
 }

@@ -1,7 +1,8 @@
 TASK 9 — CONCURRENCY, OFFLINE AND STAFF MEMBERSHIP COVERAGE
 8 October 2026. Scope: selected Task 9 only, both repositories.
 Complete final paired validation: PASS. Task 9 is complete locally.
-Changes remain uncommitted on the paired task branches; no publishing/integration.
+The user subsequently authorized local add/commit/merge into main. Paired source
+commits and integration method are recorded in git-integration.json; no push/deploy.
 
 Repository state and preservation
   Initially clean main: Menu_React 620c5bd2050043452c536c3e008bbb9ab7969946;
@@ -13,7 +14,8 @@ Repository state and preservation
   All 125 previous test/fixture/release files are byte-identical to those bases.
   No prior test removed, weakened or skipped. No prior migration edited.
   No Task 10, dependency upgrade, UI redesign, permission expansion, production
-  access, push, merge, deployment or settled-record rewrite performed.
+  access, push, deployment or settled-record rewrite performed during implementation.
+  Local commit/merge was subsequently authorized separately by the user.
 
 First pass / environment
   Baseline 412 API / 4221 assertions, 133 unit, 17 browser; zero skips. Full

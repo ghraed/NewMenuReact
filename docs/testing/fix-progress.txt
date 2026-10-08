@@ -353,3 +353,14 @@ TASK 9 — COMPLETE LOCAL CONCURRENCY / OFFLINE / MEMBERSHIP COVERAGE
   production/fleet rollback. Task 10 remains unselected/NOT IMPLEMENTED.
   Changes are uncommitted on both task branches. No merge, push, deployment,
   production access or history rewrite; no claim of general market-launch approval.
+
+TASK 9 — USER-AUTHORIZED LOCAL COMMIT / MAIN INTEGRATION (8 October 2026)
+  Completed Task 9 source commits: API 3ba558048c43ed4439586db5c4a8572218d29a74;
+  frontend d592d9b1501138afd778e644c9c6e4cfc1705a8d. The user explicitly authorized
+  add, commit and merge into local main. Both use no-ff integration from the paired
+  Task 9 branch, preserving prior history. Tested-source hashes and all 125 prior
+  test/fixture files reverified before committing. Generated evidence whitespace
+  normalized only; no application/test behavior changed after verification.
+  Integration record: task-9-2026-10-08/git-integration.json. Earlier uncommitted/
+  no-merge notes describe the original implementation run, superseded here.
+  No push or deployment authorized/performed; hosted CI remains NOT EXECUTED.
